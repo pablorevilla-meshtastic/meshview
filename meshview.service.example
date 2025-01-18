@@ -1,0 +1,10 @@
+[Unit]
+Description=Meshview Python Service
+After=network.target
+[Service]
+User=meshview
+WorkingDirectory=/home/meshview/meshview
+ExecStart=/home/meshview/meshview/env/bin/python /home/meshview/meshview/main.py
+Restart=always
+[Install]
+WantedBy=multi-user.target
