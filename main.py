@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 import configparser
+import json
 from meshview import mqtt_reader
 from meshview import database
 from meshview import store
@@ -8,7 +9,7 @@ from meshview import web
 from meshview import http
 
 
-async def load_database_from_mqtt(mqtt_server: str , mqtt_port: int, topic: str, mqtt_user: str | None = None, mqtt_passwd: str | None = None):
+async def load_database_from_mqtt(mqtt_server: str , mqtt_port: int, topic: list, mqtt_user: str | None = None, mqtt_passwd: str | None = None):
     async for topic, env in mqtt_reader.get_topic_envelopes(mqtt_server, mqtt_port, topic, mqtt_user, mqtt_passwd):
         await store.process_envelope(topic, env)
 
@@ -23,10 +24,11 @@ async def main(config):
         mqtt_user: str = config["mqtt"]["username"]
     if config["mqtt"]["password"] != "":
         mqtt_passwd: str = config["mqtt"]["password"]
+    mqtt_topics = json.loads(config["mqtt"]["topics"])
 
     async with asyncio.TaskGroup() as tg:
         tg.create_task(
-            load_database_from_mqtt(config["mqtt"]["server"], int(config["mqtt"]["port"]), config["mqtt"]["topics"], mqtt_user, mqtt_passwd)
+            load_database_from_mqtt(config["mqtt"]["server"], int(config["mqtt"]["port"]), mqtt_topics, mqtt_user, mqtt_passwd)
         )
         tg.create_task(
             web.run_server(
