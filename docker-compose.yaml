@@ -1,0 +1,11 @@
+services:
+    meshview:
+        image: drewbeer/meshview:latest
+        container_name: meshview
+        environment:
+            TZ: UTC
+        ports:
+          - 8081:8081
+        volumes:
+            - ./config.ini:/opt/meshview/config.ini
+            - ./db:/opt/meshview/db

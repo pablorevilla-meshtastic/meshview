@@ -3,9 +3,29 @@
 This project watches a MQTT topic for meshtastic messages, imports them to a
 database and has a web UI to view them.
 
-An example of a currently running instace for the San Francisco Bay Area mesh runs at https://meshview.bayme.sh
+Examples:
+* San Francisco Bay Area  - https://meshview.bayme.sh
+* Socal Mesh - https://socalmesh.w4hac.com
+
+
+## Docker example
+
+copy sample.config.ini to config.ini and edit.
+
+then modify the docker-compose.yaml file for any path changes you have. otherwise it will use the current directory, the db by default is persistent, and a db directory is created in the current directory.
+
+
+now bring up the container
+
+```bash
+docker compose up -d
+```
+
+visit https://localhost:8081
+
 
 Requires **`python3.11`** or above.
+
 
 ## Preparing
 
