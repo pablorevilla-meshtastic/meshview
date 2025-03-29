@@ -76,6 +76,8 @@
                                 NODEINFO_APP
                             {% elif port.portnum == 5 %}
                                 ROUTING_APP
+                            {% elif port.portnum == 8 %}
+                                WAYPOINT_APP
                             {% elif port.portnum == 67 %}
                                 TELEMETRY_APP
                             {% elif port.portnum == 70 %}
