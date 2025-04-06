@@ -34,15 +34,16 @@
 <div id="map" style="width: 100%; height: 600px;"></div>
 
 <div id="filter-container">
-    <input type="checkbox" class="filter-checkbox" id="filter-longfast" checked> LongFast
-    <input type="checkbox" class="filter-checkbox" id="filter-mediumslow" checked> MediumSlow
-    <input type="checkbox" class="filter-checkbox" id="filter-router-longfast" checked> LongFast Routers
-    <input type="checkbox" class="filter-checkbox" id="filter-router-mediumslow" checked> MediumSlow Routers
+    <!-- Filters will be dynamically generated here -->
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
      crossorigin=""></script>
+
+<div id="filter-container">
+    <input type="checkbox" class="filter-checkbox" id="filter-routers-only"> Show Routers Only
+</div>
 
 <script>
     var map = L.map('map');
@@ -52,8 +53,9 @@
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
-    var markers = { LongFast: [], MediumSlow: [], RouterLongFast: [], RouterMediumSlow: [] };
+    var markers = {};
     var bounds = L.latLngBounds();
+    var channels = new Set(); // Stores unique channels
 
     var nodes = [
         {% for node in nodes %}
@@ -67,7 +69,8 @@
             role: "{{ node.role | escape }}",
             last_update: "{{ node.last_update | escape }}",
             firmware: "{{ node.firmware | escape }}",
-            id: "{{ node.node_id }}"
+            id: "{{ node.node_id }}",
+            isRouter: "{{ 'router' in node.role.lower() }}"
         },
         {% endfor %}
     ];
@@ -86,18 +89,30 @@
         return seconds + "s";
     }
 
+    function hashToColor(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        let hue = hash % 360;
+        return `hsl(${hue}, 80%, 50%)`;
+    }
+
     nodes.forEach(function(node) {
         if (node.lat !== null && node.long !== null) {
-            let category = node.channel.toLowerCase().includes("mediumslow") ? "MediumSlow" : "LongFast";
-            let color = category === "MediumSlow" ? "#0000ff" : "#ff0000";
-            let isRouter = node.role.toLowerCase().includes("router");
+            let category = node.channel;
+            let isRouter = node.isRouter === "True"; // Convert from string
+
+            channels.add(category);
+
+            let color = hashToColor(category);
 
             let markerOptions = {
                 radius: isRouter ? 9 : 7,
                 color: "white",
                 fillColor: color,
                 fillOpacity: 1,
-                weight: .7,
+                weight: 0.7,
             };
 
             var popupContent = `
@@ -110,18 +125,10 @@
             if (node.firmware) popupContent += `<b>Firmware:</b> ${node.firmware}<br>`;
 
             var marker = L.circleMarker([node.lat, node.long], markerOptions).bindPopup(popupContent);
-
             marker.addTo(map);
 
-            if (isRouter) {
-                if (category === "LongFast") {
-                    markers.RouterLongFast.push(marker);
-                } else {
-                    markers.RouterMediumSlow.push(marker);
-                }
-            } else {
-                markers[category].push(marker);
-            }
+            if (!markers[category]) markers[category] = [];
+            markers[category].push({ marker, isRouter });
 
             bounds.extend(marker.getLatLng());
         }
@@ -133,17 +140,31 @@
     ];
     map.fitBounds(bayAreaBounds);
 
+    let filterContainer = document.getElementById("filter-container");
+
+    channels.forEach(channel => {
+        let filterId = `filter-${channel.replace(/\s+/g, '-').toLowerCase()}`;
+        let color = hashToColor(channel);
+        let filterHtml = `
+            <label style="color:${color};">
+                <input type="checkbox" class="filter-checkbox" id="${filterId}" checked> ${channel}
+            </label>
+        `;
+        filterContainer.innerHTML += filterHtml;
+    });
 
     function updateMarkers() {
-        let showLongFast = document.getElementById("filter-longfast").checked;
-        let showMediumSlow = document.getElementById("filter-mediumslow").checked;
-        let showRouterLongFast = document.getElementById("filter-router-longfast").checked;
-        let showRouterMediumSlow = document.getElementById("filter-router-mediumslow").checked;
+        let showRoutersOnly = document.getElementById("filter-routers-only").checked;
 
-        markers.LongFast.forEach(m => showLongFast ? map.addLayer(m) : map.removeLayer(m));
-        markers.MediumSlow.forEach(m => showMediumSlow ? map.addLayer(m) : map.removeLayer(m));
-        markers.RouterLongFast.forEach(m => showRouterLongFast ? map.addLayer(m) : map.removeLayer(m));
-        markers.RouterMediumSlow.forEach(m => showRouterMediumSlow ? map.addLayer(m) : map.removeLayer(m));
+        channels.forEach(channel => {
+            let filterId = `filter-${channel.replace(/\s+/g, '-').toLowerCase()}`;
+            let isChecked = document.getElementById(filterId).checked;
+
+            markers[channel].forEach(obj => {
+                let shouldShow = isChecked && (!showRoutersOnly || obj.isRouter);
+                shouldShow ? map.addLayer(obj.marker) : map.removeLayer(obj.marker);
+            });
+        });
     }
 
     document.querySelectorAll(".filter-checkbox").forEach(input => {
@@ -151,4 +172,5 @@
     });
 
 </script>
+
 {% endblock %}

@@ -1,5 +1,7 @@
+
 # Meshview
 ![node](screenshots/nodeinfo.png)
+
 This project watches a MQTT topic for meshtastic messages, imports them to a
 database and has a web UI to view them.
 
@@ -29,85 +31,215 @@ Requires **`python3.11`** or above.
 
 ## Preparing
 
-Clone the repo from github with:
-``` bash 
+```bash
 git clone --recurse-submodules https://github.com/pablorevilla-meshtastic/meshview.git
 ```
-> [!NOTE]
+
+> **NOTE**  
 > It is important to include the `--recurse-submodules` flag or the meshtastic protobufs won't be included.
 
-Create a python virtual environment:
-``` bash
+Create a Python virtual environment:
+
+```bash
 cd meshview
-```
-``` bash
 python3 -m venv env
 ```
+
 Install the environment requirements:
-``` bash
+
+```bash
 ./env/bin/pip install -r requirements.txt
 ```
-You also need to install `graphviz`:
-``` bash
+
+Install `graphviz`:
+
+```bash
 sudo apt-get install graphviz
 ```
+
 Copy `sample.config.ini` to `config.ini`:
-``` bash
+
+```bash
 cp sample.config.ini config.ini
 ```
- Edit `config.ini` and change the MQTT server, and Web server settings. 
- ```bash
- nano config.ini
- ``` 
+
+Edit `config.ini` to match your MQTT and web server settings:
+
+```bash
+nano config.ini
+```
+
+Example:
+
 ```ini
+# Server Details
 [server]
 bind = *
 port = 8081
-tls_cert = 
-acme_challenge = 
+tls_cert =
+acme_challenge =
 
+# Site Details
 [site]
-domain = http://meshview.bayme.sh
+domain = https://www.bayme.sh
 title = Bay Area Mesh
-message =
+message = Real time data from around the bay area and beyond.
+
+# Quick links enablement on site
+nodes=True
+conversations=True
+everything=True
+graph_lf=True
+graph_ms=True
+graph_mf=False
+stats=True
+net=True
+map=True
+top=True
+
 # Map structure
 map_top_left_lat=39
 map_top_left_lon=-123
 map_bottom_right_lat=36
 map_bottom_right_lon=-121
 
+# Note about how your weekly mesh runs. time and tag used for the system to track.
+weekly_net_message= Weekly Mesh check-in. We will keep it open on every Wednesday from 5:00pm for checkins. The message format should be (LONG NAME) - (CITY YOU ARE IN) #MeshNet.
+
+# MQTT Server configuration 
 [mqtt]
 server = mqtt.bayme.sh
-topics = ["msh/US/bayarea/#", "msh/US/CA/mrymesh/#"] 
+topics = ["msh/US/bayarea/#", "msh/US/CA/mrymesh/#", "msh/US/CA/sacvalley" ]
 port = 1883
 username = meshdev
 password = large4cats
 
+# Database configuration 
 [database]
 connection_string = sqlite+aiosqlite:///packets.db
 ```
 
+---
+
 ## Running Meshview
-Start the database connection.
-``` bash
+
+Start the database:
+
+```bash
 ./env/bin/python startdb.py
 ```
-Start the web server.
-``` bash
+
+Start the web server:
+
+```bash
 ./env/bin/python main.py
 ```
-> [!NOTE]
-> You can specify the path to your `config.ini` file with the run command argument `--config`
-> ``` bash
->./env/bin/python startdb.py --config /path/to/config.ini
->./env/bin/python main.py --config /path/to/config.ini
->```
-## Running Meshview with `mvrun.py`
-- `mvrun.py` starts `startdb.py` and `main.py` in their own subprocess threads and combines their terminal output.
-- `mvrun.py` accepts the `--config` run command.
 
-``` bash
+> **NOTE**  
+> You can specify a custom config file with the `--config` flag:
+>
+> ```bash
+> ./env/bin/python startdb.py --config /path/to/config.ini
+> ./env/bin/python main.py --config /path/to/config.ini
+> ```
+
+---
+
+## Running Meshview with `mvrun.py`
+
+- `mvrun.py` starts both `startdb.py` and `main.py` in separate threads and merges the output.
+- It accepts the `--config` argument like the others.
+
+```bash
 ./env/bin/python mvrun.py
 ```
 
-Now you can hit http://localhost:8081/ ***(if you did not change the web server port )***
+Open in your browser: http://localhost:8081/
+
+---
+
+## Setting Up Systemd Services (Ubuntu)
+
+To run Meshview automatically on boot, create systemd services for `startdb.py` and `main.py`.
+
+### 1. Service for `startdb.py`
+
+Create:
+
+```bash
+sudo nano /etc/systemd/system/meshview-db.service
+```
+
+Paste:
+
+```ini
+[Unit]
+Description=Meshview Database Initializer
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/path/to/meshview
+ExecStart=/path/to/meshview/env/bin/python /path/to/meshview/startdb.py --config /path/to/meshview/config.ini
+Restart=always
+RestartSec=5
+User=yourusername
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 2. Service for `main.py`
+
+Create:
+
+```bash
+sudo nano /etc/systemd/system/meshview-web.service
+```
+
+Paste:
+
+```ini
+[Unit]
+Description=Meshview Web Server
+After=network.target meshview-db.service
+
+[Service]
+Type=simple
+WorkingDirectory=/path/to/meshview
+ExecStart=/path/to/meshview/env/bin/python /path/to/meshview/main.py --config /path/to/meshview/config.ini
+Restart=always
+RestartSec=5
+User=yourusername
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 3. Enable and start the services
+
+```bash
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable meshview-db
+sudo systemctl enable meshview-web
+sudo systemctl start meshview-db
+sudo systemctl start meshview-web
+```
+
+### 4. Check status
+
+```bash
+systemctl status meshview-db
+systemctl status meshview-web
+```
+
+> **TIP**  
+> After editing `.service` files, always run:
+>
+> ```bash
+> sudo systemctl daemon-reload
+> ```
+
+---
+```
