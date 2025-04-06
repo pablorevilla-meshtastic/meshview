@@ -1,30 +1,33 @@
 import asyncio
+import datetime
+import gc
 import io
+import json
+import os
+import re
+import ssl
 from collections import Counter
 from dataclasses import dataclass
-import datetime
-import ssl
-import re
-import os
-import pydot
-from pandas import DataFrame
-import plotly.express as px
-import seaborn as sns
+import csv
 import matplotlib.pyplot as plt
+import plotly.express as px
+import psutil
+import pydot
+import seaborn as sns
 from aiohttp import web
-from markupsafe import Markup
-from jinja2 import Environment, PackageLoader, select_autoescape, Undefined
 from google.protobuf import text_format
 from google.protobuf.message import Message
+from jinja2 import Environment, PackageLoader, select_autoescape, Undefined
+from markupsafe import Markup
+from pandas import DataFrame
+
 from meshtastic.protobuf.portnums_pb2 import PortNum
-from meshview import store
-from meshview import models
-from meshview import decode_payload
-from meshview import database
-import psutil
-import gc
 from meshview import config
-import json
+from meshview import database
+from meshview import decode_payload
+from meshview import models
+from meshview import store
+from meshview.store import get_total_node_count
 
 CONFIG = config.CONFIG
 
@@ -299,6 +302,30 @@ async def packet_list(request):
         content_type="text/html",
     )
 
+
+from aiohttp import web
+
+
+@routes.get("/packet_list_text/{node_id}")
+async def packet_list_text(request):
+    node_id = int(request.match_info["node_id"])
+    portnum = int(request.query.get("portnum")) if request.query.get("portnum") else None
+
+    async with asyncio.TaskGroup() as tg:
+        raw_packets = tg.create_task(store.get_packets(node_id, portnum, limit=200))
+
+    packets = [Packet.from_model(p) for p in await raw_packets]  # Convert generator to a list
+
+    # Convert packets to a plain text format with formatted import time and raw payload
+    text_data = "\n\n----------------------\n\n".join(
+        f"{packet.import_time.strftime('%-I:%M:%S %p - %m-%d-%Y')}\n{packet.raw_payload}"
+        for packet in packets
+    )
+
+    return web.Response(
+        text=text_data,
+        content_type="text/plain",
+    )
 
 
 # Updated code p.r.
@@ -1095,9 +1122,6 @@ async def nodelist(request):
         )
 
 
-import traceback
-
-
 @routes.get("/api")
 async def api(request):
     try:
@@ -1136,10 +1160,10 @@ async def net(request):
         # Precompile regex for performance
         seq_pattern = re.compile(r"seq \d+$")
 
-        # Filter packets: exclude "seq \d+$" but include those containing "pablo-test"
+        # Filter packets: exclude "seq \d+$" but include those containing Tag
         filtered_packets = [
             p for p in ui_packets
-            if not seq_pattern.match(p.payload) and "baymeshnet" in p.payload.lower()
+            if not seq_pattern.match(p.payload) and CONFIG["site"]["net_tag"] in p.payload.lower()
         ]
 
         # Render template
@@ -1191,8 +1215,8 @@ async def stats(request):
         total_packets = await store.get_total_packet_count()
         total_nodes = await store.get_total_node_count()
         total_packets_seen = await store.get_total_packet_seen_count()
-        total_nodes_longfast = await store.get_total_node_count_longfast()
-        total_nodes_mediumslow = await store.get_total_node_count_mediumslow()
+        total_nodes_longfast = await get_total_node_count("LongFast")
+        total_nodes_mediumslow = await get_total_node_count("MediumSlow")
         print_memory_usage()
         template = env.get_template("stats.html")
         return web.Response(
@@ -1208,7 +1232,7 @@ async def stats(request):
         )
     except Exception as e:
         return web.Response(
-            text="An error occurred while processing your request.",
+            text=f"An error occurred: {str(e)}",
             status=500,
             content_type="text/plain",
         )

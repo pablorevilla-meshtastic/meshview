@@ -144,14 +144,6 @@ async def get_total_packet_count():
         result = await session.execute(q)
         return result.scalar()  # Return the total count of packets
 
-# We count the total amount of nodes
-async def get_total_node_count():
-    async with database.async_session() as session:
-        q = select(func.count(Node.id))  # Use SQLAlchemy's func to count nodes
-        q = q.where(Node.last_update > datetime.datetime.now() - datetime.timedelta(days=1)) # Look for nodes with nodeinfo updates in the last 24 hours
-        result = await session.execute(q)
-        return result.scalar()  # Return the total count of nodes
-
 # We count the total amount of seen packets
 async def get_total_packet_seen_count():
     async with database.async_session() as session:
@@ -160,58 +152,23 @@ async def get_total_packet_seen_count():
         return result.scalar()  # Return the total count of seen packets
 
 
-async def get_total_node_count_longfast() -> int:
+
+async def get_total_node_count(channel: str = None) -> int:
     try:
-        # Open an asynchronous session with the database
         async with database.async_session() as session:
-            # Build the query to count nodes where channel == 'LongFast'
-            q = select(func.count(Node.id))
-            q = q.where(Node.last_update > datetime.datetime.now() - datetime.timedelta( days=1))  # Look for nodes with nodeinfo updates in the last 24 hours
-            q = q.where(Node.channel == 'LongFast')  #
+            q = select(func.count(Node.id)).where(
+                Node.last_update > datetime.datetime.now() - datetime.timedelta(days=1)
+            )
 
-            # Execute the query asynchronously and fetch the result
+            if channel:
+                q = q.where(Node.channel == channel)
+
             result = await session.execute(q)
-
-            # Return the scalar value (the count of nodes)
             return result.scalar()
     except Exception as e:
-        # Log or handle the exception if needed (optional, replace with logging if necessary)
         print(f"An error occurred: {e}")
-        return 0  # Return 0 or an appropriate fallback value in case of an error
+        return 0
 
-
-async def get_total_node_count_mediumslow() -> int:
-    try:
-        # Open an asynchronous session with the database
-        async with database.async_session() as session:
-            # Build the query to count nodes where channel == 'LongFast'
-            q = select(func.count(Node.id))
-            q = q.where(Node.last_update > datetime.datetime.now() - datetime.timedelta(
-                days=1))  # Look for nodes with nodeinfo updates in the last 24 hours
-            q = q.where(Node.channel == 'MediumSlow')  #
-            # Execute the query asynchronously and fetch the result
-            result = await session.execute(q)
-
-            # Return the scalar value (the count of nodes)
-            return result.scalar()
-    except Exception as e:
-        # Log or handle the exception if needed (optional, replace with logging if necessary)
-        print(f"An error occurred: {e}")
-        return 0  # Return 0 or an appropriate fallback value in case of an error
-
-
-# Get Nodes for mediumslow only
-# p.r.
-async def get_nodes_mediumslow():
-    async with database.async_session() as session:
-        result = await session.execute(
-                select(Node)
-                .where(
-                (Node.channel == "MediumSlow")
-                )
-        )
-
-        return result.scalars()
 
 async def get_top_traffic_nodes():
     async with database.async_session() as session:
@@ -247,7 +204,7 @@ async def get_node_traffic(node_id: int):
                         node.long_name, packet.portnum, 
                         COUNT(*) AS packet_count
                     FROM packet
-                    JOIN node ON packet.from_node_id = node.node_id OR packet.to_node_id = node.node_id
+                    JOIN node ON packet.from_node_id = node.node_id
                     WHERE node.node_id = :node_id 
                     AND packet.import_time >= DATETIME('now', 'localtime', '-1 day') 
                     GROUP BY packet.portnum
@@ -312,3 +269,4 @@ async def get_nodes(role=None, channel=None, hw_model=None):
     except Exception as e:
         print("error reading DB")  # Consider using logging instead of print
         return []  # Return an empty list in case of failure
+

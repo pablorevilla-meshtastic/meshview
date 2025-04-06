@@ -8,68 +8,99 @@
 #mynetwork {
     width: 100%;
     height: 100vh;
-    max-width: 2000px;
-    max-height: 2000px;
-    border: 1px solid lightgray;
-    background-color: white;
+    border: 1px solid #ddd;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.legend {
+.search-container {
     position: absolute;
-    bottom: 10px;
+    bottom: 100px;
     left: 10px;
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 5px;
-    border-radius: 5px;
+    z-index: 10;
+    display: flex;
+    gap: 5px;
+}
+
+.search-container input {
+    padding: 8px;
+    border-radius: 8px;
     border: 1px solid #ccc;
-    font-size: 12px;
-    color: #333;
+}
+
+.search-container button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+.search-container button:hover {
+    background-color: #0056b3;
 }
 
 #node-info {
     position: absolute;
     bottom: 10px;
     right: 10px;
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    color: #333;
+    width: 260px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+#legend {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(255, 255, 255, 0.9);
     padding: 10px;
     border-radius: 5px;
     border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     font-size: 14px;
-    color: #333;
-    width: 250px;
-    max-height: 200px;
-    overflow-y: auto;
+}
+
+.legend-box {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 5px;
+    border-radius: 3px;
 }
 {% endblock %}
 
 {% block body %}
-<div style="position: absolute; top: 10px; left: 10px; z-index: 10;">
-    <input type="text" id="node-search" placeholder="Search node..."
-           style="padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
-    <button onclick="searchNode()"
-            style="padding: 5px 10px; margin-left: 5px; border-radius: 5px; border: 1px solid #ccc; background-color: #3388ff; color: white;">
-        Search
-    </button>
-</div>
+
 
 <div id="mynetwork"></div>
-
-<!-- Legend -->
-<div class="legend">
-    <div><span style="background-color: #ff5733; width: 20px; height: 20px; display: inline-block; border-radius: 50%; margin-right: 5px;"></span> Traceroute</div>
-    <div><span style="background-color: #3388ff; width: 20px; height: 20px; display: inline-block; border-radius: 50%; margin-right: 5px;"></span> NeighborInfo</div>
+<div class="search-container">
+    <input type="text" id="node-search" placeholder="Search node...">
+    <button onclick="searchNode()">Search</button>
 </div>
-
-<!-- Node Information Panel -->
 <div id="node-info">
-    <b>Long Name: </b> <span id="node-long-name"></span></br>
-    <b>Short Name: </b><span id="node-short-name"></span></br>
-    <b>Role: </b><span id="node-role"></span></br>
-    <b>Hardware Model: </b><span id="node-hw-model"></span>
+    <b>Long Name:</b> <span id="node-long-name"></span><br>
+    <b>Short Name:</b> <span id="node-short-name"></span><br>
+    <b>Role:</b> <span id="node-role"></span><br>
+    <b>Hardware Model:</b> <span id="node-hw-model"></span>
 </div>
+
+<div id="legend">
+    <div><span class="legend-box" style="background-color: #ff5733;"></span> <span style="color: black;">Traceroute</span></div>
+    <div><span class="legend-box" style="background-color: #3388ff;"></span> <span style="color: black;">Neighbor</span></div>
+</div>
+
 
 <script type="text/javascript">
-    // Initialize chart
     var chart = echarts.init(document.getElementById('mynetwork'));
 
     var nodes = [
@@ -77,21 +108,17 @@
         {
             name: `{{ node.node_id }}`,
             value: `{{ node.long_name | tojson }}`,
-            symbol: 'rect',
-            symbolSize: [5, 5],
+            symbol: 'circle',
+            symbolSize: 15,
+            itemStyle: { color: '#007bff' },
             label: {
                 show: true,
-                position: 'inside',
-                color: '#000',
-                padding: [5, 10],
+                position: 'right',
+                color: '#333',
+                fontSize: 12,
                 formatter: function(params) {
-                    // Remove quotes around the long_name
-                    return params.data.value.replace(/^"(.*)"$/, '$1'); // Remove surrounding quotes
-                },
-                backgroundColor: '#f0f0f0',
-                borderColor: '#999',
-                borderWidth: 1,
-                borderRadius: 5
+                    return params.data.value.replace(/^\"(.*)\"$/, '$1');
+                }
             },
             long_name: `{{ node.long_name | tojson }}`,
             short_name: `{{ node.short_name | tojson }}`,
@@ -108,42 +135,17 @@
             target: `{{ edge.to }}`,
             originalColor: `{{ edge.originalColor }}`,
             lineStyle: {
-                color: '#d3d3d3',
-                width: 2,
-                opacity: 0.5
+                color: '#d3d3d3',  // Default gray color
+                width: 2
             }
         }{% if not loop.last %},{% endif %}
     {% endfor %}
     ];
 
     var option = {
-        backgroundColor: 'white',
-        tooltip: {
-            formatter: function(params) {
-                if (params.dataType === 'node') {
-                    return (params.data.long_name || 'Unknown') + ' - ' + (params.data.short_name || 'Unknown');
-                } else {
-                    return ''; // Hide tooltip for edges
-                }
-            }
-        },
-
-        animationDuration: 0,  // Disable all animation
-        animationEasing: 'linear', // Make easing linear to avoid any animation effect
-        legend: {
-            data: ['Traceroute', 'NeighborInfo'],
-            selectedMode: false,
-            left: 'center',
-            bottom: '5%',
-            orient: 'vertical',
-            textStyle: {
-                fontSize: 12,
-                color: '#333'
-            },
-            itemWidth: 10,
-            itemHeight: 10,
-            padding: [5, 15]
-        },
+        backgroundColor: '#f8f9fa',
+        tooltip: { show: false },
+        animation: false,
         series: [
             {
                 type: 'graph',
@@ -151,57 +153,48 @@
                 data: nodes,
                 links: edges,
                 roam: true,
-                force: {
-                    repulsion: 100, // Reduced repulsion for more static graph
-                    edgeLength: [100, 150], // Shorten edge length to keep nodes closer
-                    gravity: 0.03 // Lower gravity to prevent too much movement
-                },
-                lineStyle: {
-                    width: 2,
-                    curveness: 0
-                },
-                edgeLabel: { show: false }, // Hides edge labels
-                tooltip: { show: false } // Disables tooltips for edges
+                force: { repulsion: 200, edgeLength: [80, 120] }
             }
         ]
     };
 
     chart.setOption(option);
 
-    // Event listener for node clicks
+    function updateSelectedNode(selectedNode) {
+        var updatedEdges = edges.map(edge => ({
+            ...edge,
+            lineStyle: {
+                color: (edge.source === selectedNode || edge.target === selectedNode) ? edge.originalColor : '#d3d3d3',
+                width: (edge.source === selectedNode || edge.target === selectedNode) ? 4 : 2
+            }
+        }));
+
+        var updatedNodes = nodes.map(node => ({
+            ...node,
+            itemStyle: {
+                color: node.name === selectedNode ? '#ff0000' : '#007bff'
+            }
+        }));
+
+        chart.setOption({ series: [{ links: updatedEdges, data: updatedNodes }] });
+
+        var nodeData = nodes.find(n => n.name === selectedNode);
+        if (nodeData) {
+            document.getElementById('node-long-name').innerText = nodeData.long_name;
+            document.getElementById('node-short-name').innerText = nodeData.short_name;
+            document.getElementById('node-role').innerText = nodeData.role;
+            document.getElementById('node-hw-model').innerText = nodeData.hw_model;
+        }
+    }
+
     chart.on('click', function(params) {
         if (params.dataType === 'node') {
-            var selectedNode = params.data.name;
-
-            var updatedEdges = edges.map(edge => {
-                if (edge.source === selectedNode || edge.target === selectedNode) {
-                    return {
-                        ...edge,
-                        lineStyle: {
-                            color: edge.originalColor,
-                            width: 2,
-                            opacity: 1
-                        }
-                    };
-                } else {
-                    return edge;
-                }
-            });
-
-            chart.setOption({
-                series: [{ links: updatedEdges }]
-            });
-
-            document.getElementById('node-long-name').innerText = params.data.long_name;
-            document.getElementById('node-short-name').innerText = params.data.short_name;
-            document.getElementById('node-role').innerText = params.data.role;
-            document.getElementById('node-hw-model').innerText = params.data.hw_model;
+            updateSelectedNode(params.data.name);
         }
     });
 
     function searchNode() {
         var searchQuery = document.getElementById('node-search').value.toLowerCase().trim();
-
         if (!searchQuery) return;
 
         var foundNode = nodes.find(node =>
@@ -211,53 +204,7 @@
         );
 
         if (foundNode) {
-            // Update the node's label background color to light blue
-            chart.setOption({
-                series: [{
-                    data: nodes.map(node => ({
-                        ...node,
-                        label: {
-                            ...node.label,
-                            backgroundColor: node.name === foundNode.name ? '#add8e6' : node.label.backgroundColor
-                        }
-                    }))
-                }]
-            });
-
-            // Simulate node click behavior
-            var updatedEdges = edges.map(edge => {
-                if (edge.source === foundNode.name || edge.target === foundNode.name) {
-                    return {
-                        ...edge,
-                        lineStyle: {
-                            color: edge.originalColor,
-                            width: 2,
-                            opacity: 1
-                        }
-                    };
-                } else {
-                    return edge;
-                }
-            });
-
-            chart.setOption({
-                series: [{ links: updatedEdges }]
-            });
-
-            // Update the node info panel
-            document.getElementById('node-long-name').innerText = foundNode.long_name;
-            document.getElementById('node-short-name').innerText = foundNode.short_name;
-            document.getElementById('node-role').innerText = foundNode.role;
-            document.getElementById('node-hw-model').innerText = foundNode.hw_model;
-
-            // Recenter the graph on the found node
-            chart.dispatchAction({
-                type: 'moveTo',
-                seriesIndex: 0,
-                dataIndex: nodes.indexOf(foundNode),
-                zoom: 1.5 // Adjust zoom level as needed
-            });
-
+            updateSelectedNode(foundNode.name);
         } else {
             alert("Node not found!");
         }

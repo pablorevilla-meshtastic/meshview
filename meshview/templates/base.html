@@ -37,12 +37,20 @@
     <body hx-indicator="#spinner">
         <br><div style="text-align:center"><strong>{{ site_config["site"]["title"] }} {{ site_config["site"]["domain"] }}</strong></div>
         <div style="text-align: center;">{{ site_config["site"]["message"] }}</div>
-        <div style="text-align:center">Quick Links:&nbsp;&nbsp;<a href="/nodelist">Nodes</a>&nbsp;-&nbsp;<a href="/chat">Conversations</a>&nbsp;-&nbsp;<a href="/firehose">See <strong>everything</strong> </a>
-            &nbsp;-&nbsp;Mesh Graph <a href="/nodegraph/LongFast">LF</a>&nbsp;-&nbsp;<a href="/nodegraph/MediumSlow">MS </a>&nbsp;-&nbsp;<a href="/stats">Stats </a>
-        &nbsp;-&nbsp;<a href="/net">Weekly Net</a>&nbsp;-&nbsp;<a href="/map">Map</a>&nbsp;-&nbsp;<a href="/top">Top Traffic</a></div><br>
-        <div id="spinner" class="spinner-border secondary-primary htmx-indicator position-absolute top-50 start-50" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
+        <div style="text-align:center">Quick Links:&nbsp;&nbsp;
+            {% if site_config["site"]["nodes"] == "True" %}<a href="/nodelist">Nodes</a>&nbsp;-&nbsp;{% endif %}
+            {% if site_config["site"]["conversations"] == "True" %}<a href="/chat">Conversations</a>&nbsp;-&nbsp;{% endif %}
+            {% if site_config["site"]["everything"] == "True" %}<a href="/firehose">See <strong>everything</strong></a>&nbsp;-&nbsp;{% endif %}
+            {% if site_config["site"]["graph_lf"] == "True" %} Mesh Graph: <a href="/nodegraph/LongFast">LF</a>&nbsp;-&nbsp;{% endif %}
+            {% if site_config["site"]["graph_ms"] == "True" %}<a href="/nodegraph/MediumSlow">MS</a>&nbsp;-&nbsp;{% endif %}
+            {% if site_config["site"]["graph_mf"] == "True" %}<a href="/nodegraph/MediumFast">MF</a>&nbsp;-&nbsp;{% endif %}
+            {% if site_config["site"]["net"] == "True" %}<a href="/net">Weekly Net</a>&nbsp;-&nbsp;{% endif %}
+            {% if site_config["site"]["map"] == "True" %}<a href="/map">Map</a>&nbsp;-&nbsp;{% endif %}
+            {% if site_config["site"]["stats"] == "True" %}<a href="/stats">Stats</a>&nbsp;-&nbsp;{% endif %}
+            {% if site_config["site"]["top"] == "True" %}<a href="/top">Top Traffic</a>{% endif %}
+        </div><br>
+
+
         {% block body %}
         {% endblock %}
     <br><div style="text-align:center">Visit <strong><a href="https://github.com/pablorevilla-meshtastic/meshview">Meshview</a></strong> on Github. Also visit the original <a href="https://github.com/armooo/meshview">Meshview</a> by Armooo.</div><br>
