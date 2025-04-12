@@ -8,4 +8,4 @@ services:
           - 8081:8081
         volumes:
             - ./config.ini:/opt/meshview/config.ini
-            - ./db:/opt/meshview/db
+            - ./db/packets.db:/packets.db
