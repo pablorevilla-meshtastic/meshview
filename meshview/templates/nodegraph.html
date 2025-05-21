@@ -20,19 +20,19 @@
     left: 10px;
     z-index: 10;
     display: flex;
+    flex-direction: column;
     gap: 5px;
 }
 
-.search-container input {
+.search-container input,
+.search-container select,
+.search-container button {
     padding: 8px;
     border-radius: 8px;
     border: 1px solid #ccc;
 }
 
 .search-container button {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: none;
     background-color: #007bff;
     color: white;
     cursor: pointer;
@@ -80,13 +80,15 @@
 {% endblock %}
 
 {% block body %}
-
-
 <div id="mynetwork"></div>
+
 <div class="search-container">
+    <label for="channel-select" style="color: #333;">Channel:</label>
+    <select id="channel-select" onchange="filterByChannel()"></select>
     <input type="text" id="node-search" placeholder="Search node...">
     <button onclick="searchNode()">Search</button>
 </div>
+
 <div id="node-info">
     <b>Long Name:</b> <span id="node-long-name"></span><br>
     <b>Short Name:</b> <span id="node-short-name"></span><br>
@@ -99,11 +101,10 @@
     <div><span class="legend-box" style="background-color: #3388ff;"></span> <span style="color: black;">Neighbor</span></div>
 </div>
 
-
 <script type="text/javascript">
-    var chart = echarts.init(document.getElementById('mynetwork'));
+    const chart = echarts.init(document.getElementById('mynetwork'));
 
-    var nodes = [
+    const nodes = [
     {% for node in nodes %}
         {
             name: `{{ node.node_id }}`,
@@ -120,65 +121,114 @@
                     return params.data.value.replace(/^\"(.*)\"$/, '$1');
                 }
             },
-            long_name: `{{ node.long_name | tojson }}`,
-            short_name: `{{ node.short_name | tojson }}`,
-            role: `{{ node.role | tojson }}`,
-            hw_model: `{{ node.hw_model | tojson }}`
+            long_name: `{{ node.long_name }}`,
+            short_name: `{{ node.short_name }}`,
+            role: `{{ node.role }}`,
+            hw_model: `{{ node.hw_model }}`,
+            channel: `{{ node.channel }}`
         }{% if not loop.last %},{% endif %}
     {% endfor %}
     ];
 
-    var edges = [
+    const edges = [
     {% for edge in edges %}
         {
             source: `{{ edge.from }}`,
             target: `{{ edge.to }}`,
             originalColor: `{{ edge.originalColor }}`,
             lineStyle: {
-                color: '#d3d3d3',  // Default gray color
+                color: '#d3d3d3',
                 width: 2
             }
         }{% if not loop.last %},{% endif %}
     {% endfor %}
     ];
 
-    var option = {
-        backgroundColor: '#f8f9fa',
-        tooltip: { show: false },
-        animation: false,
-        series: [
-            {
+    let filteredNodes = [];
+    let filteredEdges = [];
+    let selectedChannel = 'LongFast';
+    let lastSelectedNode = null;
+    let currentZoom = 1;
+
+    function populateChannelDropdown() {
+        const channelSelect = document.getElementById('channel-select');
+        const uniqueChannels = [...new Set(nodes.map(n => n.channel).filter(Boolean))].sort();
+
+        for (const ch of uniqueChannels) {
+            const option = document.createElement('option');
+            option.value = ch;
+            option.text = ch;
+            if (ch === 'LongFast') option.selected = true;
+            channelSelect.appendChild(option);
+        }
+
+        selectedChannel = channelSelect.value;
+        filterByChannel();
+    }
+
+    function filterByChannel() {
+        selectedChannel = document.getElementById('channel-select').value;
+        filteredNodes = nodes.filter(n => n.channel === selectedChannel);
+        const nodeSet = new Set(filteredNodes.map(n => n.name));
+        filteredEdges = edges.filter(e => nodeSet.has(e.source) && nodeSet.has(e.target));
+        lastSelectedNode = null;
+        updateChart();
+    }
+
+    function updateChart() {
+        const baseSize = 15;
+        const adjustedSize = baseSize / currentZoom;
+
+        const updatedNodes = filteredNodes.map(node => ({
+            ...node,
+            symbolSize: node.name === lastSelectedNode ? adjustedSize : adjustedSize,
+            itemStyle: {
+                color: node.name === lastSelectedNode ? '#ff8c00' : '#007bff'
+            }
+        }));
+
+        const updatedEdges = filteredEdges.map(edge => {
+            const connected = edge.source === lastSelectedNode || edge.target === lastSelectedNode;
+            return {
+                ...edge,
+                lineStyle: {
+                    color: connected ? edge.originalColor : '#ccc',
+                    width: connected ? 4 : 2,
+                    opacity: connected ? 1 : 0.2
+                }
+            };
+        });
+
+        chart.setOption({
+            series: [{
                 type: 'graph',
                 layout: 'force',
-                data: nodes,
-                links: edges,
+                data: updatedNodes,
+                links: updatedEdges,
                 roam: true,
                 force: { repulsion: 200, edgeLength: [80, 120] }
-            }
-        ]
-    };
+            }]
+        });
+    }
 
-    chart.setOption(option);
+    chart.on('roam', function () {
+        const option = chart.getOption();
+        const zoom = option.series?.[0]?.zoom || 1;
+        currentZoom = zoom;
+        updateChart();
+    });
+
+    chart.on('click', function (params) {
+        if (params.dataType === 'node') {
+            updateSelectedNode(params.data.name);
+        }
+    });
 
     function updateSelectedNode(selectedNode) {
-        var updatedEdges = edges.map(edge => ({
-            ...edge,
-            lineStyle: {
-                color: (edge.source === selectedNode || edge.target === selectedNode) ? edge.originalColor : '#d3d3d3',
-                width: (edge.source === selectedNode || edge.target === selectedNode) ? 4 : 2
-            }
-        }));
+        lastSelectedNode = selectedNode;
+        updateChart();
 
-        var updatedNodes = nodes.map(node => ({
-            ...node,
-            itemStyle: {
-                color: node.name === selectedNode ? '#ff0000' : '#007bff'
-            }
-        }));
-
-        chart.setOption({ series: [{ links: updatedEdges, data: updatedNodes }] });
-
-        var nodeData = nodes.find(n => n.name === selectedNode);
+        const nodeData = filteredNodes.find(n => n.name === selectedNode);
         if (nodeData) {
             document.getElementById('node-long-name').innerText = nodeData.long_name;
             document.getElementById('node-short-name').innerText = nodeData.short_name;
@@ -187,27 +237,23 @@
         }
     }
 
-    chart.on('click', function(params) {
-        if (params.dataType === 'node') {
-            updateSelectedNode(params.data.name);
-        }
-    });
-
     function searchNode() {
-        var searchQuery = document.getElementById('node-search').value.toLowerCase().trim();
-        if (!searchQuery) return;
+        const query = document.getElementById('node-search').value.toLowerCase().trim();
+        if (!query) return;
 
-        var foundNode = nodes.find(node =>
-            node.name.toLowerCase().includes(searchQuery) ||
-            node.long_name.toLowerCase().includes(searchQuery) ||
-            node.short_name.toLowerCase().includes(searchQuery)
+        const found = filteredNodes.find(node =>
+            node.name.toLowerCase().includes(query) ||
+            node.long_name.toLowerCase().includes(query) ||
+            node.short_name.toLowerCase().includes(query)
         );
 
-        if (foundNode) {
-            updateSelectedNode(foundNode.name);
+        if (found) {
+            updateSelectedNode(found.name);
         } else {
-            alert("Node not found!");
+            alert("Node not found in current channel!");
         }
     }
+
+    populateChannelDropdown();
 </script>
 {% endblock %}

@@ -1,65 +1,247 @@
 {% extends "base.html" %}
+
 {% block css %}
-.table-title {
-            font-size: 2rem;
-            text-align: center;
-            margin-bottom: 20px;
-        }
+<style>
+/* General table styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
 
-        .traffic-table {
-            width: 60%;
-            border-collapse: collapse;
-            margin: 0 auto;
-            font-family: Arial, sans-serif;
-        }
+table th, table td {
+    padding: 12px;
+    text-align: left;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
 
-        .traffic-table th,
-        .traffic-table td {
-            padding: 10px 15px;
-            text-align: left;
-            border: 1px solid #474b4e;
-        }
+table th {
+    background-color: #333;
+    color: #fff;
+    font-weight: bold;
+}
 
-        .traffic-table th {
-            background-color: #272b2f;
-            color: white;
-        }
+table tbody tr:nth-child(odd) {
+    background-color: #272b2f;
+}
 
-        .traffic:nth-of-type(odd) {
-            background-color: #272b2f; /* Lighter than #2a2a2a */
-        }
+table tbody tr:nth-child(even) {
+    background-color: #212529;
+}
 
-        .traffic {
-            border: 1px solid #474b4e;
-            padding: 8px;
-            margin-bottom: 4px;
-            border-radius: 8px;
-        }
+table tbody tr:hover {
+    background-color: #555;
+}
 
-        .traffic:nth-of-type(even) {
-            background-color: #212529; /* Slightly lighter than the previous #181818 */
-        }
+table td {
+    color: #ddd;
+}
+
+table th, table td {
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    table th, table td {
+        padding: 8px;
+    }
+}
+
+h1 {
+    text-align: center;
+    color: #ddd;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+#bellCurveChart {
+    height: 400px;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 30px;
+}
+
+#stats {
+    text-align: center;
+    margin-top: 20px;
+    color: #fff;
+}
+
+select {
+    margin: 10px auto;
+    display: block;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+}
+</style>
 {% endblock %}
 
 {% block body %}
-    <h2 class="table-title">Top Traffic Nodes (last 24 hours)</h2>
-    <table class="traffic-table">
-        <thead>
-            <tr>
-                <th>Node Name</th>
-                <th>Role</th>
-                <th>Packet Count</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for node in nodes %}
-                <tr class="traffic">
-                    <td><a href="/packet_list/{{ node[0] }}">{{ node[1] }}</a></td>  <!-- long_name -->
-                    <td>{{ node[2] }}</td>
-                    <td><a href="/top?node_id={{ node[0] }}">{{ node[3] }}</a></td> <!-- packet_count -->
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<h1>Top Traffic Nodes (last 24 hours)</h1>
 
+<!-- Channel Filter Dropdown -->
+<select id="channelFilter">
+  <option value="all">All Channels</option>
+</select>
+
+<div id="stats">
+  <p>This chart shows a bell curve (normal distribution) based on the total <strong>"Times Seen"</strong> values for all nodes. It helps visualize how frequently nodes are heard, relative to the average.</p>
+  <p>This "Times Seen" value is the closest that we can get to Mesh utilization by node.</p>
+  <p><strong>Mean:</strong> <span id="mean"></span> - <strong>Standard Deviation:</strong> <span id="stdDev"></span></p>
+</div>
+
+
+<!-- Chart -->
+<div id="bellCurveChart"></div>
+
+<!-- Table -->
+{% if nodes %}
+  <div class="container">
+    <table id="trafficTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">Long Name</th>
+          <th onclick="sortTable(1)">Short Name</th>
+          <th onclick="sortTable(2)">Channel</th>
+          <th onclick="sortTable(3)">Packets Sent</th>
+          <th onclick="sortTable(4)">Times Seen</th>
+          <th onclick="sortTable(5)">Seen % of Mean</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+{% else %}
+  <p style="text-align: center;">No top traffic nodes available.</p>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
+<script>
+const nodes = {{ nodes | tojson }};
+let filteredNodes = [...nodes];
+
+// Chart & Stats
+const chart = echarts.init(document.getElementById('bellCurveChart'));
+const meanEl = document.getElementById('mean');
+const stdEl = document.getElementById('stdDev');
+
+// Populate Channel Dropdown
+const channelSet = new Set();
+nodes.forEach(n => channelSet.add(n.channel));
+const dropdown = document.getElementById('channelFilter');
+[...channelSet].sort().forEach(channel => {
+    const option = document.createElement('option');
+    option.value = channel;
+    option.textContent = channel;
+    dropdown.appendChild(option);
+});
+
+dropdown.addEventListener('change', () => {
+    const val = dropdown.value;
+    filteredNodes = val === "all" ? [...nodes] : nodes.filter(n => n.channel === val);
+    updateTable();
+    updateStatsAndChart();
+});
+
+// Normal distribution function
+function normalDistribution(x, mean, stdDev) {
+  return (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / stdDev, 2));
+}
+
+// Update table based on filteredNodes
+function updateTable() {
+    const tbody = document.querySelector('#trafficTable tbody');
+    tbody.innerHTML = "";
+
+    const mean = filteredNodes.reduce((sum, n) => sum + n.total_times_seen, 0) / (filteredNodes.length || 1);
+
+    for (const node of filteredNodes) {
+        const percent = mean > 0 ? ((node.total_times_seen / mean) * 100).toFixed(1) + "%" : "0%";
+        const row = `<tr>
+            <td><a href="/packet_list/${node.node_id}">${node.long_name}</a></td>
+            <td>${node.short_name}</td>
+            <td>${node.channel}</td>
+            <td><a href="/top?node_id=${node.node_id}">${node.total_packets_sent}</a></td>
+            <td>${node.total_times_seen}</td>
+            <td>${percent}</td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', row);
+    }
+}
+
+// Update chart & stats
+function updateStatsAndChart() {
+    const timesSeen = filteredNodes.map(n => n.total_times_seen);
+    const mean = timesSeen.reduce((sum, v) => sum + v, 0) / (timesSeen.length || 1);
+    const stdDev = Math.sqrt(timesSeen.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / (timesSeen.length || 1));
+
+    meanEl.textContent = mean.toFixed(2);
+    stdEl.textContent = stdDev.toFixed(2);
+
+    const min = Math.min(...timesSeen);
+    const max = Math.max(...timesSeen);
+    const step = (max - min) / 100;
+    const xData = [], yData = [];
+
+    for (let x = min; x <= max; x += step) {
+        xData.push(x);
+        yData.push(normalDistribution(x, mean, stdDev));
+    }
+
+    const option = {
+        animation: false,
+        tooltip: { trigger: 'axis' },
+        xAxis: {
+            name: 'Total Times Seen',
+            type: 'value',
+            min, max
+        },
+        yAxis: {
+            name: 'Probability Density',
+            type: 'value',
+        },
+        series: [{
+            data: xData.map((x, i) => [x, yData[i]]),
+            type: 'line',
+            smooth: true,
+            color: 'blue',
+            lineStyle: { width: 3 }
+        }]
+    };
+    chart.setOption(option);
+    chart.resize();
+}
+
+// Sorting
+function sortTable(n) {
+    const table = document.getElementById("trafficTable");
+    const rows = Array.from(table.rows).slice(1);
+    const header = table.rows[0].cells[n];
+    const isNumeric = !isNaN(rows[0].cells[n].innerText.replace('%', ''));
+    let sortedRows = rows.sort((a, b) => {
+        const valA = isNumeric ? parseFloat(a.cells[n].innerText.replace('%', '')) : a.cells[n].innerText.toLowerCase();
+        const valB = isNumeric ? parseFloat(b.cells[n].innerText.replace('%', '')) : b.cells[n].innerText.toLowerCase();
+        return valA > valB ? 1 : -1;
+    });
+
+    if (header.getAttribute('data-sort-direction') === 'asc') {
+        sortedRows.reverse();
+        header.setAttribute('data-sort-direction', 'desc');
+    } else {
+        header.setAttribute('data-sort-direction', 'asc');
+    }
+
+    const tbody = table.tBodies[0];
+    sortedRows.forEach(row => tbody.appendChild(row));
+}
+
+// Initialize
+updateTable();
+updateStatsAndChart();
+window.addEventListener('resize', () => chart.resize());
+</script>
 {% endblock %}

@@ -45,25 +45,22 @@
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(details_map);
 
-    // Function to calculate distance in miles
     function getDistanceInMiles(latlng1, latlng2) {
-        var meters = latlng1.distanceTo(latlng2); // Get distance in meters
-        return meters * 0.000621371; // Convert meters to miles
+        var meters = latlng1.distanceTo(latlng2);
+        return meters * 0.000621371;
     }
 
     {% if from_node_cord %}
     var fromNodeLatLng = L.latLng({{ from_node_cord | tojson }});
-
     var fromNode = L.circleMarker(fromNodeLatLng, {
         radius: 10,
         color: 'red',
         weight: 1,
         fillColor: 'red',
-        fillOpacity: 0.4
+        fillOpacity: .4
     }).addTo(markers);
 
-    // Add tooltip for the from_node_cord
-    fromNode.bindTooltip(`
+    fromNode.bindPopup(`
         Sent by:   <b>{{node.long_name}}</b><br/>
         <b>Short:</b> {{node.short_name}}<br/>
         <b>Channel:</b> {{node.channel}}<br/>
@@ -75,57 +72,40 @@
     {% endif %}
 
     {% for u in uplinked_nodes %}
-        var uplinkNodeLatLng = L.latLng([{{ u.lat }}, {{ u.long }}]);
+    var uplinkNodeLatLng = L.latLng([{{ u.lat }}, {{ u.long }}]);
 
-        // Calculate distance in miles
-        var distanceMiles = getDistanceInMiles(fromNodeLatLng, uplinkNodeLatLng).toFixed(1);
+    {% if from_node_cord %}
+    var distanceMiles = getDistanceInMiles(fromNodeLatLng, uplinkNodeLatLng).toFixed(1);
+    {% endif %}
 
-/*
-        var node = L.circleMarker(uplinkNodeLatLng, {
-            radius: 6,
-            color: 'blue',
-            weight: 1,
-            fillColor: 'blue',
-            fillOpacity: 0.4
-        }).addTo(markers);
-*/
+    var node = L.marker(uplinkNodeLatLng, {
+        icon: L.divIcon({
+            className: 'text-icon',
+            html: `<div style="font-size: 12px; color: white; font-weight: bold; display: flex; justify-content: center; align-items: center; height: 16px; width: 16px; border-radius: 50%; background-color: blue; border: 1px solid blue;">{{u.hops}}</div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        })
+    }).addTo(markers);
+    node.setZIndexOffset({{u.hops}}*-1);
 
-		var node = L.marker(uplinkNodeLatLng, {
-		    icon: L.divIcon({
-		        className: 'text-icon',  // Custom class for styling
-        		html: '<div style="font-size: 12px; color: white; font-weight: bold; display: flex; justify-content: center; align-items: center; height: 16px; width: 16px; border-radius: 50%; background-color: blue; border: 1px solid blue;">{{u.hops}}</div>',
-		        iconSize: [16, 16],  // Size of the icon container
-		        iconAnchor: [8, 8]  // Anchoring the text to the center of the marker
-		    })
-		}).addTo(markers);
-		node.setZIndexOffset({{u.hops}}*-1);
-
-        // Add a tooltip with node details and distance
-        node.bindTooltip(`
-            Seen by: <b>[{{ u.short_name }}] {{ u.long_name }}</b><br/>
-            <b>Hops:</b> {{ u.hops }}<br/>
-            <b>SNR:</b> {{ u.snr }}<br/>
-            <b>RSSI:</b> {{ u.rssi }}<br/>
-            <b>Distance:</b> ${distanceMiles} miles <br/>
-            <b>Coordinates:</b> [{{u.lat}}, {{u.long}}]
-        `, { permanent: false, direction: 'top', opacity: 0.9 });
-
+    node.bindPopup(`
+        Heard by: <b>{{u.long_name}}</b><br>
+        <b>{{ u.short_name }}</b><br/>
+        <b>Hops:</b> {{ u.hops }}<br/>
+        <b>SNR:</b> {{ u.snr }}<br/>
+        <b>RSSI:</b> {{ u.rssi }}<br/>
+        {% if from_node_cord %}
+        <b>Distance:</b> ${distanceMiles} miles <br/>
+        {% endif %}
+        <b>Coordinates:</b> [{{u.lat}}, {{u.long}}]
+    `, { permanent: false, direction: 'top', opacity: 0.9 });
     {% endfor %}
 
     if (markers.getLayers().length > 0) {
         details_map.fitBounds(markers.getBounds().pad(0.1), { animate: true });
     }
 
-    // Ensure markers are added before adjusting map bounds
-    setTimeout(() => {
-        if (markers.getLayers().length > 0) {
-            details_map.fitBounds(markers.getBounds().pad(0.1), { animate: true });
-        }
-    }, 500); // Delay to ensure markers load
-
-    // Add a legend to details_map
     var legend = L.control({ position: 'bottomleft' });
-
     legend.onAdd = function(map) {
         var div = L.DomUtil.create('div', 'info legend');
         div.style.background = 'white';
@@ -133,8 +113,8 @@
         div.style.border = '1px solid black';
         div.style.borderRadius = '5px';
         div.style.boxShadow = '0 0 5px rgba(0,0,0,0.3)';
-        div.style.color = 'black'; // Ensure text is black
-        div.style.textAlign = 'left'; /* Ensure left alignment */
+        div.style.color = 'black';
+        div.style.textAlign = 'left';
         div.innerHTML = `
             <b>Legend</b><br>
             <svg width="20" height="20">
@@ -146,10 +126,7 @@
         `;
         return div;
     };
-
     legend.addTo(details_map);
 </script>
-
-
 
 {% endif %}

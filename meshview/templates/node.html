@@ -138,7 +138,7 @@
         fillColor: 'red',
         fillOpacity: 0.5
     }).addTo(markers) // Add to feature group
-      .bindTooltip(`
+      .bindPopup(`
         <b>{{node.long_name}}</b><br/>
         <b>Short:</b> {{node.short_name}}<br/>
         <b>Channel:</b> {{node.channel}}<br/>
@@ -169,8 +169,9 @@
             fillColor: 'blue',
             fillOpacity: 0.5
         }).addTo(markers) // Add to feature group
-          .bindTooltip(`
-            <b>Neighbour: [{{n.short_name}}] {{n.long_name}}</b> <br/>
+          .bindPopup(`
+            <b><a href="/packet_list/{{n.node_id}}">{{n.long_name}}</a></b><br>
+            <b>{{n.short_name}}</b> <br/>
             <b>SNR:</b> {{n.snr}} <br/>
             <b>Distance:</b> ${distanceMiles} miles <br/>
         `, {permanent: false, direction: 'top', opacity: 0.9});

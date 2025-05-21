@@ -149,7 +149,7 @@ async def get_total_packet_seen_count():
     async with database.async_session() as session:
         q = select(func.count(PacketSeen.node_id))  # Use SQLAlchemy's func to count nodes
         result = await session.execute(q)
-        return result.scalar()  # Return the total count of seen packets
+        return result.scalar()  # Return the` total count of seen packets
 
 
 
@@ -171,29 +171,42 @@ async def get_total_node_count(channel: str = None) -> int:
 
 
 async def get_top_traffic_nodes():
-    async with database.async_session() as session:
-        result = await session.execute(text("""
-            SELECT 
-                n.node_id,
-                n.long_name,
-                n.role,
-                COUNT(p.id) AS packet_count
-            FROM 
-                packet p
-            JOIN 
-                node n
-            ON 
-                p.from_node_id = n.node_id
-            WHERE 
-                p.import_time >= DATETIME('now', 'localtime', '-1 day')
-            GROUP BY 
-                n.long_name, n.role
-            ORDER BY 
-                packet_count DESC
-            LIMIT 100;
-        """))
+    try:
+        async with database.async_session() as session:
+            result = await session.execute(text("""
+                SELECT 
+                    n.node_id,
+                    n.long_name,
+                    n.short_name,
+                    n.channel,
+                    COUNT(DISTINCT p.id) AS total_packets_sent,
+                    COUNT(ps.packet_id) AS total_times_seen
+                FROM node n
+                LEFT JOIN packet p ON n.node_id = p.from_node_id
+                    AND p.import_time >= DATETIME('now', 'localtime', '-24 hours')
+                LEFT JOIN packet_seen ps ON p.id = ps.packet_id
+                GROUP BY n.node_id, n.long_name, n.short_name
+                HAVING total_packets_sent > 0
+                ORDER BY total_times_seen DESC;
+            """))
 
-        return result.fetchall()  # Returns a list of tuples
+            rows = result.fetchall()
+
+            nodes = [{
+                'node_id': row[0],
+                'long_name': row[1],
+                'short_name': row[2],
+                'channel': row[3],
+                'total_packets_sent': row[4],
+                'total_times_seen': row[5]
+            } for row in rows]
+            return nodes
+
+    except Exception as e:
+        print(f"Error retrieving top traffic nodes: {str(e)}")
+        return []
+
+
 
 async def get_node_traffic(node_id: int):
     try:
@@ -206,7 +219,7 @@ async def get_node_traffic(node_id: int):
                     FROM packet
                     JOIN node ON packet.from_node_id = node.node_id
                     WHERE node.node_id = :node_id 
-                    AND packet.import_time >= DATETIME('now', 'localtime', '-1 day') 
+                    AND packet.import_time >= DATETIME('now', 'localtime', '-24 hours') 
                     GROUP BY packet.portnum
                     ORDER BY packet_count DESC;
                 """), {"node_id": node_id}
@@ -228,7 +241,7 @@ async def get_node_traffic(node_id: int):
 
 
 
-async def get_nodes(role=None, channel=None, hw_model=None):
+async def get_nodes(role=None, channel=None, hw_model=None, days_active=None):
     """
     Fetches nodes from the database based on optional filtering criteria.
 
@@ -254,6 +267,9 @@ async def get_nodes(role=None, channel=None, hw_model=None):
                 query = query.where(Node.channel == channel)
             if hw_model is not None:
                 query = query.where(Node.hw_model == hw_model)
+
+            if days_active is not None:
+                query = query.where(Node.last_update > datetime.datetime.now() - datetime.timedelta(days_active))
 
             # Exclude nodes where last_update is an empty string
             query = query.where(Node.last_update != "")

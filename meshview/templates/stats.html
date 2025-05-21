@@ -59,7 +59,7 @@
     <!-- Section for Total Nodes -->
     <div class="card-section">
         <p class="section-header">
-            Total Active Nodes (Last 24 hours):
+            Total Active Nodes (24 hours): <br>
             <span class="section-value">{{ total_nodes }}</span>
         </p>
     </div>
@@ -67,7 +67,7 @@
     <!-- Section for Total Nodes LongFast -->
     <div class="card-section">
         <p class="section-header">
-            Total Active Nodes LongFast: <br>
+            Total Active Nodes LongFast (24 hours): <br>
             <span class="section-value">{{ total_nodes_longfast }}</span>
             <span class="percentage">
                 ({{ (total_nodes_longfast / total_nodes * 100) | round(2) }}%)
@@ -78,7 +78,7 @@
     <!-- Section for Total Nodes MediumSlow -->
     <div class="card-section">
         <p class="section-header">
-            Total Active Nodes MediumSlow: <br>
+            Total Active Nodes MediumSlow (24 hours): <br>
             <span class="section-value">{{ total_nodes_mediumslow }}</span>
             <span class="percentage">
                 ({{ (total_nodes_mediumslow / total_nodes * 100) | round(2) }}%)
@@ -89,7 +89,7 @@
     <!-- Section for Total Packets -->
     <div class="card-section">
         <p class="section-header">
-            Total Packets:
+            Total Packets (14 days):
             <span class="section-value">{{ total_packets }}</span>
         </p>
     </div>
@@ -97,7 +97,7 @@
     <!-- Section for Total MQTT Reports -->
     <div class="card-section">
         <p class="section-header">
-            Total MQTT Reports:
+            Total MQTT Reports (14 days):
             <span class="section-value">{{ total_packets_seen }}</span>
         </p>
     </div>

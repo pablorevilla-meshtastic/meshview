@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import gc
 import io
 import json
 import os
@@ -8,19 +7,16 @@ import re
 import ssl
 from collections import Counter
 from dataclasses import dataclass
-import csv
 import matplotlib.pyplot as plt
 import plotly.express as px
 import psutil
 import pydot
 import seaborn as sns
-from aiohttp import web
 from google.protobuf import text_format
 from google.protobuf.message import Message
 from jinja2 import Environment, PackageLoader, select_autoescape, Undefined
 from markupsafe import Markup
 from pandas import DataFrame
-
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import config
 from meshview import database
@@ -28,15 +24,13 @@ from meshview import decode_payload
 from meshview import models
 from meshview import store
 from meshview.store import get_total_node_count
-
+from aiohttp import web
+SOFTWARE_RELEASE= "2.0.1"
 CONFIG = config.CONFIG
 
 env = Environment(loader=PackageLoader("meshview"), autoescape=select_autoescape())
 # Start Database
 database.init_database(CONFIG["database"]["connection_string"])
-
-# Optimize garbage collection frequency
-gc.set_threshold(100, 10, 10)
 
 with open(os.path.join(os.path.dirname(__file__), '1x1.png'), 'rb') as png:
     empty_png = png.read()
@@ -186,9 +180,10 @@ env.filters["node_id_to_hex"] = node_id_to_hex
 env.filters["format_timestamp"] = format_timestamp
 
 routes = web.RouteTableDef()
+# Make the Map the home page
 @routes.get("/")
 async def index(request):
-    raise web.HTTPFound(location="/map")  # Redirect to /home
+    raise web.HTTPFound(location="/map")
 
 
 def generate_response(request, body, raw_node_id="", node=None):
@@ -205,7 +200,6 @@ def generate_response(request, body, raw_node_id="", node=None):
         ),
         content_type="text/html",
     )
-    gc.collect()
     return response
 
 
@@ -246,7 +240,6 @@ async def node_search(request):
         text=template.render(nodes=fuzzy_nodes, query_string=request.query_string),
         content_type="text/html",
     )
-    gc.collect()
     return response
 
 
@@ -276,7 +269,6 @@ async def packet_list(request):
     else:
         portnum = None
 
-
     async with asyncio.TaskGroup() as tg:
         node = tg.create_task(store.get_node(node_id))
         raw_packets = tg.create_task(store.get_packets(node_id,portnum, limit=200))
@@ -301,9 +293,6 @@ async def packet_list(request):
         ),
         content_type="text/html",
     )
-
-
-from aiohttp import web
 
 
 @routes.get("/packet_list_text/{node_id}")
@@ -334,7 +323,10 @@ async def packet_details(request):
     packet_id = int(request.match_info["packet_id"])
     packets_seen = list(await store.get_packets_seen(packet_id))
     packet = await store.get_packet(packet_id)
-    node= await store.get_node(packet.from_node_id)
+
+    node = None
+    if packet and packet.from_node_id:
+        node = await store.get_node(packet.from_node_id)
 
     from_node_cord = None
     if packet and packet.from_node and packet.from_node.last_lat:
@@ -657,7 +649,6 @@ async def graph_neighbors(request):
     png = io.BytesIO()
     plt.savefig(png, dpi=100)
     plt.close()
-    print_memory_usage()
     return web.Response(
         body=png.getvalue(),
         content_type="image/png",
@@ -806,8 +797,6 @@ async def graph_traceroute(request):
         body=graph.create_svg(),
         content_type="image/svg+xml",
     )
-
-
 
 
 @routes.get("/graph/traceroute2/{packet_id}")
@@ -1106,9 +1095,8 @@ async def nodelist(request):
         #print(channel)
         hw_model = request.query.get("hw_model")
         #print(hw_model)
-        nodes= await store.get_nodes(role,channel, hw_model)
+        nodes= await store.get_nodes(role,channel, hw_model, days_active=3)
         template = env.get_template("nodelist.html")
-        print_memory_usage()
         return web.Response(
             text=template.render(nodes=nodes, site_config = CONFIG),
             content_type="text/html",
@@ -1163,7 +1151,7 @@ async def net(request):
         # Filter packets: exclude "seq \d+$" but include those containing Tag
         filtered_packets = [
             p for p in ui_packets
-            if not seq_pattern.match(p.payload) and CONFIG["site"]["net_tag"] in p.payload.lower()
+            if not seq_pattern.match(p.payload) and (CONFIG["site"]["net_tag"]).lower() in p.payload.lower()
         ]
 
         # Render template
@@ -1188,20 +1176,30 @@ async def net(request):
 @routes.get("/map")
 async def map(request):
     try:
-        nodes= await store.get_nodes()
+        nodes = await store.get_nodes(days_active=3)
+
+        # Filter out nodes with no latitude
+        nodes = [node for node in nodes if node.last_lat is not None]
+
+        # Optional datetime formatting
+        for node in nodes:
+            if hasattr(node, "last_update") and isinstance(node.last_update, datetime.datetime):
+                node.last_update = node.last_update.isoformat()
         template = env.get_template("map.html")
-        print_memory_usage()
+
         return web.Response(
-            text=template.render(nodes=nodes, site_config = CONFIG),
+            text=template.render(nodes=nodes, site_config=CONFIG),
             content_type="text/html",
         )
     except Exception as e:
-
+        import traceback
+        traceback.print_exc()
         return web.Response(
             text="An error occurred while processing your request.",
             status=500,
             content_type="text/plain",
         )
+
 
 
 # Print memory usage
@@ -1264,50 +1262,35 @@ async def top(request):
             content_type="text/plain",
         )
 
-
-
 @routes.get("/chat")
 async def chat(request):
     try:
-        # Fetch packets for the given node ID and port number
         packets = await store.get_packets(
             node_id=0xFFFFFFFF, portnum=PortNum.TEXT_MESSAGE_APP, limit=100
         )
-        #print(f"Fetched {len(packets)} packets.")
 
-        # Convert packets to UI packets
-        #print("Processing packets...")
         ui_packets = [Packet.from_model(p) for p in packets]
-
-        # Filter packets
-        #print("Filtering packets...")
         filtered_packets = [
-            p for p in ui_packets if not re.match(r"seq \d+$", p.payload)
+            p for p in ui_packets if not re.fullmatch(r"seq \d+", p.payload)
         ]
-
-        # Render template
-        #print("Rendering template...")
+        #print("Example packet:", filtered_packets)
         template = env.get_template("chat.html")
         return web.Response(
-            text=template.render(packets=filtered_packets, site_config = CONFIG),
+            text=template.render(packets=filtered_packets, site_config=CONFIG),
             content_type="text/html",
         )
-
     except Exception as e:
-        # Log the error and return an appropriate response
-        #print(f"Error in chat handler: {e}")
+        print("Error in /chat:", e)
         return web.Response(
             text="An error occurred while processing your request.",
             status=500,
             content_type="text/plain",
         )
 
-
-# Assuming the route URL structure is /nodegraph/{channel}
-@routes.get("/nodegraph/{channel}")
+# Assuming the route URL structure is /nodegraph
+@routes.get("/nodegraph")
 async def nodegraph(request):
-    channel = request.match_info.get('channel', 'LongFast')  # Default to 'MediumSlow' if no channel is provided
-    nodes = await store.get_nodes(channel=channel)  # Fetch nodes for the given channel
+    nodes = await store.get_nodes(days_active=3)  # Fetch nodes for the given channel
     node_ids = set()
     edges_set = set()  # Track unique edges
     edge_type = {}  # Store type of each edge
@@ -1384,16 +1367,22 @@ async def nodegraph(request):
         content_type="text/html",
     )
 
-
-
+# Show basic details about the site on the site
 @routes.get("/config")
 async def get_config(request):
-    return web.json_response({
-        "Server": CONFIG["site"]["domain"],
-        "Title": CONFIG["site"]["title"],
-        "Message": CONFIG["site"]["message"],
-        "Topics": json.loads(CONFIG["mqtt"]["topics"])
-    })
+    try:
+        site = CONFIG.get("site", {})
+        mqtt = CONFIG.get("mqtt", {})
+
+        return web.json_response({
+            "Server": site.get("domain", ""),
+            "Title": site.get("title", ""),
+            "Message": site.get("message", ""),
+            "Topics": json.loads(mqtt.get("topics", "[]")),
+            "Release": SOFTWARE_RELEASE
+        })
+    except (json.JSONDecodeError, TypeError):
+        return web.json_response({"error": "Invalid configuration format"}, status=500)
 
 
 async def run_server():
@@ -1406,7 +1395,7 @@ async def run_server():
         ssl_context.load_cert_chain(CONFIG["server"]["tls_cert"])
     else:
         ssl_context = None
-    for host in CONFIG["server"]["bind"]:
+    if host := CONFIG["server"]["bind"]:
         site = web.TCPSite(runner, host, CONFIG["server"]["port"], ssl_context=ssl_context)
         await site.start()
     while True:
