@@ -233,3 +233,24 @@ systemctl status meshview-web
 > sudo systemctl daemon-reload
 > ```
 
+## Run with docker-compose
+
+Copy `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` to point to your local `config.ini` and `packets.db` files.
+
+Create `packets.db` file if it does not exist, before passing to the container.
+```bash
+touch ./packets.db
+```
+### Start compose
+
+From the location where `meshview` was closed.
+Start compose in the background:
+```bash
+docker compose up -d
+```
