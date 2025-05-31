@@ -19,13 +19,24 @@ docker build -t meshview-docker .
 
 ## Run Instructions
 
+Copy the example configuration and modify:
+
+```bash
+# Copy the sample from this repository
+cp sample.config.ini config.ini
+# Modify with your text editor of choice
+nano config.ini
+```
+
 Run the container:
 
 ```bash
-docker run -d --name meshview-docker -p 8081:8081 meshview-docker
+docker run -d --name meshview-docker -v ./config.ini:/etc/meshview/config.ini -p 8081:8081 meshview-docker
 ```
 
-This maps container port `8081` to your host. The application runs via:
+This maps container port `8081` to your host, and uses the locally stored configuration you modified in the previous step.
+
+The application runs via:
 
 ```bash
 /app/env/bin/python /app/mvrun.py
@@ -42,3 +53,25 @@ If running on a remote server, replace `localhost` with the host's IP or domain 
 http://<host>:8081
 
 Ensure that port `8081` is open and not blocked by a firewall or security group.
+
+## Run with docker-compose
+
+Copy `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` to point to your local `config.ini` and `packets.db` files.
+
+Create `packets.db` file if it does not exist, before passing to the container.
+```bash
+touch ./packets.db
+```
+### Start compose
+
+From the location where `meshview` was cloned.
+Start compose in the background:
+```bash
+docker compose up -d
+```
