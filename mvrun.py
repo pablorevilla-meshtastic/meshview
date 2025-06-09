@@ -6,7 +6,7 @@ import subprocess
 def run_script(script_name, *args):
     try:
         # Path to the Python interpreter inside the virtual environment
-        python_executable = './env/bin/python'
+        python_executable = '.venv/bin/python'
 
         # Combine the script name and arguments
         command = [python_executable, script_name] + list(args)

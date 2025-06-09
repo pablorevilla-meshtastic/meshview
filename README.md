@@ -39,7 +39,9 @@ Samples of currently running instances:
 
 ## Preparing
 
-Requires **`python3.11`** or above.
+Requires **`python3.11`** or above, we use uv as our package manager, you
+can install uv following the instructions at
+[uv.sh](https://docs.astral.sh/uv/getting-started/installation/).
 
 Clone the repo from GitHub:
 
@@ -47,20 +49,14 @@ Clone the repo from GitHub:
 git clone --recurse-submodules https://github.com/pablorevilla-meshtastic/meshview.git
 ```
 
-> **NOTE**  
+> **NOTE**
 > It is important to include the `--recurse-submodules` flag or the meshtastic protobufs won't be included.
 
-Create a Python virtual environment:
+Create the Python virtual environment and requirements with uv:
 
 ```bash
 cd meshview
-python3 -m venv env
-```
-
-Install the environment requirements:
-
-```bash
-./env/bin/pip install -r requirements.txt
+make sync
 ```
 
 Install `graphviz`:
@@ -168,34 +164,34 @@ connection_string = sqlite+aiosqlite:///packets.db
 Start the database:
 
 ```bash
-./env/bin/python startdb.py
+make startdb
 ```
 
 Start the web server:
 
 ```bash
-./env/bin/python main.py
+make server
 ```
 
-> **NOTE**  
+> **NOTE**
 > You can specify a custom config file with the `--config` flag:
 >
 > ```bash
-> ./env/bin/python startdb.py --config /path/to/config.ini
-> ./env/bin/python main.py --config /path/to/config.ini
+uv run meshview-startdb --config /path/to/config.ini
+uv run meshview --config /path/to/config.ini
 > ```
 
 Open in your browser: http://localhost:8081/
 
 ---
 
-## Running Meshview with `mvrun.py`
+## Running Meshview with `meshview-run`
 
-- `mvrun.py` starts both `startdb.py` and `main.py` in separate threads and merges the output.
+- `meshview-run` is a convenience script that runs both the database and web server in one command.
 - It accepts the `--config` argument like the others.
 
 ```bash
-./env/bin/python mvrun.py
+uv run meshview-run --config /path/to/config.ini
 ```
 
 ---
@@ -203,7 +199,7 @@ Open in your browser: http://localhost:8081/
 ## Setting Up Systemd Services (Ubuntu)
 
 To run Meshview automatically on boot, create systemd services for `startdb.py` and `main.py`.
-> **NOTE**  
+> **NOTE**
 > You need to change the "User" and "/path/to/meshview" for your instance of the code on each service.
 
 ### 1. Service for `startdb.py`
@@ -224,7 +220,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/path/to/meshview
-ExecStart=/path/to/meshview/env/bin/python /path/to/meshview/startdb.py --config /path/to/meshview/config.ini
+ExecStart=/path/to/meshview/.venv/bin/meshview-startdb --config /path/to/meshview/config.ini
 Restart=always
 RestartSec=5
 User=yourusername
@@ -251,7 +247,7 @@ After=network.target meshview-db.service
 [Service]
 Type=simple
 WorkingDirectory=/path/to/meshview
-ExecStart=/path/to/meshview/env/bin/python /path/to/meshview/main.py --config /path/to/meshview/config.ini
+ExecStart=/path/to/meshview/.venv/bin/meshview --config /path/to/meshview/config.ini
 Restart=always
 RestartSec=5
 User=yourusername
@@ -278,7 +274,7 @@ systemctl status meshview-db
 systemctl status meshview-web
 ```
 
-**TIP**  
+**TIP**
 After editing `.service` files, always run:
 
 ```bash
@@ -303,7 +299,7 @@ sudo systemctl stop meshview-web.service
 sleep 5
 echo "Run cleanup..."
 # Run cleanup queries
-sqlite3 "$DB_FILE" <<EOF 
+sqlite3 "$DB_FILE" <<EOF
 DELETE FROM packet WHERE import_time < datetime('now', '-14 day');
 DELETE FROM packet_seen WHERE import_time < datetime('now', '-14 day');
 DELETE FROM traceroute WHERE import_time < datetime('now', '-14 day');
@@ -319,7 +315,7 @@ sudo systemctl start meshview-web.service
 echo "Database cleanup completed on $(date)"
 
 ```
-- Schedule running the script on a regular basis. 
+- Schedule running the script on a regular basis.
 - In this example it runs every night at 2:00am.
 
 Open scheduler:
