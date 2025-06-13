@@ -332,3 +332,24 @@ Add schedule to the bottom of the file (modify /path/to/file/ to the correct pat
 Check the log file to see it the script run at the specific time.
 
 
+## Run with docker-compose
+
+Copy `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` to point to your local `config.ini` and `packets.db` files.
+
+Create `packets.db` file if it does not exist, before passing to the container.
+```bash
+touch ./packets.db
+```
+### Start compose
+
+From the location where `meshview` was closed.
+Start compose in the background:
+```bash
+docker compose up -d
+```
