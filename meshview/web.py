@@ -164,7 +164,7 @@ def node_id_to_hex(node_id):
     if node_id == 4294967295:
         return "^all"
     else:
-        return f"!{hex(node_id)[2:]}"
+        return f"!{hex(node_id)[2:].zfill(8)}"
 
 
 def format_timestamp(timestamp):
