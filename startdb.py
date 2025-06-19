@@ -7,8 +7,8 @@ from meshview import mqtt_store
 import json
 
 
-async def load_database_from_mqtt(mqtt_server: str , mqtt_port: int, topic: list, mqtt_user: str | None = None, mqtt_passwd: str | None = None):
-    async for topic, env in mqtt_reader.get_topic_envelopes(mqtt_server, mqtt_port, topic, mqtt_user, mqtt_passwd):
+async def load_database_from_mqtt(mqtt_server: str , mqtt_port: int, topic: list, mqtt_user: str | None = None, mqtt_passwd: str | None = None, channel_keys: list[str] | None = None):
+    async for topic, env in mqtt_reader.get_topic_envelopes(mqtt_server, mqtt_port, topic, mqtt_user, mqtt_passwd, channel_keys):
         await mqtt_store.process_envelope(topic, env)
 
 
@@ -27,7 +27,7 @@ async def main(config):
     
     async with asyncio.TaskGroup() as tg:
         tg.create_task(
-            load_database_from_mqtt(config["mqtt"]["server"], int(config["mqtt"]["port"]), mqtt_topics, mqtt_user, mqtt_passwd)
+            load_database_from_mqtt(config["mqtt"]["server"], int(config["mqtt"]["port"]), mqtt_topics, mqtt_user, mqtt_passwd, json.loads(config["mqtt"]["channel_keys"]))
         )
     
 
