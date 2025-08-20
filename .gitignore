@@ -5,3 +5,4 @@ packets.db
 /table_details.py
 config.ini
 screenshots/*
+python/nanopb

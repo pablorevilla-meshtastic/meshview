@@ -52,16 +52,23 @@ Requires **`python3.11`** or above.
 Clone the repo from GitHub:
 
 ```bash
-git clone --recurse-submodules https://github.com/pablorevilla-meshtastic/meshview.git
+git clone https://github.com/pablorevilla-meshtastic/meshview.git
 ```
 
 > **NOTE**  
-> It is important to include the `--recurse-submodules` flag or the meshtastic protobufs won't be included.
+> DO NOT include the `--recurse-submodules` flag! There appears to be a broken submodule in the meshtastic/python repo.
 
-Create a Python virtual environment:
+Initialize submodule (non-recursively) and create symlink:
 
 ```bash
 cd meshview
+git submodule update --init
+ln -s ../python/meshtastic/protobuf meshtastic/protobuf
+```
+Create a Python virtual environment:
+
+from the meshview directory...
+```bash
 python3 -m venv env
 ```
 
