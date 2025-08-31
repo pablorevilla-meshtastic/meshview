@@ -47,6 +47,11 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin=""></script>
 
+<!-- Leaflet PolylineDecorator for arrowheads -->
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylinedecorator.js" 
+        integrity="sha384-FhPn/2P/fJGhQLeNWDn9B/2Gml2bPOrKJwFqJXgR3xOPYxWg5mYQ5XZdhUSugZT0"
+        crossorigin=""></script>
+
 <script>
     // ---- Map Setup ----
     var map = L.map('map');
@@ -240,16 +245,25 @@
                 if (!fromNode || !toNode) return;
                 if (isInvalidCoord(fromNode) || isInvalidCoord(toNode)) return;
 
-                const lineColor = edge.type === "neighbor" ? "red" : "blue";
+                const lineColor = edge.type === "neighbor" ? "darkred" : "deepskyblue"; //different than the node category colors
                 const dash = edge.type === "traceroute" ? "5,5" : null;
                 const weight = edge.type === "neighbor" ? 3 : 2;
 
-                L.polyline(
+                const polyline = L.polyline(
                     [[fromNode.lat, fromNode.long], [toNode.lat, toNode.long]],
                     { color: lineColor, weight, opacity: 1, dashArray: dash }
                 )
                 .addTo(edgeLayer)
                 .bringToFront();
+
+                // Add arrowhead
+                if (edge.type === "traceroute") {
+                    L.polylineDecorator(polyline, {
+                        patterns: [
+                            { offset: '100%', repeat: 0, symbol: L.Symbol.arrowHead({ pixelSize: 12, polygon: false, pathOptions: { stroke: true, color: lineColor } }) }
+                        ]
+                    }).addTo(edgeLayer);
+                }
 
                 console.log(`Edge type: To: ${toNode.long_name} (${toNode.lat},${toNode.long})`);
             });
