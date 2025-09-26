@@ -24,5 +24,8 @@ RUN cp /app/sample.config.ini /app/config.ini
 # Expose port
 EXPOSE 8081
 
+# Config file should be mounted at /etc/meshview/config.ini
+VOLUME ["/etc/meshview"]
+
 # Run the app via venv
-CMD ["/app/env/bin/python", "/app/mvrun.py"]
+CMD ["/app/env/bin/python", "/app/mvrun.py", "--config", "/etc/meshview/config.ini"]
