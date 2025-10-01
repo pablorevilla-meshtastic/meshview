@@ -6,20 +6,6 @@
         margin: 0 auto;
     }
 
-    /* Removed .packet-fade-in animation CSS */
-    /*
-    .packet-fade-in {
-        animation: fadeIn 0.5s ease forwards;
-        opacity: 0;
-    }
-
-    @keyframes fadeIn {
-        to {
-            opacity: 1;
-        }
-    }
-    */
-
     #pause-button {
         white-space: nowrap;
         padding: 2px 8px;
@@ -58,8 +44,12 @@ let lastTime = null;
 let portnum = "{{ portnum if portnum is not none else '' }}";
 let updatesPaused = false;
 
+// Use firehose_interval from config (seconds), default to 3s if not set
+const firehoseInterval = {{ site_config["site"]["firehose_interval"] | default(3) }};
+if (firehoseInterval < 0) firehoseInterval = 0;
+
 function fetchUpdates() {
-    if (updatesPaused) return;
+    if (updatesPaused || firehoseInterval === 0) return;
 
     const url = new URL("/firehose/updates", window.location.origin);
     if (lastTime) url.searchParams.set("last_time", lastTime);
@@ -74,7 +64,6 @@ function fetchUpdates() {
 
                 for (const html of data.packets.reverse()) {
                     list.insertAdjacentHTML("afterbegin", html);
-                    // No animation here anymore
                 }
             }
         })
@@ -86,7 +75,6 @@ function fetchUpdates() {
 document.addEventListener("DOMContentLoaded", () => {
     const pauseBtn = document.getElementById("pause-button");
 
-    // Assuming you have a portnum selector somewhere (not shown in your snippet)
     const portnumSelector = document.querySelector('select[name="portnum"]');
     if (portnumSelector) {
         portnumSelector.addEventListener("change", (e) => {
@@ -102,9 +90,11 @@ document.addEventListener("DOMContentLoaded", () => {
         pauseBtn.textContent = updatesPaused ? "Resume" : "Pause";
     });
 
-    // Start fetching updates
+    // Start fetching updates with configurable interval
     fetchUpdates();
-    setInterval(fetchUpdates, 1000);
+    if (firehoseInterval > 0) {
+        setInterval(fetchUpdates, firehoseInterval * 1000);
+    }
 });
 </script>
 

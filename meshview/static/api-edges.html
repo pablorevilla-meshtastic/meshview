@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>API Documentation - Edges</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+  <style>
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #000000;
+    }
+    #swagger-ui { background: #ffffff; color: #000; }
+    .swagger-ui { background-color: #ffffff !important; color: #000 !important; }
+    .swagger-ui .topbar,
+    .swagger-ui .info,
+    .swagger-ui .opblock-summary-description,
+    .swagger-ui .parameters-col_description,
+    .swagger-ui .response-col_description { color: #000 !important; }
+    .swagger-ui .opblock { background-color: #f9f9f9 !important; border-color: #ddd !important; }
+    .swagger-ui .opblock-summary { background-color: #eaeaea !important; color: #000 !important; }
+    .swagger-ui .opblock-section-header { color: #000 !important; }
+    .swagger-ui .parameters,
+    .swagger-ui .response { background-color: #fafafa !important; color: #000 !important; }
+    .swagger-ui table { color: #000 !important; }
+    .swagger-ui a { color: #1a0dab !important; }
+    .swagger-ui input,
+    .swagger-ui select,
+    .swagger-ui textarea { background-color: #fff !important; color: #000 !important; border: 1px solid #ccc !important; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+  <script>
+    const spec = {
+      openapi: "3.0.0",
+      info: {
+        title: "Network Edges API",
+        version: "1.0.0",
+        description: "API for retrieving network edges derived from traceroutes and neighbor info packets, with optional type filtering."
+      },
+      paths: {
+        "/api/edges": {
+          get: {
+            summary: "Get network edges",
+            description: "Returns edges between nodes in the network. Optionally filter by type (`traceroute` or `neighbor`).",
+            parameters: [
+              {
+                name: "type",
+                in: "query",
+                required: false,
+                description: "Optional filter to only return edges of this type (`traceroute` or `neighbor`).",
+                schema: { type: "string", enum: ["traceroute", "neighbor"] }
+              }
+            ],
+            responses: {
+              "200": {
+                description: "Successful response",
+                content: {
+                  "application/json": {
+                    schema: {
+                      type: "object",
+                      properties: {
+                        edges: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              from: { type: "integer", example: 101 },
+                              to: { type: "integer", example: 102 },
+                              type: { type: "string", example: "traceroute" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "400": {
+                description: "Invalid request parameters",
+                content: {
+                  "application/json": {
+                    schema: { type: "object", properties: { error: { type: "string" } } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    window.onload = () => {
+      SwaggerUIBundle({
+        spec,
+        dom_id: '#swagger-ui',
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIBundle.SwaggerUIStandalonePreset
+        ],
+        layout: "BaseLayout"
+      });
+    };
+  </script>
+</body>
+</html>

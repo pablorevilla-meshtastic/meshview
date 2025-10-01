@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>API Documentation - Chat</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+  <style>
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #000000;
+    }
+    #swagger-ui { background: #ffffff; color: #000; }
+    .swagger-ui { background-color: #ffffff !important; color: #000 !important; }
+    .swagger-ui .topbar,
+    .swagger-ui .info,
+    .swagger-ui .opblock-summary-description,
+    .swagger-ui .parameters-col_description,
+    .swagger-ui .response-col_description { color: #000 !important; }
+    .swagger-ui .opblock { background-color: #f9f9f9 !important; border-color: #ddd !important; }
+    .swagger-ui .opblock-summary { background-color: #eaeaea !important; color: #000 !important; }
+    .swagger-ui .opblock-section-header { color: #000 !important; }
+    .swagger-ui .parameters,
+    .swagger-ui .response { background-color: #fafafa !important; color: #000 !important; }
+    .swagger-ui table { color: #000 !important; }
+    .swagger-ui a { color: #1a0dab !important; }
+    .swagger-ui input,
+    .swagger-ui select,
+    .swagger-ui textarea { background-color: #fff !important; color: #000 !important; border: 1px solid #ccc !important; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+  <script>
+    const spec = {
+      openapi: "3.0.0",
+      info: {
+        title: "Chat API",
+        version: "1.0.0",
+        description: "API for retrieving chat messages from the mesh network. Supports optional time-based filtering and result limits."
+      },
+      paths: {
+        "/api/chat": {
+          get: {
+            summary: "Get chat messages",
+            description: "Returns a list of chat messages. You can optionally filter by a timestamp (`since`) and limit the number of results (`limit`).",
+            parameters: [
+              {
+                name: "since",
+                in: "query",
+                required: false,
+                description: "ISO 8601 timestamp; only return messages newer than this.",
+                schema: { type: "string", format: "date-time", example: "2025-09-10T15:29:33.307782" }
+              },
+              {
+                name: "limit",
+                in: "query",
+                required: false,
+                description: "Maximum number of messages to return (1-200). Default is 100.",
+                schema: { type: "integer", minimum: 1, maximum: 200, default: 100 }
+              }
+            ],
+            responses: {
+              "200": {
+                description: "Successful response",
+                content: {
+                  "application/json": {
+                    schema: {
+                      type: "object",
+                      properties: {
+                        packets: {
+                          type: "array",
+                          description: "Array of chat messages",
+                          items: {
+                            type: "object",
+                            properties: {
+                              id: { type: "integer", example: 4285655910 },
+                              import_time: { type: "string", format: "date-time", example: "2025-09-10T15:29:33.307782" },
+                              channel: { type: "string", example: "MediumSlow" },
+                              from_node_id: { type: "integer", example: 2695230252 },
+                              long_name: { type: "string", example: "Fight The Empire With Sticks And Rocks" },
+                              payload: { type: "string", example: "sunny in SF" },
+                              reply_id: { type: "integer", example: 670731015, nullable: true }
+                            }
+                          }
+                        },
+                        latest_import_time: {
+                          type: "string",
+                          format: "date-time",
+                          description: "Timestamp of the most recent message returned",
+                          example: "2025-09-10T16:54:14.124001"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "500": {
+                description: "Server error",
+                content: {
+                  "application/json": {
+                    schema: { type: "object", properties: { error: { type: "string" } } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    window.onload = () => {
+      SwaggerUIBundle({
+        spec,
+        dom_id: '#swagger-ui',
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIBundle.SwaggerUIStandalonePreset
+        ],
+        layout: "BaseLayout"
+      });
+    };
+  </script>
+</body>
+</html>

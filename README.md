@@ -2,7 +2,12 @@
 # Meshview
 ![Start Page](screenshots/animated.gif)
 
-The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into the network's activity, including message traffic, node positions, and telemetry data.
+The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
+
+### Version 2.0.7 update - September 2025
+* New database maintenance capability to automatically keep a specific number of days of data.
+* Added configuration for update intervals for both the Live Map and the Firehose pages.
+
 ### Version 2.0.6 update - August 2025
 * New Live Map (Shows packet feed live)
 * New API /api/config (See API documentation)
@@ -39,12 +44,12 @@ Samples of currently running instances:
 - https://meshview.bayme.sh (SF Bay Area)
 - https://www.svme.sh/ (Sacramento Valley)
 - https://meshview.nyme.sh/   (New York)
+- https://meshview.socalmesh.org/ (LA Area)
 - https://map.wpamesh.net/ (Western Pennsylvania)
 - https://meshview.chicagolandmesh.org/ (Chicago)
 - https://meshview.mt.gt (Canadaverse)
 - https://meshview.meshtastic.es (Spain)
 - https://view.mtnme.sh/ (North Georgia / East Tennessee)
-- https://socalmesh.w4hac.com  (Southern California)
 - https://meshview.lsinfra.de (Hessen - Germany)
 - https://map.nswmesh.au/ (Sydney - Australia)
 - https://meshview.pvmesh.org/ (Pioneer Valley, Massachusetts)
@@ -57,13 +62,18 @@ Requires **`python3.11`** or above.
 Clone the repo from GitHub:
 
 ```bash
-git clone https://github.com/pablorevilla-meshtastic/meshview.git
+git clone --recurse-submodules https://github.com/pablorevilla-meshtastic/meshview.git
 ```
-
-Create a Python virtual environment:
 
 ```bash
 cd meshview
+git submodule update --init
+ln -s ../python/meshtastic/protobuf meshtastic/protobuf
+```
+Create a Python virtual environment:
+
+from the meshview directory...
+```bash
 python3 -m venv env
 ```
 
@@ -131,6 +141,9 @@ title = Bay Area Mesh
 # A brief message shown on the homepage.
 message = Real time data from around the bay area and beyond.
 
+# Starting URL when loading the index page.
+starting = /chat
+
 # Enable or disable site features (as strings: "True" or "False").
 nodes = True
 conversations = True
@@ -147,10 +160,14 @@ map_top_left_lon = -123
 map_bottom_right_lat = 36
 map_bottom_right_lon = -121
 
+# Updates intervals in seconds, zero or negative number means no updates
+# defaults will be 3 seconds
+map_interval=3
+firehose_interal=3
+
 # Weekly net details
 weekly_net_message = Weekly Mesh check-in. We will keep it open on every Wednesday from 5:00pm for checkins. The message format should be (LONG NAME) - (CITY YOU ARE IN) #BayMeshNet.
 net_tag = #BayMeshNet
-
 
 # -------------------------
 # MQTT Broker Configuration
@@ -160,7 +177,7 @@ net_tag = #BayMeshNet
 server = mqtt.bayme.sh
 
 # Topics to subscribe to (as JSON-like list, but still a string).
-topics = ["msh/US/bayarea/#", "msh/US/CA/mrymesh/#", "msh/US/CA/sacvalley/#"]
+topics = ["msh/US/bayarea/#", "msh/US/CA/mrymesh/#", "msh/US/CA/sacvalley"]
 
 # Port used by MQTT (typically 1883 for unencrypted).
 port = 1883
@@ -176,6 +193,21 @@ password = large4cats
 [database]
 # SQLAlchemy connection string. This one uses SQLite with asyncio support.
 connection_string = sqlite+aiosqlite:///packets.db
+
+
+# -------------------------
+# Database Cleanup Configuration
+# -------------------------
+[cleanup]
+# Enable or disable daily cleanup
+enabled = False
+# Number of days to keep records in the database
+days_to_keep = 14
+# Time to run daily cleanup (24-hour format)
+hour = 2
+minute = 00
+# Run VACUUM after cleanup
+vacuum = False
 ```
 
 ---
@@ -303,6 +335,27 @@ sudo systemctl daemon-reload
 ```
 
 ## 5. Database Maintenance
+### Database maintnance can now be done via the script itself here is the section from the configuration file.
+- Simple to setup
+- It will not drop any packets
+```
+# -------------------------
+# Database Cleanup Configuration
+# -------------------------
+[cleanup]
+# Enable or disable daily cleanup
+enabled = False
+# Number of days to keep records in the database
+days_to_keep = 14
+# Time to run daily cleanup (24-hour format)
+hour = 2
+minute = 00
+# Run VACUUM after cleanup
+vacuum = False
+```
+Once changes are done you need to restart the script for changes to load.
+
+### Alternatively we can do it via your OS 
 - Create and save bash script below. (Modify /path/to/file/ to the correct path)
 - Name it cleanup.sh
 - Make it executable.

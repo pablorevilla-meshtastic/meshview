@@ -62,6 +62,14 @@
     border: 1px solid #ccc;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     font-size: 14px;
+    display: flex;
+    color: #333;
+}
+.legend-category {
+    margin-right: 10px;
+    code {
+        color: inherit;
+    }
 }
 .legend-box {
     display: inline-block;
@@ -69,6 +77,9 @@
     height: 12px;
     margin-right: 5px;
     border-radius: 3px;
+    &.circle {
+        border-radius: 6px;
+    }
 }
 {% endblock %}
 
@@ -90,29 +101,83 @@
 </div>
 
 <div id="legend">
-    <div><span class="legend-box" style="background-color:#ff5733;"></span> Traceroute</div>
-    <div><span class="legend-box" style="background-color:#3388ff;"></span> Neighbor</div>
+    <div class="legend-category">
+        <div><span class="legend-box" style="background-color: #ff5733"></span> Traceroute</div>
+        <div><span class="legend-box" style="background-color: #049acd"></span> Neighbor</div>
+    </div>
+    <div class="legend-category">
+        <div><span class="legend-box circle" style="background-color: #ff5733"></span> <code>ROUTER</code></div>
+        <div><span class="legend-box circle" style="background-color: #b65224"></span> <code>ROUTER_LATE</code></div>
+    </div>
+    <div class="legend-category">
+        <div><span class="legend-box circle" style="background-color: #007bff"></span> <code>CLIENT</code></div>
+        <div><span class="legend-box circle" style="background-color: #00c3ff"></span> <code>CLIENT_MUTE</code></div>
+    </div>
+    <div class="legend-category">
+        <div><span class="legend-box circle" style="background-color: #ffbf00"></span> Other</div>
+        <div><span class="legend-box circle" style="background-color: #6c757d"></span> Unknown</div>
+    </div>
 </div>
 
 <script>
 const chart = echarts.init(document.getElementById('mynetwork'));
+
+const colors = {
+    edge: {
+        traceroute: '#ff5733',
+        neighbor: '#049acd',
+    },
+    role: {
+        ROUTER: '#ff5733',
+        ROUTER_LATE: '#b65224',
+        CLIENT: '#007bff',
+        CLIENT_MUTE: '#00c3ff',
+        other: '#ffbf00',
+        unknown: '#6c757d',
+    },
+    selection: '#ff8c00',
+};
+
+function getRoleColor(role) {
+    if (!role) return colors.role.unknown;
+    return colors.role[role] || colors.role.other;
+}
+
+
+function getSymbolSize (role) {
+    switch (role) {
+        case 'ROUTER': return 30;
+        case 'ROUTER_LATE': return 30;
+        case 'CLIENT': return 15;
+        case 'CLIENT_MUTE': return 7;
+        default: return 15; // Unknown or other roles
+    }
+}
+
+function getLabel (role, short_name, long_name) {
+    if (role === 'ROUTER') return long_name;
+    if (role === 'ROUTER_LATE') return long_name;
+    if (role === 'CLIENT') return short_name;
+    if (role === 'CLIENT_MUTE') return short_name;
+    return short_name || '';
+}
 
 // --- Nodes ---
 const nodes = [
 {% for node in nodes %}
 {
     name: "{{ node.node_id }}",                // node_id as string
-    value: {{ node.long_name | tojson }},     // display label
+    value: getLabel({{node.role | tojson}}, {{node.short_name | tojson }}, {{node.long_name | tojson}}),     // display label
     symbol: 'circle',
-    symbolSize: 15,
-    itemStyle: { color:'#007bff', opacity:1 },
+    symbolSize: getSymbolSize({{node.role | tojson}}),
+    itemStyle: { color: getRoleColor({{node.role | tojson}}), opacity:1 },
     label: { show:true, position:'right', color:'#333', fontSize:12, formatter: (p)=>p.data.value },
     long_name: {{ node.long_name | tojson }},
     short_name: {{ node.short_name | tojson }},
     role: {{ node.role | tojson }},
     hw_model: {{ node.hw_model | tojson }},
     channel: {{ node.channel | tojson }}
-}{% if not loop.last %},{% endif %}
+},
 {% endfor %}
 ];
 
@@ -122,8 +187,12 @@ const edges = [
 {
     source: "{{ edge.from }}",   // edge source as string
     target: "{{ edge.to }}",     // edge target as string
-    originalColor: "{{ edge.originalColor }}"
-}{% if not loop.last %},{% endif %}
+    originalColor: colors.edge[{{edge.type | tojson}}],
+    lineStyle: {
+        color: colors.edge[{{edge.type | tojson}}],
+        width: {{edge.weight | tojson}},
+    },
+},
 {% endfor %}
 ];
 
@@ -156,24 +225,27 @@ function filterByChannel() {
 
 function updateChart() {
     const updatedNodes = filteredNodes.map(node=>{
-        let opacity=1, color='#007bff';
+        let opacity=1, color=getRoleColor(node.role), borderColor='transparent', borderWidth=6;
         if(lastSelectedNode){
             const connected = filteredEdges.some(e=>
                 (e.source===node.name && e.target===lastSelectedNode) ||
                 (e.target===node.name && e.source===lastSelectedNode)
             );
-            if(node.name===lastSelectedNode){ color='#ff8c00'; opacity=1; }
+            if(node.name === lastSelectedNode) {
+                opacity=1;
+                borderColor=colors.selection;
+            }
             else if(connected) opacity=1;
             else opacity=0.4;
         }
-        return {...node, itemStyle:{color,opacity}};
+        return {...node, itemStyle:{...node.itemStyle, color,opacity, borderColor, borderWidth}};
     });
 
     const updatedEdges = filteredEdges.map(edge=>{
-        let opacity=0.1, width=2;
+        let opacity=0.1, width=edge.lineStyle.width;
         if(lastSelectedNode){
             const connected = edge.source===lastSelectedNode || edge.target===lastSelectedNode;
-            opacity=connected?1:0.05; width=connected?2:1;
+            opacity=connected?1:0.05; width=edge.lineStyle.width;
         }
         return {...edge, lineStyle:{color:edge.originalColor||'#d3d3d3', width, opacity}};
     });

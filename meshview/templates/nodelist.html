@@ -4,9 +4,7 @@
 table {
     width: 80%;
     border-collapse: collapse;
-    margin-top: 1em;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 1em auto;
 }
 
 th, td {
@@ -18,7 +16,15 @@ th, td {
 th {
     background-color: #1f1f1f;
     color: white;
+    position: sticky;
+    top: 0;
+    z-index: 2;
     cursor: pointer;
+}
+
+.sort-icon {
+    font-size: 0.7em;
+    margin-left: 4px;
 }
 
 tr:nth-child(even) {
@@ -29,188 +35,293 @@ tr:nth-child(odd) {
     background-color: #222;
 }
 
-.search-container {
+tr:hover {
+    background-color: #2a2a2a;
+}
+
+.filter-container {
+    width: 80%;
+    margin: 1em auto;
     display: flex;
     gap: 10px;
-    margin-bottom: 10px;
-    width: 80%;
-    margin-left: auto;
-    margin-right: auto;
+    flex-wrap: wrap;
 }
 
-.search, .filter-role, .filter-channel, .filter-hw_model, .export-btn {
-    padding: 8px;
-    border: 1px solid #333;
+select, .export-btn, .search-box, .clear-btn {
+    padding: 6px;
     border-radius: 4px;
+    border: 1px solid #333;
+    cursor: pointer;
 }
 
-.filter-role, .filter-channel, .filter-hw_model {
-    cursor: pointer;
+.search-box {
+    flex: 1;
 }
 
 .export-btn {
-    background: #28a745;
+    background-color: #28a745;
     color: white;
     border: none;
-    cursor: pointer;
 }
 
 .export-btn:hover {
-    background: #218838;
+    background-color: #218838;
+}
+
+.clear-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+}
+
+.clear-btn:hover {
+    background-color: #c82333;
 }
 
 .count-container {
-    margin-bottom: 10px;
+    width: 80%;
+    margin: 0 auto 10px;
     font-weight: bold;
     color: white;
-    width: 80%;
-    margin-left: auto;
-    margin-right: auto;
 }
 {% endblock %}
 
 {% block body %}
-    <div id="node-list">
-        <div class="search-container">
-            <input class="search" placeholder="Search nodes..." />
+<div class="filter-container">
+    <input type="text" id="search-box" class="search-box" placeholder="Search by name or ID..." />
 
-            <!-- Filter by Role -->
-            <select class="filter-role" onchange="applyFilters()">
-                <option value="">Filter by Role</option>
-                {% for node in nodes|groupby('role') %}
-                    <option value="{{ node.grouper }}">{{ node.grouper }}</option>
-                {% endfor %}
-            </select>
+    <select id="role-filter">
+        <option value="">All Roles</option>
+    </select>
 
-            <!-- Filter by Channel -->
-            <select class="filter-channel" onchange="applyFilters()">
-                <option value="">Filter by Channel</option>
-                {% for node in nodes|groupby('channel') %}
-                    <option value="{{ node.grouper }}">{{ node.grouper }}</option>
-                {% endfor %}
-            </select>
+    <select id="channel-filter">
+        <option value="">All Channels</option>
+    </select>
 
-            <!-- Filter by HW Model -->
-            <select class="filter-hw_model" onchange="applyFilters()">
-                <option value="">Filter by HW Model</option>
-                {% for node in nodes|groupby('hw_model') %}
-                    <option value="{{ node.grouper }}">{{ node.grouper }}</option>
-                {% endfor %}
-            </select>
+    <select id="hw-filter">
+        <option value="">All HW Models</option>
+    </select>
 
-            <button class="export-btn" onclick="exportToCSV()">Export to CSV</button>
-        </div>
+    <select id="firmware-filter">
+        <option value="">All Firmware</option>
+    </select>
 
-        <!-- Count Display -->
-        <div class="count-container">Showing <span id="node-count-value">0</span> nodes</div>
+    <button class="export-btn" id="export-btn">Export CSV</button>
+    <button class="clear-btn" id="clear-btn">Clear Filters</button>
+</div>
 
-        {% if nodes %}
-            <table id="node-table">
-                <thead>
-                    <tr>
-                        <th class="sort" data-sort="long_name">Long Name</th>
-                        <th class="sort" data-sort="short_name">Short Name</th>
-                        <th class="sort" data-sort="hw_model">HW Model</th>
-                        <th class="sort" data-sort="firmware">Firmware</th>
-                        <th class="sort" data-sort="role">Role</th>
-                        <th class="sort" data-sort="last_lat">Last Latitude</th>
-                        <th class="sort" data-sort="last_long">Last Longitude</th>
-                        <th class="sort" data-sort="channel">Channel</th>
-                        <th class="sort" data-sort="last_update" data-order="desc">Last Update</th>
-                    </tr>
-                </thead>
-                <tbody class="list">
-                    {% for node in nodes %}
-                        <tr>
-                            <td class="long_name"> <a href="/packet_list/{{ node.node_id }}">{{ node.long_name }}</a></td>
-                            <td class="short_name">{{ node.short_name }}</td>
-                            <td class="hw_model">{{ node.hw_model if node.hw_model else "N/A" }}</td>
-                            <td class="firmware">{{ node.firmware if node.firmware else "N/A" }}</td>
-                            <td class="role">{{ node.role if node.role else "N/A" }}</td>
-                            <td class="last_lat">{{ "{:.7f}".format(node.last_lat / 10**7) if node.last_lat else "N/A" }}</td>
-                            <td class="last_long">{{ "{:.7f}".format(node.last_long / 10**7) if node.last_long else "N/A" }}</td>
-                            <td class="channel">{{ node.channel if node.channel else "N/A" }}</td>
-                            <td class="last_update" data-timestamp="{{ node.last_update.timestamp() if node.last_update else 0 }}">
-                                {{ node.last_update.strftime('%-I:%M:%S %p - %m-%d-%Y') if node.last_update else "N/A" }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No nodes found.</p>
-        {% endif %}
-    </div>
+<div class="count-container">
+    Showing <span id="node-count">0</span> nodes
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/2.3.1/list.min.js"></script>
-    <script>
-        var nodeList;
+<div id="node-list">
+    <table>
+        <thead>
+            <tr>
+                <th>Short<span class="sort-icon">▲</span></th>
+                <th>Long Name <span class="sort-icon"></span></th>
+                <th>HW Model <span class="sort-icon"></span></th>
+                <th>Firmware <span class="sort-icon"></span></th>
+                <th>Role <span class="sort-icon"></span></th>
+                <th>Last Latitude <span class="sort-icon"></span></th>
+                <th>Last Longitude <span class="sort-icon"></span></th>
+                <th>Channel <span class="sort-icon"></span></th>
+                <th>Last Update <span class="sort-icon"></span></th>
+            </tr>
+        </thead>
+        <tbody id="node-table-body">
+            <tr><td colspan="9" style="text-align:center; color:white;">Loading nodes...</td></tr>
+        </tbody>
+    </table>
+</div>
 
-        document.addEventListener("DOMContentLoaded", function () {
-            var options = {
-                valueNames: [
-                    "long_name", "short_name", "hw_model", "firmware", "role",
-                    "last_lat", "last_long", "channel", { name: "last_update", attr: "data-timestamp" }
-                ]
-            };
+<script>
+let allNodes = [];
+let sortColumn = "short_name"; // default sorted column
+let sortAsc = true; // default ascending
 
-            nodeList = new List("node-list", options);
+// Declare headers and keyMap BEFORE any function that uses them
+const headers = document.querySelectorAll("thead th");
+const keyMap = ["short_name","long_name","hw_model","firmware","role","last_lat","last_long","channel","last_update"];
 
-            updateCount();
+document.addEventListener("DOMContentLoaded", async function() {
+    const tbody = document.getElementById("node-table-body");
+    const roleFilter = document.getElementById("role-filter");
+    const channelFilter = document.getElementById("channel-filter");
+    const hwFilter = document.getElementById("hw-filter");
+    const firmwareFilter = document.getElementById("firmware-filter");
+    const searchBox = document.getElementById("search-box");
+    const countSpan = document.getElementById("node-count");
+    const exportBtn = document.getElementById("export-btn");
+    const clearBtn = document.getElementById("clear-btn");
 
-            nodeList.on("updated", function () {
-                updateCount();
-            });
+    try {
+        const response = await fetch("/api/nodes?days_active=3");
+        if (!response.ok) throw new Error("Failed to fetch nodes");
+        const data = await response.json();
+        allNodes = data.nodes;
+        populateFilters(allNodes);
+        renderTable(allNodes);
+        updateSortIcons();
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:red;">Error loading nodes: ${err.message}</td></tr>`;
+    }
+
+    roleFilter.addEventListener("change", applyFilters);
+    channelFilter.addEventListener("change", applyFilters);
+    hwFilter.addEventListener("change", applyFilters);
+    firmwareFilter.addEventListener("change", applyFilters);
+    searchBox.addEventListener("input", applyFilters);
+    exportBtn.addEventListener("click", exportToCSV);
+    clearBtn.addEventListener("click", clearFilters);
+
+    headers.forEach((th, index) => {
+        th.addEventListener("click", () => {
+            const key = keyMap[index];
+            sortAsc = (sortColumn === key) ? !sortAsc : true;
+            sortColumn = key;
+            applyFilters(); // apply filters and sort
+        });
+    });
+
+    function populateFilters(nodes) {
+        const roles = new Set();
+        const channels = new Set();
+        const hws = new Set();
+        const firmwares = new Set();
+
+        nodes.forEach(n => {
+            if (n.role) roles.add(n.role);
+            if (n.channel) channels.add(n.channel);
+            if (n.hw_model) hws.add(n.hw_model);
+            if (n.firmware) firmwares.add(n.firmware);
         });
 
-        function applyFilters() {
-            var selectedRole = document.querySelector(".filter-role").value;
-            var selectedChannel = document.querySelector(".filter-channel").value;
-            var selectedHWModel = document.querySelector(".filter-hw_model").value;
+        fillSelect(roleFilter, roles);
+        fillSelect(channelFilter, channels);
+        fillSelect(hwFilter, hws);
+        fillSelect(firmwareFilter, firmwares);
+    }
 
-            nodeList.filter(function (item) {
-                var matchesRole = selectedRole === "" || item.values().role === selectedRole;
-                var matchesChannel = selectedChannel === "" || item.values().channel === selectedChannel;
-                var matchesHWModel = selectedHWModel === "" || item.values().hw_model === selectedHWModel;
-                return matchesRole && matchesChannel && matchesHWModel;
+    function fillSelect(select, values) {
+        [...values].sort().forEach(v => {
+            const option = document.createElement("option");
+            option.value = v;
+            option.textContent = v;
+            select.appendChild(option);
+        });
+    }
+
+    function applyFilters() {
+        const searchTerm = searchBox.value.trim().toLowerCase();
+
+        let filtered = allNodes.filter(node => {
+            const roleMatch = !roleFilter.value || node.role === roleFilter.value;
+            const channelMatch = !channelFilter.value || node.channel === channelFilter.value;
+            const hwMatch = !hwFilter.value || node.hw_model === hwFilter.value;
+            const firmwareMatch = !firmwareFilter.value || node.firmware === firmwareFilter.value;
+
+            const searchMatch = !searchTerm ||
+                (node.long_name && node.long_name.toLowerCase().includes(searchTerm)) ||
+                (node.short_name && node.short_name.toLowerCase().includes(searchTerm)) ||
+                (node.node_id && node.node_id.toString().includes(searchTerm)) ||
+                (node.id && node.id.toString().includes(searchTerm));
+
+            return roleMatch && channelMatch && hwMatch && firmwareMatch && searchMatch;
+        });
+
+        if (sortColumn) {
+            filtered = sortNodes(filtered, sortColumn, sortAsc);
+        }
+
+        renderTable(filtered);
+        updateSortIcons();
+    }
+
+    function renderTable(nodes) {
+        tbody.innerHTML = "";
+        if (!nodes.length) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:white;">No nodes found</td></tr>';
+        } else {
+            nodes.forEach(node => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${node.short_name || "N/A"}</td>
+                    <td><a href="/packet_list/${node.node_id}">${node.long_name || "N/A"}</a></td>
+                    <td>${node.hw_model || "N/A"}</td>
+                    <td>${node.firmware || "N/A"}</td>
+                    <td>${node.role || "N/A"}</td>
+                    <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
+                    <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
+                    <td>${node.channel || "N/A"}</td>
+                    <td>${node.last_update ? new Date(node.last_update).toLocaleString() : "N/A"}</td>
+                `;
+                tbody.appendChild(row);
             });
-
-            updateCount();
         }
+        countSpan.textContent = nodes.length;
+    }
 
-        function updateCount() {
-            var visibleRows = document.querySelectorAll("#node-table tbody tr:not([style*='display: none'])").length;
-            document.getElementById("node-count-value").innerText = visibleRows;
-        }
+    function clearFilters() {
+        roleFilter.value = "";
+        channelFilter.value = "";
+        hwFilter.value = "";
+        firmwareFilter.value = "";
+        searchBox.value = "";
+        sortColumn = "short_name";
+        sortAsc = true;
+        renderTable(allNodes);
+        updateSortIcons();
+    }
 
-        function exportToCSV() {
-            var table = document.getElementById("node-table");
-            var rows = table.querySelectorAll("tr");
-            var csvContent = [];
+    function exportToCSV() {
+        const rows = [];
+        const headersText = Array.from(headers).map(th => `"${th.innerText.replace(/▲|▼/g,'')}"`);
+        rows.push(headersText.join(","));
 
-            var headers = [];
-            table.querySelectorAll("th").forEach(th => headers.push(th.innerText));
-            csvContent.push(headers.join(","));
+        const visibleRows = tbody.querySelectorAll("tr");
+        visibleRows.forEach(tr => {
+            if (tr.children.length === 9) {
+                const row = Array.from(tr.children).map(td => `"${td.innerText.replace(/"/g, '""')}"`);
+                rows.push(row.join(","));
+            }
+        });
 
-            rows.forEach(row => {
-                if (row.style.display !== "none") {
-                    var cells = row.querySelectorAll("td");
-                    if (cells.length > 0) {
-                        var rowData = [];
-                        cells.forEach(cell => {
-                            rowData.push('"' + cell.innerText.replace(/"/g, '""') + '"');
-                        });
-                        csvContent.push(rowData.join(","));
-                    }
-                }
-            });
+        const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + rows.join("\n");
+        const link = document.createElement("a");
+        link.href = encodeURI(csvContent);
+        const dateStr = new Date().toISOString().slice(0,10);
+        link.download = `nodes_list_${dateStr}.csv`;
+        link.click();
+    }
 
-            var csvString = csvContent.join("\n");
-            var blob = new Blob([csvString], { type: "text/csv" });
-            var a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "nodes_list.csv";
-            a.click();
-        }
-    </script>
+    function sortNodes(nodes, key, asc) {
+        return [...nodes].sort((a, b) => {
+            let valA = a[key] || "";
+            let valB = b[key] || "";
+
+            if (key === "last_lat" || key === "last_long") {
+                valA = Number(valA) || 0;
+                valB = Number(valB) || 0;
+            }
+            if (key === "last_update") {
+                valA = valA ? new Date(valA).getTime() : 0;
+                valB = valB ? new Date(valB).getTime() : 0;
+            }
+
+            if (valA < valB) return asc ? -1 : 1;
+            if (valA > valB) return asc ? 1 : -1;
+            return 0;
+        });
+    }
+
+    function updateSortIcons() {
+        headers.forEach((th, index) => {
+            const span = th.querySelector(".sort-icon");
+            if (!span) return;
+            span.textContent = (keyMap[index] === sortColumn) ? (sortAsc ? "▲" : "▼") : "";
+        });
+    }
+});
+</script>
 {% endblock %}

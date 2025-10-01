@@ -23,135 +23,156 @@
     animation: flash 3.5s ease-out;
 }
 
-/* New CSS for smaller Replying to text */
+/* Nested reply style below the message */
 .replying-to {
     font-size: 0.85em;
-    color: #ccc;
+    color: #aaa;           /* gray text */
+    margin-top: 4px;
+    padding-left: 20px;    /* increased indentation */
+
+.replying-to .reply-preview {
+    color: #aaa;
+}
+
+
 }
 {% endblock %}
 
 {% block body %}
 <div id="chat-container">
     <div class="container" id="chat-log">
-        {% for packet in packets %}
-        <div
-            class="row chat-packet"
-            data-packet-id="{{ packet.id }}"
-            role="article"
-            aria-label="Chat message from {{ packet.from_node.long_name or (packet.from_node_id | node_id_to_hex) }}"
-        >
-            <span class="col-2 timestamp" title="{{ packet.import_time.isoformat() }}">
-                {{ packet.import_time.strftime('%-I:%M:%S %p - %m/%d/%Y') }}
-            </span>
-            <span class="col-2 channel">
-                <a href="/packet/{{ packet.id }}" title="View packet details">✉️</a>
-                {{ packet.from_node.channel }}
-            </span>
-            <span class="col-3 username">
-                <a href="/packet_list/{{ packet.from_node_id }}" title="View all packets from this node">
-                    {{ packet.from_node.long_name or (packet.from_node_id | node_id_to_hex) }}
-                </a>
-            </span>
-            <span class="col-5 message">
-                {{ packet.payload }}
-                {% if packet.raw_mesh_packet.decoded.reply_id %}
-                <span class="replying-to">
-                    <i>(Replying to: <a href="/packet/{{ packet.raw_mesh_packet.decoded.reply_id }}">{{ packet.raw_mesh_packet.decoded.reply_id }}</a>)</i>
-                </span>
-                {% endif %}
-            </span>
-        </div>
-        {% else %}
-        <p class="text-muted">No packets found.</p>
-        {% endfor %}
     </div>
 </div>
 
 <script>
-let lastTime = null;
 const chatContainer = document.querySelector("#chat-log");
-
-// Initialize lastTime from DOM
-const firstPacket = chatContainer.querySelector(".chat-packet");
-if (firstPacket) {
-    lastTime = firstPacket.querySelector(".timestamp")?.getAttribute("title");
-}
-
-// Track rendered packet IDs
+let lastTime = null;
 const renderedPacketIds = new Set();
-document.querySelectorAll(".chat-packet").forEach(div => {
-    const id = div.dataset.packetId;
-    if (id) renderedPacketIds.add(id);
-});
+const packetMap = new Map(); // store all packets we’ve seen
 
 function escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
+  const div = document.createElement("div");
+  div.textContent = text == null ? "" : text;
+  return div.innerHTML;
+}
+
+function renderPacket(packet, highlight = false) {
+  // prevent duplicates
+  if (renderedPacketIds.has(packet.id)) return;
+  renderedPacketIds.add(packet.id);
+  packetMap.set(packet.id, packet);
+
+  const date = new Date(packet.import_time);
+  const formattedTime = date.toLocaleTimeString([], {
+    hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true
+  });
+  const formattedDate = `${(date.getMonth() + 1).toString().padStart(2,"0")}/` +
+                        `${date.getDate().toString().padStart(2,"0")}/` +
+                        `${date.getFullYear()}`;
+  const formattedTimestamp = `${formattedTime} - ${formattedDate}`;
+
+  // Try to resolve the reply target
+    let replyHtml = "";
+    if (packet.reply_id) {
+      const parent = packetMap.get(packet.reply_id);
+      if (parent) {
+        replyHtml = `
+          <div class="replying-to">
+            <div class="reply-preview">
+              <i>Replying to: <strong>${escapeHtml((parent.long_name || "").trim() || `Node ${parent.from_node_id}`)}</strong>:
+              ${escapeHtml(parent.payload || "")}</i>
+            </div>
+          </div>
+        `;
+      } else {
+        // fallback if parent not loaded yet
+        replyHtml = `
+          <div class="replying-to">
+            <i>Replying to: <a href="/packet/${packet.reply_id}">${packet.reply_id}</a></i>
+          </div>
+        `;
+      }
+    }
+
+
+  const div = document.createElement("div");
+  div.className = "row chat-packet" + (highlight ? " flash" : "");
+  div.dataset.packetId = packet.id;
+  div.innerHTML = `
+    <span class="col-2 timestamp" title="${packet.import_time}">
+      ${formattedTimestamp}
+    </span>
+    <span class="col-2 channel">
+      <a href="/packet/${packet.id}" title="View packet details">✉️</a> ${escapeHtml(packet.channel || "")}
+    </span>
+    <span class="col-3 nodename">
+      <a href="/packet_list/${packet.from_node_id}">
+        ${escapeHtml((packet.long_name || "").trim() || `Node ${packet.from_node_id}`)}
+      </a>
+    </span>
+    <span class="col-5 message">
+      ${escapeHtml(packet.payload)}
+      ${replyHtml}
+    </span>
+  `;
+
+  // Prepend so newest messages are at the top.
+  chatContainer.prepend(div);
+
+  if (highlight) setTimeout(() => div.classList.remove("flash"), 2500);
+}
+
+function renderPacketsEnsureDescending(packets, highlight = false) {
+  if (!Array.isArray(packets) || packets.length === 0) return;
+  const sortedDesc = packets.slice().sort((a, b) =>
+    new Date(b.import_time) - new Date(a.import_time)
+  );
+  for (let i = sortedDesc.length - 1; i >= 0; i--) {
+    renderPacket(sortedDesc[i], highlight);
+  }
+}
+
+async function fetchInitial() {
+  try {
+    const url = new URL("/api/chat", window.location.origin);
+    url.searchParams.set("limit", "100");
+
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if (data && data.packets && data.packets.length > 0) {
+      renderPacketsEnsureDescending(data.packets, false);
+      if (data.latest_import_time) lastTime = data.latest_import_time;
+    }
+  } catch (err) {
+    console.error("Initial fetch error:", err);
+  }
 }
 
 async function fetchUpdates() {
-    try {
-        const url = new URL("/chat/updates", window.location.origin);
-        if (lastTime) {
-            url.searchParams.set("last_time", lastTime);
-        }
+  try {
+    const url = new URL("/api/chat", window.location.origin);
+    url.searchParams.set("limit", "100");
+    if (lastTime) url.searchParams.set("since", lastTime);
 
-        const response = await fetch(url);
-        const data = await response.json();
+    const resp = await fetch(url);
+    const data = await resp.json();
 
-        if (data.packets && data.packets.length > 0) {
-            for (const packet of data.packets) {
-                if (renderedPacketIds.has(packet.id)) continue;
-                renderedPacketIds.add(packet.id);
-
-                const div = document.createElement("div");
-                div.className = "row chat-packet flash";
-                div.dataset.packetId = packet.id;
-
-                const date = new Date(packet.import_time);
-                const formattedTime = date.toLocaleTimeString([], {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true
-                });
-                const formattedDate = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}/${date.getFullYear()}`;
-                const formattedTimestamp = `${formattedTime} - ${formattedDate}`;
-
-                div.innerHTML = `
-                    <span class="col-2 timestamp" title="${packet.import_time}">
-                        ${formattedTimestamp}
-                    </span>
-                    <span class="col-2 channel">
-                        <a href="/packet/${packet.id}" title="View packet details">✉️</a> ${packet.channel}
-                    </span>
-                    <span class="col-3 username">
-                        <a href="/packet_list/${packet.from_node_id}" title="View all packets from this node">
-                            ${packet.long_name || (packet.from_node_id || '').toString(16)}
-                        </a>
-                    </span>
-                    <span class="col-5 message">
-                        ${escapeHtml(packet.payload)}
-                        ${packet.reply_id
-                            ? `<span class="replying-to">(Replying to: <a href="/packet/${packet.reply_id}">${packet.reply_id}</a>)</span>`
-                            : ''}
-                    </span>
-                `;
-
-                chatContainer.prepend(div);
-                setTimeout(() => div.classList.remove("flash"), 2500);
-            }
-        }
-
-        if (data.latest_import_time) {
-            lastTime = data.latest_import_time;
-        }
-    } catch (err) {
-        console.error("Fetch error:", err);
+    if (data && data.packets && data.packets.length > 0) {
+      renderPacketsEnsureDescending(data.packets, true);
+      if (data.latest_import_time) lastTime = data.latest_import_time;
     }
+  } catch (err) {
+    console.error("Fetch updates error:", err);
+  }
 }
 
+// initial load
+fetchInitial();
 setInterval(fetchUpdates, 5000);
 </script>
+
+
+
+
 {% endblock %}

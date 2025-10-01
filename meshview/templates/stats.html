@@ -1,269 +1,454 @@
 {% extends "base.html" %}
 
 {% block css %}
-    #packet_details {
-        height: 95vh;
-        overflow: auto;
-    }
+#packet_details {
+    height: 95vh;
+    overflow: auto;
+}
 
-    .main-container, .container {
-        max-width: 900px;
-        margin: 0 auto;
-        text-align: center;
-    }
+.main-container, .container {
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+}
 
-    .card-section {
-        background-color: #272b2f;
-        border: 1px solid #474b4e;
-        padding: 15px 20px;
-        margin-bottom: 20px;
-        border-radius: 10px;
-        transition: background-color 0.2s ease;
-    }
+.card-section {
+    background-color: #272b2f;
+    border: 1px solid #474b4e;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    transition: background-color 0.2s ease;
+}
 
-    .card-section:hover {
-        background-color: #2f3338;
-    }
+.card-section:hover {
+    background-color: #2f3338;
+}
 
-    .section-header {
-        font-size: 16px;
-        margin: 0 0 6px 0;
-        font-weight: 500;
-        color: #fff;
-    }
+.section-header {
+    font-size: 16px;
+    margin: 0 0 6px 0;
+    font-weight: 500;
+    color: #fff;
+}
 
-    .main-header {
-        font-size: 22px;
-        margin-bottom: 20px;
-        font-weight: 600;
-    }
+.main-header {
+    font-size: 22px;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
 
-    .chart {
-        height: 400px;
-        margin-top: 10px;
-    }
+.chart {
+    height: 400px;
+    margin-top: 10px;
+}
 
-    .total-count {
-        color: #ccc;
-        font-size: 14px;
-        margin-bottom: 8px;
-    }
+.total-count {
+    color: #ccc;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.expand-btn, .export-btn {
+    margin-bottom: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+    background-color: #444;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.expand-btn:hover { background-color: #666; }
+.export-btn:hover { background-color: #777; }
+
+/* Summary cards at top */
+.summary-card {
+    background-color: #1f2124;
+    border: 1px solid #474b4e;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+}
+.summary-count {
+    font-size: 18px;
+    color: #66bb6a;
+    font-weight: bold;
+}
+
+#channelSelect {
+    margin-bottom: 8px;
+    padding: 4px 6px;
+    background:#444;
+    color:#fff;
+    border:none;
+    border-radius:4px;
+}
 {% endblock %}
 
 {% block head %}
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 {% endblock %}
 
 {% block body %}
 <div class="main-container">
-    <h2 class="main-header">Mesh Statistics - Hourly Packet Counts (Last 24 Hours)</h2>
+    <h2 class="main-header">Mesh Statistics - Summary (all available in Database)</h2>
 
-    <!-- Daily packets chart moved to top -->
-    <div class="card-section">
-        <p class="section-header">Packets per Day - All Ports (Last 14 Days)</p>
-        <div id="total_daily_all" class="total-count">Total: 0</div>
-        <div id="chart_daily_all" class="chart"></div>
+    <div class="summary-container" style="display:flex; justify-content:space-between; gap:10px; margin-bottom:20px;">
+        <div class="summary-card" style="flex:1;">
+            <p>Total Nodes</p>
+            <div class="summary-count">{{ "{:,}".format(total_nodes) }}</div>
+        </div>
+        <div class="summary-card" style="flex:1;">
+            <p>Total Packets</p>
+            <div class="summary-count">{{ "{:,}".format(total_packets) }}</div>
+        </div>
+        <div class="summary-card" style="flex:1;">
+            <p>Total Packets Seen</p>
+            <div class="summary-count">{{ "{:,}".format(total_packets_seen) }}</div>
+        </div>
     </div>
 
-    <!-- Daily packets - Text Messages -->
-    <div class="card-section">
-        <p class="section-header">Packets per Day - Text Messages (Port 1, Last 14 Days)</p>
-        <div id="total_daily_portnum_1" class="total-count">Total: 0</div>
-        <div id="chart_daily_portnum_1" class="chart"></div>
-    </div>
+<!-- Daily Charts -->
+<div class="card-section">
+    <p class="section-header">Packets per Day - All Ports (Last 14 Days)</p>
+    <div id="total_daily_all" class="total-count">Total: 0</div>
+    <button class="expand-btn" data-chart="chart_daily_all">Expand Chart</button>
+    <button class="export-btn" data-chart="chart_daily_all">Export CSV</button>
+    <div id="chart_daily_all" class="chart"></div>
+</div>
 
-    <!-- Overall hourly packets -->
+<!-- Packet Types Pie Chart with Channel Selector (moved here) -->
+<div class="card-section">
+    <p class="section-header">Packet Types - Last 24 Hours</p>
+    <select id="channelSelect">
+        <option value="">All Channels</option>
+    </select>
+    <button class="expand-btn" data-chart="chart_packet_types">Expand Chart</button>
+    <button class="export-btn" data-chart="chart_packet_types">Export CSV</button>
+    <div id="chart_packet_types" class="chart"></div>
+</div>
+
+<div class="card-section">
+    <p class="section-header">Packets per Day - Text Messages (Port 1, Last 14 Days)</p>
+    <div id="total_daily_portnum_1" class="total-count">Total: 0</div>
+    <button class="expand-btn" data-chart="chart_daily_portnum_1">Expand Chart</button>
+    <button class="export-btn" data-chart="chart_daily_portnum_1">Export CSV</button>
+    <div id="chart_daily_portnum_1" class="chart"></div>
+</div>
+
+
+    <!-- Hourly Charts -->
     <div class="card-section">
         <p class="section-header">Packets per Hour - All Ports</p>
         <div id="total_hourly_all" class="total-count">Total: 0</div>
+        <button class="expand-btn" data-chart="chart_hourly_all">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_hourly_all">Export CSV</button>
         <div id="chart_hourly_all" class="chart"></div>
     </div>
 
-    <!-- Hourly charts by portnum -->
     <div class="card-section">
         <p class="section-header">Packets per Hour - Text Messages (Port 1)</p>
         <div id="total_portnum_1" class="total-count">Total: 0</div>
+        <button class="expand-btn" data-chart="chart_portnum_1">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_portnum_1">Export CSV</button>
         <div id="chart_portnum_1" class="chart"></div>
     </div>
 
+    <!-- Node breakdown charts -->
     <div class="card-section">
-        <p class="section-header">Packets per Hour - Position (Port 3)</p>
-        <div id="total_portnum_3" class="total-count">Total: 0</div>
-        <div id="chart_portnum_3" class="chart"></div>
+        <p class="section-header">Hardware Breakdown</p>
+        <button class="expand-btn" data-chart="chart_hw_model">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_hw_model">Export CSV</button>
+        <div id="chart_hw_model" class="chart"></div>
     </div>
 
     <div class="card-section">
-        <p class="section-header">Packets per Hour - Node Info (Port 4)</p>
-        <div id="total_portnum_4" class="total-count">Total: 0</div>
-        <div id="chart_portnum_4" class="chart"></div>
+        <p class="section-header">Role Breakdown</p>
+        <button class="expand-btn" data-chart="chart_role">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_role">Export CSV</button>
+        <div id="chart_role" class="chart"></div>
     </div>
 
     <div class="card-section">
-        <p class="section-header">Packets per Hour - Telemetry (Port 67)</p>
-        <div id="total_portnum_67" class="total-count">Total: 0</div>
-        <div id="chart_portnum_67" class="chart"></div>
+        <p class="section-header">Channel Breakdown</p>
+        <button class="expand-btn" data-chart="chart_channel">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_channel">Export CSV</button>
+        <div id="chart_channel" class="chart"></div>
     </div>
+</div>
 
-    <div class="card-section">
-        <p class="section-header">Packets per Hour - Traceroute (Port 70)</p>
-        <div id="total_portnum_70" class="total-count">Total: 0</div>
-        <div id="chart_portnum_70" class="chart"></div>
-    </div>
+<!-- Modal for expanded charts -->
+<div id="chartModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center;">
+    <div style="position:relative; width:80%; max-width:1000px; height:80%;
+        background:#272b2f; border-radius:10px; padding:10px; display:flex; flex-direction:column;">
 
-    <div class="card-section">
-        <p class="section-header">Packets per Hour - Neighbor Info (Port 71)</p>
-        <div id="total_portnum_71" class="total-count">Total: 0</div>
-        <div id="chart_portnum_71" class="chart"></div>
+        <button id="closeModal" style="position:absolute; top:10px; right:10px; z-index:1010;
+            background:#ff4c4c; border:none; color:white; font-size:24px; width:36px; height:36px;
+            border-radius:50%; cursor:pointer;">&times;</button>
+        <div id="modalChart" style="flex:1; width:100%; height:100%;"></div>
     </div>
 </div>
 
 <script>
-    async function fetchStats(period_type, length, portnum = null) {
-        try {
-            let url = `/api/stats?period_type=${period_type}&length=${length}`;
-            if (portnum !== null) {
-                url += `&portnum=${portnum}`;
-            }
-            const res = await fetch(url);
-            if (!res.ok) {
-                console.error(`Failed to fetch ${period_type} stats portnum ${portnum}:`, res.status, res.statusText);
-                return [];
-            }
-            const json = await res.json();
-            return json.data || [];
-        } catch (err) {
-            console.error('Error fetching stats:', err);
-            return [];
-        }
+const PORTNUM_LABELS = {
+    1: "Text Messages",
+    3: "Position",
+    4: "Node Info",
+    67: "Telemetry",
+    70: "Traceroute",
+    71: "Neighbor Info"
+};
+
+// --- Fetch & Processing ---
+async function fetchStats(period_type,length,portnum=null,channel=null){
+    try{
+        let url=`/api/stats?period_type=${period_type}&length=${length}`;
+        if(portnum!==null) url+=`&portnum=${portnum}`;
+        if(channel) url+=`&channel=${channel}`;
+        const res=await fetch(url);
+        if(!res.ok) return [];
+        const json=await res.json();
+        return json.data||[];
+    }catch{return [];}
+}
+
+async function fetchNodes(){
+    try{
+        const res=await fetch("/api/nodes");
+        const json=await res.json();
+        return json.nodes||[];
+    }catch{return [];}
+}
+
+async function fetchChannels(){
+    try{
+        const res = await fetch("/api/channels");
+        const json = await res.json();
+        return json.channels || [];
+    }catch{return [];}
+}
+
+function processCountField(nodes,field){
+    const counts={};
+    nodes.forEach(n=>{
+        const key=n[field]||"Unknown";
+        counts[key]=(counts[key]||0)+1;
+    });
+    return Object.entries(counts).map(([name,value])=>({name,value}));
+}
+
+function updateTotalCount(domId,data){
+    const el=document.getElementById(domId);
+    if(!el||!data.length) return;
+    const total=data.reduce((acc,d)=>acc+(d.count??d.packet_count??0),0);
+    el.textContent=`Total: ${total.toLocaleString()}`;
+}
+
+function prepareTopN(data,n=20){
+    data.sort((a,b)=>b.value-a.value);
+    let top=data.slice(0,n);
+    if(data.length>n){
+        const otherValue=data.slice(n).reduce((sum,item)=>sum+item.value,0);
+        top.push({name:"Other", value:otherValue});
     }
+    return top;
+}
 
-    function updateTotalCount(domId, data) {
-        const el = document.getElementById(domId);
-        if (!el || !data.length) return;
-        const total = data.reduce((acc, d) => acc + (d.count ?? d.packet_count ?? 0), 0);
-        el.textContent = `Total: ${total.toLocaleString()}`;
-    }
+// --- Chart Rendering ---
+function renderChart(domId,data,type,color,isHourly){
+    const el=document.getElementById(domId);
+    if(!el) return;
+    const chart=echarts.init(el);
+    const periods=data.map(d=>(d.period??d.period===0)?d.period.toString():'');
+    const counts=data.map(d=>d.count??d.packet_count??0);
+    const option={
+        backgroundColor:'#272b2f',
+        tooltip:{trigger:'axis'},
+        grid:{left:'6%', right:'6%', bottom:'18%'},
+        xAxis:{type:'category', data:periods, axisLine:{lineStyle:{color:'#aaa'}}, axisLabel:{rotate:45,color:'#ccc'}},
+        yAxis:{type:'value', axisLine:{lineStyle:{color:'#aaa'}}, axisLabel:{color:'#ccc'}},
+        series:[{data:counts,type:type,smooth:type==='line',itemStyle:{color:color}, areaStyle:type==='line'?{}:undefined}]
+    };
+    chart.setOption(option);
+    return chart;
+}
 
-    let chartHourlyAll = null;
-    let chartPortnum1 = null;
-    let chartPortnum3 = null;
-    let chartPortnum4 = null;
-    let chartPortnum67 = null;
-    let chartPortnum70 = null;
-    let chartPortnum71 = null;
-    let chartDailyAll = null;
-    let chartDailyPortnum1 = null;
+function renderPieChart(elId,data,name){
+    const el=document.getElementById(elId);
+    if(!el) return;
+    const chart=echarts.init(el);
+    const top20=prepareTopN(data,20);
+    const option={
+        backgroundColor:"#272b2f",
+        tooltip:{trigger:"item", formatter: params=>`${params.name}: ${Math.round(params.percent)}% (${params.value})`},
+        series:[{
+            name:name, type:"pie", radius:["30%","70%"], center:["50%","50%"],
+            avoidLabelOverlap:true,
+            itemStyle:{borderRadius:6,borderColor:"#272b2f",borderWidth:2},
+            label:{show:true,formatter:"{b}\n{d}%", color:"#ccc", fontSize:10},
+            labelLine:{show:true,length:10,length2:6},
+            data:top20
+        }]
+    };
+    chart.setOption(option);
+    return chart;
+}
 
-    function renderChart(domId, data, type, color, isHourly) {
-        const el = document.getElementById(domId);
-        if (!el) return;
-        const chart = echarts.init(el);
-        switch(domId) {
-            case 'chart_hourly_all': chartHourlyAll = chart; break;
-            case 'chart_portnum_1': chartPortnum1 = chart; break;
-            case 'chart_portnum_3': chartPortnum3 = chart; break;
-            case 'chart_portnum_4': chartPortnum4 = chart; break;
-            case 'chart_portnum_67': chartPortnum67 = chart; break;
-            case 'chart_portnum_70': chartPortnum70 = chart; break;
-            case 'chart_portnum_71': chartPortnum71 = chart; break;
-            case 'chart_daily_all': chartDailyAll = chart; break;
-            case 'chart_daily_portnum_1': chartDailyPortnum1 = chart; break;
-        }
-
-        const periods = data.map(d => {
-            const p = (d && (d.period || d.period === 0)) ? d.period.toString() : '';
-            if (isHourly) {
-                if (p.includes(' ')) return p.split(' ')[1];
-                return p.slice(-5) || p;
-            }
-            return p;
-        });
-
-        const counts = data.map(d => (d.count ?? d.packet_count ?? 0));
-
-        const option = {
-            backgroundColor: '#272b2f',
-            tooltip: { trigger: 'axis' },
-            grid: { left: '6%', right: '6%', bottom: '18%' },
-            xAxis: {
-                type: 'category',
-                data: periods,
-                axisLine: { lineStyle: { color: '#aaa' } },
-                axisLabel: { rotate: 45, color: '#ccc' }
-            },
-            yAxis: {
-                type: 'value',
-                axisLine: { lineStyle: { color: '#aaa' } },
-                axisLabel: { color: '#ccc' }
-            },
-            series: [{
-                data: counts,
-                type: type,
-                smooth: type === 'line',
-                itemStyle: { color: color },
-                areaStyle: type === 'line' ? {} : undefined
-            }]
-        };
-
-        chart.setOption(option);
-    }
-
-    async function init() {
-        // Daily all ports
-        const dailyAllData = await fetchStats('day', 14);
-        updateTotalCount('total_daily_all', dailyAllData);
-        renderChart('chart_daily_all', dailyAllData, 'line', '#66bb6a', false);
-
-        // Daily text packets (port 1) as BAR chart
-        const dailyPort1Data = await fetchStats('day', 14, 1);
-        updateTotalCount('total_daily_portnum_1', dailyPort1Data);
-        renderChart('chart_daily_portnum_1', dailyPort1Data, 'bar', '#ff5722', false);
-
-        // Hourly all ports
-        const hourlyAllData = await fetchStats('hour', 24);
-        updateTotalCount('total_hourly_all', hourlyAllData);
-        renderChart('chart_hourly_all', hourlyAllData, 'bar', '#03dac6', true);
-
-        // Hourly by port
-        const portnums = [1, 3, 4, 67, 70, 71];
-        const colors = ['#ff5722', '#2196f3', '#9c27b0', '#ffeb3b', '#795548', '#4caf50'];
-        const domIds = [
-            'chart_portnum_1',
-            'chart_portnum_3',
-            'chart_portnum_4',
-            'chart_portnum_67',
-            'chart_portnum_70',
-            'chart_portnum_71'
-        ];
-        const totalIds = [
-            'total_portnum_1',
-            'total_portnum_3',
-            'total_portnum_4',
-            'total_portnum_67',
-            'total_portnum_70',
-            'total_portnum_71'
-        ];
-
-        const allData = await Promise.all(portnums.map(pn => fetchStats('hour', 24, pn)));
-
-        for (let i = 0; i < portnums.length; i++) {
-            updateTotalCount(totalIds[i], allData[i]);
-            renderChart(domIds[i], allData[i], 'bar', colors[i], true);
-        }
-    }
-
-    window.addEventListener('resize', () => {
-        if (chartHourlyAll) chartHourlyAll.resize();
-        if (chartPortnum1) chartPortnum1.resize();
-        if (chartPortnum3) chartPortnum3.resize();
-        if (chartPortnum4) chartPortnum4.resize();
-        if (chartPortnum67) chartPortnum67.resize();
-        if (chartPortnum70) chartPortnum70.resize();
-        if (chartPortnum71) chartPortnum71.resize();
-        if (chartDailyAll) chartDailyAll.resize();
-        if (chartDailyPortnum1) chartDailyPortnum1.resize();
+// --- Packet Type Pie Chart ---
+async function fetchPacketTypeBreakdown(channel=null) {
+    const portnums = [1,3,4,67,70,71];
+    const requests = portnums.map(async pn => {
+        const data = await fetchStats('hour',24,pn,channel);
+        const total = (data || []).reduce((sum,d)=>sum+(d.count??d.packet_count??0),0);
+        return {portnum: pn, count: total};
     });
 
-    init();
+    const allData = await fetchStats('hour',24,null,channel);
+    const totalAll = allData.reduce((sum,d)=>sum+(d.count??d.packet_count??0),0);
+
+    const results = await Promise.all(requests);
+    const trackedTotal = results.reduce((sum,d)=>sum+d.count,0);
+    const other = Math.max(totalAll - trackedTotal,0);
+    if(other>0) results.push({portnum:"other", count:other});
+    return results;
+}
+
+// --- Init ---
+let chartHourlyAll, chartPortnum1, chartPortnum3, chartPortnum4, chartPortnum67, chartPortnum70, chartPortnum71;
+let chartDailyAll, chartDailyPortnum1;
+let chartHwModel, chartRole, chartChannel;
+let chartPacketTypes;
+
+async function init(){
+    // Populate channels
+    const channels = await fetchChannels();
+    const select = document.getElementById("channelSelect");
+    channels.forEach(ch=>{
+        const opt = document.createElement("option");
+        opt.value = ch;
+        opt.textContent = ch;
+        select.appendChild(opt);
+    });
+
+    // Daily
+    const dailyAllData=await fetchStats('day',14);
+    updateTotalCount('total_daily_all',dailyAllData);
+    chartDailyAll=renderChart('chart_daily_all',dailyAllData,'line','#66bb6a',false);
+
+    const dailyPort1Data=await fetchStats('day',14,1);
+    updateTotalCount('total_daily_portnum_1',dailyPort1Data);
+    chartDailyPortnum1=renderChart('chart_daily_portnum_1',dailyPort1Data,'bar','#ff5722',false);
+
+    // Hourly
+    const hourlyAllData=await fetchStats('hour',24);
+    updateTotalCount('total_hourly_all',hourlyAllData);
+    chartHourlyAll=renderChart('chart_hourly_all',hourlyAllData,'bar','#03dac6',true);
+
+    const portnums=[1,3,4,67,70,71];
+    const colors=['#ff5722','#2196f3','#9c27b0','#ffeb3b','#795548','#4caf50'];
+    const domIds=['chart_portnum_1','chart_portnum_3','chart_portnum_4','chart_portnum_67','chart_portnum_70','chart_portnum_71'];
+    const totalIds=['total_portnum_1','total_portnum_3','total_portnum_4','total_portnum_67','total_portnum_70','total_portnum_71'];
+    const allData=await Promise.all(portnums.map(pn=>fetchStats('hour',24,pn)));
+    for(let i=0;i<portnums.length;i++){
+        updateTotalCount(totalIds[i],allData[i]);
+        window['chartPortnum'+portnums[i]]=renderChart(domIds[i],allData[i],'bar',colors[i],true);
+    }
+
+    // Node Breakdown
+    const nodes=await fetchNodes();
+    chartHwModel=renderPieChart("chart_hw_model",processCountField(nodes,"hw_model"),"Hardware");
+    chartRole=renderPieChart("chart_role",processCountField(nodes,"role"),"Role");
+    chartChannel=renderPieChart("chart_channel",processCountField(nodes,"channel"),"Channel");
+
+    // Packet Type Pie Chart
+    const packetTypesData = await fetchPacketTypeBreakdown();
+    const formatted = packetTypesData.filter(d=>d.count>0).map(d=>({
+        name: d.portnum==="other" ? "Other" : (PORTNUM_LABELS[d.portnum]||`Port ${d.portnum}`),
+        value: d.count
+    }));
+    chartPacketTypes = renderPieChart("chart_packet_types",formatted,"Packet Types (Last 24h)");
+}
+
+// --- Resize ---
+window.addEventListener('resize',()=>{
+    [chartHourlyAll,chartPortnum1,chartPortnum3,chartPortnum4,chartPortnum67,chartPortnum70,chartPortnum71,
+     chartDailyAll,chartDailyPortnum1,chartHwModel,chartRole,chartChannel,chartPacketTypes].forEach(c=>c?.resize());
+});
+
+// --- Modal ---
+const modal=document.getElementById("chartModal");
+const modalChartEl=document.getElementById("modalChart");
+let modalChart=null;
+
+document.querySelectorAll(".expand-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+        const chartId=btn.getAttribute("data-chart");
+        const sourceChart=echarts.getInstanceByDom(document.getElementById(chartId));
+        if(!sourceChart)return;
+        modal.style.display="flex";
+        modalChart=echarts.init(modalChartEl);
+        modalChart.setOption(sourceChart.getOption());
+    });
+});
+
+document.getElementById("closeModal").addEventListener("click",()=>{
+    modal.style.display="none";
+    modalChart?.dispose();
+    modalChart=null;
+});
+
+// --- CSV Export ---
+function downloadCSV(filename,rows){
+    const csvContent=rows.map(r=>r.map(v=>`"${v}"`).join(",")).join("\n");
+    const blob=new Blob([csvContent],{type:"text/csv;charset=utf-8;"});
+    const link=document.createElement("a");
+    link.href=URL.createObjectURL(blob);
+    link.setAttribute("download",filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+document.querySelectorAll(".export-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+        const chartId=btn.getAttribute("data-chart");
+        const chart=echarts.getInstanceByDom(document.getElementById(chartId));
+        if(!chart)return;
+        const option=chart.getOption();
+        let rows=[];
+        if(option.series[0].type==="bar"||option.series[0].type==="line"){
+            rows.push(["Period","Count"]);
+            const xData=option.xAxis[0].data;
+            const yData=option.series[0].data;
+            for(let i=0;i<xData.length;i++) rows.push([xData[i],yData[i]]);
+        }
+        if(option.series[0].type==="pie"){
+            rows.push(["Name","Value","Percentage"]);
+            const total=option.series[0].data.reduce((sum,d)=>sum+d.value,0);
+            option.series[0].data.forEach(d=>{
+                const percent=Math.round((d.value/total)*100);
+                rows.push([d.name,d.value,percent+"%"]);
+            });
+        }
+        downloadCSV(chartId+".csv",rows);
+    });
+});
+
+// --- Channel filter for Packet Types ---
+document.getElementById("channelSelect").addEventListener("change", async (e)=>{
+    const channel = e.target.value;
+    const packetTypesData = await fetchPacketTypeBreakdown(channel);
+    const formatted = packetTypesData.filter(d=>d.count>0).map(d=>({
+        name: d.portnum==="other" ? "Other" : (PORTNUM_LABELS[d.portnum]||`Port ${d.portnum}`),
+        value: d.count
+    }));
+    chartPacketTypes?.dispose();
+    chartPacketTypes = renderPieChart("chart_packet_types",formatted,"Packet Types (Last 24h)");
+});
+
+init();
 </script>
 {% endblock %}

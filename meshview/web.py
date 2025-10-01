@@ -4,7 +4,7 @@ from datetime import timedelta
 import json
 import os
 import ssl
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 import pydot
 from google.protobuf import text_format
@@ -24,7 +24,7 @@ import traceback
 import pathlib
 
 SEQ_REGEX = re.compile(r"seq \d+")
-SOFTWARE_RELEASE= "2.0.6.08-27-25"
+SOFTWARE_RELEASE= "2.0.7 ~ 09-17-25"
 CONFIG = config.CONFIG
 
 env = Environment(loader=PackageLoader("meshview"), autoescape=select_autoescape())
@@ -178,10 +178,16 @@ env.filters["node_id_to_hex"] = node_id_to_hex
 env.filters["format_timestamp"] = format_timestamp
 
 routes = web.RouteTableDef()
-# Make the Map the home page
 @routes.get("/")
 async def index(request):
-    raise web.HTTPFound(location="/map")
+    """
+    Redirect root URL '/' to the page specified in CONFIG['site']['starting'].
+    Defaults to '/map' if not set.
+    """
+    # Get the starting page from config
+    starting_url = CONFIG["site"].get("starting", "/map")  # default to /map if not set
+    raise web.HTTPFound(location=starting_url)
+
 
 
 def generate_response(request, body, raw_node_id="", node=None):
@@ -256,8 +262,6 @@ async def node_match(request):
     return web.Response(
         text=template.render(
             node_options=node_options,
-            site_config = CONFIG
-
         ),
         content_type="text/html",
     )
@@ -1054,94 +1058,24 @@ async def graph_network(request):
 @routes.get("/nodelist")
 async def nodelist(request):
     try:
-        role = request.query.get("role")
-        channel = request.query.get("channel")
-        hw_model = request.query.get("hw_model")
-        nodes= await store.get_nodes(role,channel, hw_model, days_active=3)
         template = env.get_template("nodelist.html")
         return web.Response(
             text=template.render(
-                nodes=nodes,
-                site_config = CONFIG,
+                site_config=CONFIG,
                 SOFTWARE_RELEASE=SOFTWARE_RELEASE
             ),
             content_type="text/html",
         )
-    except Exception as e:
+    except Exception:
         template = env.get_template("error.html")
         rendered = template.render(
-            error_message="An error occurred while processing your request.",
+            error_message="An error occurred while loading the node list page.",
             error_details=traceback.format_exc(),
             site_config=CONFIG,
             SOFTWARE_RELEASE=SOFTWARE_RELEASE,
         )
         return web.Response(text=rendered, status=500, content_type="text/html")
 
-@routes.get("/api/nodes")
-async def api_nodes(request):
-    try:
-        # Extract optional query parameters
-        role = request.query.get("role")
-        channel = request.query.get("channel")
-        hw_model = request.query.get("hw_model")
-
-        # Fetch filtered nodes
-        nodes = await store.get_nodes(role, channel, hw_model)
-
-        # Convert node objects to dictionaries for JSON output
-        nodes_json = [node.to_dict() for node in nodes]
-
-        # Return a pretty-printed JSON response
-        return web.json_response(
-            {"nodes": nodes_json},
-            dumps=lambda obj: json.dumps(obj, indent=2)  # Pretty print for development
-        )
-
-    except Exception as e:
-        # Log error and stack trace to console
-        print("Error in /api endpoint:", str(e))
-
-        # Return a plain-text error response
-        return web.Response(
-            text=f"An error occurred: {str(e)}",
-            status=500,
-            content_type="text/plain"
-        )
-
-@routes.get("/api2/packets")
-async def api_packets(request):
-    try:
-        node_id = request.query.get("node_id")
-        packets = await store.get_packets(node_id)
-
-        packets_json = [
-            {
-                "id": packet.id,
-                "from_node_id": packet.from_node_id,
-                "from_node": packet.from_node.long_name if packet.from_node else None,
-                "to_node_id": packet.to_node_id,
-                "to_node": packet.to_node.long_name if packet.to_node else None,
-                "portnum": packet.portnum,
-                "payload": packet.payload,
-                "import_time": packet.import_time.isoformat(),
-            }
-            for packet in packets
-        ]
-
-        return web.json_response(
-            {"packets": packets_json},
-            dumps=lambda obj: json.dumps(obj, indent=2)
-        )
-
-    except Exception as e:
-        print("Error in /api/packets endpoint:", str(e))
-
-
-        return web.Response(
-            text=f"An error occurred: {str(e)}",
-            status=500,
-            content_type="text/plain"
-        )
 
 
 @routes.get("/net")
@@ -1279,18 +1213,9 @@ async def top(request):
 @routes.get("/chat")
 async def chat(request):
     try:
-        packets = await store.get_packets(
-            node_id=0xFFFFFFFF, portnum=PortNum.TEXT_MESSAGE_APP, limit=100
-        )
-
-        ui_packets = [Packet.from_model(p) for p in packets]
-        filtered_packets = [
-            p for p in ui_packets if not re.fullmatch(r"seq \d+", p.payload)
-        ]
         template = env.get_template("chat.html")
         return web.Response(
             text=template.render(
-                packets=filtered_packets,
                 site_config=CONFIG,
                 SOFTWARE_RELEASE=SOFTWARE_RELEASE
             ),
@@ -1307,71 +1232,13 @@ async def chat(request):
         )
         return web.Response(text=rendered, status=500, content_type="text/html")
 
-@routes.get("/chat/updates")
-async def chat_updates(request):
-    try:
-        last_time_str = request.query.get("last_time", None)
-        if last_time_str:
-            try:
-                last_time = datetime.datetime.fromisoformat(last_time_str)
-            except Exception as e:
-                print(f"Failed to parse last_time '{last_time_str}': {e}")
-                last_time = datetime.datetime.min
-        else:
-            last_time = datetime.datetime.min
-
-        packets = await store.get_packets(
-            node_id=0xFFFFFFFF,
-            portnum=PortNum.TEXT_MESSAGE_APP,
-            limit=5,
-        )
-        ui_packets = [Packet.from_model(p) for p in packets]
-        filtered_packets = [p for p in ui_packets if not SEQ_REGEX.fullmatch(p.payload)]
-        new_packets = [p for p in filtered_packets if p.import_time > last_time]
-
-        packets_data = []
-        for p in new_packets:
-            reply_id = None
-            if getattr(p, 'raw_mesh_packet', None):
-                decoded = getattr(p.raw_mesh_packet, 'decoded', None)
-                if decoded:
-                    reply_id = getattr(decoded, 'reply_id', None)
-
-            packet_dict = {
-                "id": p.id,
-                "import_time": p.import_time.isoformat(),
-                "channel": p.from_node.channel if p.from_node else "",
-                "from_node_id": p.from_node_id,
-                "long_name": p.from_node.long_name if p.from_node else "",
-                "payload": p.payload,
-            }
-            if reply_id:
-                packet_dict["reply_id"] = reply_id
-
-            packets_data.append(packet_dict)
-
-        response = {
-            "packets": packets_data
-        }
-
-        if new_packets:
-            latest_import_time = max(p.import_time for p in new_packets)
-            response["latest_import_time"] = latest_import_time.isoformat()
-
-        return web.json_response(response)
-
-    except Exception as e:
-        print("Error in /chat/updates:", e)
-        return web.json_response({"error": "Failed to fetch updates"}, status=500)
-
 
 # Assuming the route URL structure is /nodegraph
 @routes.get("/nodegraph")
 async def nodegraph(request):
     nodes = await store.get_nodes(days_active=3)  # Fetch nodes for the given channel
     node_ids = set()
-    edges_set = set()  # Track unique edges
-    edge_type = {}  # Store type of each edge
+    edges_map = defaultdict(lambda: { "weight": 0, "type": None }) # weight is based on the number of traceroutes and neighbor info packets
     used_nodes = set()  # This will track nodes involved in edges (including traceroutes)
     since = datetime.timedelta(hours=48)
     traceroutes = []
@@ -1396,8 +1263,8 @@ async def nodegraph(request):
         # Add traceroute edges with their type and update used_nodes
         for i in range(len(path) - 1):
             edge_pair = (path[i], path[i + 1])
-            edges_set.add(edge_pair)
-            edge_type[edge_pair] = "traceroute"
+            edges_map[edge_pair]["weight"] += 1
+            edges_map[edge_pair]["type"] = "traceroute"
             used_nodes.add(path[i])  # Add all nodes in the traceroute path
             used_nodes.add(path[i + 1])  # Add all nodes in the traceroute path
 
@@ -1412,24 +1279,21 @@ async def nodegraph(request):
                 used_nodes.add(node.node_id)
 
                 edge_pair = (node.node_id, packet.from_node_id)
-                if edge_pair not in edges_set:
-                    edges_set.add(edge_pair)
-                    edge_type[edge_pair] = "neighbor"
+                edges_map[edge_pair]["weight"] += 1
+                edges_map[edge_pair]["type"] = "neighbor" # Overrides an existing traceroute pairing with neighbor
         except Exception as e:
             print(f"Error decoding NeighborInfo packet: {e}")
 
-    # Convert edges_set to a list of dicts with colors
+    # Convert edges_map to a list of dicts with colors
+    max_weight = max(i['weight'] for i in edges_map.values()) if edges_map else 1
     edges = [
         {
             "from": frm,
             "to": to,
-            "originalColor": "#ff5733" if edge_type[(frm, to)] == "traceroute" else "#3388ff",  # Red for traceroute, Blue for neighbor
-            "lineStyle": {
-                "color": "#ff5733" if edge_type[(frm, to)] == "traceroute" else "#3388ff",
-                "width": 2
-            }
+            "type": info["type"],
+            "weight": max([info['weight'] / float(max_weight) * 10, 1]),
         }
-        for frm, to in edges_set
+        for (frm, to), info in edges_map.items()
     ]
 
     # Filter nodes to only include those involved in edges (including traceroutes)
@@ -1476,41 +1340,59 @@ async def get_config(request):
 # The response includes "latest_import_time" for frontend to keep track of the newest message timestamp.
 # The backend fetches extra packets (limit*5) to account for filtering messages like "seq N" and since filtering.
 
+@routes.get("/api/channels")
+async def api_channels(request: web.Request):
+    period_type = request.query.get("period_type", "hour")
+    length = int(request.query.get("length", 24))
+
+    try:
+        channels = await store.get_channels_in_period(period_type, length)
+        return web.json_response({"channels": channels})
+    except Exception as e:
+        return web.json_response({"channels": [], "error": str(e)})
+
+
 @routes.get("/api/chat")
 async def api_chat(request):
     try:
         # Parse query params
-        limit_str = request.query.get("limit", "100")
-        since_str = request.query.get("since", None)
+        limit_str = request.query.get("limit", "20")
+        since_str = request.query.get("since")
 
+        # Clamp limit between 1 and 200
         try:
-            limit = min(max(int(limit_str), 1), 200)  # Limit between 1 and 200
+            limit = min(max(int(limit_str), 1), 100)
         except ValueError:
-            limit = 100
+            limit = 50
 
+        # Parse "since" timestamp if provided
+        since = None
         if since_str:
             try:
                 since = datetime.datetime.fromisoformat(since_str)
             except Exception as e:
                 print(f"Failed to parse since '{since_str}': {e}")
-                since = None
-        else:
-            since = None
 
         # Fetch packets from store
         packets = await store.get_packets(
             node_id=0xFFFFFFFF,
             portnum=PortNum.TEXT_MESSAGE_APP,
-            limit=limit*5,  # Fetch extra to filter out seq messages and since filter
+            limit=limit,
         )
 
-        SEQ_REGEX = re.compile(r"seq \d+")
         ui_packets = [Packet.from_model(p) for p in packets]
-        filtered_packets = [p for p in ui_packets if p.payload and not SEQ_REGEX.fullmatch(p.payload)]
 
-        # Filter by 'since' timestamp if provided
+        # Filter out "seq N" and missing payloads
+        filtered_packets = [
+            p for p in ui_packets
+            if p.payload and not SEQ_REGEX.fullmatch(p.payload)
+        ]
+
+        # Apply "since" filter
         if since:
-            filtered_packets = [p for p in filtered_packets if p.import_time > since]
+            filtered_packets = [
+                p for p in filtered_packets if p.import_time > since
+            ]
 
         # Sort by import_time descending (latest first)
         filtered_packets.sort(key=lambda p: p.import_time, reverse=True)
@@ -1518,16 +1400,36 @@ async def api_chat(request):
         # Trim to requested limit
         filtered_packets = filtered_packets[:limit]
 
-        packets_data = [{
-            "id": p.id,
-            "import_time": p.import_time.isoformat(),
-            "channel": getattr(p.from_node, "channel", ""),
-            "from_node_id": p.from_node_id,
-            "long_name": getattr(p.from_node, "long_name", ""),
-            "payload": p.payload,
-        } for p in filtered_packets]
+        # Build response data
+        packets_data = []
+        for p in filtered_packets:
+            reply_id = getattr(
+                getattr(getattr(p, "raw_mesh_packet", None), "decoded", None),
+                "reply_id",
+                None
+            )
 
-        latest_import_time = filtered_packets[0].import_time.isoformat() if filtered_packets else since_str or None
+            packet_dict = {
+                "id": p.id,
+                "import_time": p.import_time.isoformat(),
+                "channel": getattr(p.from_node, "channel", ""),
+                "from_node_id": p.from_node_id,
+                "long_name": getattr(p.from_node, "long_name", ""),
+                "payload": p.payload,
+            }
+
+            if reply_id:  # ✅ only include if not None/0
+                packet_dict["reply_id"] = reply_id
+
+            packets_data.append(packet_dict)
+
+        # Pick latest import time for clients to use in next request
+        if filtered_packets:
+            latest_import_time = filtered_packets[0].import_time.isoformat()
+        elif since:
+            latest_import_time = since.isoformat()
+        else:
+            latest_import_time = None
 
         return web.json_response({
             "packets": packets_data,
@@ -1536,64 +1438,58 @@ async def api_chat(request):
 
     except Exception as e:
         print("Error in /api/chat:", e)
-        return web.json_response({"error": "Failed to fetch chat data"}, status=500)
+        return web.json_response(
+            {"error": "Failed to fetch chat data", "details": str(e)},
+            status=500
+        )
 
-
-# Client to pass ?hours=1 or ?days=7 to filter
 
 @routes.get("/api/nodes")
 async def api_nodes(request):
     try:
-        # Query params
-        hours = request.query.get("hours")
-        days = request.query.get("days")
-        last_seen_after = None
+        # Optional query parameters
+        role = request.query.get("role")
+        channel = request.query.get("channel")
+        hw_model = request.query.get("hw_model")
+        days_active = request.query.get("days_active")
 
-        # Determine cutoff time
-        if hours:
+        if days_active:
             try:
-                last_seen_after = datetime.datetime.now() - datetime.timedelta(hours=int(hours))
+                days_active = int(days_active)
             except ValueError:
-                pass
-        elif days:
-            try:
-                last_seen_after = datetime.datetime.now() - datetime.timedelta(days=int(days))
-            except ValueError:
-                pass
-        else:
-            # Fallback: if a direct ISO timestamp is provided
-            last_seen_str = request.query.get("last_seen_after")
-            if last_seen_str:
-                try:
-                    last_seen_after = datetime.datetime.fromisoformat(last_seen_str)
-                except Exception as e:
-                    print(f"Failed to parse last_seen_after '{last_seen_str}': {e}")
+                days_active = None
 
-        # Fetch nodes
-        nodes = await store.get_nodes()
+        # Fetch nodes from database using your get_nodes function
+        nodes = await store.get_nodes(
+            role=role,
+            channel=channel,
+            hw_model=hw_model,
+            days_active=days_active
+        )
 
-        # Apply filter
-        if last_seen_after:
-            nodes = [n for n in nodes if n.last_seen and n.last_seen > last_seen_after]
-
-        # Prepare response
-        nodes_data = [{
-            "node_id": n.id,
-            "long_name": n.long_name,
-            "short_name": n.short_name,
-            "channel": n.channel,
-            "last_seen": n.last_seen.isoformat() if n.last_seen else None,
-            "last_lat": getattr(n, "last_lat", None),
-            "last_long": getattr(n, "last_long", None),
-            "hardware": n.hardware,
-            "firmware": n.firmware,
-            "role": n.role,
-        } for n in nodes]
+        # Prepare the JSON response
+        nodes_data = []
+        for n in nodes:
+            nodes_data.append({
+                "id": getattr(n, "id", None),
+                "node_id": n.node_id,
+                "long_name": n.long_name,
+                "short_name": n.short_name,
+                "hw_model": n.hw_model,
+                "firmware": n.firmware,
+                "role": n.role,
+                "last_lat": getattr(n, "last_lat", None),
+                "last_long": getattr(n, "last_long", None),
+                "channel": n.channel,
+                "last_update": n.last_update.isoformat()
+            })
 
         return web.json_response({"nodes": nodes_data})
+
     except Exception as e:
         print("Error in /api/nodes:", e)
         return web.json_response({"error": "Failed to fetch nodes"}, status=500)
+
 
 @routes.get("/api/packets")
 async def api_packets(request):
@@ -1694,14 +1590,21 @@ async def api_stats(request):
     return web.json_response(stats)
 
 
-
 @routes.get("/api/config")
 async def api_config(request):
     try:
-        # Return CONFIG as JSON
-        return web.json_response(CONFIG)
+        site = CONFIG.get("site", {})
+        safe_site = {
+            "map_interval": site.get("map_interval", 3),        # default 3 if missing
+            "firehose_interval": site.get("firehose_interval", 3)  # default 3 if missing
+        }
+
+        safe_config = {"site": safe_site}
+
+        return web.json_response(safe_config)
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
+
 
 @routes.get("/api/edges")
 async def api_edges(request):

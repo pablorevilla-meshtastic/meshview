@@ -6,9 +6,3 @@ packets.db
 config.ini
 screenshots/*
 python/nanopb
-meshtastic/protobuff/__pycache__/*
-meshtastic/serial_interface/__pycache__/*
-meshtastic/cli/__pycache__/*
-meshtastic/__pycache__/*
-meshtastic/tests/__pycache__/*
-.gitignore

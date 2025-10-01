@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>API Documentation - Nodes</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+  <style>
+    body { margin: 0; background: #ffffff; color: #000; }
+    #swagger-ui { background: #ffffff; color: #000; }
+    .swagger-ui { background-color: #ffffff !important; color: #000 !important; }
+    .swagger-ui .topbar,
+    .swagger-ui .info,
+    .swagger-ui .opblock-summary-description,
+    .swagger-ui .parameters-col_description,
+    .swagger-ui .response-col_description { color: #000 !important; }
+    .swagger-ui .opblock { background-color: #f9f9f9 !important; border-color: #ddd !important; }
+    .swagger-ui .opblock-summary { background-color: #eaeaea !important; color: #000 !important; }
+    .swagger-ui .opblock-section-header { color: #000 !important; }
+    .swagger-ui .parameters,
+    .swagger-ui .response { background-color: #fafafa !important; color: #000 !important; }
+    .swagger-ui table { color: #000 !important; }
+    .swagger-ui a { color: #1a0dab !important; }
+    .swagger-ui input,
+    .swagger-ui select,
+    .swagger-ui textarea { background-color: #fff !important; color: #000 !important; border: 1px solid #ccc !important; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+  <script>
+    const spec = {
+      openapi: "3.0.0",
+      info: {
+        title: "Network Nodes API",
+        version: "1.0.0",
+        description: "API for retrieving nodes in the network with optional filters by last seen time."
+      },
+      paths: {
+        "/api/nodes": {
+          get: {
+            summary: "Get network nodes",
+            description: "Returns a list of nodes with optional filtering by recent activity.",
+            parameters: [
+              {
+                name: "hours",
+                in: "query",
+                required: false,
+                description: "Return nodes seen in the last X hours.",
+                schema: { type: "integer", example: 24 }
+              },
+              {
+                name: "days",
+                in: "query",
+                required: false,
+                description: "Return nodes seen in the last X days.",
+                schema: { type: "integer", example: 7 }
+              },
+              {
+                name: "last_seen_after",
+                in: "query",
+                required: false,
+                description: "Return nodes last seen after this ISO8601 timestamp.",
+                schema: { type: "string", format: "date-time", example: "2025-08-25T14:00:00" }
+              }
+            ],
+            responses: {
+              "200": {
+                description: "Successful response",
+                content: {
+                  "application/json": {
+                    schema: {
+                      type: "object",
+                      properties: {
+                        nodes: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              node_id: { type: "integer", example: 101 },
+                              long_name: { type: "string", example: "Node Alpha" },
+                              short_name: { type: "string", example: "A" },
+                              channel: { type: "string", example: "2" },
+                              last_seen: { type: "string", format: "date-time", example: "2025-08-25T12:00:00" },
+                              last_lat: { type: "number", format: "float", example: 37.7749 },
+                              last_long: { type: "number", format: "float", example: -122.4194 },
+                              hardware: { type: "string", example: "Heltec V3" },
+                              firmware: { type: "string", example: "1.0.5" },
+                              role: { type: "string", example: "router" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "400": {
+                description: "Invalid request parameters",
+                content: {
+                  "application/json": {
+                    schema: { type: "object", properties: { error: { type: "string" } } }
+                  }
+                }
+              },
+              "500": {
+                description: "Server error",
+                content: {
+                  "application/json": {
+                    schema: { type: "object", properties: { error: { type: "string" } } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+
+    window.onload = () => {
+      SwaggerUIBundle({
+        spec,
+        dom_id: '#swagger-ui',
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIBundle.SwaggerUIStandalonePreset
+        ],
+        layout: "BaseLayout"
+      });
+    };
+  </script>
+</body>
+</html>
