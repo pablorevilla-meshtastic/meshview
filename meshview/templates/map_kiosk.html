@@ -1,0 +1,346 @@
+{% extends "base_reduced.html" %}
+{% block css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""/>
+<style>
+    .legend {
+        background: white;
+        padding: 8px;
+        line-height: 1.5;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        font-size: 14px;
+        color: black;
+    }
+    .legend i {
+        width: 12px;
+        height: 12px;
+        display: inline-block;
+        margin-right: 6px;
+        border-radius: 50%;
+    }
+    #filter-container {
+        text-align: center;
+        margin-top: 10px;
+    }
+    .filter-checkbox {
+        margin: 0 10px;
+    }
+    .blinking-tooltip {
+        background: white;
+        color: black;
+        border: 1px solid black;
+        border-radius: 4px;
+        padding: 2px 5px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="map" style="width: 100%; height: calc(100vh - 100px)"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylinedecorator.js"
+        integrity="sha384-FhPn/2P/fJGhQLeNWDn9B/2Gml2bPOrKJwFqJXgR3xOPYxWg5mYQ5XZdhUSugZT0"
+        crossorigin></script>
+
+<script>
+    // ---- Map Setup ----
+    var map = L.map('map');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // ---- Node Data ----
+    var markers = {};
+    var markerById = {};
+    var nodes = [
+        {% for node in nodes %}
+        {
+            lat: {{ ((node.last_lat / 10**7) + (range(-9,9) | random) / 30000) | round(7) }},
+            long: {{ ((node.last_long / 10**7) + (range(-9,9) | random) / 30000) | round(7) if node.last_long is not none else "null" }},
+            long_name: {{ (node.long_name or "") | tojson }},
+            short_name: {{ (node.short_name or "") | tojson }},
+            channel: {{ (node.channel or "") | tojson }},
+            hw_model: {{ (node.hw_model or "") | tojson }},
+            role: {{ (node.role or "") | tojson }},
+            last_update: {{ node.last_update | default("", true) | tojson }},
+            firmware: {{ (node.firmware or "") | tojson }},
+            id: {{ (node.node_id or "") | tojson }},
+            isRouter: {{ 'true' if 'router' in (node.role or '').lower() else 'false' }}
+        }{{ "," if not loop.last else "" }}
+        {% endfor %}
+    ];
+
+    const portMap = {1: "Text", 67: "Telemetry", 3: "Position", 70: "Traceroute", 4: "Node Info", 71: "Neighbour Info", 73: "Map Report"};
+
+    function timeAgo(date) {
+        const now = Date.now();
+        const diff = now - new Date(date);
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        if (days > 0) return days + "d";
+        if (hours > 0) return hours + "h";
+        if (minutes > 0) return minutes + "m";
+        return seconds + "s";
+    }
+
+    const palette = ["#e6194b","#4363d8","#f58231","#911eb4","#46f0f0","#f032e6","#bcf60c","#fabebe","#008080","#e6beff","#9a6324","#fffac8","#800000","#aaffc3","#808000","#ffd8b1","#000075","#808080"];
+    const colorMap = new Map();
+    let nextColorIndex = 0;
+
+    function hashToColor(str) {
+        if (colorMap.has(str)) return colorMap.get(str);
+        const color = palette[nextColorIndex % palette.length];
+        colorMap.set(str, color);
+        nextColorIndex++;
+        return color;
+    }
+
+    const nodeMap = new Map();
+    nodes.forEach(n => nodeMap.set(n.id, n));
+
+    function isInvalidCoord(node) {
+        if (!node) return true;
+        let {lat, long} = node;
+        return !lat || !long || lat === 0 || long === 0 || Number.isNaN(lat) || Number.isNaN(long);
+    }
+
+    // ---- Marker Plotting ----
+    var bounds = L.latLngBounds();
+    var channels = new Set();
+
+    nodes.forEach(node => {
+        if (!isInvalidCoord(node)) {
+            let category = node.channel;
+            channels.add(category);
+            let color = hashToColor(category);
+
+            let markerOptions = { radius: node.isRouter ? 9 : 7, color: "white", fillColor: color, fillOpacity: 1, weight: 0.7 };
+            let popupContent = `<b><a href="/packet_list/${node.id}">${node.long_name}</a> (${node.short_name})</b><br>
+                                <b>Channel:</b> ${node.channel}<br>
+                                <b>Model:</b> ${node.hw_model}<br>
+                                <b>Role:</b> ${node.role}<br>`;
+            if (node.last_update) popupContent += `<b>Last seen:</b> ${timeAgo(node.last_update)}<br>`;
+            if (node.firmware) popupContent += `<b>Firmware:</b> ${node.firmware}<br>`;
+
+            var marker = L.circleMarker([node.lat, node.long], markerOptions).addTo(map);
+            marker.nodeId = node.id;
+            marker.originalColor = color;
+            markerById[node.id] = marker;
+
+            marker.on('click', function(e) {
+                e.originalEvent.stopPropagation();
+                marker.bindPopup(popupContent).openPopup();
+                setTimeout(() => marker.closePopup(), 3000);
+                onNodeClick(node);
+            });
+
+            if (!markers[category]) markers[category] = [];
+            markers[category].push({ marker, isRouter: node.isRouter });
+            bounds.extend(marker.getLatLng());
+        }
+    });
+
+    var bayAreaBounds = [
+        [{{ site_config["site"]["map_top_left_lat"] }}, {{ site_config["site"]["map_top_left_lon"] }}],
+        [{{ site_config["site"]["map_bottom_right_lat"] }}, {{ site_config["site"]["map_bottom_right_lon"] }}]
+    ];
+    map.fitBounds(bayAreaBounds);
+
+    // ---- Filters ----
+    let filterContainer = document.getElementById("filter-container");
+    channels.forEach(channel => {
+        let filterId = `filter-${channel.replace(/\s+/g, '-').toLowerCase()}`;
+        let color = hashToColor(channel);
+        let label = document.createElement('label');
+        label.style.color = color;
+        label.innerHTML = `<input type="checkbox" class="filter-checkbox" id="${filterId}" checked> ${channel}`;
+        filterContainer.appendChild(label);
+    });
+
+    function updateMarkers() {
+        let showRoutersOnly = document.getElementById("filter-routers-only").checked;
+        nodes.forEach(node => {
+            let category = node.channel;
+            let checkbox = document.getElementById(`filter-${category.replace(/\s+/g,'-').toLowerCase()}`);
+            let shouldShow = checkbox.checked && (!showRoutersOnly || node.isRouter);
+            let marker = markerById[node.id];
+            if (marker) marker.setStyle({ fillOpacity: shouldShow ? 1 : 0 });
+        });
+    }
+
+    document.querySelectorAll(".filter-checkbox").forEach(input => input.addEventListener("change", updateMarkers));
+
+    // ---- Edges ----
+    var edgeLayer = L.layerGroup().addTo(map);
+    var edgesData = null;
+    let selectedNodeId = null;
+
+    fetch('/api/edges').then(res => res.json()).then(data => { edgesData = data.edges; }).catch(err => console.error(err));
+
+    function onNodeClick(node) {
+        if (selectedNodeId != node.id) {
+            selectedNodeId = node.id;
+            edgeLayer.clearLayers();
+            if (!edgesData) return;
+            if (!map.hasLayer(edgeLayer)) edgeLayer.addTo(map);
+
+            edgesData.forEach(edge => {
+                if (edge.from !== node.id && edge.to !== node.id) return;
+                const fromNode = nodeMap.get(edge.from);
+                const toNode = nodeMap.get(edge.to);
+                if (!fromNode || !toNode) return;
+                if (isInvalidCoord(fromNode) || isInvalidCoord(toNode)) return;
+
+                const lineColor = edge.type === "neighbor" ? "darkred" : "black";
+                const dash = edge.type === "traceroute" ? "5,5" : null;
+                const weight = edge.type === "neighbor" ? 3 : 2;
+
+                const polyline = L.polyline([[fromNode.lat, fromNode.long],[toNode.lat, toNode.long]], { color: lineColor, weight, opacity: 1, dashArray: dash }).addTo(edgeLayer).bringToFront();
+
+                if (edge.type === "traceroute") {
+                    L.polylineDecorator(polyline, {
+                        patterns: [{ offset: '100%', repeat: 0, symbol: L.Symbol.arrowHead({ pixelSize: 5, polygon: false, pathOptions: { stroke: true, color: lineColor } }) }]
+                    }).addTo(edgeLayer);
+                }
+            });
+        }
+    }
+
+    map.on('click', function(e) {
+        if (!e.originalEvent.target.classList.contains('leaflet-interactive')) {
+            edgeLayer.clearLayers();
+            selectedNodeId = null;
+        }
+    });
+
+    // ---- Blinking Nodes ----
+    var activeBlinks = new Map();
+
+        function blinkNode(marker, longName, portnum) {
+            if (!map.hasLayer(marker)) return;
+            if (activeBlinks.has(marker)) {
+                clearInterval(activeBlinks.get(marker));
+                marker.setStyle({ fillColor: marker.originalColor });
+                if (marker.tooltip) map.removeLayer(marker.tooltip);
+            }
+
+            let blinkCount = 0;
+            let portName = portMap[portnum] || `Port ${portnum}`;
+            let tooltip = L.tooltip({
+                permanent: true,
+                direction: 'top',
+                offset: [0, -marker.options.radius - 5],
+                className: 'blinking-tooltip'
+            }).setContent(`${longName} (${portName})`).setLatLng(marker.getLatLng());
+            tooltip.addTo(map);
+            marker.tooltip = tooltip;
+
+            let interval = setInterval(() => {
+                if (map.hasLayer(marker)) {
+                    // Alternate color
+                    marker.setStyle({ fillColor: blinkCount % 2 === 0 ? 'yellow' : marker.originalColor });
+                    // Bring marker to top
+                    marker.bringToFront();
+                }
+                blinkCount++;
+                if (blinkCount > 7) {
+                    clearInterval(interval);
+                    marker.setStyle({ fillColor: marker.originalColor });
+                    map.removeLayer(tooltip);
+                    activeBlinks.delete(marker);
+                }
+            }, 500);
+
+            activeBlinks.set(marker, interval);
+        }
+
+
+    // ---- Packet Fetching ----
+    let lastImportTime = null;
+
+    function fetchLatestPacket() {
+        fetch(`/api/packets?limit=1`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.packets && data.packets.length > 0) {
+                    lastImportTime = data.packets[0].import_time;
+                    console.log("Initial lastImportTime:", lastImportTime);
+                } else {
+                    lastImportTime = new Date().toISOString();
+                    console.log("No packets, setting lastImportTime to now:", lastImportTime);
+                }
+            })
+            .catch(err => console.error("Error fetching latest packet:", err));
+    }
+
+    function fetchNewPackets() {
+        if (!lastImportTime) return;
+        fetch(`/api/packets?since=${lastImportTime}`)
+            .then(res => res.json())
+            .then(data => {
+                console.log("===== New Fetch =====");
+                if (!data.packets || data.packets.length === 0) {
+                    console.log("No new packets");
+                    return;
+                }
+
+                let latestSeen = lastImportTime;
+
+                data.packets.forEach(packet => {
+                    console.log(`Packet ID: ${packet.id}, From Node: ${packet.from_node_id}, Port: ${packet.portnum}, Time: ${packet.import_time}`);
+                    if (packet.import_time && (!latestSeen || packet.import_time > latestSeen)) latestSeen = packet.import_time;
+
+                    let marker = markerById[packet.from_node_id];
+                    if (marker) {
+                        let nodeData = nodeMap.get(packet.from_node_id);
+                        if (nodeData) blinkNode(marker, nodeData.long_name, packet.portnum);
+                    }
+                });
+
+                if (latestSeen) lastImportTime = latestSeen;
+                console.log("Updated lastImportTime:", lastImportTime);
+                console.log("===== End Fetch =====");
+            })
+            .catch(err => console.error("Fetch error:", err));
+    }
+
+    // ---- Polling Control ----
+    let packetInterval = null;
+    const mapInterval = {{ site_config["site"]["map_interval"] | default(3) }};
+
+    function startPacketFetcher() {
+        if (mapInterval <= 0) return;
+        if (!packetInterval) {
+            fetchLatestPacket();
+            packetInterval = setInterval(fetchNewPackets, mapInterval * 1000);
+            console.log("Packet fetcher started, interval:", mapInterval, "seconds");
+        }
+    }
+
+    function stopPacketFetcher() {
+        if (packetInterval) {
+            clearInterval(packetInterval);
+            packetInterval = null;
+            console.log("Packet fetcher stopped");
+        }
+    }
+
+    document.addEventListener("visibilitychange", function() {
+        if (document.hidden) stopPacketFetcher();
+        else startPacketFetcher();
+    });
+
+    // ---- Initialize ----
+    if (mapInterval > 0) startPacketFetcher();
+</script>
+
+{% endblock %}
+

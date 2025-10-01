@@ -1170,6 +1170,34 @@ async def map(request):
             content_type="text/plain",
         )
 
+@routes.get("/map_kisok")
+async def map(request):
+    try:
+        nodes = await store.get_nodes(days_active=3)
+
+        # Filter out nodes with no latitude
+        nodes = [node for node in nodes if node.last_lat is not None]
+
+        # Optional datetime formatting
+        for node in nodes:
+            if hasattr(node, "last_update") and isinstance(node.last_update, datetime.datetime):
+                node.last_update = node.last_update.isoformat()
+        template = env.get_template("map_kiosk.html")
+
+        return web.Response(
+            text=template.render(
+                nodes=nodes,
+                site_config=CONFIG,
+                SOFTWARE_RELEASE=SOFTWARE_RELEASE),
+            content_type="text/html",
+        )
+    except Exception as e:
+        return web.Response(
+            text="An error occurred while processing your request.",
+            status=500,
+            content_type="text/plain",
+        )
+
 @routes.get("/stats")
 async def stats(request):
     try:
