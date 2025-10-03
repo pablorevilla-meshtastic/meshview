@@ -1650,14 +1650,17 @@ async def api_stats(request):
 async def api_config(request):
     try:
         site = CONFIG.get("site", {})
-        safe_site = {
-            "map_interval": site.get("map_interval", 3),        # default 3 if missing
-            "firehose_interval": site.get("firehose_interval", 3)  # default 3 if missing
-        }
+        
+        # I'm not sure why this was added.
+        #safe_site = {
+        #    "map_interval": site.get("map_interval", 3),        # default 3 if missing
+        #    "firehose_interval": site.get("firehose_interval", 3)  # default 3 if missing
+        #}
 
-        safe_config = {"site": safe_site}
+        #safe_config = {"site": safe_site}
+        site_config = {"site": site}
 
-        return web.json_response(safe_config)
+        return web.json_response(site_config)
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
