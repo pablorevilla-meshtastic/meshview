@@ -3,6 +3,8 @@ __pycache__/*
 meshview/__pycache__/*
 meshtastic/protobuf/*
 packets.db
+meshview-db.pid
+meshview-web.pid
 /table_details.py
 config.ini
 screenshots/*

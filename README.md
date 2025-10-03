@@ -74,20 +74,19 @@ Create a Python virtual environment:
 
 from the meshview directory...
 ```bash
-uv venv env || python3 -m venv env
+python3 -m venv env
 ```
 
 Install the environment requirements:
 
 ```bash
-uv pip install -r requirements.txt || ./env/bin/pip install -r requirements.txt
+./env/bin/pip install -r requirements.txt
 ```
 
 Install `graphviz` on MacOS or Debian/Ubuntu Linux:
 
 ```bash
-[ "$(uname)" = "Darwin" ] && brew install graphviz
-[ "$(uname)" = "Linux" ] && sudo apt-get install graphviz
+sudo apt-get install graphviz
 ```
 
 Copy `sample.config.ini` to `config.ini`:
@@ -210,6 +209,17 @@ hour = 2
 minute = 00
 # Run VACUUM after cleanup
 vacuum = False
+
+
+# -------------------------
+# Logging Configuration
+# -------------------------
+[logging]
+# Enable or disable HTTP access logs from the web server
+# When disabled, request logs like "GET /api/chat" will not appear
+# Application logs (errors, startup messages, etc.) are unaffected
+# Set to True to enable, False to disable (default: False)
+access_log = False
 ```
 
 ---
@@ -402,5 +412,3 @@ Add schedule to the bottom of the file (modify /path/to/file/ to the correct pat
 ```
 
 Check the log file to see it the script run at the specific time.
-
-
