@@ -5,9 +5,14 @@ from meshview import models
 
 def init_database(database_connection_string):
     global engine, async_session
-    engine = create_async_engine(
-        database_connection_string, echo=False, connect_args={"timeout": 900}
-    )
+
+    kwargs = {"echo": False}
+
+    # Apply SQLite-specific timeout only for SQLite databases
+    if 'sqlite' in database_connection_string.lower():
+        kwargs["connect_args"] = {"timeout": 900}
+
+    engine = create_async_engine(database_connection_string, **kwargs)
     async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 

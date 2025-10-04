@@ -192,8 +192,14 @@ password = large4cats
 # Database Configuration
 # -------------------------
 [database]
-# SQLAlchemy connection string. This one uses SQLite with asyncio support.
+# SQLAlchemy connection string.
+# 
+# SQLite (default - single file database):
 connection_string = sqlite+aiosqlite:///packets.db
+#
+# PostgreSQL (for production deployments with higher throughput):
+# connection_string = postgresql+asyncpg://username:password@localhost/meshview
+# connection_string = postgresql+asyncpg://username:password@localhost:5432/meshview
 
 
 # -------------------------
