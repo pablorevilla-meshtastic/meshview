@@ -1708,6 +1708,7 @@ async def api_edges(request):
                     f"Error decoding NeighborInfo packet {getattr(packet, 'id', '?')}: {e}"
                 )
 
+
 @routes.get("/api/lang")
 async def api_lang(request):
     # Language from ?lang=xx, fallback to config, then to "en"
@@ -1719,7 +1720,7 @@ async def api_lang(request):
         lang_file = os.path.join(LANG_DIR, "en.json")
 
     # Load JSON translations
-    with open(lang_file, "r", encoding="utf-8") as f:
+    with open(lang_file, encoding="utf-8") as f:
         translations = json.load(f)
 
     if section:
@@ -1728,8 +1729,7 @@ async def api_lang(request):
             return web.json_response(translations[section])
         else:
             return web.json_response(
-                {"error": f"Section '{section}' not found in {lang_code}"},
-                status=404
+                {"error": f"Section '{section}' not found in {lang_code}"}, status=404
             )
 
     # if no section requested → return full translation file
