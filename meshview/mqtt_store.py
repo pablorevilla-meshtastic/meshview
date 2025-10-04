@@ -2,7 +2,7 @@ import datetime
 import re
 
 from sqlalchemy import select
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.exc import IntegrityError
 
 from meshtastic.protobuf.config_pb2 import Config
 from meshtastic.protobuf.mesh_pb2 import HardwareModel
@@ -72,17 +72,13 @@ async def process_envelope(topic, env):
         return
 
     async with mqtt_database.async_session() as session:
-        # --- Packet insert with ON CONFLICT DO NOTHING
+        # --- Packet insert with database-agnostic duplicate handling
         result = await session.execute(select(Packet).where(Packet.id == env.packet.id))
-        # FIXME: Not Used
-        # new_packet = False
         packet = result.scalar_one_or_none()
+
         if not packet:
-            # FIXME: Not Used
-            # new_packet = True
-            stmt = (
-                sqlite_insert(Packet)
-                .values(
+            try:
+                packet = Packet(
                     id=env.packet.id,
                     portnum=env.packet.decoded.portnum,
                     from_node_id=getattr(env.packet, "from"),
@@ -91,9 +87,11 @@ async def process_envelope(topic, env):
                     import_time=datetime.datetime.now(),
                     channel=env.channel_id,
                 )
-                .on_conflict_do_nothing(index_elements=["id"])
-            )
-            await session.execute(stmt)
+                session.add(packet)
+                await session.flush()  # Trigger constraint check
+            except IntegrityError:
+                # Packet already exists (duplicate key), rollback and continue
+                await session.rollback()
 
         # --- PacketSeen (no conflict handling here, normal insert)
         result = await session.execute(
