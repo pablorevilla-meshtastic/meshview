@@ -192,6 +192,16 @@
                 onNodeClick(node);
             });
 
+            marker.on('mouseover', function(e) {
+                e.originalEvent.stopPropagation();
+                marker.bindPopup(popupContent).openPopup();
+                setTimeout(() => marker.closePopup(), 3000);
+                console.log('Mouse left node:', node.long_name);
+            });
+            marker.on('mouseout', function(e) {
+                marker.closePopup();
+            });
+
             if (!markers[category]) markers[category] = [];
             markers[category].push({ marker, isRouter: node.isRouter });
             bounds.extend(marker.getLatLng());
