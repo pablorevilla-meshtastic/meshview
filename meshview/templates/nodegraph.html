@@ -230,30 +230,9 @@ let filteredEdges = [];
 let lastSelectedNode = null;
 const nodeChannelSet = [...new Set(nodes.map(n => n.channel).filter(Boolean))];
 let channelOptions = [...nodeChannelSet].sort();
-
-async function fetchChannelOptionsFromAPI() {
-    try {
-        const res = await fetch('/api/channels?period_type=day&length=30');
-        if (!res.ok) return [];
-        const data = await res.json();
-        if (!data || !Array.isArray(data.channels)) return [];
-        return data.channels.filter(ch => typeof ch === 'string' && ch.trim().length > 0);
-    } catch (err) {
-        console.error('Channel fetch failed:', err);
-        return [];
-    }
-}
-
-async function initializeChannelOptions() {
-    const fetched = await fetchChannelOptionsFromAPI();
-    const merged = new Set([...nodeChannelSet, ...fetched]);
-    if (hasChannelSelection(selectedChannel)) {
-        merged.add(selectedChannel);
-    }
-    channelOptions = Array.from(merged).sort();
-    if (!hasChannelSelection(selectedChannel) && channelOptions.length) {
-        selectedChannel = channelOptions[0];
-    }
+if (hasChannelSelection(selectedChannel) && !channelOptions.includes(selectedChannel)) {
+    channelOptions.push(selectedChannel);
+    channelOptions.sort();
 }
 
 function populateChannelDropdown() {
@@ -364,10 +343,8 @@ function searchNode(){
     else alert("Node not found in current channel!");
 }
 
-initializeChannelOptions().then(() => {
-    populateChannelDropdown();
-    filterByChannel(true);
-});
+populateChannelDropdown();
+filterByChannel(true);
 window.addEventListener('resize', ()=>chart.resize());
 </script>
 {% endblock %}
