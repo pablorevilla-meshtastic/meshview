@@ -198,15 +198,14 @@ env.filters["node_id_to_hex"] = node_id_to_hex
 env.filters["format_timestamp"] = format_timestamp
 
 
-def resolve_activity_window(
-    raw_value: str | None, default_key: str = DEFAULT_ACTIVITY_OPTION
-):
+def resolve_activity_window(raw_value: str | None, default_key: str = DEFAULT_ACTIVITY_OPTION):
     default_key = default_key if default_key in ACTIVITY_OPTIONS else DEFAULT_ACTIVITY_OPTION
     if raw_value:
         normalized = raw_value.strip().lower()
         if normalized in ACTIVITY_OPTIONS:
             return normalized, ACTIVITY_OPTIONS[normalized]
     return default_key, ACTIVITY_OPTIONS[default_key]
+
 
 routes = web.RouteTableDef()
 
@@ -499,7 +498,9 @@ async def firehose_updates(request):
                 logger.warning("Invalid portnum '%s' provided to /firehose/updates", portnum_value)
 
         # Query packets after last_time (microsecond precision)
-        packets = await store.get_packets(after=last_time, limit=10, portnum=portnum, channel=channel)
+        packets = await store.get_packets(
+            after=last_time, limit=10, portnum=portnum, channel=channel
+        )
 
         # Convert to UI model
         ui_packets = [Packet.from_model(p) for p in packets]
@@ -1425,7 +1426,6 @@ async def nodegraph(request):
         try:
             _, neighbor_info = decode_payload.decode(packet)
             for node in neighbor_info.neighbors:
-
                 edge_pair = (node.node_id, packet.from_node_id)
                 edges_map[edge_pair]["weight"] += 1
                 edges_map[edge_pair]["type"] = "neighbor"
@@ -1439,9 +1439,7 @@ async def nodegraph(request):
         if frm in active_node_ids and to in active_node_ids
     ]
     max_weight = (
-        max(info["weight"] for _, info in filtered_edge_items)
-        if filtered_edge_items
-        else 1
+        max(info["weight"] for _, info in filtered_edge_items) if filtered_edge_items else 1
     )
     edges = [
         {
@@ -1454,9 +1452,7 @@ async def nodegraph(request):
     ]
 
     # Filter nodes to only include those involved in edges (including traceroutes)
-    connected_node_ids = {
-        node_id for edge in edges for node_id in (edge["from"], edge["to"])
-    }
+    connected_node_ids = {node_id for edge in edges for node_id in (edge["from"], edge["to"])}
     nodes_with_edges = [node for node in nodes if node.node_id in connected_node_ids]
 
     template = env.get_template("nodegraph.html")
