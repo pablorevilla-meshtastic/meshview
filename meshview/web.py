@@ -30,7 +30,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 SEQ_REGEX = re.compile(r"seq \d+")
-SOFTWARE_RELEASE = "2.0.7 ~ 10-17-25"
+SOFTWARE_RELEASE = "2.0.8 ~ 10-22-25"
 CONFIG = config.CONFIG
 
 env = Environment(loader=PackageLoader("meshview"), autoescape=select_autoescape())
