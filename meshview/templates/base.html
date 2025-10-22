@@ -18,6 +18,13 @@
     {% block head %}{% endblock %}
 
     <style>
+        body {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        body.ready {
+            opacity: 1;
+        }
         .htmx-indicator { opacity: 0; transition: opacity 500ms ease-in; }
         .htmx-request .htmx-indicator { opacity: 1; }
         #search_form { z-index: 4000; }
@@ -66,65 +73,114 @@
     <div style="text-align:center"><small id="site-version">ver. unknown</small></div>
     <br>
 
-    <!-- Shared Site Config -->
+    <!-- Shared Site Config & Language Loader -->
     <script>
-// Global shared config promise (only fetch once)
-if (!window._siteConfigPromise) {
-    window._siteConfigPromise = (async () => {
-        try {
-            const res = await fetch("/api/config");
-            const config = await res.json();
-            window._siteConfig = config;
-            console.log("Loaded config from /api/config:", config);
-            return config;
-        } catch (err) {
-            console.error("Failed to load /api/config:", err);
-            return {};
-        }
-    })();
-}
-
-async function loadSiteConfig() {
-    try {
-        const cfg = await window._siteConfigPromise;
-        const site = cfg.site || {};
-
-        // Title
-        document.title = "Meshview - " + (site.title || "");
-
-        // Header
-        const header = document.getElementById("site-header");
-        if (header)
-            header.innerHTML = `<strong>${site.title || ""} ${site.domain ? "(" + site.domain + ")" : ""}</strong>`;
-
-        // Message
-        const msg = document.getElementById("site-message");
-        if (msg) msg.textContent = site.message || "";
-
-        // Menu
-        const menu = document.getElementById("site-menu");
-        if (menu) {
-            let html = "";
-            if (site.nodes === "true") html += `<a href="/nodelist">Nodes</a>`;
-            if (site.conversations === "true") html += `&nbsp;-&nbsp;<a href="/chat">Conversations</a>`;
-            if (site.everything === "true") html += `&nbsp;-&nbsp;<a href="/firehose">See Everything</a>`;
-            if (site.graphs === "true") html += `&nbsp;-&nbsp;<a href="/nodegraph">Mesh Graphs</a>`;
-            if (site.net === "true") html += `&nbsp;-&nbsp;<a href="/net">Weekly Net</a>`;
-            if (site.map === "true") html += `&nbsp;-&nbsp;<a href="/map">Live Map</a>`;
-            if (site.stats === "true") html += `&nbsp;-&nbsp;<a href="/stats">Stats</a>`;
-            if (site.top === "true") html += `&nbsp;-&nbsp;<a href="/top">Top Traffic Nodes</a>`;
-            menu.innerHTML = html;
-        }
-
-        // Version
-        const verEl = document.getElementById("site-version");
-        if (verEl) verEl.textContent = "ver. " + (site.version || "unknown");
-    } catch (err) {
-        console.error("Failed to load site config:", err);
+    // --- Global Promises ---
+    if (!window._langPromise) {
+        window._langPromise = (async () => {
+            try {
+                const res = await fetch("/api/lang");
+                const lang = await res.json();
+                window._lang = lang;
+                console.log("Loaded language from /api/lang:", lang);
+                return lang;
+            } catch (err) {
+                console.error("Failed to load /api/lang:", err);
+                return {};
+            }
+        })();
     }
-}
 
-document.addEventListener("DOMContentLoaded", loadSiteConfig);
-</script>
+    if (!window._siteConfigPromise) {
+        window._siteConfigPromise = (async () => {
+            try {
+                const res = await fetch("/api/config");
+                const config = await res.json();
+                window._siteConfig = config;
+                console.log("Loaded config from /api/config:", config);
+                return config;
+            } catch (err) {
+                console.error("Failed to load /api/config:", err);
+                return {};
+            }
+        })();
+    }
+
+    // --- Apply Translations ---
+    function applyTranslations(lang) {
+        if (!lang || !lang.base) return;
+        const base = lang.base;
+
+        document.querySelectorAll("[data-translate-lang]").forEach(el => {
+            const key = el.dataset.translateLang;
+            const translation = base[key];
+            if (!translation) return;
+
+            if (el.placeholder) {
+                el.placeholder = translation;
+            } else if (key === "footer") {
+                el.innerHTML = translation; // allow HTML links in footer
+            } else if (el.value && el.tagName === "INPUT") {
+                el.value = translation;
+            } else {
+                el.textContent = translation;
+            }
+        });
+    }
+
+    async function initializePage() {
+        try {
+            const [lang, cfg] = await Promise.all([
+                window._langPromise,
+                window._siteConfigPromise
+            ]);
+
+            const site = cfg.site || {};
+            const base = (lang && lang.base) || {};
+
+            // --- Title ---
+            document.title = "Meshview - " + (site.title || "");
+
+            // --- Header ---
+            const header = document.getElementById("site-header");
+            if (header)
+                header.innerHTML = `<strong>${site.title || ""} ${site.domain ? "(" + site.domain + ")" : ""}</strong>`;
+
+            // --- Message ---
+            const msg = document.getElementById("site-message");
+            if (msg) msg.textContent = site.message || "";
+
+            // --- Menu ---
+            const menu = document.getElementById("site-menu");
+            if (menu) {
+                let html = "";
+                if (site.nodes === "true") html += `<a href="/nodelist">${base.nodes || "Nodes"}</a>`;
+                if (site.conversations === "true") html += `&nbsp;-&nbsp;<a href="/chat">${base.conversations || "Conversations"}</a>`;
+                if (site.everything === "true") html += `&nbsp;-&nbsp;<a href="/firehose">${base.everything || "See Everything"}</a>`;
+                if (site.graphs === "true") html += `&nbsp;-&nbsp;<a href="/nodegraph">${base.graph || "Mesh Graphs"}</a>`;
+                if (site.net === "true") html += `&nbsp;-&nbsp;<a href="/net">${base.net || "Weekly Net"}</a>`;
+                if (site.map === "true") html += `&nbsp;-&nbsp;<a href="/map">${base.map || "Live Map"}</a>`;
+                if (site.stats === "true") html += `&nbsp;-&nbsp;<a href="/stats">${base.stats || "Stats"}</a>`;
+                if (site.top === "true") html += `&nbsp;-&nbsp;<a href="/top">${base.top || "Top Traffic Nodes"}</a>`;
+                menu.innerHTML = html;
+            }
+
+            // --- Version ---
+            const verEl = document.getElementById("site-version");
+            if (verEl) verEl.textContent = "ver. " + (site.version || "unknown");
+
+            // --- Apply translations to placeholders and footer ---
+            applyTranslations(lang);
+
+            // --- Fade in ---
+            document.body.classList.add("ready");
+        } catch (err) {
+            console.error("Failed to initialize page:", err);
+            document.body.classList.add("ready");
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", initializePage);
+    </script>
 </body>
 </html>
