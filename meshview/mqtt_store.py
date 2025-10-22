@@ -80,7 +80,7 @@ async def process_envelope(topic, env):
         if not packet:
             # FIXME: Not Used
             # new_packet = True
-            now = datetime.datetime.now(datetime.timezone.utc)
+            now = datetime.datetime.now(datetime.UTC)
             now_us = int(now.timestamp() * 1_000_000)
             stmt = (
                 sqlite_insert(Packet)
@@ -115,7 +115,7 @@ async def process_envelope(topic, env):
             )
         )
         if not result.scalar_one_or_none():
-            now = datetime.datetime.now(datetime.timezone.utc)
+            now = datetime.datetime.now(datetime.UTC)
             now_us = int(now.timestamp() * 1_000_000)
             seen = PacketSeen(
                 packet_id=env.packet.id,
@@ -209,7 +209,7 @@ async def process_envelope(topic, env):
                 if result.scalar_one_or_none():
                     packet_id = env.packet.decoded.request_id
             if packet_id is not None:
-                now = datetime.datetime.now(datetime.timezone.utc)
+                now = datetime.datetime.now(datetime.UTC)
                 now_us = int(now.timestamp() * 1_000_000)
                 session.add(
                     Traceroute(
