@@ -1251,7 +1251,7 @@ async def nodegraph(request):
         lambda: {"weight": 0, "type": None}
     )  # weight is based on the number of traceroutes and neighbor info packets
     used_nodes = set()  # This will track nodes involved in edges (including traceroutes)
-    since = datetime.timedelta(hours=48)
+    since = datetime.datetime.now() - datetime.timedelta(hours=48)
     traceroutes = []
 
     # Fetch traceroutes
