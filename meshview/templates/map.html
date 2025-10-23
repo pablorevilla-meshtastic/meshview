@@ -59,6 +59,42 @@ function timeAgo(date){ const diff=Date.now()-new Date(date), s=Math.floor(diff/
 function hashToColor(str){ if(colorMap.has(str)) return colorMap.get(str); const c=palette[nextColorIndex++%palette.length]; colorMap.set(str,c); return c; }
 function isInvalidCoord(n){ return !n||!n.lat||!n.long||n.lat===0||n.long===0||Number.isNaN(n.lat)||Number.isNaN(n.long); }
 
+// ---------------------- Packet Fetching ----------------------
+function fetchLatestPacket(){ fetch(`/api/packets?limit=1`).then(r=>r.json()).then(data=>{ lastImportTime=data.packets?.[0]?.import_time||new Date().toISOString(); }).catch(console.error); }
+function fetchNewPackets(){
+    if(mapInterval <= 0) return;
+    if(!lastImportTime) return;
+    fetch(`/api/packets?since=${encodeURIComponent(lastImportTime)}`).then(r=>r.json()).then(data=>{
+        if(!data.packets||data.packets.length===0) return;
+        let latest = lastImportTime;
+        data.packets.forEach(pkt=>{
+            if(pkt.import_time>latest) latest=pkt.import_time;
+            const marker = markerById[pkt.from_node_id];
+            const nodeData = nodeMap.get(pkt.from_node_id);
+            if(marker && nodeData) blinkNode(marker,nodeData.long_name,pkt.portnum);
+        });
+        lastImportTime=latest;
+    }).catch(console.error);
+}
+
+// ---------------------- Polling ----------------------
+let packetInterval=null;
+function startPacketFetcher(){
+    if(mapInterval<=0) return;
+    if(!packetInterval){
+        fetchLatestPacket();
+        packetInterval=setInterval(fetchNewPackets,mapInterval*1000);
+    }
+}
+function stopPacketFetcher(){
+    if(packetInterval){
+        clearInterval(packetInterval);
+        packetInterval=null;
+    }
+}
+document.addEventListener("visibilitychange",()=>{
+    document.hidden?stopPacketFetcher():startPacketFetcher();
+});
 
 // ---------------------- WAIT FOR CONFIG ----------------------
 async function waitForConfig() {
@@ -90,10 +126,9 @@ async function initMapPolling() {
         const zoom = parseInt(params.get('zoom'), 10);
         if (!isNaN(lat) && !isNaN(lng) && !isNaN(zoom)) {
             map.setView([lat, lng], zoom);
-            window.configBoundsApplied = true; // prevent config bounds from overriding
+            window.configBoundsApplied = true;
             setTimeout(() => map.invalidateSize(), 100);
         }
-        // ---- If no URL, use config bounds ----
         else {
             const topLeft = [parseFloat(site.map_top_left_lat), parseFloat(site.map_top_left_lon)];
             const bottomRight = [parseFloat(site.map_bottom_right_lat), parseFloat(site.map_bottom_right_lon)];
@@ -104,7 +139,6 @@ async function initMapPolling() {
             }
         }
 
-        // ---- Start polling if enabled ----
         if (mapInterval > 0) {
             console.log(`Starting map polling every ${mapInterval}s`);
             startPacketFetcher();
@@ -118,7 +152,6 @@ async function initMapPolling() {
 }
 
 initMapPolling();
-
 
 // ---------------------- Load Nodes + Edges ----------------------
 fetch('/api/nodes?days_active=3').then(r=>r.json()).then(data=>{
@@ -206,39 +239,18 @@ function blinkNode(marker,longName,portnum){
     activeBlinks.set(marker,interval);
 }
 
-// ---------------------- Packet Fetching ----------------------
-function fetchLatestPacket(){ fetch(`/api/packets?limit=1`).then(r=>r.json()).then(data=>{ lastImportTime=data.packets?.[0]?.import_time||new Date().toISOString(); }).catch(console.error); }
-function fetchNewPackets(){
-    if(mapInterval <= 0) return; // safety guard
-    if(!lastImportTime) return;
-    fetch(`/api/packets?since=${encodeURIComponent(lastImportTime)}`).then(r=>r.json()).then(data=>{
-        if(!data.packets||data.packets.length===0) return;
-        let latest = lastImportTime;
-        data.packets.forEach(pkt=>{
-            if(pkt.import_time>latest) latest=pkt.import_time;
-            const marker = markerById[pkt.from_node_id];
-            const nodeData = nodeMap.get(pkt.from_node_id);
-            if(marker && nodeData) blinkNode(marker,nodeData.long_name,pkt.portnum);
-        });
-        lastImportTime=latest;
-    }).catch(console.error);
-}
-
-// ---------------------- Polling ----------------------
-let packetInterval=null;
-function startPacketFetcher(){ if(mapInterval<=0) return; if(!packetInterval){ fetchLatestPacket(); packetInterval=setInterval(fetchNewPackets,mapInterval*1000); } }
-function stopPacketFetcher(){ if(packetInterval){ clearInterval(packetInterval); packetInterval=null; } }
-document.addEventListener("visibilitychange",()=>{ document.hidden?stopPacketFetcher():startPacketFetcher(); });
-
 // ---------------------- Channel Filters ----------------------
 function createChannelFilters(){
     const filterContainer = document.getElementById("filter-container");
+    const savedState = JSON.parse(localStorage.getItem("mapFilters") || "{}");
+
     channelSet.forEach(channel=>{
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.className = "filter-checkbox";
         checkbox.id = `filter-channel-${channel}`;
-        checkbox.checked = true;
+        checkbox.checked = savedState[channel] !== false;
+        checkbox.addEventListener("change", saveFiltersToLocalStorage);
         checkbox.addEventListener("change", updateNodeVisibility);
         filterContainer.appendChild(checkbox);
 
@@ -248,7 +260,23 @@ function createChannelFilters(){
         label.style.color = hashToColor(channel);
         filterContainer.appendChild(label);
     });
-    document.getElementById("filter-routers-only").addEventListener("change", updateNodeVisibility);
+
+    const routerOnly = document.getElementById("filter-routers-only");
+    routerOnly.checked = savedState["routersOnly"] || false;
+    routerOnly.addEventListener("change", saveFiltersToLocalStorage);
+    routerOnly.addEventListener("change", updateNodeVisibility);
+
+    updateNodeVisibility();
+}
+
+function saveFiltersToLocalStorage(){
+    const state = {};
+    channelSet.forEach(ch => {
+        const el = document.getElementById(`filter-channel-${ch}`);
+        state[ch] = el.checked;
+    });
+    state["routersOnly"] = document.getElementById("filter-routers-only").checked;
+    localStorage.setItem("mapFilters", JSON.stringify(state));
 }
 
 function updateNodeVisibility(){
@@ -264,35 +292,29 @@ function updateNodeVisibility(){
 }
 
 // ---------------------- Share / Reset ----------------------
-    // ---- Share Current View ----
-    function shareCurrentView() {
-        const center = map.getCenter();
-        const zoom = map.getZoom();
-        const lat = center.lat.toFixed(6);
-        const lng = center.lng.toFixed(6);
+function shareCurrentView() {
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    const lat = center.lat.toFixed(6);
+    const lng = center.lng.toFixed(6);
 
-        const shareUrl = `${window.location.origin}/map?lat=${lat}&lng=${lng}&zoom=${zoom}`;
-
-        // Copy to clipboard
-        navigator.clipboard.writeText(shareUrl).then(() => {
-            const button = document.getElementById('share-button');
-            const originalText = button.textContent;
-            button.textContent = '✓ Link Copied!';
-            button.style.backgroundColor = '#2196F3';
-
-            setTimeout(() => {
-                button.textContent = originalText;
-                button.style.backgroundColor = '#4CAF50';
-            }, 2000);
-        }).catch(err => {
-            // Fallback for older browsers
-            alert('Share this link:\n' + shareUrl);
-        });
-    }
+    const shareUrl = `${window.location.origin}/map?lat=${lat}&lng=${lng}&zoom=${zoom}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        const button = document.getElementById('share-button');
+        const originalText = button.textContent;
+        button.textContent = '✓ Link Copied!';
+        button.style.backgroundColor = '#2196F3';
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.style.backgroundColor = '#4CAF50';
+        }, 2000);
+    }).catch(() => alert('Share this link:\n' + shareUrl));
+}
 
 function resetFiltersToDefaults(){
     document.getElementById("filter-routers-only").checked = false;
     channelSet.forEach(ch=>document.getElementById(`filter-channel-${ch}`).checked = true);
+    saveFiltersToLocalStorage();
     updateNodeVisibility();
 }
 </script>
