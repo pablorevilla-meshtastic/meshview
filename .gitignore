@@ -10,3 +10,5 @@ meshview-web.pid
 config.ini
 screenshots/*
 python/nanopb
+__pycache__/
+*.pyc
