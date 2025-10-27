@@ -9,3 +9,4 @@ meshview-web.pid
 config.ini
 screenshots/*
 python/nanopb
+.DS_Store
