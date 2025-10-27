@@ -11,12 +11,13 @@ import asyncio
 import logging
 from pathlib import Path
 
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine
+
 from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
 
 logger = logging.getLogger(__name__)
 

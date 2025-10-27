@@ -13,14 +13,15 @@ This will:
 
 After running this, review the generated migration file before committing!
 """
-import sys
+
 import os
+import sys
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from alembic.config import Config
 from alembic import command
+from alembic.config import Config
 
 # Create Alembic config
 alembic_cfg = Config("alembic.ini")
@@ -28,6 +29,7 @@ alembic_cfg = Config("alembic.ini")
 # Set database URL from meshview config
 try:
     from meshview.config import CONFIG
+
     database_url = CONFIG["database"]["connection_string"]
     alembic_cfg.set_main_option("sqlalchemy.url", database_url)
     print(f"Using database URL from config: {database_url}")
@@ -50,5 +52,6 @@ try:
 except Exception as e:
     print(f"\n✗ Error creating migration: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
