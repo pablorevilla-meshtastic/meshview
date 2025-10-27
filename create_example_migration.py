@@ -17,8 +17,9 @@ import sys
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from alembic import command
 from alembic.config import Config
+
+from alembic import command
 
 # Create Alembic config
 alembic_cfg = Config("alembic.ini")
