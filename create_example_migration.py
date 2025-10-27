@@ -11,6 +11,7 @@ custom migration logic (data migrations, complex schema changes, etc.)
 Unlike create_migration.py which auto-generates from model changes,
 this creates a blank template for you to fill in.
 """
+
 import os
 import sys
 
@@ -27,6 +28,7 @@ alembic_cfg = Config("alembic.ini")
 # Set database URL from meshview config
 try:
     from meshview.config import CONFIG
+
     database_url = CONFIG["database"]["connection_string"]
     alembic_cfg.set_main_option("sqlalchemy.url", database_url)
     print(f"Using database URL from config: {database_url}")
@@ -45,5 +47,6 @@ try:
 except Exception as e:
     print(f"✗ Error creating migration: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
