@@ -20,7 +20,7 @@ from markupsafe import Markup
 from pandas import DataFrame
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
-from meshview import config, database, decode_payload, models, store
+from meshview import config, database, decode_payload, migrations, models, store
 
 logging.basicConfig(
     level=logging.INFO,
@@ -429,8 +429,6 @@ async def packet_details_firehose(request):
         text=env.get_template("firehose.html").render(),
         content_type="text/html",
     )
-
-
 
 
 @routes.get("/packet/{packet_id}")
@@ -1115,11 +1113,7 @@ async def net(request):
 @routes.get("/map")
 async def map(request):
     template = env.get_template("map.html")
-    return web.Response(
-        text=template.render(),
-        content_type="text/html"
-    )
-
+    return web.Response(text=template.render(), content_type="text/html")
 
 
 @routes.get("/stats")
@@ -1321,6 +1315,7 @@ async def nodegraph(request):
         content_type="text/html",
     )
 
+
 # API Section
 #######################################################################
 # How this works
@@ -1476,7 +1471,6 @@ async def api_nodes(request):
         return web.json_response({"error": "Failed to fetch nodes"}, status=500)
 
 
-
 @routes.get("/api/packets")
 async def api_packets(request):
     try:
@@ -1500,14 +1494,16 @@ async def api_packets(request):
         for p in packets:
             payload = (p.payload or "").strip()
 
-            packets_json.append({
-                "id": p.id,
-                "from_node_id": p.from_node_id,
-                "to_node_id": p.to_node_id,
-                "portnum": int(p.portnum) if p.portnum is not None else None,
-                "import_time": p.import_time.isoformat(),
-                "payload": payload,
-            })
+            packets_json.append(
+                {
+                    "id": p.id,
+                    "from_node_id": p.from_node_id,
+                    "to_node_id": p.to_node_id,
+                    "portnum": int(p.portnum) if p.portnum is not None else None,
+                    "import_time": p.import_time.isoformat(),
+                    "payload": payload,
+                }
+            )
 
         return web.json_response({"packets": packets_json})
 
@@ -1611,6 +1607,7 @@ async def api_edges(request):
 
     return web.json_response({"edges": edges_list})
 
+
 @routes.get("/api/config")
 async def api_config(request):
     try:
@@ -1667,7 +1664,9 @@ async def api_config(request):
             "map_bottom_right_lon": get_float(site, "map_bottom_right_lon", -121.0),
             "map_interval": get_int(site, "map_interval", 3),
             "firehose_interval": get_int(site, "firehose_interval", 3),
-            "weekly_net_message": get_str(site, "weekly_net_message", "Weekly Mesh check-in message."),
+            "weekly_net_message": get_str(
+                site, "weekly_net_message", "Weekly Mesh check-in message."
+            ),
             "net_tag": get_str(site, "net_tag", "#BayMeshNet"),
             "version": str(SOFTWARE_RELEASE),
         }
@@ -1676,6 +1675,7 @@ async def api_config(request):
         mqtt = CONFIG.get("mqtt", {})
         topics_raw = get(mqtt, "topics", [])
         import json
+
         if isinstance(topics_raw, str):
             try:
                 topics = json.loads(topics_raw)
@@ -1757,6 +1757,21 @@ async def serve_page(request):
 
 
 async def run_server():
+    # Wait for database migrations to complete before starting web server
+    logger.info("Checking database schema status...")
+    database_url = CONFIG["database"]["connection_string"]
+
+    # Wait for migrations to complete (writer app responsibility)
+    migration_ready = await migrations.wait_for_migrations(
+        database.engine, database_url, max_retries=30, retry_delay=2
+    )
+
+    if not migration_ready:
+        logger.error("Database schema is not up to date. Cannot start web server.")
+        raise RuntimeError("Database schema version mismatch - migrations not complete")
+
+    logger.info("Database schema verified - starting web server")
+
     app = web.Application()
     app.add_routes(routes)
 
