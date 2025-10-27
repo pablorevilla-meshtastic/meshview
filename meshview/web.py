@@ -855,17 +855,28 @@ async def graph_traceroute2(request):
                 }
             )
 
-    # Create edges
+    # Create edges - organize by whether path is complete
+    incomplete_edges = []
+    complete_edges = []
+
     for path in paths:
         color = '#' + hex(hash(tuple(path)))[3:9]
-        for src, dest in zip(path, path[1:], strict=False):
-            chart_edges.append(
-                {
-                    "source": str(src),
-                    "target": str(dest),
-                    "originalColor": color,
-                }
-            )
+        is_complete = path[-1] == dest
+        for src, dest_node in zip(path, path[1:], strict=False):
+            edge = {
+                "source": str(src),
+                "target": str(dest_node),
+                "originalColor": color,
+            }
+            if is_complete:
+                complete_edges.append(edge)
+            else:
+                incomplete_edges.append(edge)
+
+    # Add incomplete edges first, then complete edges
+    # This ensures complete paths render on top
+    chart_edges.extend(incomplete_edges)
+    chart_edges.extend(complete_edges)
 
     chart_data = {
         "nodes": chart_nodes,
