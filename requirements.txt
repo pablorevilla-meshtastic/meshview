@@ -12,6 +12,7 @@ aiosqlite~=0.21.0
 
 # Database + ORM
 sqlalchemy[asyncio]~=2.0.38
+alembic~=1.14.0
 
 # Serialization / security
 protobuf~=5.29.3

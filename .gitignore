@@ -1,6 +1,7 @@
 env/*
 __pycache__/*
 meshview/__pycache__/*
+alembic/__pycache__/*
 meshtastic/protobuf/*
 packets.db
 meshview-db.pid
@@ -9,3 +10,5 @@ meshview-web.pid
 config.ini
 screenshots/*
 python/nanopb
+__pycache__/
+*.pyc
