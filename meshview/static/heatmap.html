@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesh Node Density Map</title>
+
+<!-- Leaflet CSS -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<style>
+  body { margin: 0; background: #000; font-family: monospace; color: #fff; }
+  #map { height: 100vh; width: 100%; }
+  #legend {
+    position: absolute; bottom: 10px; right: 10px;
+    background: rgba(0,0,0,0.8); padding: 10px 14px;
+    border-radius: 5px; z-index: 1000;
+    box-shadow: 0 0 10px rgba(0,0,0,0.6);
+    font-size: 13px;
+  }
+  .legend-item { display: flex; align-items: center; margin-bottom: 5px; }
+  .legend-color { width: 18px; height: 18px; margin-right: 6px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="legend"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+<script>
+const map = L.map("map");
+let heatLayer = null;
+let nodeCoords = [];
+
+// --- Legend ---
+const legend = document.getElementById("legend");
+const legendItems = [
+  { color: "#0000ff", label: "Low" },
+  { color: "#00ffff", label: "Moderate" },
+  { color: "#00ff00", label: "High" },
+  { color: "#ffff00", label: "Very High" },
+  { color: "#ff8000", label: "High Red" },
+  { color: "#ff0000", label: "Extreme Red" },
+  { color: "#8B0000", label: "Dark Red" },
+  { color: "#800080", label: "Purple" }
+];
+legendItems.forEach(item => {
+  const div = document.createElement("div");
+  div.className = "legend-item";
+  const colorBox = document.createElement("div");
+  colorBox.className = "legend-color";
+  colorBox.style.background = item.color;
+  const label = document.createElement("span");
+  label.textContent = item.label;
+  div.appendChild(colorBox);
+  div.appendChild(label);
+  legend.appendChild(div);
+});
+
+// Node count summary
+const summaryDiv = document.createElement("div");
+summaryDiv.id = "summary";
+legend.appendChild(summaryDiv);
+
+// --- Tile layer ---
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: "© OpenStreetMap"
+}).addTo(map);
+
+// --- Map bounds ---
+async function setMapBounds() {
+  try {
+    const res = await fetch("/api/config");
+    const config = await res.json();
+    const topLat = parseFloat(config.site.map_top_left_lat);
+    const topLon = parseFloat(config.site.map_top_left_lon);
+    const bottomLat = parseFloat(config.site.map_bottom_right_lat);
+    const bottomLon = parseFloat(config.site.map_bottom_right_lon);
+    if ([topLat, topLon, bottomLat, bottomLon].some(v => isNaN(v))) throw new Error("Invalid bounds");
+    map.fitBounds([[topLat, topLon], [bottomLat, bottomLon]]);
+  } catch {
+    map.setView([37.77, -122.42], 10); // fallback
+  }
+}
+
+// --- Load nodes and create heatmap ---
+async function loadNodes() {
+  try {
+    const res = await fetch("/api/nodes?days_active=3");
+    const data = await res.json();
+    const nodes = data.nodes || [];
+    nodeCoords = [];
+
+    if (nodes.length === 0) {
+      summaryDiv.textContent = "No recent nodes found.";
+      if (heatLayer) map.removeLayer(heatLayer);
+      return;
+    }
+
+    const heatPoints = [];
+    nodes.forEach(node => {
+      if (node.last_lat && node.last_long) {
+        const lat = node.last_lat / 1e7;
+        const lon = node.last_long / 1e7;
+        nodeCoords.push([lat, lon]);
+        heatPoints.push([lat, lon, 1.0]);
+      }
+    });
+
+    if (heatLayer) map.removeLayer(heatLayer);
+    heatLayer = L.heatLayer(heatPoints, {
+      radius: 35,
+      blur: 12,
+      maxZoom: 15,
+      minOpacity: 0.4,
+      gradient: {
+        0.0: "#0000ff",   // deep blue
+        0.2: "#00ffff",   // cyan
+        0.4: "#00ff00",   // green
+        0.6: "#ffff00",   // yellow
+        0.75: "#ff8000",  // orange
+        0.85: "#ff0000",  // bright red
+        0.95: "#8B0000",  // dark red
+        1.0: "#800080"    // purple
+      }
+    }).addTo(map);
+
+    summaryDiv.textContent = `Nodes: ${nodes.length}`;
+
+  } catch (err) {
+    console.error("Failed to load nodes:", err);
+    summaryDiv.textContent = "Error loading nodes.";
+  }
+}
+
+// --- Hover tooltip ---
+const hoverTooltip = L.tooltip({ permanent: false, direction: 'top', offset: [0, -10] });
+
+function countNearbyNodes(latlng, radiusMeters) {
+  let count = 0;
+  for (const [lat, lon] of nodeCoords) {
+    if (map.distance(latlng, L.latLng(lat, lon)) <= radiusMeters) count++;
+  }
+  return count;
+}
+
+map.on("mousemove", e => {
+  if (!nodeCoords.length) return;
+
+  const zoom = map.getZoom();
+  const radiusMeters = 2000 / Math.pow(2, zoom - 10); // dynamic radius
+  const count = countNearbyNodes(e.latlng, radiusMeters);
+
+  // Only show tooltip if count > 0
+  if (count > 0) {
+    hoverTooltip.setLatLng(e.latlng)
+      .setContent(`${count} nodes nearby (${radiusMeters.toFixed(0)}m radius)`)
+      .addTo(map);
+  } else {
+    map.closeTooltip(hoverTooltip);
+  }
+});
+
+map.on("mouseout", () => map.closeTooltip(hoverTooltip));
+
+// --- Run ---
+(async () => {
+  await setMapBounds();
+  await loadNodes();
+})();
+</script>
+</body>
+</html>
