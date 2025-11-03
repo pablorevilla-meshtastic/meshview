@@ -413,3 +413,9 @@ Add schedule to the bottom of the file (modify /path/to/file/ to the correct pat
 ```
 
 Check the log file to see it the script run at the specific time.
+
+---
+
+## Technical Documentation
+
+For more detailed technical documentation including database migrations, architecture details, and advanced topics, see the [docs/](docs/) directory.
