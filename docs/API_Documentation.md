@@ -288,15 +288,46 @@ Request: `/api/lang?section=chat`
 
 ---
 
-## 9. Version API
+## 9. Health Check API
+
+### GET `/health`
+Health check endpoint for monitoring, load balancers, and orchestration systems.
+
+**Response Example (Healthy)**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-11-03T14:30:00.123456Z",
+  "version": "2.0.8",
+  "git_revision": "6416978",
+  "database": "connected"
+}
+```
+
+**Response Example (Unhealthy)**
+Status Code: `503 Service Unavailable`
+```json
+{
+  "status": "unhealthy",
+  "timestamp": "2025-11-03T14:30:00.123456Z",
+  "version": "2.0.8",
+  "git_revision": "6416978",
+  "database": "disconnected"
+}
+```
+
+---
+
+## 10. Version API
 
 ### GET `/version`
-Returns version information including semver and git revision.
+Returns detailed version information including semver, release date, and git revision.
 
 **Response Example**
 ```json
 {
-  "version": "2.0.8 ~ 10-22-25",
+  "version": "2.0.8",
+  "release_date": "2025-10-22",
   "git_revision": "6416978a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q",
   "git_revision_short": "6416978"
 }

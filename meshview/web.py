@@ -19,9 +19,17 @@ from google.protobuf.message import Message
 from jinja2 import Environment, PackageLoader, Undefined, select_autoescape
 from markupsafe import Markup
 from pandas import DataFrame
+from sqlalchemy import text
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import config, database, decode_payload, migrations, models, store
+from meshview.__version__ import (
+    __version__,
+    __version_string__,
+    _git_revision,
+    _git_revision_short,
+    get_version_info,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,7 +39,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 SEQ_REGEX = re.compile(r"seq \d+")
-SOFTWARE_RELEASE = "2.0.8 ~ 10-22-25"
+SOFTWARE_RELEASE = __version_string__  # Keep for backward compatibility
 CONFIG = config.CONFIG
 
 env = Environment(loader=PackageLoader("meshview"), autoescape=select_autoescape())
@@ -1751,39 +1759,36 @@ async def api_lang(request):
     return web.json_response(translations)
 
 
+@routes.get("/health")
+async def health_check(request):
+    """Health check endpoint for monitoring and load balancers."""
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
+        "version": __version__,
+        "git_revision": _git_revision_short,
+    }
+
+    # Check database connectivity
+    try:
+        async with database.async_session() as session:
+            await session.execute(text("SELECT 1"))
+        health_status["database"] = "connected"
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        health_status["database"] = "disconnected"
+        health_status["status"] = "unhealthy"
+        return web.json_response(health_status, status=503)
+
+    return web.json_response(health_status)
+
+
 @routes.get("/version")
 async def version_endpoint(request):
     """Return version information including semver and git revision."""
     try:
-        # Get git revision hash
-        try:
-            result = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                capture_output=True,
-                text=True,
-                check=True,
-                cwd=os.path.dirname(__file__),
-            )
-            git_revision = result.stdout.strip()
-
-            # Also get short hash
-            result_short = subprocess.run(
-                ["git", "rev-parse", "--short", "HEAD"],
-                capture_output=True,
-                text=True,
-                check=True,
-                cwd=os.path.dirname(__file__),
-            )
-            git_revision_short = result_short.stdout.strip()
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            git_revision = "unknown"
-            git_revision_short = "unknown"
-
-        return web.json_response({
-            "version": SOFTWARE_RELEASE,
-            "git_revision": git_revision,
-            "git_revision_short": git_revision_short,
-        })
+        version_info = get_version_info()
+        return web.json_response(version_info)
     except Exception as e:
         logger.error(f"Error in /version: {e}")
         return web.json_response({"error": "Failed to fetch version info"}, status=500)
