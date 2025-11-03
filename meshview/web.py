@@ -6,6 +6,7 @@ import os
 import pathlib
 import re
 import ssl
+import subprocess
 import traceback
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -1748,6 +1749,44 @@ async def api_lang(request):
 
     # if no section requested → return full translation file
     return web.json_response(translations)
+
+
+@routes.get("/version")
+async def version_endpoint(request):
+    """Return version information including semver and git revision."""
+    try:
+        # Get git revision hash
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                capture_output=True,
+                text=True,
+                check=True,
+                cwd=os.path.dirname(__file__),
+            )
+            git_revision = result.stdout.strip()
+
+            # Also get short hash
+            result_short = subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                capture_output=True,
+                text=True,
+                check=True,
+                cwd=os.path.dirname(__file__),
+            )
+            git_revision_short = result_short.stdout.strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            git_revision = "unknown"
+            git_revision_short = "unknown"
+
+        return web.json_response({
+            "version": SOFTWARE_RELEASE,
+            "git_revision": git_revision,
+            "git_revision_short": git_revision_short,
+        })
+    except Exception as e:
+        logger.error(f"Error in /version: {e}")
+        return web.json_response({"error": "Failed to fetch version info"}, status=500)
 
 
 # Generic static HTML route
