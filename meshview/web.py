@@ -20,7 +20,7 @@ from markupsafe import Markup
 from pandas import DataFrame
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
-from meshview import config, database, decode_payload, models, store
+from meshview import config, database, decode_payload, migrations, models, store
 
 logging.basicConfig(
     level=logging.INFO,
@@ -1768,6 +1768,21 @@ async def serve_page(request):
 
 
 async def run_server():
+    # Wait for database migrations to complete before starting web server
+    logger.info("Checking database schema status...")
+    database_url = CONFIG["database"]["connection_string"]
+
+    # Wait for migrations to complete (writer app responsibility)
+    migration_ready = await migrations.wait_for_migrations(
+        database.engine, database_url, max_retries=30, retry_delay=2
+    )
+
+    if not migration_ready:
+        logger.error("Database schema is not up to date. Cannot start web server.")
+        raise RuntimeError("Database schema version mismatch - migrations not complete")
+
+    logger.info("Database schema verified - starting web server")
+
     app = web.Application()
     app.add_routes(routes)
 
