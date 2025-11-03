@@ -84,7 +84,16 @@ async def run_async_migrations() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode with async support."""
-    asyncio.run(run_async_migrations())
+    try:
+        # Try to get existing event loop
+        loop = asyncio.get_running_loop()
+        # Event loop is already running, schedule and run the coroutine
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            pool.submit(lambda: asyncio.run(run_async_migrations())).result()
+    except RuntimeError:
+        # No event loop running, create one
+        asyncio.run(run_async_migrations())
 
 
 if context.is_offline_mode():
