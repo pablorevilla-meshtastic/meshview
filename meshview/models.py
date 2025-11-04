@@ -98,5 +98,6 @@ class Traceroute(Base):
     done: Mapped[bool] = mapped_column(nullable=True)
     route: Mapped[bytes] = mapped_column(nullable=True)
     import_time: Mapped[datetime] = mapped_column(nullable=True)
+    route_return: Mapped[bytes] = mapped_column(nullable=True)
 
     __table_args__ = (Index("idx_traceroute_import_time", "import_time"),)
