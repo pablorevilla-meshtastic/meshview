@@ -43,3 +43,8 @@ pillow~=11.1.0
 # Debugging / profiling
 psutil~=7.0.0
 objgraph~=3.6.2
+
+# Testing
+pytest~=8.3.4
+pytest-aiohttp~=1.0.5
+pytest-asyncio~=0.24.0
