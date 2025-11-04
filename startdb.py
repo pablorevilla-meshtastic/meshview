@@ -13,7 +13,8 @@ from meshview.config import CONFIG
 # -------------------------
 cleanup_logger = logging.getLogger("dbcleanup")
 cleanup_logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler(CONFIG["logging"]["db_cleanup_logfile"])
+cleanup_logfile = CONFIG.get("logging", {}).get("db_cleanup_logfile", "dbcleanup.log")
+file_handler = logging.FileHandler(cleanup_logfile)
 file_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
 file_handler.setFormatter(formatter)
