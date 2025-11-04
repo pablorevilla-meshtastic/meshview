@@ -60,8 +60,27 @@
                 <option value="{{option.id}}">{{option.id}} -- {{option.long_name}} ({{option.short_name}})</option>
                 {% endfor %}
             </datalist>
-
-            <select name="portnum" class="col-2 m-2" id="portnum_select"></select>
+        {% set options = {
+                1: "Text Message",
+                3: "Position",
+                4: "Node Info",
+                67: "Telemetry",
+                70: "Traceroute",
+                71: "Neighbor Info",
+            }
+        %}
+        <select name="portnum" class="col-2 m-2">
+            <option
+                value = ""
+                {% if portnum not in options %}selected{% endif %}
+            >All</option>
+            {% for value, name in options.items() %}
+            <option
+                value="{{value}}"
+                {% if value == portnum %}selected{% endif %}
+            >{{ name }}</option>
+            {% endfor %}
+        </select>
             <input type="submit" value="Go to Node" class="col-2 m-2" data-translate-lang="go to node" />
         </div>
     </form>
