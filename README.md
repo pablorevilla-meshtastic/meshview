@@ -222,6 +222,8 @@ vacuum = False
 # Application logs (errors, startup messages, etc.) are unaffected
 # Set to True to enable, False to disable (default: False)
 access_log = False
+# Database cleanup logfile location
+db_cleanup_logfile = dbcleanup.log
 ```
 
 ---
@@ -255,10 +257,27 @@ Open in your browser: http://localhost:8081/
 ## Running Meshview with `mvrun.py`
 
 - `mvrun.py` starts both `startdb.py` and `main.py` in separate threads and merges the output.
-- It accepts the `--config` argument like the others.
+- It accepts several command-line arguments for flexible deployment.
 
 ```bash
 ./env/bin/python mvrun.py
+```
+
+**Command-line options:**
+- `--config CONFIG` - Path to the configuration file (default: `config.ini`)
+- `--pid_dir PID_DIR` - Directory for PID files (default: `.`)
+- `--py_exec PY_EXEC` - Path to the Python executable (default: `./env/bin/python`)
+
+**Examples:**
+```bash
+# Use a specific config file
+./env/bin/python mvrun.py --config /etc/meshview/config.ini
+
+# Store PID files in a specific directory
+./env/bin/python mvrun.py --pid_dir /var/run/meshview
+
+# Use a different Python executable
+./env/bin/python mvrun.py --py_exec /usr/bin/python3
 ```
 
 ---
@@ -366,6 +385,15 @@ hour = 2
 minute = 00
 # Run VACUUM after cleanup
 vacuum = False
+
+# -------------------------
+# Logging Configuration
+# -------------------------
+[logging]
+# Enable or disable HTTP access logs from the web server
+access_log = False
+# Database cleanup logfile location
+db_cleanup_logfile = dbcleanup.log
 ```
 Once changes are done you need to restart the script for changes to load.
 
@@ -414,3 +442,20 @@ Add schedule to the bottom of the file (modify /path/to/file/ to the correct pat
 ```
 
 Check the log file to see it the script run at the specific time.
+
+---
+
+## Testing
+
+MeshView includes a test suite using pytest. For detailed testing documentation, see [README-testing.md](README-testing.md).
+
+Quick start:
+```bash
+./env/bin/pytest tests/test_api_simple.py -v
+```
+
+---
+
+## Technical Documentation
+
+For more detailed technical documentation including database migrations, architecture details, and advanced topics, see the [docs/](docs/) directory.

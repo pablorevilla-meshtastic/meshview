@@ -80,6 +80,8 @@ async def process_envelope(topic, env):
         if not packet:
             # FIXME: Not Used
             # new_packet = True
+            now = datetime.datetime.now(datetime.UTC)
+            now_us = int(now.timestamp() * 1_000_000)
             stmt = (
                 sqlite_insert(Packet)
                 .values(
@@ -88,7 +90,8 @@ async def process_envelope(topic, env):
                     from_node_id=getattr(env.packet, "from"),
                     to_node_id=env.packet.to,
                     payload=env.packet.SerializeToString(),
-                    import_time=datetime.datetime.now(),
+                    import_time=now,
+                    import_time_us=now_us,
                     channel=env.channel_id,
                 )
                 .on_conflict_do_nothing(index_elements=["id"])
@@ -112,6 +115,8 @@ async def process_envelope(topic, env):
             )
         )
         if not result.scalar_one_or_none():
+            now = datetime.datetime.now(datetime.UTC)
+            now_us = int(now.timestamp() * 1_000_000)
             seen = PacketSeen(
                 packet_id=env.packet.id,
                 node_id=int(env.gateway_id[1:], 16),
@@ -122,7 +127,8 @@ async def process_envelope(topic, env):
                 hop_limit=env.packet.hop_limit,
                 hop_start=env.packet.hop_start,
                 topic=topic,
-                import_time=datetime.datetime.now(),
+                import_time=now,
+                import_time_us=now_us,
             )
             session.add(seen)
 
@@ -195,13 +201,16 @@ async def process_envelope(topic, env):
         if env.packet.decoded.portnum == PortNum.TRACEROUTE_APP:
             packet_id = env.packet.id
             if packet_id is not None:
+                now = datetime.datetime.now(datetime.UTC)
+                now_us = int(now.timestamp() * 1_000_000)
                 session.add(
                     Traceroute(
                         packet_id=packet_id,
                         route=env.packet.decoded.payload,
                         done=not env.packet.decoded.want_response,
                         gateway_node_id=int(env.gateway_id[1:], 16),
-                        import_time=datetime.datetime.now(),
+                        import_time=now,
+                        import_time_us=now_us,
                     )
                 )
 

@@ -5,7 +5,7 @@ import logging
 
 from sqlalchemy import delete
 
-from meshview import models, mqtt_database, mqtt_reader, mqtt_store
+from meshview import migrations, models, mqtt_database, mqtt_reader, mqtt_store
 from meshview.config import CONFIG
 
 # -------------------------
@@ -13,7 +13,8 @@ from meshview.config import CONFIG
 # -------------------------
 cleanup_logger = logging.getLogger("dbcleanup")
 cleanup_logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler("dbcleanup.log")
+cleanup_logfile = CONFIG.get("logging", {}).get("db_cleanup_logfile", "dbcleanup.log")
+file_handler = logging.FileHandler(cleanup_logfile)
 file_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
 file_handler.setFormatter(formatter)
@@ -134,9 +135,32 @@ async def load_database_from_mqtt(
 # Main function
 # -------------------------
 async def main():
+    logger = logging.getLogger(__name__)
+
     # Initialize database
-    mqtt_database.init_database(CONFIG["database"]["connection_string"])
-    await mqtt_database.create_tables()
+    database_url = CONFIG["database"]["connection_string"]
+    mqtt_database.init_database(database_url)
+
+    # Create migration status table
+    await migrations.create_migration_status_table(mqtt_database.engine)
+
+    # Set migration in progress flag
+    await migrations.set_migration_in_progress(mqtt_database.engine, True)
+    logger.info("Migration status set to 'in progress'")
+
+    try:
+        # Run any pending migrations (synchronous operation)
+        logger.info("Checking for pending database migrations...")
+        migrations.run_migrations(database_url)
+        logger.info("Database migrations check complete")
+
+        # Create tables if needed (for backwards compatibility)
+        await mqtt_database.create_tables()
+
+    finally:
+        # Clear migration in progress flag
+        await migrations.set_migration_in_progress(mqtt_database.engine, False)
+        logger.info("Migration status cleared - database ready")
 
     mqtt_user = CONFIG["mqtt"].get("username") or None
     mqtt_passwd = CONFIG["mqtt"].get("password") or None
@@ -148,6 +172,7 @@ async def main():
     cleanup_hour = get_int(CONFIG, "cleanup", "hour", 2)
     cleanup_minute = get_int(CONFIG, "cleanup", "minute", 0)
 
+    logger.info("Starting MQTT ingestion and cleanup tasks...")
     async with asyncio.TaskGroup() as tg:
         tg.create_task(
             load_database_from_mqtt(
