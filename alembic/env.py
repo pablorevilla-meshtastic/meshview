@@ -85,8 +85,6 @@ async def run_async_migrations() -> None:
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode with async support."""
     try:
-        # Try to get existing event loop
-        loop = asyncio.get_running_loop()
         # Event loop is already running, schedule and run the coroutine
         import concurrent.futures
 
