@@ -1,4 +1,5 @@
 """Version information for MeshView."""
+
 import subprocess
 from pathlib import Path
 

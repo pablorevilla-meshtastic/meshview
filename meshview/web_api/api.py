@@ -1,9 +1,9 @@
 """API endpoints for MeshView."""
+
 import datetime
 import json
 import logging
 import os
-import re
 
 from aiohttp import web
 from sqlalchemy import text
@@ -42,6 +42,7 @@ async def api_channels(request: web.Request):
         return web.json_response({"channels": channels})
     except Exception as e:
         return web.json_response({"channels": [], "error": str(e)})
+
 
 @routes.get("/api/chat")
 async def api_chat(request):
@@ -130,6 +131,7 @@ async def api_chat(request):
             {"error": "Failed to fetch chat data", "details": str(e)}, status=500
         )
 
+
 @routes.get("/api/nodes")
 async def api_nodes(request):
     try:
@@ -175,6 +177,7 @@ async def api_nodes(request):
         logger.error(f"Error in /api/nodes: {e}")
         return web.json_response({"error": "Failed to fetch nodes"}, status=500)
 
+
 @routes.get("/api/packets")
 async def api_packets(request):
     try:
@@ -214,6 +217,7 @@ async def api_packets(request):
     except Exception as e:
         logger.error(f"Error in /api/packets: {e}")
         return web.json_response({"error": "Failed to fetch packets"}, status=500)
+
 
 @routes.get("/api/stats")
 async def api_stats(request):
@@ -267,6 +271,7 @@ async def api_stats(request):
 
     return web.json_response(stats)
 
+
 @routes.get("/api/edges")
 async def api_edges(request):
     since = datetime.datetime.now() - datetime.timedelta(hours=48)
@@ -308,6 +313,7 @@ async def api_edges(request):
     ]
 
     return web.json_response({"edges": edges_list})
+
 
 @routes.get("/api/config")
 async def api_config(request):
@@ -411,6 +417,7 @@ async def api_config(request):
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
+
 @routes.get("/api/lang")
 async def api_lang(request):
     # Language from ?lang=xx, fallback to config, then to "en"
@@ -437,6 +444,7 @@ async def api_lang(request):
     # if no section requested → return full translation file
     return web.json_response(translations)
 
+
 @routes.get("/health")
 async def health_check(request):
     """Health check endpoint for monitoring and load balancers."""
@@ -458,7 +466,32 @@ async def health_check(request):
         health_status["status"] = "unhealthy"
         return web.json_response(health_status, status=503)
 
+    # Get database file size
+    try:
+        db_url = CONFIG.get("database", {}).get("connection_string", "")
+        # Extract file path from SQLite connection string (e.g., "sqlite+aiosqlite:///packets.db")
+        if "sqlite" in db_url.lower():
+            db_path = db_url.split("///")[-1].split("?")[0]
+            if os.path.exists(db_path):
+                db_size_bytes = os.path.getsize(db_path)
+                # Convert to human-readable format
+                if db_size_bytes < 1024:
+                    health_status["database_size"] = f"{db_size_bytes} B"
+                elif db_size_bytes < 1024 * 1024:
+                    health_status["database_size"] = f"{db_size_bytes / 1024:.2f} KB"
+                elif db_size_bytes < 1024 * 1024 * 1024:
+                    health_status["database_size"] = f"{db_size_bytes / (1024 * 1024):.2f} MB"
+                else:
+                    health_status["database_size"] = (
+                        f"{db_size_bytes / (1024 * 1024 * 1024):.2f} GB"
+                    )
+                health_status["database_size_bytes"] = db_size_bytes
+    except Exception as e:
+        logger.warning(f"Failed to get database size: {e}")
+        # Don't fail health check if we can't get size
+
     return web.json_response(health_status)
+
 
 @routes.get("/version")
 async def version_endpoint(request):

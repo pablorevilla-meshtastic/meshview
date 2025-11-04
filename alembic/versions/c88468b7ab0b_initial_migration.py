@@ -6,7 +6,7 @@ Create Date: 2025-10-26 20:56:50.285200
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 
@@ -14,9 +14,9 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'c88468b7ab0b'
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -28,7 +28,8 @@ def upgrade() -> None:
 
     # Create node table if it doesn't exist
     if 'node' not in existing_tables:
-        op.create_table('node',
+        op.create_table(
+            'node',
             sa.Column('id', sa.String(), nullable=False),
             sa.Column('node_id', sa.BigInteger(), nullable=True),
             sa.Column('long_name', sa.String(), nullable=True),
@@ -41,13 +42,14 @@ def upgrade() -> None:
             sa.Column('channel', sa.String(), nullable=True),
             sa.Column('last_update', sa.DateTime(), nullable=True),
             sa.PrimaryKeyConstraint('id'),
-            sa.UniqueConstraint('node_id')
+            sa.UniqueConstraint('node_id'),
         )
         op.create_index('idx_node_node_id', 'node', ['node_id'], unique=False)
 
     # Create packet table if it doesn't exist
     if 'packet' not in existing_tables:
-        op.create_table('packet',
+        op.create_table(
+            'packet',
             sa.Column('id', sa.BigInteger(), nullable=False),
             sa.Column('portnum', sa.Integer(), nullable=True),
             sa.Column('from_node_id', sa.BigInteger(), nullable=True),
@@ -56,18 +58,33 @@ def upgrade() -> None:
             sa.Column('import_time', sa.DateTime(), nullable=True),
             sa.Column('import_time_us', sa.BigInteger(), nullable=True),
             sa.Column('channel', sa.String(), nullable=True),
-            sa.PrimaryKeyConstraint('id')
+            sa.PrimaryKeyConstraint('id'),
         )
         op.create_index('idx_packet_from_node_id', 'packet', ['from_node_id'], unique=False)
         op.create_index('idx_packet_to_node_id', 'packet', ['to_node_id'], unique=False)
-        op.create_index('idx_packet_import_time', 'packet', [sa.text('import_time DESC')], unique=False)
-        op.create_index('idx_packet_import_time_us', 'packet', [sa.text('import_time_us DESC')], unique=False)
-        op.create_index('idx_packet_from_node_time', 'packet', ['from_node_id', sa.text('import_time DESC')], unique=False)
-        op.create_index('idx_packet_from_node_time_us', 'packet', ['from_node_id', sa.text('import_time_us DESC')], unique=False)
+        op.create_index(
+            'idx_packet_import_time', 'packet', [sa.text('import_time DESC')], unique=False
+        )
+        op.create_index(
+            'idx_packet_import_time_us', 'packet', [sa.text('import_time_us DESC')], unique=False
+        )
+        op.create_index(
+            'idx_packet_from_node_time',
+            'packet',
+            ['from_node_id', sa.text('import_time DESC')],
+            unique=False,
+        )
+        op.create_index(
+            'idx_packet_from_node_time_us',
+            'packet',
+            ['from_node_id', sa.text('import_time_us DESC')],
+            unique=False,
+        )
 
     # Create packet_seen table if it doesn't exist
     if 'packet_seen' not in existing_tables:
-        op.create_table('packet_seen',
+        op.create_table(
+            'packet_seen',
             sa.Column('packet_id', sa.BigInteger(), nullable=False),
             sa.Column('node_id', sa.BigInteger(), nullable=False),
             sa.Column('rx_time', sa.BigInteger(), nullable=False),
@@ -79,16 +96,22 @@ def upgrade() -> None:
             sa.Column('topic', sa.String(), nullable=True),
             sa.Column('import_time', sa.DateTime(), nullable=True),
             sa.Column('import_time_us', sa.BigInteger(), nullable=True),
-            sa.ForeignKeyConstraint(['packet_id'], ['packet.id'], ),
-            sa.PrimaryKeyConstraint('packet_id', 'node_id', 'rx_time')
+            sa.ForeignKeyConstraint(
+                ['packet_id'],
+                ['packet.id'],
+            ),
+            sa.PrimaryKeyConstraint('packet_id', 'node_id', 'rx_time'),
         )
         op.create_index('idx_packet_seen_node_id', 'packet_seen', ['node_id'], unique=False)
         op.create_index('idx_packet_seen_packet_id', 'packet_seen', ['packet_id'], unique=False)
-        op.create_index('idx_packet_seen_import_time_us', 'packet_seen', ['import_time_us'], unique=False)
+        op.create_index(
+            'idx_packet_seen_import_time_us', 'packet_seen', ['import_time_us'], unique=False
+        )
 
     # Create traceroute table if it doesn't exist
     if 'traceroute' not in existing_tables:
-        op.create_table('traceroute',
+        op.create_table(
+            'traceroute',
             sa.Column('id', sa.Integer(), nullable=False),
             sa.Column('packet_id', sa.BigInteger(), nullable=True),
             sa.Column('gateway_node_id', sa.BigInteger(), nullable=True),
@@ -96,11 +119,16 @@ def upgrade() -> None:
             sa.Column('route', sa.LargeBinary(), nullable=True),
             sa.Column('import_time', sa.DateTime(), nullable=True),
             sa.Column('import_time_us', sa.BigInteger(), nullable=True),
-            sa.ForeignKeyConstraint(['packet_id'], ['packet.id'], ),
-            sa.PrimaryKeyConstraint('id')
+            sa.ForeignKeyConstraint(
+                ['packet_id'],
+                ['packet.id'],
+            ),
+            sa.PrimaryKeyConstraint('id'),
         )
         op.create_index('idx_traceroute_import_time', 'traceroute', ['import_time'], unique=False)
-        op.create_index('idx_traceroute_import_time_us', 'traceroute', ['import_time_us'], unique=False)
+        op.create_index(
+            'idx_traceroute_import_time_us', 'traceroute', ['import_time_us'], unique=False
+        )
     # ### end Alembic commands ###
 
 

@@ -1,12 +1,10 @@
 import asyncio
 import datetime
-import json
 import logging
 import os
 import pathlib
 import re
 import ssl
-import subprocess
 import traceback
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -19,16 +17,11 @@ from google.protobuf.message import Message
 from jinja2 import Environment, PackageLoader, Undefined, select_autoescape
 from markupsafe import Markup
 from pandas import DataFrame
-from sqlalchemy import text
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import config, database, decode_payload, migrations, models, store
 from meshview.__version__ import (
-    __version__,
     __version_string__,
-    _git_revision,
-    _git_revision_short,
-    get_version_info,
 )
 from meshview.web_api import api
 

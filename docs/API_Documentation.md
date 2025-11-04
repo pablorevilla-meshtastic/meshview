@@ -298,9 +298,11 @@ Health check endpoint for monitoring, load balancers, and orchestration systems.
 {
   "status": "healthy",
   "timestamp": "2025-11-03T14:30:00.123456Z",
-  "version": "2.0.8",
+  "version": "3.0.0",
   "git_revision": "6416978",
-  "database": "connected"
+  "database": "connected",
+  "database_size": "853.03 MB",
+  "database_size_bytes": 894468096
 }
 ```
 

@@ -89,6 +89,7 @@ def run_migrations_online() -> None:
         loop = asyncio.get_running_loop()
         # Event loop is already running, schedule and run the coroutine
         import concurrent.futures
+
         with concurrent.futures.ThreadPoolExecutor() as pool:
             pool.submit(lambda: asyncio.run(run_async_migrations())).result()
     except RuntimeError:
