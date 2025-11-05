@@ -110,13 +110,19 @@ def run_migrations(database_url: str) -> None:
         database_url: Database connection string
     """
     logger.info("Running database migrations...")
+    import sys
+
+    sys.stdout.flush()
 
     config = get_alembic_config(database_url)
 
     try:
         # Run migrations to head
+        logger.info("Calling alembic upgrade command...")
+        sys.stdout.flush()
         command.upgrade(config, "head")
         logger.info("Database migrations completed successfully")
+        sys.stdout.flush()
     except Exception as e:
         logger.error(f"Error running migrations: {e}")
         raise
