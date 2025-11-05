@@ -75,14 +75,28 @@ Clone the repo from GitHub:
 
 ```bash
 git clone https://github.com/pablorevilla-meshtastic/meshview.git
-```
-
-```bash
 cd meshview
 ```
+
+#### Quick Setup (Recommended)
+
+Run the development setup script:
+
+```bash
+./setup-dev.sh
+```
+
+This will:
+- Create Python virtual environment
+- Install all requirements
+- Install development tools (pre-commit, pytest)
+- Set up pre-commit hooks for code formatting
+- Create config.ini from sample
+
+#### Manual Setup
+
 Create a Python virtual environment:
 
-from the meshview directory...
 ```bash
 python3 -m venv env
 ```
