@@ -39,7 +39,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Containerfile
+          file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
