@@ -199,15 +199,7 @@ async def process_envelope(topic, env):
 
         # --- TRACEROUTE_APP (no conflict handling, normal insert)
         if env.packet.decoded.portnum == PortNum.TRACEROUTE_APP:
-            packet_id = None
-            if env.packet.decoded.want_response:
-                packet_id = env.packet.id
-            else:
-                result = await session.execute(
-                    select(Packet).where(Packet.id == env.packet.decoded.request_id)
-                )
-                if result.scalar_one_or_none():
-                    packet_id = env.packet.decoded.request_id
+            packet_id = env.packet.id
             if packet_id is not None:
                 now = datetime.datetime.now(datetime.UTC)
                 now_us = int(now.timestamp() * 1_000_000)

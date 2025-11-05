@@ -14,6 +14,7 @@ The project serves as a real-time monitoring and diagnostic tool for the Meshtas
 * New API /api/edges (See API documentation)
 * Adds edges to the map (click to see traceroute and neighbours)
 
+
 ### Version 2.0.4 update - August 2025
 * New statistic page with more data.
 * New API /api/stats (See API documentation).
