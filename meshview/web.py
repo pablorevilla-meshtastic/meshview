@@ -662,6 +662,13 @@ async def graph_traceroute(request):
             status=404,
         )
 
+    if not traceroutes: 
+        return web.Response(
+            body="No traceroute data found, might be old entry",
+            content_type="text/plain",
+            status=404,
+        )
+
     node_ids = set()
     for tr in traceroutes:
         route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
@@ -684,6 +691,7 @@ async def graph_traceroute(request):
     saw_reply = set()
     dest = None
     node_seen_time = {}
+    reverse_display = True  # Change to False to display in normal order if even one packet is not done
     for tr in traceroutes:
         if tr.done:
             saw_reply.add(tr.gateway_node_id)
@@ -691,7 +699,15 @@ async def graph_traceroute(request):
             continue
         route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
         path = [packet.from_node_id]
-        path.extend(route.route)
+
+        # backwards db compatibility: if any packet is not done, show in normal order
+        if not tr.done:
+            reverse_display = False 
+        if reverse_display:
+            path.extend((route.route)[::-1])
+        else:
+            path.extend(route.route)
+
         if tr.done:
             dest = packet.to_node_id
             path.append(packet.to_node_id)
