@@ -15,9 +15,3 @@ def init_database(database_connection_string):
 async def create_tables():
     async with engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
-
-        # Add any missing columns to existing tables
-        result = await conn.execute(text("PRAGMA table_info(traceroute)"))
-        columns = [row[1] for row in result.fetchall()]
-        if 'route_return' not in columns:
-            await conn.execute(text("ALTER TABLE traceroute ADD COLUMN route_return BLOB"))
