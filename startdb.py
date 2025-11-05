@@ -137,7 +137,7 @@ async def daily_cleanup_at(
     minute: int = 0,
     days_to_keep: int = 14,
     vacuum_db: bool = True,
-    wait_for_backup: bool = False
+    wait_for_backup: bool = False,
 ):
     while True:
         now = datetime.datetime.now()
@@ -283,9 +283,13 @@ async def main():
 
     logger.info(f"Starting MQTT ingestion from {CONFIG['mqtt']['server']}:{CONFIG['mqtt']['port']}")
     if cleanup_enabled:
-        logger.info(f"Daily cleanup enabled: keeping {cleanup_days} days of data at {cleanup_hour:02d}:{cleanup_minute:02d}")
+        logger.info(
+            f"Daily cleanup enabled: keeping {cleanup_days} days of data at {cleanup_hour:02d}:{cleanup_minute:02d}"
+        )
     if backup_enabled:
-        logger.info(f"Daily backups enabled: storing in {backup_dir} at {backup_hour:02d}:{backup_minute:02d}")
+        logger.info(
+            f"Daily backups enabled: storing in {backup_dir} at {backup_hour:02d}:{backup_minute:02d}"
+        )
 
     async with asyncio.TaskGroup() as tg:
         tg.create_task(
@@ -304,8 +308,16 @@ async def main():
 
         # Start cleanup task if enabled (waits for backup if both run at same time)
         if cleanup_enabled:
-            wait_for_backup = backup_enabled and (backup_hour == cleanup_hour) and (backup_minute == cleanup_minute)
-            tg.create_task(daily_cleanup_at(cleanup_hour, cleanup_minute, cleanup_days, vacuum_db, wait_for_backup))
+            wait_for_backup = (
+                backup_enabled
+                and (backup_hour == cleanup_hour)
+                and (backup_minute == cleanup_minute)
+            )
+            tg.create_task(
+                daily_cleanup_at(
+                    cleanup_hour, cleanup_minute, cleanup_days, vacuum_db, wait_for_backup
+                )
+            )
 
         if not cleanup_enabled and not backup_enabled:
             cleanup_logger.info("Daily cleanup and backups are both disabled by configuration.")
