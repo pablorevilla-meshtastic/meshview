@@ -1,7 +1,10 @@
 import asyncio
 import datetime
+import gzip
 import json
 import logging
+import shutil
+from pathlib import Path
 
 from sqlalchemy import delete
 
@@ -51,10 +54,74 @@ db_lock = asyncio.Lock()
 
 
 # -------------------------
+# Database backup function
+# -------------------------
+async def backup_database(database_url: str, backup_dir: str = ".") -> None:
+    """
+    Create a compressed backup of the database file.
+
+    Args:
+        database_url: SQLAlchemy connection string
+        backup_dir: Directory to store backups (default: current directory)
+    """
+    try:
+        # Extract database file path from connection string
+        # Format: sqlite+aiosqlite:///path/to/db.db
+        if not database_url.startswith("sqlite"):
+            cleanup_logger.warning("Backup only supported for SQLite databases")
+            return
+
+        db_path = database_url.split("///", 1)[1] if "///" in database_url else None
+        if not db_path:
+            cleanup_logger.error("Could not extract database path from connection string")
+            return
+
+        db_file = Path(db_path)
+        if not db_file.exists():
+            cleanup_logger.error(f"Database file not found: {db_file}")
+            return
+
+        # Create backup directory if it doesn't exist
+        backup_path = Path(backup_dir)
+        backup_path.mkdir(parents=True, exist_ok=True)
+
+        # Generate backup filename with timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_filename = f"{db_file.stem}_backup_{timestamp}.db.gz"
+        backup_file = backup_path / backup_filename
+
+        cleanup_logger.info(f"Creating backup: {backup_file}")
+
+        # Copy and compress the database file
+        with open(db_file, 'rb') as f_in:
+            with gzip.open(backup_file, 'wb', compresslevel=9) as f_out:
+                shutil.copyfileobj(f_in, f_out)
+
+        # Get file sizes for logging
+        original_size = db_file.stat().st_size / (1024 * 1024)  # MB
+        compressed_size = backup_file.stat().st_size / (1024 * 1024)  # MB
+        compression_ratio = (1 - compressed_size / original_size) * 100 if original_size > 0 else 0
+
+        cleanup_logger.info(
+            f"Backup created successfully: {backup_file.name} "
+            f"({original_size:.2f} MB -> {compressed_size:.2f} MB, "
+            f"{compression_ratio:.1f}% compression)"
+        )
+
+    except Exception as e:
+        cleanup_logger.error(f"Error creating database backup: {e}")
+
+
+# -------------------------
 # Database cleanup using ORM
 # -------------------------
 async def daily_cleanup_at(
-    hour: int = 2, minute: int = 0, days_to_keep: int = 14, vacuum_db: bool = True
+    hour: int = 2,
+    minute: int = 0,
+    days_to_keep: int = 14,
+    vacuum_db: bool = True,
+    backup_enabled: bool = False,
+    backup_dir: str = "."
 ):
     while True:
         now = datetime.datetime.now()
@@ -72,6 +139,11 @@ async def daily_cleanup_at(
         cleanup_logger.info(f"Running cleanup for records older than {cutoff}...")
 
         try:
+            # Create backup before cleanup if enabled
+            if backup_enabled:
+                database_url = CONFIG["database"]["connection_string"]
+                await backup_database(database_url, backup_dir)
+
             async with db_lock:  # Pause ingestion
                 cleanup_logger.info("Ingestion paused for cleanup.")
 
@@ -187,10 +259,14 @@ async def main():
     vacuum_db = get_bool(CONFIG, "cleanup", "vacuum", False)
     cleanup_hour = get_int(CONFIG, "cleanup", "hour", 2)
     cleanup_minute = get_int(CONFIG, "cleanup", "minute", 0)
+    backup_enabled = get_bool(CONFIG, "cleanup", "backup_enabled", False)
+    backup_dir = CONFIG.get("cleanup", {}).get("backup_dir", "./backups")
 
     logger.info(f"Starting MQTT ingestion from {CONFIG['mqtt']['server']}:{CONFIG['mqtt']['port']}")
     if cleanup_enabled:
         logger.info(f"Daily cleanup enabled: keeping {cleanup_days} days of data")
+        if backup_enabled:
+            logger.info(f"Database backups enabled: storing in {backup_dir}")
 
     async with asyncio.TaskGroup() as tg:
         tg.create_task(
@@ -204,7 +280,11 @@ async def main():
         )
 
         if cleanup_enabled:
-            tg.create_task(daily_cleanup_at(cleanup_hour, cleanup_minute, cleanup_days, vacuum_db))
+            tg.create_task(
+                daily_cleanup_at(
+                    cleanup_hour, cleanup_minute, cleanup_days, vacuum_db, backup_enabled, backup_dir
+                )
+            )
         else:
             cleanup_logger.info("Daily cleanup is disabled by configuration.")
 

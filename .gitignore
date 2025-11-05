@@ -11,6 +11,10 @@ packets*.db
 *.db-shm
 *.db-wal
 
+# Database backups
+backups/
+*.db.gz
+
 # Process files
 meshview-db.pid
 meshview-web.pid
