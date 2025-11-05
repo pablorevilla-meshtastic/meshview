@@ -4,6 +4,31 @@
 
 The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
 
+### Version 3.0.0 update - November 2025
+
+**Major Infrastructure Improvements:**
+
+* **Database Migrations**: Alembic integration for safe schema upgrades and database versioning
+* **Automated Backups**: Independent database backup system with gzip compression (separate from cleanup)
+* **Development Tools**: Quick setup script (`setup-dev.sh`) with pre-commit hooks for code quality
+* **Docker Support**: Pre-built containers now available on GitHub Container Registry with automatic builds - ogarcia 
+
+**New Features:**
+
+* **Traceroute Return Path**: Log and display return path data for traceroute packets - jschrempp 
+* **Microsecond Timestamps**: Added `import_time_us` columns for higher precision time tracking
+
+**Technical Improvements:**
+
+* Migration from manual SQL to Alembic-managed schema
+* Container images use `uv` for faster dependency installation
+* Python 3.13 support with slim Debian-based images
+* Documentation collection in `docs/` directory
+* API routes moved to separate modules for better organization
+* /version and /health endpoints added for monitoring
+
+See [README-Docker.md](README-Docker.md) for container deployment and [docs/](docs/) for technical documentation.
+
 ### Version 2.0.7 update - September 2025
 * New database maintenance capability to automatically keep a specific number of days of data.
 * Added configuration for update intervals for both the Live Map and the Firehose pages.
@@ -61,20 +86,42 @@ Samples of currently running instances:
 
 ## Installing
 
-Requires **`python3.11`** or above.
+### Using Docker (Recommended)
+
+The easiest way to run MeshView is using Docker. Pre-built images are available from GitHub Container Registry.
+
+See **[README-Docker.md](README-Docker.md)** for complete Docker installation and usage instructions.
+
+### Manual Installation
+
+Requires **`python3.13`** or above.
 
 Clone the repo from GitHub:
 
 ```bash
 git clone https://github.com/pablorevilla-meshtastic/meshview.git
-```
-
-```bash
 cd meshview
 ```
+
+#### Quick Setup (Recommended)
+
+Run the development setup script:
+
+```bash
+./setup-dev.sh
+```
+
+This will:
+- Create Python virtual environment
+- Install all requirements
+- Install development tools (pre-commit, pytest)
+- Set up pre-commit hooks for code formatting
+- Create config.ini from sample
+
+#### Manual Setup
+
 Create a Python virtual environment:
 
-from the meshview directory...
 ```bash
 python3 -m venv env
 ```
