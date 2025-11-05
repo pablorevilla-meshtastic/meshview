@@ -16,6 +16,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
  && install -m 0755 /root/.local/bin/uv /usr/local/bin/uv
 
 WORKDIR /app
+RUN chown -R ${APP_USER}:${APP_USER} /app
 
 # Copy deps first for caching
 COPY --chown=${APP_USER}:${APP_USER} pyproject.toml uv.lock* requirements*.txt ./
