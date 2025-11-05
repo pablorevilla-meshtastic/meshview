@@ -61,6 +61,14 @@ Samples of currently running instances:
 
 ## Installing
 
+### Using Docker (Recommended)
+
+The easiest way to run MeshView is using Docker. Pre-built images are available from GitHub Container Registry.
+
+See **[README-Docker.md](README-Docker.md)** for complete Docker installation and usage instructions.
+
+### Manual Installation
+
 Requires **`python3.11`** or above.
 
 Clone the repo from GitHub:
