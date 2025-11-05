@@ -113,6 +113,23 @@ async def backup_database(database_url: str, backup_dir: str = ".") -> None:
 
 
 # -------------------------
+# Database backup scheduler
+# -------------------------
+async def daily_backup_at(hour: int = 2, minute: int = 0, backup_dir: str = "."):
+    while True:
+        now = datetime.datetime.now()
+        next_run = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if next_run <= now:
+            next_run += datetime.timedelta(days=1)
+        delay = (next_run - now).total_seconds()
+        cleanup_logger.info(f"Next backup scheduled at {next_run}")
+        await asyncio.sleep(delay)
+
+        database_url = CONFIG["database"]["connection_string"]
+        await backup_database(database_url, backup_dir)
+
+
+# -------------------------
 # Database cleanup using ORM
 # -------------------------
 async def daily_cleanup_at(
@@ -120,8 +137,7 @@ async def daily_cleanup_at(
     minute: int = 0,
     days_to_keep: int = 14,
     vacuum_db: bool = True,
-    backup_enabled: bool = False,
-    backup_dir: str = "."
+    wait_for_backup: bool = False
 ):
     while True:
         now = datetime.datetime.now()
@@ -132,6 +148,11 @@ async def daily_cleanup_at(
         cleanup_logger.info(f"Next cleanup scheduled at {next_run}")
         await asyncio.sleep(delay)
 
+        # If backup is enabled, wait a bit to let backup complete first
+        if wait_for_backup:
+            cleanup_logger.info("Waiting 60 seconds for backup to complete...")
+            await asyncio.sleep(60)
+
         # Local-time cutoff as string for SQLite DATETIME comparison
         cutoff = (datetime.datetime.now() - datetime.timedelta(days=days_to_keep)).strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -139,11 +160,6 @@ async def daily_cleanup_at(
         cleanup_logger.info(f"Running cleanup for records older than {cutoff}...")
 
         try:
-            # Create backup before cleanup if enabled
-            if backup_enabled:
-                database_url = CONFIG["database"]["connection_string"]
-                await backup_database(database_url, backup_dir)
-
             async with db_lock:  # Pause ingestion
                 cleanup_logger.info("Ingestion paused for cleanup.")
 
@@ -259,14 +275,17 @@ async def main():
     vacuum_db = get_bool(CONFIG, "cleanup", "vacuum", False)
     cleanup_hour = get_int(CONFIG, "cleanup", "hour", 2)
     cleanup_minute = get_int(CONFIG, "cleanup", "minute", 0)
+
     backup_enabled = get_bool(CONFIG, "cleanup", "backup_enabled", False)
     backup_dir = CONFIG.get("cleanup", {}).get("backup_dir", "./backups")
+    backup_hour = get_int(CONFIG, "cleanup", "backup_hour", cleanup_hour)
+    backup_minute = get_int(CONFIG, "cleanup", "backup_minute", cleanup_minute)
 
     logger.info(f"Starting MQTT ingestion from {CONFIG['mqtt']['server']}:{CONFIG['mqtt']['port']}")
     if cleanup_enabled:
-        logger.info(f"Daily cleanup enabled: keeping {cleanup_days} days of data")
-        if backup_enabled:
-            logger.info(f"Database backups enabled: storing in {backup_dir}")
+        logger.info(f"Daily cleanup enabled: keeping {cleanup_days} days of data at {cleanup_hour:02d}:{cleanup_minute:02d}")
+    if backup_enabled:
+        logger.info(f"Daily backups enabled: storing in {backup_dir} at {backup_hour:02d}:{backup_minute:02d}")
 
     async with asyncio.TaskGroup() as tg:
         tg.create_task(
@@ -279,14 +298,17 @@ async def main():
             )
         )
 
+        # Start backup task if enabled
+        if backup_enabled:
+            tg.create_task(daily_backup_at(backup_hour, backup_minute, backup_dir))
+
+        # Start cleanup task if enabled (waits for backup if both run at same time)
         if cleanup_enabled:
-            tg.create_task(
-                daily_cleanup_at(
-                    cleanup_hour, cleanup_minute, cleanup_days, vacuum_db, backup_enabled, backup_dir
-                )
-            )
-        else:
-            cleanup_logger.info("Daily cleanup is disabled by configuration.")
+            wait_for_backup = backup_enabled and (backup_hour == cleanup_hour) and (backup_minute == cleanup_minute)
+            tg.create_task(daily_cleanup_at(cleanup_hour, cleanup_minute, cleanup_days, vacuum_db, wait_for_backup))
+
+        if not cleanup_enabled and not backup_enabled:
+            cleanup_logger.info("Daily cleanup and backups are both disabled by configuration.")
 
 
 # -------------------------
