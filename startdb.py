@@ -9,6 +9,15 @@ from meshview import migrations, models, mqtt_database, mqtt_reader, mqtt_store
 from meshview.config import CONFIG
 
 # -------------------------
+# Basic logging configuration
+# -------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(filename)s:%(lineno)d [pid:%(process)d] %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+# -------------------------
 # Logging for cleanup
 # -------------------------
 cleanup_logger = logging.getLogger("dbcleanup")
@@ -149,16 +158,23 @@ async def main():
     logger.info("Migration status set to 'in progress'")
 
     try:
-        # Run any pending migrations (synchronous operation)
+        # Check if migrations are needed before running them
         logger.info("Checking for pending database migrations...")
-        migrations.run_migrations(database_url)
-        logger.info("Database migrations check complete")
+        if await migrations.is_database_up_to_date(mqtt_database.engine, database_url):
+            logger.info("Database schema is already up to date, skipping migrations")
+        else:
+            logger.info("Database schema needs updating, running migrations...")
+            migrations.run_migrations(database_url)
+            logger.info("Database migrations completed")
 
         # Create tables if needed (for backwards compatibility)
+        logger.info("Creating database tables...")
         await mqtt_database.create_tables()
+        logger.info("Database tables created")
 
     finally:
         # Clear migration in progress flag
+        logger.info("Clearing migration status...")
         await migrations.set_migration_in_progress(mqtt_database.engine, False)
         logger.info("Migration status cleared - database ready")
 
@@ -172,7 +188,10 @@ async def main():
     cleanup_hour = get_int(CONFIG, "cleanup", "hour", 2)
     cleanup_minute = get_int(CONFIG, "cleanup", "minute", 0)
 
-    logger.info("Starting MQTT ingestion and cleanup tasks...")
+    logger.info(f"Starting MQTT ingestion from {CONFIG['mqtt']['server']}:{CONFIG['mqtt']['port']}")
+    if cleanup_enabled:
+        logger.info(f"Daily cleanup enabled: keeping {cleanup_days} days of data")
+
     async with asyncio.TaskGroup() as tg:
         tg.create_task(
             load_database_from_mqtt(

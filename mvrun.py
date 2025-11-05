@@ -63,7 +63,7 @@ def run_script(python_executable, script_name, pid_file, *args):
     process = None
     try:
         # Combine the script name and arguments
-        command = [python_executable, script_name] + list(args)
+        command = [python_executable, '-u', script_name] + list(args)
 
         # Run the subprocess (output goes directly to console for real-time viewing)
         process = subprocess.Popen(command)
