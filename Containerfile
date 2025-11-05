@@ -4,7 +4,7 @@
 
 FROM docker.io/python:3.13-slim AS meshview-build
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl patch && \
+    apt-get install -y --no-install-recommends curl patch graphviz && \
     rm -rf /var/lib/apt/lists/*
 
 # Add a non-root user/group
