@@ -37,6 +37,9 @@ async def process_envelope(topic, env):
                     await session.execute(select(Node).where(Node.node_id == node_id))
                 ).scalar_one_or_none()
 
+                now = datetime.datetime.now(datetime.UTC)
+                now_us = int(now.timestamp() * 1_000_000)
+
                 if node:
                     node.node_id = node_id
                     node.long_name = map_report.long_name
@@ -47,7 +50,10 @@ async def process_envelope(topic, env):
                     node.last_lat = map_report.latitude_i
                     node.last_long = map_report.longitude_i
                     node.firmware = map_report.firmware_version
-                    node.last_update = datetime.datetime.now()
+                    node.last_update = now
+                    node.last_seen_us = now_us
+                    if node.first_seen_us is None:
+                        node.first_seen_us = now_us
                 else:
                     node = Node(
                         id=user_id,
@@ -60,7 +66,9 @@ async def process_envelope(topic, env):
                         firmware=map_report.firmware_version,
                         last_lat=map_report.latitude_i,
                         last_long=map_report.longitude_i,
-                        last_update=datetime.datetime.now(),
+                        last_update=now,
+                        first_seen_us=now_us,
+                        last_seen_us=now_us,
                     )
                     session.add(node)
             except Exception as e:
@@ -159,6 +167,9 @@ async def process_envelope(topic, env):
                         await session.execute(select(Node).where(Node.id == user.id))
                     ).scalar_one_or_none()
 
+                    now = datetime.datetime.now(datetime.UTC)
+                    now_us = int(now.timestamp() * 1_000_000)
+
                     if node:
                         node.node_id = node_id
                         node.long_name = user.long_name
@@ -166,7 +177,10 @@ async def process_envelope(topic, env):
                         node.hw_model = hw_model
                         node.role = role
                         node.channel = env.channel_id
-                        node.last_update = datetime.datetime.now()
+                        node.last_update = now
+                        node.last_seen_us = now_us
+                        if node.first_seen_us is None:
+                            node.first_seen_us = now_us
                     else:
                         node = Node(
                             id=user.id,
@@ -176,7 +190,9 @@ async def process_envelope(topic, env):
                             hw_model=hw_model,
                             role=role,
                             channel=env.channel_id,
-                            last_update=datetime.datetime.now(),
+                            last_update=now,
+                            first_seen_us=now_us,
+                            last_seen_us=now_us,
                         )
                         session.add(node)
             except Exception as e:
@@ -193,8 +209,14 @@ async def process_envelope(topic, env):
                     await session.execute(select(Node).where(Node.node_id == from_node_id))
                 ).scalar_one_or_none()
                 if node:
+                    now = datetime.datetime.now(datetime.UTC)
+                    now_us = int(now.timestamp() * 1_000_000)
                     node.last_lat = position.latitude_i
                     node.last_long = position.longitude_i
+                    node.last_update = now
+                    node.last_seen_us = now_us
+                    if node.first_seen_us is None:
+                        node.first_seen_us = now_us
                     session.add(node)
 
         # --- TRACEROUTE_APP (no conflict handling, normal insert)

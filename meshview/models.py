@@ -23,8 +23,14 @@ class Node(Base):
     last_long: Mapped[int] = mapped_column(BigInteger, nullable=True)
     channel: Mapped[str] = mapped_column(nullable=True)
     last_update: Mapped[datetime] = mapped_column(nullable=True)
+    first_seen_us: Mapped[int] = mapped_column(BigInteger, nullable=True)
+    last_seen_us: Mapped[int] = mapped_column(BigInteger, nullable=True)
 
-    __table_args__ = (Index("idx_node_node_id", "node_id"),)
+    __table_args__ = (
+        Index("idx_node_node_id", "node_id"),
+        Index("idx_node_first_seen_us", "first_seen_us"),
+        Index("idx_node_last_seen_us", "last_seen_us"),
+    )
 
     def to_dict(self):
         return {
