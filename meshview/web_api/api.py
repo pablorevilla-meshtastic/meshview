@@ -44,94 +44,6 @@ async def api_channels(request: web.Request):
         return web.json_response({"channels": [], "error": str(e)})
 
 
-@routes.get("/api/chat")
-async def api_chat(request):
-    try:
-        # Parse query params
-        limit_str = request.query.get("limit", "20")
-        since_str = request.query.get("since")
-
-        # Clamp limit between 1 and 200
-        try:
-            limit = min(max(int(limit_str), 1), 100)
-        except ValueError:
-            limit = 50
-
-        # Parse "since" timestamp if provided
-        since = None
-        if since_str:
-            try:
-                since = datetime.datetime.fromisoformat(since_str)
-            except Exception as e:
-                logger.error(f"Failed to parse since '{since_str}': {e}")
-
-        # Fetch packets from store
-        packets = await store.get_packets(
-            node_id=0xFFFFFFFF,
-            portnum=PortNum.TEXT_MESSAGE_APP,
-            limit=limit,
-        )
-
-        ui_packets = [Packet.from_model(p) for p in packets]
-
-        # Filter out "seq N" and missing payloads
-        filtered_packets = [
-            p for p in ui_packets if p.payload and not SEQ_REGEX.fullmatch(p.payload)
-        ]
-
-        # Apply "since" filter
-        if since:
-            filtered_packets = [p for p in filtered_packets if p.import_time > since]
-
-        # Sort by import_time descending (latest first)
-        filtered_packets.sort(key=lambda p: p.import_time, reverse=True)
-
-        # Trim to requested limit
-        filtered_packets = filtered_packets[:limit]
-
-        # Build response data
-        packets_data = []
-        for p in filtered_packets:
-            reply_id = getattr(
-                getattr(getattr(p, "raw_mesh_packet", None), "decoded", None), "reply_id", None
-            )
-
-            packet_dict = {
-                "id": p.id,
-                "import_time": p.import_time.isoformat(),
-                "channel": getattr(p.from_node, "channel", ""),
-                "from_node_id": p.from_node_id,
-                "long_name": getattr(p.from_node, "long_name", ""),
-                "payload": p.payload,
-            }
-
-            if reply_id:
-                packet_dict["reply_id"] = reply_id
-
-            packets_data.append(packet_dict)
-
-        # Pick latest import time for clients to use in next request
-        if filtered_packets:
-            latest_import_time = filtered_packets[0].import_time.isoformat()
-        elif since:
-            latest_import_time = since.isoformat()
-        else:
-            latest_import_time = None
-
-        return web.json_response(
-            {
-                "packets": packets_data,
-                "latest_import_time": latest_import_time,
-            }
-        )
-
-    except Exception as e:
-        logger.error(f"Error in /api/chat: {e}")
-        return web.json_response(
-            {"error": "Failed to fetch chat data", "details": str(e)}, status=500
-        )
-
-
 @routes.get("/api/nodes")
 async def api_nodes(request):
     try:
@@ -181,42 +93,88 @@ async def api_nodes(request):
 @routes.get("/api/packets")
 async def api_packets(request):
     try:
-        # Query parameters
-        limit = int(request.query.get("limit", 50))
+        # --- Parse query parameters ---
+        limit_str = request.query.get("limit", "50")
         since_str = request.query.get("since")
-        since_time = None
+        portnum = request.query.get("portnum")
 
+        # Clamp limit between 1 and 100
+        try:
+            limit = min(max(int(limit_str), 1), 100)
+        except ValueError:
+            limit = 50
+
+        # Parse "since" timestamp in microseconds
+        since = None
         if since_str:
             try:
-                # Robust ISO 8601 parsing (handles 'Z' for UTC)
-                since_time = datetime.datetime.fromisoformat(since_str.replace("Z", "+00:00"))
-            except Exception as e:
-                logger.error(f"Failed to parse 'since' timestamp '{since_str}': {e}")
+                since = int(since_str)
+            except ValueError:
+                logger.warning(f"Invalid 'since' value (expected microseconds): {since_str}")
 
-        # Fetch packets from the store
-        packets = await store.get_packets(limit=limit, after=since_time)
-        packets = [Packet.from_model(p) for p in packets]
+        # --- Fetch packets from store ---
+        packets = await store.get_packets(
+            node_id=0xFFFFFFFF if portnum else None,
+            portnum=portnum,
+            after=since,
+            limit=limit,
+        )
 
-        packets_json = []
-        for p in packets:
-            payload = (p.payload or "").strip()
+        ui_packets = [Packet.from_model(p) for p in packets]
 
-            packets_json.append(
+        # --- Chat-like filtering (if TEXT_MESSAGE_APP) ---
+        if str(portnum) == str(PortNum.TEXT_MESSAGE_APP):
+            # Filter out empty or "seq N" payloads
+            ui_packets = [
+                p for p in ui_packets if p.payload and not SEQ_REGEX.fullmatch(p.payload)
+            ]
+
+            # Sort newest first
+            ui_packets.sort(key=lambda p: p.import_time_us, reverse=True)
+            ui_packets = ui_packets[:limit]
+
+            packets_data = []
+            for p in ui_packets:
+                reply_id = getattr(
+                    getattr(getattr(p, "raw_mesh_packet", None), "decoded", None),
+                    "reply_id",
+                    None,
+                )
+
+                packet_dict = {
+                    "id": p.id,
+                    "import_time_us": p.import_time_us,
+                    "channel": getattr(p.from_node, "channel", ""),
+                    "from_node_id": p.from_node_id,
+                    "long_name": getattr(p.from_node, "long_name", ""),
+                    "payload": (p.payload or "").strip(),
+                }
+
+                if reply_id:
+                    packet_dict["reply_id"] = reply_id
+
+                packets_data.append(packet_dict)
+
+        # --- General packet listing ---
+        else:
+            packets_data = [
                 {
                     "id": p.id,
                     "from_node_id": p.from_node_id,
                     "to_node_id": p.to_node_id,
                     "portnum": int(p.portnum) if p.portnum is not None else None,
-                    "import_time": p.import_time.isoformat(),
-                    "payload": payload,
+                    "payload": (p.payload or "").strip(),
+                    "import_time_us": p.import_time_us,
                 }
-            )
+                for p in ui_packets
+            ]
 
-        return web.json_response({"packets": packets_json})
+        return web.json_response({"packets": packets_data})
 
     except Exception as e:
         logger.error(f"Error in /api/packets: {e}")
         return web.json_response({"error": "Failed to fetch packets"}, status=500)
+
 
 
 @routes.get("/api/stats")

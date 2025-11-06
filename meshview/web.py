@@ -62,6 +62,7 @@ class Packet:
     payload: str
     pretty_payload: Markup
     import_time: datetime.datetime
+    import_time_us: int
 
     @classmethod
     def from_model(cls, packet):
@@ -81,14 +82,16 @@ class Packet:
             text_payload = text_format.MessageToString(payload)
         elif packet.portnum == PortNum.TEXT_MESSAGE_APP and packet.to_node_id != 0xFFFFFFFF:
             text_payload = "<redacted>"
+        elif isinstance(payload, bytes):
+            text_payload = payload.decode("utf-8", errors="replace")  # decode bytes safely
         else:
-            text_payload = payload
+            text_payload = str(payload)
 
         if payload:
             if (
                 packet.portnum == PortNum.POSITION_APP
-                and payload.latitude_i
-                and payload.longitude_i
+                and getattr(payload, "latitude_i", None)
+                and getattr(payload, "longitude_i", None)
             ):
                 pretty_payload = Markup(
                     f'<a href="https://www.google.com/maps/search/?api=1&query={payload.latitude_i * 1e-7},{payload.longitude_i * 1e-7}" target="_blank">map</a>'
@@ -102,9 +105,10 @@ class Packet:
             to_node_id=packet.to_node_id,
             portnum=packet.portnum,
             data=text_mesh_packet,
-            payload=text_payload,
+            payload=text_payload,  # now always a string
             pretty_payload=pretty_payload,
             import_time=packet.import_time,
+            import_time_us=packet.import_time_us,  # <-- include microseconds
             raw_mesh_packet=mesh_packet,
             raw_payload=payload,
         )

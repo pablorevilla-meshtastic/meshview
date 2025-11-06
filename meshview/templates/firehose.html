@@ -92,6 +92,7 @@
     <table class="packet-table">
         <thead>
             <tr>
+                <th>Time</th>
                 <th>Packet ID</th>
                 <th>From</th>
                 <th>To</th>
@@ -104,7 +105,7 @@
 </div>
 
 <script>
-let lastImportTime = null;
+let lastImportTimeUs = null;
 let updatesPaused = false;
 let nodeMap = {};
 let updateInterval = 3000;
@@ -170,6 +171,13 @@ function portLabel(portnum, payload) {
             <span class="text-secondary">(${portnum})</span>`;
 }
 
+// --- Convert import_time_us to local time string ---
+function formatLocalTime(importTimeUs) {
+    const ms = importTimeUs / 1000;
+    const date = new Date(ms);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
 // --- Fetch firehose interval from shared site config ---
 async function configureFirehose() {
     try {
@@ -188,7 +196,7 @@ async function configureFirehose() {
 async function fetchUpdates() {
     if (updatesPaused) return;
     const url = new URL("/api/packets", window.location.origin);
-    if (lastImportTime) url.searchParams.set("since", lastImportTime);
+    if (lastImportTimeUs) url.searchParams.set("since", lastImportTimeUs);
     url.searchParams.set("limit", 50);
 
     try {
@@ -231,8 +239,11 @@ async function fetchUpdates() {
             }
 
             const safePayload = (pkt.payload || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const localTime = formatLocalTime(pkt.import_time_us);
+
             const html = `
 <tr class="packet-row" data-id="${pkt.id}">
+    <td>${localTime}</td>
     <td><span class="toggle-btn">▶</span> <a href="/packet/${pkt.id}" style="text-decoration:underline; color:inherit;">${pkt.id}</a></td>
     <td>${from}</td>
     <td>${to}</td>
@@ -240,13 +251,13 @@ async function fetchUpdates() {
     <td>${links}</td>
 </tr>
 <tr class="payload-row">
-    <td colspan="5" class="payload-cell">${safePayload}</td>
+    <td colspan="6" class="payload-cell">${safePayload}</td>
 </tr>`;
             list.insertAdjacentHTML("afterbegin", html);
         }
 
         while (list.rows.length > 400) list.deleteRow(-1);
-        lastImportTime = packets[packets.length - 1].import_time;
+        lastImportTimeUs = packets[packets.length - 1].import_time_us;
 
     } catch (err) {
         console.error("Packet fetch failed:", err);

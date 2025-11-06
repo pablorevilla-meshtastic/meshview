@@ -33,11 +33,11 @@ async def get_packets(node_id=None, portnum=None, after=None, before=None, limit
         if portnum:
             q = q.where(Packet.portnum == portnum)
         if after:
-            q = q.where(Packet.import_time > after)
+            q = q.where(Packet.import_time_us > after)
         if before:
-            q = q.where(Packet.import_time < before)
+            q = q.where(Packet.import_time_us < before)
 
-        q = q.order_by(Packet.import_time.desc())
+        q = q.order_by(Packet.import_time_us.desc())
 
         if limit is not None:
             q = q.limit(limit)

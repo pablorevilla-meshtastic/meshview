@@ -1,17 +1,55 @@
 {% extends "base.html" %}
 
 {% block css %}
-.timestamp { min-width: 10em; }
+.timestamp {
+    min-width: 10em;
+    color: #ccc;
+}
+
 .chat-packet:nth-of-type(odd) { background-color: #3a3a3a; }
-.chat-packet { border-bottom: 1px solid #555; padding: 8px; border-radius: 8px; }
+.chat-packet {
+    border-bottom: 1px solid #555;
+    padding: 3px 6px;      /* slightly more horizontal breathing room */
+    border-radius: 6px;
+    margin: 0;
+}
+
+/* Wider spacing between Bootstrap-style columns */
+.chat-packet > [class^="col-"] {
+    padding-left: 10px !important;   /* wider horizontal */
+    padding-right: 10px !important;  /* wider horizontal */
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+}
+
 .chat-packet:nth-of-type(even) { background-color: #333333; }
 
-@keyframes flash { 0% { background-color: #ffe066; } 100% { background-color: inherit; } }
+/* Make the channel italic and slightly lighter */
+.channel {
+    font-style: italic;
+    color: #bbb;
+}
+.channel a {
+    font-style: normal;
+    color: #999;
+}
+
+@keyframes flash {
+    0% { background-color: #ffe066; }
+    100% { background-color: inherit; }
+}
 .chat-packet.flash { animation: flash 3.5s ease-out; }
 
-.replying-to { font-size: 0.85em; color: #aaa; margin-top: 4px; padding-left: 20px; }
+.replying-to {
+    font-size: 0.8em;
+    color: #aaa;
+    margin-top: 2px;
+    padding-left: 10px;
+}
 .replying-to .reply-preview { color: #aaa; }
 {% endblock %}
+
+
 
 {% block body %}
 <div id="chat-container">
@@ -50,7 +88,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderedPacketIds.add(packet.id);
         packetMap.set(packet.id, packet);
 
-        const date = new Date(packet.import_time);
+        // Convert microseconds to JS Date
+        const date = new Date(packet.import_time_us / 1000);
         const formattedTime = date.toLocaleTimeString([], { hour:"numeric", minute:"2-digit", second:"2-digit", hour12:true });
         const formattedDate = `${(date.getMonth()+1).toString().padStart(2,"0")}/${date.getDate().toString().padStart(2,"0")}/${date.getFullYear()}`;
         const formattedTimestamp = `${formattedTime} - ${formattedDate}`;
@@ -78,7 +117,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         div.className = "row chat-packet" + (highlight ? " flash" : "");
         div.dataset.packetId = packet.id;
         div.innerHTML = `
-            <span class="col-2 timestamp" title="${packet.import_time}">${formattedTimestamp}</span>
+            <span class="col-2 timestamp" title="${packet.import_time_us}">${formattedTimestamp}</span>
             <span class="col-2 channel">
                 <a href="/packet/${packet.id}" data-translate-lang-title="view_packet_details">✉️</a>
                 ${escapeHtml(packet.channel || "")}
@@ -98,13 +137,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function renderPacketsEnsureDescending(packets, highlight=false) {
         if (!Array.isArray(packets) || packets.length===0) return;
-        const sortedDesc = packets.slice().sort((a,b)=>new Date(b.import_time)-new Date(a.import_time));
+        const sortedDesc = packets.slice().sort((a,b)=>b.import_time_us - a.import_time_us);
         for (let i=sortedDesc.length-1; i>=0; i--) renderPacket(sortedDesc[i], highlight);
     }
 
     async function fetchInitial() {
         try {
-            const resp = await fetch("/api/chat?limit=100");
+            const resp = await fetch("/api/packets?portnum=1&limit=100");
             const data = await resp.json();
             if (data?.packets?.length) renderPacketsEnsureDescending(data.packets);
             lastTime = data?.latest_import_time || lastTime;
@@ -113,7 +152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function fetchUpdates() {
         try {
-            const url = new URL("/api/chat", window.location.origin);
+            const url = new URL("/api/packets?portnum=1", window.location.origin);
             url.searchParams.set("limit","100");
             if (lastTime) url.searchParams.set("since", lastTime);
             const resp = await fetch(url);
@@ -138,4 +177,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     setInterval(fetchUpdates, 5000);
 });
 </script>
+
 {% endblock %}
