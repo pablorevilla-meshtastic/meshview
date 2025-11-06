@@ -210,6 +210,43 @@ async def index(request):
     starting_url = CONFIG["site"].get("starting", "/map")  # default to /map if not set
     raise web.HTTPFound(location=starting_url)
 
+@routes.get("/net")
+async def net(request):
+    return web.Response(
+        text=env.get_template("net.html").render(),
+        content_type="text/html",
+    )
+
+@routes.get("/map")
+async def map(request):
+    template = env.get_template("map.html")
+    return web.Response(
+        text=template.render(),
+        content_type="text/html"
+    )
+
+@routes.get("/nodelist")
+async def nodelist(request):
+        template = env.get_template("nodelist.html")
+        return web.Response(
+            text=template.render(),
+            content_type="text/html",
+        )
+
+@routes.get("/firehose")
+async def firehose(request):
+    return web.Response(
+        text=env.get_template("firehose.html").render(),
+        content_type="text/html",
+    )
+
+@routes.get("/chat")
+async def chat(request):
+        template = env.get_template("chat.html")
+        return web.Response(
+            text=template.render(),
+            content_type="text/html",
+        )
 
 def generate_response(request, body, raw_node_id="", node=None):
     if "HX-Request" in request.headers:
@@ -430,14 +467,6 @@ async def packet_details(request):
             site_config=CONFIG,
             SOFTWARE_RELEASE=SOFTWARE_RELEASE,
         ),
-        content_type="text/html",
-    )
-
-
-@routes.get("/firehose")
-async def packet_details_firehose(request):
-    return web.Response(
-        text=env.get_template("firehose.html").render(),
         content_type="text/html",
     )
 
@@ -1069,75 +1098,6 @@ async def graph_network(request):
     )
 
 
-@routes.get("/nodelist")
-async def nodelist(request):
-    try:
-        template = env.get_template("nodelist.html")
-        return web.Response(
-            text=template.render(site_config=CONFIG, SOFTWARE_RELEASE=SOFTWARE_RELEASE),
-            content_type="text/html",
-        )
-    except Exception:
-        template = env.get_template("error.html")
-        rendered = template.render(
-            error_message="An error occurred while loading the node list page.",
-            error_details=traceback.format_exc(),
-            site_config=CONFIG,
-            SOFTWARE_RELEASE=SOFTWARE_RELEASE,
-        )
-        return web.Response(text=rendered, status=500, content_type="text/html")
-
-
-@routes.get("/net")
-async def net(request):
-    try:
-        # Fetch packets for the given node ID and port number
-        after_time = datetime.datetime.now() - timedelta(days=6)
-        packets = await store.get_packets(portnum=PortNum.TEXT_MESSAGE_APP, after=after_time)
-
-        # Convert packets to UI packets
-        ui_packets = [Packet.from_model(p) for p in packets]
-        # Precompile regex for performance
-        seq_pattern = re.compile(r"seq \d+$")
-
-        # Filter packets: exclude "seq \d+$" but include those containing Tag
-        filtered_packets = [
-            p
-            for p in ui_packets
-            if not seq_pattern.match(p.payload)
-            and (CONFIG["site"]["net_tag"]).lower() in p.payload.lower()
-        ]
-
-        # Render template
-        template = env.get_template("net.html")
-        return web.Response(
-            text=template.render(
-                packets=filtered_packets, site_config=CONFIG, SOFTWARE_RELEASE=SOFTWARE_RELEASE
-            ),
-            content_type="text/html",
-        )
-
-    except web.HTTPException:
-        raise  # Let aiohttp handle HTTP exceptions properly
-
-    except Exception as e:
-        logger.error(f"Error processing net request: {e}")
-        template = env.get_template("error.html")
-        rendered = template.render(
-            error_message="An internal server error occurred.",
-            error_details=traceback.format_exc(),
-            site_config=CONFIG,
-            SOFTWARE_RELEASE=SOFTWARE_RELEASE,
-        )
-        return web.Response(text=rendered, status=500, content_type="text/html")
-
-
-@routes.get("/map")
-async def map(request):
-    template = env.get_template("map.html")
-    return web.Response(text=template.render(), content_type="text/html")
-
-
 @routes.get("/stats")
 async def stats(request):
     try:
@@ -1236,24 +1196,6 @@ async def top(request):
             error_details=traceback.format_exc(),
             site_config=CONFIG,
             SOFTWARE_RELEASE=SOFTWARE_RELEASE,
-        )
-        return web.Response(text=rendered, status=500, content_type="text/html")
-
-
-@routes.get("/chat")
-async def chat(request):
-    try:
-        template = env.get_template("chat.html")
-        return web.Response(
-            text=template.render(),
-            content_type="text/html",
-        )
-    except Exception as e:
-        logger.error(f"Error in /chat: {e}")
-        template = env.get_template("error.html")
-        rendered = template.render(
-            error_message="An error occurred while processing your request.",
-            error_details=traceback.format_exc(),
         )
         return web.Response(text=rendered, status=500, content_type="text/html")
 

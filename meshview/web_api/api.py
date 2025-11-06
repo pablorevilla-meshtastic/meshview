@@ -97,6 +97,7 @@ async def api_packets(request):
         limit_str = request.query.get("limit", "50")
         since_str = request.query.get("since")
         portnum = request.query.get("portnum")
+        contains = request.query.get("contains")  # <-- new query parameter
 
         # Clamp limit between 1 and 100
         try:
@@ -126,10 +127,17 @@ async def api_packets(request):
         if str(portnum) == str(PortNum.TEXT_MESSAGE_APP):
             # Filter out empty or "seq N" payloads
             ui_packets = [
-                p for p in ui_packets if p.payload and not SEQ_REGEX.fullmatch(p.payload)
+                p for p in ui_packets
+                if p.payload and not SEQ_REGEX.fullmatch(p.payload)
             ]
 
-            # Sort newest first
+            # Apply "contains" filter if provided
+            if contains:
+                ui_packets = [
+                    p for p in ui_packets if contains.lower() in p.payload.lower()
+                ]
+
+            # Sort newest first and limit
             ui_packets.sort(key=lambda p: p.import_time_us, reverse=True)
             ui_packets = ui_packets[:limit]
 
