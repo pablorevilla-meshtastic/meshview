@@ -4,7 +4,7 @@
 
 FROM docker.io/python:3.13-slim AS meshview-build
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl patch graphviz && \
+    apt-get install -y --no-install-recommends curl patch && \
     rm -rf /var/lib/apt/lists/*
 
 # Add a non-root user/group
@@ -34,18 +34,45 @@ RUN uv pip install --no-cache-dir --upgrade pip \
 # Copy app code
 COPY --chown=${APP_USER}:${APP_USER} . .
 
-# Created working directories with correct ownership/permissions
-RUN mkdir -p /etc/meshview /var/lib/meshview /var/log/meshview \
- && chown -R ${APP_USER}:${APP_USER} /etc/meshview /var/lib/meshview /var/log/meshview
+# Patch config
+RUN patch sample.config.ini < container/config.patch
 
-RUN patch sample.config.ini  < container/config.patch
-RUN cp sample.config.ini /etc/meshview/config.ini
-RUN chown ${APP_USER}:${APP_USER} /etc/meshview/config.ini
+# Clean
+RUN rm -rf /app/.git* && \
+  rm -rf /app/.pre-commit-config.yaml && \
+  rm -rf /app/*.md && \
+  rm -rf /app/COPYING && \
+  rm -rf /app/Containerfile && \
+  rm -rf /app/Dockerfile && \
+  rm -rf /app/container && \
+  rm -rf /app/docker && \
+  rm -rf /app/docs && \
+  rm -rf /app/pyproject.toml && \
+  rm -rf /app/requirements.txt && \
+  rm -rf /app/screenshots
+
+# Prepare /app and /opt to copy
+RUN mkdir -p /meshview && \
+  mv /app /opt /meshview
+
+# Use a clean container for install
+FROM docker.io/python:3.13-slim
+ARG APP_USER=app
+COPY --from=meshview-build /meshview /
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends graphviz && \
+  rm -rf /var/lib/apt/lists/* && \
+  useradd -m -u 10001 -s /bin/bash ${APP_USER} && \
+  mkdir -p /etc/meshview /var/lib/meshview /var/log/meshview && \
+  mv /app/sample.config.ini /etc/meshview/config.ini && \
+  chown -R ${APP_USER}:${APP_USER} /var/lib/meshview /var/log/meshview
 
 # Drop privileges
 USER ${APP_USER}
 
-ENTRYPOINT [ "uv", "run", "--active", "mvrun.py"]
+WORKDIR /app
+
+ENTRYPOINT [ "/opt/venv/bin/python", "mvrun.py"]
 CMD ["--pid_dir", "/tmp", "--py_exec", "/opt/venv/bin/python", "--config", "/etc/meshview/config.ini" ]
 
 EXPOSE 8081
