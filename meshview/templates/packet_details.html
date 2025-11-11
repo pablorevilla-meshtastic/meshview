@@ -20,6 +20,8 @@
                 <dd>{{seen.hop_limit}}</dd>
                 <dt>hop_start</dt>
                 <dd>{{seen.hop_start}}</dd>
+                <dt>relay_node</dt>
+                <dd>{{seen.relay_node|node_id_to_hex if seen.relay_node else 'N/A'}}</dd>
                 <dt>channel</dt>
                 <dd>{{seen.channel}}</dd>
                 <dt>rx_snr</dt>
