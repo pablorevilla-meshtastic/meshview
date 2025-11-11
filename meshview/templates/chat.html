@@ -16,15 +16,14 @@
 
 /* Wider spacing between Bootstrap-style columns */
 .chat-packet > [class^="col-"] {
-    padding-left: 10px !important;   /* wider horizontal */
-    padding-right: 10px !important;  /* wider horizontal */
+    padding-left: 10px !important;
+    padding-right: 10px !important;
     padding-top: 1px !important;
     padding-bottom: 1px !important;
 }
 
 .chat-packet:nth-of-type(even) { background-color: #333333; }
 
-/* Make the channel italic and slightly lighter */
 .channel {
     font-style: italic;
     color: #bbb;
@@ -49,8 +48,6 @@
 .replying-to .reply-preview { color: #aaa; }
 {% endblock %}
 
-
-
 {% block body %}
 <div id="chat-container">
     <div class="container" id="chat-log"></div>
@@ -64,7 +61,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     let lastTime = null;
     const renderedPacketIds = new Set();
     const packetMap = new Map();
-    let chatTranslations = {};
+    let chatLang = {};
+
+    // --- Reuse translation helper from base ---
+    function applyTranslations(dict, root = document) {
+        root.querySelectorAll("[data-translate]").forEach(el => {
+            const key = el.dataset.translate;
+            const val = dict[key];
+            if (!val) return;
+            if (el.placeholder) el.placeholder = val;
+            else if (el.tagName === "INPUT" && el.value) el.value = val;
+            else if (key === "footer") el.innerHTML = val;
+            else el.textContent = val;
+        });
+    }
 
     function escapeHtml(text) {
         const div = document.createElement("div");
@@ -72,23 +82,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         return div.innerHTML;
     }
 
-    function applyTranslations(translations, root=document) {
-        root.querySelectorAll("[data-translate-lang]").forEach(el => {
-            const key = el.dataset.translateLang;
-            if (translations[key]) el.textContent = translations[key];
-        });
-        root.querySelectorAll("[data-translate-lang-title]").forEach(el => {
-            const key = el.dataset.translateLangTitle;
-            if (translations[key]) el.title = translations[key];
-        });
-    }
-
     function renderPacket(packet, highlight = false) {
         if (renderedPacketIds.has(packet.id)) return;
         renderedPacketIds.add(packet.id);
         packetMap.set(packet.id, packet);
 
-        // Convert microseconds to JS Date
         const date = new Date(packet.import_time_us / 1000);
         const formattedTime = date.toLocaleTimeString([], { hour:"numeric", minute:"2-digit", second:"2-digit", hour12:true });
         const formattedDate = `${(date.getMonth()+1).toString().padStart(2,"0")}/${date.getDate().toString().padStart(2,"0")}/${date.getFullYear()}`;
@@ -97,19 +95,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         let replyHtml = "";
         if (packet.reply_id) {
             const parent = packetMap.get(packet.reply_id);
+            const replyPrefix = `<i data-translate="replying_to"></i>`;
             if (parent) {
-                replyHtml = `<div class="replying-to">
-                    <div class="reply-preview">
-                        <i data-translate-lang="replying_to"></i>
+                replyHtml = `
+                    <div class="replying-to">
+                        ${replyPrefix}
                         <strong>${escapeHtml((parent.long_name || "").trim() || `Node ${parent.from_node_id}`)}</strong>:
                         ${escapeHtml(parent.payload || "")}
-                    </div>
-                </div>`;
+                    </div>`;
             } else {
-                replyHtml = `<div class="replying-to">
-                    <i data-translate-lang="replying_to"></i>
-                    <a href="/packet/${packet.reply_id}">${packet.reply_id}</a>
-                </div>`;
+                replyHtml = `
+                    <div class="replying-to">
+                        ${replyPrefix}
+                        <a href="/packet/${packet.reply_id}">${packet.reply_id}</a>
+                    </div>`;
             }
         }
 
@@ -119,7 +118,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         div.innerHTML = `
             <span class="col-2 timestamp" title="${packet.import_time_us}">${formattedTimestamp}</span>
             <span class="col-2 channel">
-                <a href="/packet/${packet.id}" data-translate-lang-title="view_packet_details">✉️</a>
+                <a href="/packet/${packet.id}" title="${chatLang.view_packet_details || 'View details'}">✉️</a>
                 ${escapeHtml(packet.channel || "")}
             </span>
             <span class="col-3 nodename">
@@ -130,7 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             <span class="col-5 message">${escapeHtml(packet.payload)}${replyHtml}</span>
         `;
         chatContainer.prepend(div);
-        applyTranslations(chatTranslations, div);
+        applyTranslations(chatLang, div);
 
         if (highlight) setTimeout(() => div.classList.remove("flash"), 2500);
     }
@@ -162,20 +161,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         } catch(err){ console.error("Fetch updates error:", err); }
     }
 
-    async function loadTranslations() {
+    async function loadChatLang() {
         try {
             const cfg = await window._siteConfigPromise;
             const langCode = cfg?.site?.language || "en";
             const res = await fetch(`/api/lang?lang=${langCode}&section=chat`);
-            chatTranslations = await res.json();
-            applyTranslations(chatTranslations, document);
+            chatLang = await res.json();
+            applyTranslations(chatLang);
         } catch(err){ console.error("Chat translation load failed:", err); }
     }
 
-    await loadTranslations();
-    await fetchInitial();
+    // --- Main init ---
+    await Promise.all([loadChatLang(), fetchInitial()]);
     setInterval(fetchUpdates, 5000);
 });
 </script>
-
 {% endblock %}

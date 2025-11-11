@@ -38,8 +38,6 @@
     font-weight: 500;
     color: #fff;
 }
-
-/* --- Color-coded port labels --- */
 .port-0  { background-color: #6c757d; }
 .port-1  { background-color: #007bff; }
 .port-3  { background-color: #28a745; }
@@ -51,16 +49,9 @@
 .port-70 { background-color: #6f42c1; }
 .port-71 { background-color: #fd7e14; }
 
-.to-mqtt {
-    font-style: italic;
-    color: #aaa;
-}
+.to-mqtt { font-style: italic; color: #aaa; }
 
-/* --- Payload rows --- */
-.payload-row {
-    display: none;
-    background-color: #1b1e22;
-}
+.payload-row { display: none; background-color: #1b1e22; }
 .payload-cell {
     padding: 8px 12px;
     font-family: monospace;
@@ -68,36 +59,33 @@
     color: #b0bec5;
     border-top: none;
 }
-.packet-table tr.expanded + .payload-row {
-    display: table-row;
-}
+.packet-table tr.expanded + .payload-row { display: table-row; }
+
 .toggle-btn {
     cursor: pointer;
     color: #aaa;
     margin-right: 6px;
     font-weight: bold;
 }
-.toggle-btn:hover {
-    color: #fff;
-}
+.toggle-btn:hover { color: #fff; }
 {% endblock %}
 
 {% block body %}
 <div class="container">
     <form class="d-flex align-items-center justify-content-between mb-3">
-        <h5 class="mb-0">📡 Live Feed</h5>
-        <button type="button" id="pause-button" class="btn btn-sm btn-outline-secondary">Pause</button>
+        <h5 class="mb-0" data-translate-lang="live_feed">📡 Live Feed</h5>
+        <button type="button" id="pause-button" class="btn btn-sm btn-outline-secondary" data-translate-lang="pause">Pause</button>
     </form>
 
     <table class="packet-table">
         <thead>
             <tr>
-                <th>Time</th>
-                <th>Packet ID</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Port</th>
-                <th>Links</th>
+                <th data-translate-lang="time">Time</th>
+                <th data-translate-lang="packet_id">Packet ID</th>
+                <th data-translate-lang="from">From</th>
+                <th data-translate-lang="to">To</th>
+                <th data-translate-lang="port">Port</th>
+                <th data-translate-lang="links">Links</th>
             </tr>
         </thead>
         <tbody id="packet_list"></tbody>
@@ -109,6 +97,27 @@ let lastImportTimeUs = null;
 let updatesPaused = false;
 let nodeMap = {};
 let updateInterval = 3000;
+let firehoseTranslations = {};
+
+function applyTranslations(translations, root=document) {
+    root.querySelectorAll("[data-translate-lang]").forEach(el => {
+        const key = el.dataset.translateLang;
+        if (translations[key]) el.textContent = translations[key];
+    });
+}
+
+// --- Load translations for firehose section ---
+async function loadTranslations() {
+    try {
+        const cfg = await window._siteConfigPromise;
+        const langCode = cfg?.site?.language || "en";
+        const res = await fetch(`/api/lang?lang=${langCode}&section=firehose`);
+        firehoseTranslations = await res.json();
+        applyTranslations(firehoseTranslations, document);
+    } catch (err) {
+        console.error("Firehose translation load failed:", err);
+    }
+}
 
 const PORT_MAP = {
     0: "UNKNOWN APP",
@@ -171,28 +180,23 @@ function portLabel(portnum, payload) {
             <span class="text-secondary">(${portnum})</span>`;
 }
 
-// --- Convert import_time_us to local time string ---
 function formatLocalTime(importTimeUs) {
     const ms = importTimeUs / 1000;
     const date = new Date(ms);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-// --- Fetch firehose interval from shared site config ---
 async function configureFirehose() {
     try {
         const cfg = await window._siteConfigPromise;
         const intervalSec = cfg?.site?.firehose_interval;
-        if (intervalSec && !isNaN(intervalSec)) {
-            updateInterval = parseInt(intervalSec) * 1000;
-        }
+        if (intervalSec && !isNaN(intervalSec)) updateInterval = parseInt(intervalSec) * 1000;
         console.log("Firehose update interval:", updateInterval, "ms");
     } catch (err) {
         console.warn("Failed to read firehose interval:", err);
     }
 }
 
-// --- Fetch and render packets ---
 async function fetchUpdates() {
     if (updatesPaused) return;
     const url = new URL("/api/packets", window.location.origin);
@@ -269,7 +273,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const pauseBtn = document.getElementById("pause-button");
     pauseBtn.addEventListener("click", () => {
         updatesPaused = !updatesPaused;
-        pauseBtn.textContent = updatesPaused ? "Resume" : "Pause";
+        pauseBtn.textContent = updatesPaused
+            ? (firehoseTranslations.resume || "Resume")
+            : (firehoseTranslations.pause || "Pause");
     });
 
     document.addEventListener("click", (e) => {
@@ -280,11 +286,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         btn.textContent = row.classList.contains("expanded") ? "▼" : "▶";
     });
 
+    await loadTranslations();
     await configureFirehose();
     await loadNodes();
     fetchUpdates();
     setInterval(fetchUpdates, updateInterval);
 });
 </script>
-
 {% endblock %}

@@ -352,24 +352,37 @@ document.getElementById("channelSelect").addEventListener("change", async (e)=>{
 
 init();
 
-// --- Translation Loader ---
-async function loadTranslations() {
-    const langCode = "{{ site_config.get('site', {}).get('language','en') }}";
+// --- Load config and translations ---
+async function loadConfigAndTranslations() {
+    let langCode = "en";
     try {
-        const res = await fetch(`/api/lang?lang=${langCode}&section=stats`);
-        window.statsTranslations = await res.json();
-    } catch(err){
+        const resConfig = await fetch("/api/config");
+        const cfg = await resConfig.json();
+        window.site_config = cfg;
+        langCode = cfg?.site?.language || "en";
+    } catch(err) {
+        console.error("Failed to load /api/config:", err);
+        window.site_config = { site: { language: "en" } };
+    }
+
+    try {
+        const resLang = await fetch(`/api/lang?lang=${langCode}&section=stats`);
+        window.statsTranslations = await resLang.json();
+    } catch(err) {
         console.error("Stats translation load failed:", err);
         window.statsTranslations = {};
     }
-}
-function applyTranslations() {
+
+    // Apply translations
     const t = window.statsTranslations || {};
     document.querySelectorAll("[data-translate-lang]").forEach(el=>{
         const key = el.getAttribute("data-translate-lang");
         if(t[key]) el.textContent = t[key];
     });
 }
-loadTranslations().then(applyTranslations);
+
+// Call after init
+loadConfigAndTranslations();
+
 </script>
 {% endblock %}

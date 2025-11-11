@@ -8,8 +8,6 @@ import ssl
 import traceback
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from datetime import timedelta
-
 import pydot
 from aiohttp import web
 from google.protobuf import text_format
@@ -17,7 +15,6 @@ from google.protobuf.message import Message
 from jinja2 import Environment, PackageLoader, Undefined, select_autoescape
 from markupsafe import Markup
 from pandas import DataFrame
-
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import config, database, decode_payload, migrations, models, store
 from meshview.__version__ import (
@@ -1110,8 +1107,6 @@ async def stats(request):
                 total_packets=total_packets,
                 total_nodes=total_nodes,
                 total_packets_seen=total_packets_seen,
-                site_config=CONFIG,
-                SOFTWARE_RELEASE=SOFTWARE_RELEASE,
             ),
             content_type="text/html",
         )
@@ -1278,15 +1273,6 @@ async def nodegraph(request):
         ),
         content_type="text/html",
     )
-
-
-# API Section
-#######################################################################
-# How this works
-# When your frontend calls /api/chat without since, it returns the most recent limit (default 100) messages.
-# When your frontend calls /api/chat?since=ISO_TIMESTAMP, it returns only messages with import_time > since.
-# The response includes "latest_import_time" for frontend to keep track of the newest message timestamp.
-# The backend fetches extra packets (limit*5) to account for filtering messages like "seq N" and since filtering.
 
 
 # Generic static HTML route

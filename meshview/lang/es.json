@@ -108,5 +108,35 @@
     "other": "Otro",
     "unknown": "Desconocido",
     "node_not_found": "¡Nodo no encontrado en el canal actual!"
-  }
+  },
+  "firehose":
+    {
+      "live_feed": "📡 Flujo en Vivo",
+      "pause": "Pausar",
+      "resume": "Continuar",
+      "time": "Hora",
+      "packet_id": "ID del Paquete",
+      "from": "De",
+      "to": "Para",
+      "port": "Puerto",
+      "links": "Enlaces",
+
+      "unknown_app": "APLICACIÓN DESCONOCIDA",
+      "text_message": "Mensaje de Texto",
+      "position": "Posición",
+      "node_info": "Información del Nodo",
+      "routing": "Enrutamiento",
+      "administration": "Administración",
+      "waypoint": "Punto de Ruta",
+      "store_forward": "Almacenar y Reenviar",
+      "telemetry": "Telemetría",
+      "trace_route": "Rastreo de Ruta",
+      "neighbor_info": "Información de Vecinos",
+
+      "direct_to_mqtt": "Directo a MQTT",
+      "all": "Todos",
+      "map": "Mapa",
+      "graph": "Gráfico"
+    }
+
 }
