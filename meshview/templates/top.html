@@ -230,7 +230,7 @@ function sortTable(n) {
     const isNumeric = !isNaN(rows[0].cells[n].innerText.replace('%',''));
     let sortedRows = rows.sort((a,b)=>{
         const valA = isNumeric ? parseFloat(a.cells[n].innerText.replace('%','')) : a.cells[n].innerText.toLowerCase();
-        const valB = isNumeric ? parseFloat(b.cells[n].cells[n].innerText.replace('%','')) : b.cells[n].innerText.toLowerCase();
+        const valB = isNumeric ? parseFloat(b.cells[n].innerText.replace('%','')) : b.cells[n].innerText.toLowerCase();
         return valA > valB ? 1 : -1;
     });
     if(header.getAttribute('data-sort-direction')==='asc'){ sortedRows.reverse(); header.setAttribute('data-sort-direction','desc'); }
