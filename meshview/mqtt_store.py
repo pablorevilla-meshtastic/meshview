@@ -121,6 +121,7 @@ async def process_envelope(topic, env):
                 rx_rssi=env.packet.rx_rssi,
                 hop_limit=env.packet.hop_limit,
                 hop_start=env.packet.hop_start,
+                relay_node=env.packet.relay_node if env.packet.relay_node else None,
                 topic=topic,
                 import_time=datetime.datetime.now(),
             )
