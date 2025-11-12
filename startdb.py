@@ -169,4 +169,15 @@ async def main():
 # Entry point
 # -------------------------
 if __name__ == '__main__':
+    # On Windows, some asyncio operations (add_reader/add_writer) are not
+    # implemented on the default ProactorEventLoop; switch to the
+    # SelectorEventLoopPolicy which supports these functions.
+    try:
+        import sys
+        if sys.platform.startswith('win'):
+            import asyncio as _asyncio
+            _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
+    except Exception:
+        pass
+
     asyncio.run(main())

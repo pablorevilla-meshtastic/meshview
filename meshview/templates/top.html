@@ -157,16 +157,19 @@ const stdEl = document.getElementById('stdDev');
 const channelSet = new Set();
 nodes.forEach(n => channelSet.add(n.channel));
 const dropdown = document.getElementById('channelFilter');
+// default channel from site config (fallback to LongFast)
+const defaultChannel = "{{ site_config.get('site', {}).get('default_channel', 'LongFast') }}";
+
 [...channelSet].sort().forEach(channel => {
     const option = document.createElement('option');
     option.value = channel;
     option.textContent = channel;
-    if (channel === "LongFast") option.selected = true;
+    if (channel === defaultChannel) option.selected = true;
     dropdown.appendChild(option);
 });
 
 // Filter default
-filteredNodes = nodes.filter(n => n.channel === "LongFast");
+filteredNodes = nodes.filter(n => n.channel === defaultChannel);
 dropdown.addEventListener('change', () => {
     const val = dropdown.value;
     filteredNodes = nodes.filter(n => n.channel === val);

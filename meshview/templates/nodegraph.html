@@ -204,16 +204,24 @@ const edges = [
 
 let filteredNodes = [];
 let filteredEdges = [];
-let selectedChannel = 'LongFast';
+// Default channel comes from site configuration; fallback to LongFast
+const defaultChannel = "{{ site_config.get('site', {}).get('default_channel', 'LongFast') }}";
+let selectedChannel = defaultChannel;
 let lastSelectedNode = null;
 
 function populateChannelDropdown() {
     const sel = document.getElementById('channel-select');
+    // Use server-provided channels if available, otherwise derive from node list
+{% if channels is defined %}
+    const serverChannels = {{ channels | tojson | safe }};
+    const unique = serverChannels && serverChannels.length ? serverChannels : [...new Set(nodes.map(n=>n.channel).filter(Boolean))].sort();
+{% else %}
     const unique = [...new Set(nodes.map(n=>n.channel).filter(Boolean))].sort();
+{% endif %}
     unique.forEach(ch=>{
         const opt = document.createElement('option');
         opt.value=ch; opt.text=ch;
-        if(ch==='LongFast') opt.selected=true;
+        if(ch===defaultChannel) opt.selected=true;
         sel.appendChild(opt);
     });
     selectedChannel = sel.value;
