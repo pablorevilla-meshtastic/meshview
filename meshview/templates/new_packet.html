@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+
+{% block title %}Packet Details{%endblock%}
+
+{% block css %}
+{{ super() }}
+<style>
+
+/* --- Packet page container --- */
+.packet-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 15px;
+    font-family: "JetBrains Mono", monospace;
+}
+
+/* --- More margin inside card body --- */
+.packet-card .card-body {
+    padding: 26px 30px;
+}
+
+/* --- Packet Details Card --- */
+.packet-card {
+    background-color: #1e1f22;
+    border: 1px solid #3a3a3a;
+    border-radius: 12px;
+    color: #ddd;
+    margin-top: 35px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.35);
+    overflow: hidden;
+}
+
+.packet-card .card-header {
+    background: linear-gradient(90deg, #2c2f35, #25262a);
+    border-bottom: 1px solid #3f3f3f;
+    font-weight: 600;
+    font-size: 1.1em;
+    padding: 14px 18px;
+    color: #e2e6ea;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.packet-card dt {
+    color: #9aa0a6;
+    margin-top: 14px;
+}
+
+.packet-card dd {
+    margin-bottom: 12px;
+}
+
+.packet-card dd pre {
+    background: #25272a;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #3a3a3a;
+}
+
+/* --- Map --- */
+#map {
+    width: 100%;
+    height: 640px;
+    border-radius: 10px;
+    margin-top: 20px;
+    border: 1px solid #333;
+    display: none;
+}
+
+#loading {
+    text-align: center;
+    padding: 40px;
+    font-size: 1.1em;
+    color: #888;
+}
+
+/* --- Seen Table --- */
+.seen-table {
+    border-collapse: separate;
+    border-spacing: 0 6px;
+    font-size: 0.92em;
+}
+
+.seen-table thead th {
+    background-color: #2a2b2f;
+    color: #e2e2e2;
+    padding: 10px 12px;
+    border: none !important;
+    text-transform: uppercase;
+    font-size: 0.75em;
+    letter-spacing: 0.5px;
+}
+
+.seen-table tbody td {
+    background: #323338;
+    color: #f0f0f0;
+    border-top: 1px solid #4a4c4f !important;
+    border-bottom: 1px solid #4a4c4f !important;
+    padding: 10px 12px !important;
+}
+
+.seen-table tbody tr:hover td {
+    background-color: #3a3c41 !important;
+}
+
+/* Rounded corners */
+.seen-table tbody tr td:first-child {
+    border-left: 1px solid #4a4c4f;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+.seen-table tbody tr td:last-child {
+    border-right: 1px solid #4a4c4f;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container mt-4 mb-5 packet-container">
+
+    <div id="loading">Loading packet information...</div>
+    <div id="packet-card" class="packet-card d-none"></div>
+
+    <div id="map"></div>
+
+    <div id="seen-container" class="mt-4 d-none">
+        <h5 style="color:#ccc; margin:15px 0 10px 0;">
+            📡 Seen By <span id="seen-count" style="color:#4da6ff;"></span>
+        </h5>
+
+        <div class="table-responsive">
+            <table class="table table-dark table-sm seen-table">
+                <thead>
+                    <tr>
+                        <th>Node</th>
+                        <th>RSSI</th>
+                        <th>SNR</th>
+                        <th>Hop</th>
+                        <th>Channel</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="seen-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+
+    const packetCard    = document.getElementById("packet-card");
+    const loading       = document.getElementById("loading");
+    const mapDiv        = document.getElementById("map");
+    const seenContainer = document.getElementById("seen-container");
+    const seenTableBody = document.getElementById("seen-table-body");
+    const seenCountSpan = document.getElementById("seen-count");
+
+    const match = window.location.pathname.match(/\/new_packet\/(\d+)/);
+    if (!match) {
+        loading.textContent = "Invalid packet URL";
+        return;
+    }
+    const packetId = match[1];
+
+    // ------------------------------------------------
+    // FETCH PACKET FIRST
+    // ------------------------------------------------
+    const packetRes = await fetch(`/api/packets?packet_id=${packetId}`);
+    const packetData = await packetRes.json();
+
+    if (!packetData.packets.length) {
+        loading.textContent = "Packet not found.";
+        return;
+    }
+    const p = packetData.packets[0];
+
+    // ------------------------------------------------
+    // FETCH NODES NOW (BEFORE RENDERING CARD)
+    // ------------------------------------------------
+    const nodesRes = await fetch("/api/nodes");
+    const nodesData = await nodesRes.json();
+
+    const nodeLookup = {};
+    (nodesData.nodes || []).forEach(n => nodeLookup[n.node_id] = n);
+
+    // Friendly From Node name
+    const fromNodeObj   = nodeLookup[p.from_node_id];
+    const fromNodeLabel = fromNodeObj?.long_name || p.from_node_id;
+
+    // Friendly To Node name
+    const toNodeObj   = nodeLookup[p.to_node_id];
+    const toNodeLabel = (p.to_node_id == 4294967295)
+                        ? "Broadcast"
+                        : (toNodeObj?.long_name || p.to_node_id);
+
+    // ------------------------------------------------
+    // Decode GPS + Telemetry
+    // ------------------------------------------------
+    let lat = null, lon = null;
+    const parsed = {};
+
+    if (p.payload?.includes(":")) {
+        p.payload.split("\n").forEach(line => {
+            const [k, v] = line.split(":").map(x=>x.trim());
+            if (k && v !== undefined) {
+                parsed[k] = v;
+                if (k === "latitude_i")  lat = Number(v) / 1e7;
+                if (k === "longitude_i") lon = Number(v) / 1e7;
+            }
+        });
+    }
+
+    const telemetryExtras = [];
+    if (parsed.PDOP) telemetryExtras.push(`PDOP: ${parsed.PDOP}`);
+    if (parsed.sats_in_view) telemetryExtras.push(`Sats: ${parsed.sats_in_view}`);
+    if (parsed.ground_speed) telemetryExtras.push(`Speed: ${parsed.ground_speed}`);
+    if (parsed.altitude)     telemetryExtras.push(`Altitude: ${parsed.altitude}`);
+
+    const time = p.import_time_us
+        ? new Date(p.import_time_us / 1000).toLocaleString()
+        : "—";
+
+    // ------------------------------------------------
+    // RENDER PACKET CARD (NOW SAFE)
+    // ------------------------------------------------
+    packetCard.innerHTML = `
+        <div class="card-header">
+            <span>Packet ${p.id}</span>
+            <small>${time}</small>
+        </div>
+
+        <div class="card-body">
+            <dl>
+                <dt>From Node</dt>
+                <dd><a href="/new_node/${p.from_node_id}">${fromNodeLabel}</a></dd>
+
+                <dt>To Node</dt>
+                <dd><a href="/new_node/${p.to_node_id}">${toNodeLabel}</a></dd>
+
+                <dt>Channel</dt>
+                <dd>${p.channel ?? "—"}</dd>
+
+                <dt>Port</dt>
+                <dd>${p.portnum}</dd>
+
+                <dt>Raw Payload</dt>
+                <dd><pre>${escapeHtml(p.payload ?? "—")}</pre></dd>
+
+                ${
+                    telemetryExtras.length
+                    ? `<dt>Decoded Telemetry</dt><dd><pre>${telemetryExtras.join("\n")}</pre></dd>`
+                    : ""
+                }
+
+                ${
+                    lat && lon
+                    ? `<dt>Location</dt>
+                       <dd>${lat.toFixed(6)}, ${lon.toFixed(6)}
+                           <br><a href="https://maps.google.com/?q=${lat},${lon}"
+                                  target="_blank">Open in Google Maps</a>
+                       </dd>`
+                    : ""
+                }
+            </dl>
+        </div>
+    `;
+
+    loading.classList.add("d-none");
+    packetCard.classList.remove("d-none");
+
+    // ------------------------------------------------
+    // ALWAYS SHOW MAP
+    // ------------------------------------------------
+    const map = L.map("map");
+    mapDiv.style.display = "block";
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19
+    }).addTo(map);
+
+    const allBounds = [];
+
+    if (lat && lon) {
+        allBounds.push([lat, lon]);
+        L.marker([lat, lon], {
+            icon: L.icon({
+                iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png",
+                iconSize: [32, 32]
+            })
+        }).addTo(map);
+    } else {
+        map.setView([0, 0], 2);
+    }
+
+    // ------------------------------------------------
+    // COLOR SCALE FOR HOP MARKERS
+    // ------------------------------------------------
+    function hopColor(hop){
+        const c=[
+            "#ff3b30","#ff6b22","#ff9f0c",
+            "#ffd60a","#87d957","#57d9c4","#3db2ff"
+        ];
+        if(!hop||hop<1)return"#aaa";
+        if(hop>7)hop=7;
+        return c[hop-1];
+    }
+
+    // ------------------------------------------------
+    // HAVERSINE
+    // ------------------------------------------------
+    function haversine(lat1,lon1,lat2,lon2){
+        const R=6371;
+        const dLat=(lat2-lat1)*Math.PI/180;
+        const dLon=(lon2-lon1)*Math.PI/180;
+        const a=Math.sin(dLat/2)**2+
+            Math.cos(lat1*Math.PI/180)*
+            Math.cos(lat2*Math.PI/180)*
+            Math.sin(dLon/2)**2;
+        return R*(2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+    }
+
+    // ------------------------------------------------
+    // FETCH SEEN LIST
+    // ------------------------------------------------
+    const seenRes  = await fetch(`/api/packets_seen/${packetId}`);
+    const seenData = await seenRes.json();
+    const seenList = seenData.seen ?? [];
+
+    // Sort by hop_start (DESC)
+    const seenSorted = seenList.slice().sort((a,b)=>{
+        const A=a.hop_start??-999;
+        const B=b.hop_start??-999;
+        return B-A;
+    });
+
+    if (seenSorted.length){
+        seenContainer.classList.remove("d-none");
+        seenCountSpan.textContent=`(${seenSorted.length} gateways)`;
+    }
+
+    // ------------------------------------------------
+    // RENDER SEEN TABLE + MAP MARKERS
+    // ------------------------------------------------
+    seenTableBody.innerHTML = seenSorted.map(s=>{
+        const node=nodeLookup[s.node_id];
+        const label=node?(node.long_name||node.node_id):s.node_id;
+
+        const timeStr = s.import_time_us
+            ? new Date(s.import_time_us/1000).toLocaleTimeString()
+            : "—";
+
+        // --- map marker ---
+        if(node?.last_lat && node.last_long){
+            const rlat=node.last_lat/1e7;
+            const rlon=node.last_long/1e7;
+
+            allBounds.push([rlat,rlon]);
+
+            const hop=s.hop_limit??"";
+            const color=hopColor(Number(hop));
+
+            const iconHtml=`
+                <div style="
+                    background:${color};
+                    width:30px;
+                    height:30px;
+                    border-radius:50%;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    color:white;
+                    font-size:13px;
+                    font-weight:700;
+                    border:2px solid rgba(0,0,0,0.35);
+                    box-shadow:0 0 6px rgba(0,0,0,0.45);
+                ">${hop}</div>`;
+
+            const marker=L.marker([rlat,rlon],{
+                icon:L.divIcon({
+                    html:iconHtml,
+                    className:"",
+                    iconSize:[30,30],
+                    iconAnchor:[15,15]
+                })
+            }).addTo(map);
+
+            let distKm=null,distMi=null;
+            if(lat&&lon){
+                distKm=haversine(lat,lon,rlat,rlon);
+                distMi=distKm*0.621371;
+            }
+
+            marker.bindPopup(`
+                <div style="font-size:0.9em">
+                    <b>${node?.long_name || s.node_id}</b><br>
+                    Node ID: ${s.node_id}<br>
+                    HW: ${node?.hw_model ?? "—"}<br>
+                    Channel: ${s.channel ?? "—"}<br><br>
+                    <b>Signal</b><br>
+                    RSSI: ${s.rx_rssi ?? "—"}<br>
+                    SNR: ${s.rx_snr ?? "—"}<br><br>
+                    <b>Hop</b><br>
+                    Start: ${s.hop_start ?? "?"}<br>
+                    Limit: <b>${s.hop_limit ?? "?"}</b><br><br>
+                    <b>Distance</b><br>
+                    ${
+                        distKm
+                            ? `${distKm.toFixed(2)} km (${distMi.toFixed(2)} mi)`
+                            : "—"
+                    }
+                </div>
+            `);
+        }
+
+        return `
+            <tr>
+                <td><a href="/new_node/${s.node_id}">${label}</a></td>
+                <td>${s.rx_rssi ?? "—"}</td>
+                <td>${s.rx_snr ?? "—"}</td>
+                <td>${s.hop_start ?? "—"} → ${s.hop_limit ?? "—"}</td>
+                <td>${s.channel ?? "—"}</td>
+                <td>${timeStr}</td>
+            </tr>`;
+    }).join("");
+
+    // ------------------------------------------------
+    // FIT MAP TO ALL MARKERS
+    // ------------------------------------------------
+    if(allBounds.length>0){
+        map.fitBounds(allBounds,{padding:[40,40]});
+    }
+
+    function escapeHtml(unsafe) {
+        return (unsafe??"").replace(/[&<"'>]/g,m=>({
+            "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+        })[m]);
+    }
+
+});
+</script>
+{% endblock %}

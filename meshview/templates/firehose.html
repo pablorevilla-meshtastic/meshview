@@ -248,7 +248,7 @@ async function fetchUpdates() {
             const html = `
 <tr class="packet-row" data-id="${pkt.id}">
     <td>${localTime}</td>
-    <td><span class="toggle-btn">▶</span> <a href="/packet/${pkt.id}" style="text-decoration:underline; color:inherit;">${pkt.id}</a></td>
+    <td><span class="toggle-btn">▶</span> <a href="/new_packet/${pkt.id}" style="text-decoration:underline; color:inherit;">${pkt.id}</a></td>
     <td>${from}</td>
     <td>${to}</td>
     <td>${portLabel(pkt.portnum, pkt.payload)}</td>

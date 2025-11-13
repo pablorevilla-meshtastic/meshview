@@ -94,18 +94,46 @@ async def api_nodes(request):
 async def api_packets(request):
     try:
         # --- Parse query parameters ---
+        packet_id_str = request.query.get("packet_id")
         limit_str = request.query.get("limit", "50")
         since_str = request.query.get("since")
-        portnum = request.query.get("portnum")
-        contains = request.query.get("contains")  # <-- new query parameter
+        portnum_str = request.query.get("portnum")
+        contains = request.query.get("contains")
+        from_node_id_str = request.query.get("from_node_id")
 
-        # Clamp limit between 1 and 100
+        # --- If a packet_id is provided, fetch just that one ---
+        if packet_id_str:
+            try:
+                packet_id = int(packet_id_str)
+            except ValueError:
+                return web.json_response({"error": "Invalid packet_id format"}, status=400)
+
+            packet = await store.get_packet(packet_id)
+            if not packet:
+                return web.json_response({"packets": []})  # consistent shape
+
+            p = Packet.from_model(packet)
+            data = {
+                "id": p.id,
+                "from_node_id": p.from_node_id,
+                "to_node_id": p.to_node_id,
+                "portnum": int(p.portnum) if p.portnum is not None else None,
+                "payload": (p.payload or "").strip(),
+                "import_time_us": p.import_time_us,
+                "channel": getattr(p.from_node, "channel", ""),
+                "long_name": getattr(p.from_node, "long_name", ""),
+            }
+            return web.json_response({"packets": [data]})  # unified key
+
+        # --- Otherwise: multi-packet listing mode ---
+
+        # Limit validation
         try:
             limit = min(max(int(limit_str), 1), 100)
         except ValueError:
             limit = 50
 
-        # Parse "since" timestamp in microseconds
+        # Parse 'since' timestamp
         since = None
         if since_str:
             try:
@@ -113,9 +141,25 @@ async def api_packets(request):
             except ValueError:
                 logger.warning(f"Invalid 'since' value (expected microseconds): {since_str}")
 
-        # --- Fetch packets from store ---
+        # Parse from_node_id (decimal or hex)
+        node_id = None
+        if from_node_id_str:
+            try:
+                node_id = int(from_node_id_str, 0)
+            except ValueError:
+                logger.warning(f"Invalid from_node_id: {from_node_id_str}")
+
+        # Parse portnum safely
+        portnum = None
+        if portnum_str:
+            try:
+                portnum = int(portnum_str)
+            except ValueError:
+                logger.warning(f"Invalid portnum: {portnum_str}")
+
+        # --- Fetch packets ---
         packets = await store.get_packets(
-            node_id=0xFFFFFFFF if portnum else None,
+            node_id=node_id,
             portnum=portnum,
             after=since,
             limit=limit,
@@ -123,66 +167,50 @@ async def api_packets(request):
 
         ui_packets = [Packet.from_model(p) for p in packets]
 
-        # --- Chat-like filtering (if TEXT_MESSAGE_APP) ---
-        if str(portnum) == str(PortNum.TEXT_MESSAGE_APP):
-            # Filter out empty or "seq N" payloads
+        # --- Text message filtering ---
+        if portnum == PortNum.TEXT_MESSAGE_APP:
             ui_packets = [
                 p for p in ui_packets
                 if p.payload and not SEQ_REGEX.fullmatch(p.payload)
             ]
-
-            # Apply "contains" filter if provided
             if contains:
                 ui_packets = [
                     p for p in ui_packets if contains.lower() in p.payload.lower()
                 ]
 
-            # Sort newest first and limit
-            ui_packets.sort(key=lambda p: p.import_time_us, reverse=True)
-            ui_packets = ui_packets[:limit]
+        # --- Sort descending by import_time_us ---
+        ui_packets.sort(key=lambda p: p.import_time_us, reverse=True)
+        ui_packets = ui_packets[:limit]
 
-            packets_data = []
-            for p in ui_packets:
-                reply_id = getattr(
-                    getattr(getattr(p, "raw_mesh_packet", None), "decoded", None),
-                    "reply_id",
-                    None,
-                )
+        # --- Prepare output ---
+        packets_data = []
+        for p in ui_packets:
+            packet_dict = {
+                "id": p.id,
+                "import_time_us": p.import_time_us,
+                "channel": getattr(p.from_node, "channel", ""),
+                "from_node_id": p.from_node_id,
+                "to_node_id": p.to_node_id,
+                "portnum": int(p.portnum),
+                "long_name": getattr(p.from_node, "long_name", ""),
+                "payload": (p.payload or "").strip(),
+            }
 
-                packet_dict = {
-                    "id": p.id,
-                    "import_time_us": p.import_time_us,
-                    "channel": getattr(p.from_node, "channel", ""),
-                    "from_node_id": p.from_node_id,
-                    "long_name": getattr(p.from_node, "long_name", ""),
-                    "payload": (p.payload or "").strip(),
-                }
+            reply_id = getattr(
+                getattr(getattr(p, "raw_mesh_packet", None), "decoded", None),
+                "reply_id",
+                None,
+            )
+            if reply_id:
+                packet_dict["reply_id"] = reply_id
 
-                if reply_id:
-                    packet_dict["reply_id"] = reply_id
-
-                packets_data.append(packet_dict)
-
-        # --- General packet listing ---
-        else:
-            packets_data = [
-                {
-                    "id": p.id,
-                    "from_node_id": p.from_node_id,
-                    "to_node_id": p.to_node_id,
-                    "portnum": int(p.portnum) if p.portnum is not None else None,
-                    "payload": (p.payload or "").strip(),
-                    "import_time_us": p.import_time_us,
-                }
-                for p in ui_packets
-            ]
+            packets_data.append(packet_dict)
 
         return web.json_response({"packets": packets_data})
 
     except Exception as e:
         logger.error(f"Error in /api/packets: {e}")
         return web.json_response({"error": "Failed to fetch packets"}, status=500)
-
 
 
 @routes.get("/api/stats")
@@ -468,3 +496,45 @@ async def version_endpoint(request):
     except Exception as e:
         logger.error(f"Error in /version: {e}")
         return web.json_response({"error": "Failed to fetch version info"}, status=500)
+
+@routes.get("/api/packets_seen/{packet_id}")
+async def api_packets_seen(request):
+    try:
+        # --- Validate packet_id ---
+        try:
+            packet_id = int(request.match_info["packet_id"])
+        except (KeyError, ValueError):
+            return web.json_response(
+                {"error": "Invalid or missing packet_id"},
+                status=400,
+            )
+
+        # --- Fetch list using your helper ---
+        rows = await store.get_packets_seen(packet_id)
+
+        items = []
+        for row in rows:   # <-- FIX: normal for-loop
+            items.append({
+                "packet_id": row.packet_id,
+                "node_id": row.node_id,
+                "rx_time": row.rx_time,
+                "hop_limit": row.hop_limit,
+                "hop_start": row.hop_start,
+                "channel": row.channel,
+                "rx_snr": row.rx_snr,
+                "rx_rssi": row.rx_rssi,
+                "topic": row.topic,
+                "import_time": (
+                    row.import_time.isoformat() if row.import_time else None
+                ),
+                "import_time_us": row.import_time_us,
+            })
+
+        return web.json_response({"seen": items})
+
+    except Exception:
+        logger.exception("Error in /api/packets_seen")
+        return web.json_response(
+            {"error": "Internal server error"},
+            status=500,
+        )

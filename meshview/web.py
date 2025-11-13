@@ -245,6 +245,23 @@ async def chat(request):
             content_type="text/html",
         )
 
+@routes.get("/new_packet/{packet_id}")
+async def new_packet(request):
+        template = env.get_template("new_packet.html")
+        return web.Response(
+            text=template.render(),
+            content_type="text/html",
+        )
+
+@routes.get("/new_node/{from_node_id}")
+async def firehose_node(request):
+    template = env.get_template("new_node.html")
+    return web.Response(
+        text=template.render(),
+        content_type="text/html",
+    )
+
+
 def generate_response(request, body, raw_node_id="", node=None):
     if "HX-Request" in request.headers:
         return web.Response(text=body, content_type="text/html")

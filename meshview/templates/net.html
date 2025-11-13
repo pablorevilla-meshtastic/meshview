@@ -35,9 +35,7 @@
 
 {% block body %}
 <div class="container">
-    <!-- Weekly notice -->
     <div id="weekly-message">Loading weekly message...</div>
-    <!-- Total messages -->
     <div id="total-count">Total messages: 0</div>
 
     <div id="chat-container">
@@ -50,23 +48,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const chatContainer = document.querySelector("#chat-log");
     const totalCountEl = document.querySelector("#total-count");
     const weeklyMessageEl = document.querySelector("#weekly-message");
-    if (!chatContainer || !totalCountEl || !weeklyMessageEl) return console.error("Required elements not found");
+    if (!chatContainer || !totalCountEl || !weeklyMessageEl) {
+        console.error("Required elements not found");
+        return;
+    }
 
     const renderedPacketIds = new Set();
     const packetMap = new Map();
     let chatTranslations = {};
     let netTag = "";
-
-    // Fetch site config to get net_tag and weekly message
-    try {
-        const resp = await fetch("/api/config");
-        const config = await resp.json();
-        netTag = encodeURIComponent(config?.site?.net_tag || "");
-        weeklyMessageEl.textContent = config?.site?.weekly_net_message || "Weekly message not set.";
-    } catch(err) {
-        console.error("Failed to load site config:", err);
-        weeklyMessageEl.textContent = "Failed to load weekly message.";
-    }
 
     function updateTotalCount() {
         totalCountEl.textContent = `Total messages: ${renderedPacketIds.size}`;
@@ -78,7 +68,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return div.innerHTML;
     }
 
-    function applyTranslations(translations, root=document) {
+    function applyTranslations(translations, root = document) {
         root.querySelectorAll("[data-translate-lang]").forEach(el => {
             const key = el.dataset.translateLang;
             if (translations[key]) el.textContent = translations[key];
@@ -95,8 +85,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         packetMap.set(packet.id, packet);
 
         const date = new Date(packet.import_time_us / 1000);
-        const formattedTime = date.toLocaleTimeString([], { hour:"numeric", minute:"2-digit", second:"2-digit", hour12:true });
-        const formattedDate = `${(date.getMonth()+1).toString().padStart(2,"0")}/${date.getDate().toString().padStart(2,"0")}/${date.getFullYear()}`;
+        const formattedTime = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
+        const formattedDate = `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getDate().toString().padStart(2, "0")}/${date.getFullYear()}`;
         const formattedTimestamp = `${formattedTime} - ${formattedDate}`;
 
         let replyHtml = "";
@@ -140,33 +130,55 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function renderPacketsEnsureDescending(packets) {
-        if (!Array.isArray(packets) || packets.length===0) return;
-        const sortedDesc = packets.slice().sort((a,b)=>b.import_time_us - a.import_time_us);
-        for (let i=sortedDesc.length-1; i>=0; i--) renderPacket(sortedDesc[i]);
+        if (!Array.isArray(packets) || packets.length === 0) return;
+        const sortedDesc = packets.slice().sort((a, b) => b.import_time_us - a.import_time_us);
+        for (let i = sortedDesc.length - 1; i >= 0; i--) renderPacket(sortedDesc[i]);
     }
 
-    async function fetchInitial() {
+    async function fetchInitialPackets(tag) {
+        if (!tag) {
+            console.warn("No net_tag defined, skipping packet fetch.");
+            return;
+        }
         try {
-            if (!netTag) return;
-            const resp = await fetch(`/api/packets?portnum=1&limit=100&contains=${netTag}`);
+            console.log("Fetching packets for netTag:", tag);
+            const sixDaysAgoMs = Date.now() - (6 * 24 * 60 * 60 * 1000);
+            const sinceUs = Math.floor(sixDaysAgoMs * 1000);
+            const resp = await fetch(`/api/packets?portnum=1&contains=${encodeURIComponent(tag)}&since=${sinceUs}`);
             const data = await resp.json();
+            console.log("Packets received:", data?.packets?.length);
             if (data?.packets?.length) renderPacketsEnsureDescending(data.packets);
-        } catch(err) { console.error("Initial fetch error:", err); }
+        } catch (err) {
+            console.error("Initial fetch error:", err);
+        }
     }
 
-    async function loadTranslations() {
+    async function loadTranslations(cfg) {
         try {
-            const cfg = await window._siteConfigPromise;
             const langCode = cfg?.site?.language || "en";
             const res = await fetch(`/api/lang?lang=${langCode}&section=chat`);
             chatTranslations = await res.json();
             applyTranslations(chatTranslations, document);
-        } catch(err){ console.error("Chat translation load failed:", err); }
+        } catch (err) {
+            console.error("Chat translation load failed:", err);
+        }
     }
 
-    await loadTranslations();
-    await fetchInitial();
+    // --- MAIN LOGIC ---
+    try {
+        const cfg = await window._siteConfigPromise; // ✅ Already fetched by base.html
+        const site = cfg?.site || {};
+
+        // Populate from config
+        netTag = site.net_tag || "";
+        weeklyMessageEl.textContent = site.weekly_net_message || "Weekly message not set.";
+
+        await loadTranslations(cfg);
+        await fetchInitialPackets(netTag);
+    } catch (err) {
+        console.error("Initialization failed:", err);
+        weeklyMessageEl.textContent = "Failed to load site config.";
+    }
 });
 </script>
-
 {% endblock %}
