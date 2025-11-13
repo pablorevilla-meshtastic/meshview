@@ -1,11 +1,47 @@
 env/*
 __pycache__/*
 meshview/__pycache__/*
+alembic/__pycache__/*
 meshtastic/protobuf/*
+
+# Database files
 packets.db
+packets*.db
+*.db
+*.db-shm
+*.db-wal
+
+# Database backups
+backups/
+*.db.gz
+
+# Process files
 meshview-db.pid
 meshview-web.pid
+
+# Config and logs
 /table_details.py
 config.ini
+*.log
+
+# Screenshots
 screenshots/*
+
+# Python
 python/nanopb
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

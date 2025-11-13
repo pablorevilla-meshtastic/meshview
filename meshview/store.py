@@ -24,8 +24,14 @@ async def get_fuzzy_nodes(query):
         return result.scalars()
 
 
-async def get_packets(node_id=None, portnum=None, after=None, before=None, limit=None):
+async def get_packets(node_id=None, portnum=None, after=None, before=None, limit=None, packet_id=None):
     async with database.async_session() as session:
+        # --- Fast path: fetch by packet_id (uses primary key lookup) ---
+        if packet_id is not None:
+            packet = await session.get(Packet, packet_id)
+            return [packet] if packet else []
+
+        # --- Normal query path ---
         q = select(Packet)
 
         if node_id:
@@ -33,11 +39,11 @@ async def get_packets(node_id=None, portnum=None, after=None, before=None, limit
         if portnum:
             q = q.where(Packet.portnum == portnum)
         if after:
-            q = q.where(Packet.import_time > after)
+            q = q.where(Packet.import_time_us > after)
         if before:
-            q = q.where(Packet.import_time < before)
+            q = q.where(Packet.import_time_us < before)
 
-        q = q.order_by(Packet.import_time.desc())
+        q = q.order_by(Packet.import_time_us.desc())
 
         if limit is not None:
             q = q.limit(limit)
@@ -45,6 +51,7 @@ async def get_packets(node_id=None, portnum=None, after=None, before=None, limit
         result = await session.execute(q)
         packets = list(result.scalars())
         return packets
+
 
 
 async def get_packets_from(node_id=None, portnum=None, since=None, limit=500):

@@ -12,6 +12,7 @@ aiosqlite~=0.21.0
 
 # Database + ORM
 sqlalchemy[asyncio]~=2.0.38
+alembic~=1.14.0
 
 # Serialization / security
 protobuf~=5.29.3
@@ -42,3 +43,8 @@ pillow~=11.1.0
 # Debugging / profiling
 psutil~=7.0.0
 objgraph~=3.6.2
+
+# Testing
+pytest~=8.3.4
+pytest-aiohttp~=1.0.5
+pytest-asyncio~=0.24.0

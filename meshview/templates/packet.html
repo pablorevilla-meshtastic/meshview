@@ -56,9 +56,10 @@
                             {% endfor %}
                         </ul>
                         {% if packet.raw_mesh_packet.decoded.want_response %}
-                        <a href="/graph/traceroute/{{packet.id}}">graph</a>
+                        <a href="/graph/traceroute/{{packet.id}}">graph route</a>
+
                         {% else %}
-                        <a href="/graph/traceroute/{{packet.raw_mesh_packet.decoded.request_id}}">graph</a>
+                        <a href="/graph/traceroute/{{packet.id}}">graph route return</a>
                         {% endif %}
                     {% endif %}
                     <pre>{{packet.payload}}</pre>
