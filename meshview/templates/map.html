@@ -198,7 +198,20 @@ function renderNodesOnMap(){
     nodes.forEach(node=>{
         if(isInvalidCoord(node)) return;
         const color = hashToColor(node.channel);
-        const opts = { radius: node.isRouter?9:7, color:"white", fillColor:color, fillOpacity:1, weight:0.7 };
+        let radius = 6;
+        let opacity = 1;
+        if (node.isRouter) {
+            radius = 10;
+        } else if (node.role === 'CLIENT_MUTE') {
+            radius = 3;
+        }
+        const opts = {
+            radius,
+            color:"white",
+            fillColor:color,
+            fillOpacity: opacity,
+            weight:0.7
+        };
         const marker = L.circleMarker([node.lat,node.long],opts).addTo(map);
         marker.nodeId = node.key;
         marker.originalColor = color;
