@@ -92,6 +92,23 @@ async def get_packets_seen(packet_id):
         )
         return result.scalars()
 
+async def get_packetseens(after=None, before=None, limit=None):
+    async with database.async_session() as session:
+        q = select(PacketSeen)
+
+        if after:
+            q = q.where(PacketSeen.import_time > after)
+        if before:
+            q = q.where(PacketSeen.import_time < before)
+
+        q = q.order_by(PacketSeen.import_time.desc())
+
+        if limit is not None:
+            q = q.limit(limit)
+
+        result = await session.execute(q)
+        packetseens = list(result.scalars())
+        return packetseens
 
 async def has_packets(node_id, portnum):
     async with database.async_session() as session:

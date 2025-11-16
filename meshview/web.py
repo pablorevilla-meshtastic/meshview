@@ -1522,6 +1522,38 @@ async def api_packets(request):
         logger.error(f"Error in /api/packets: {e}")
         return web.json_response({"error": "Failed to fetch packets"}, status=500)
 
+@routes.get("/api/packetseens")
+async def api_packet_seens(request):
+    try:
+        # Query parameters
+        limit = int(request.query.get("limit", 50))
+        since_str = request.query.get("since")
+        since_time = None
+
+        if since_str:
+            try:
+                # Robust ISO 8601 parsing (handles 'Z' for UTC)
+                since_time = datetime.datetime.fromisoformat(since_str.replace("Z", "+00:00"))
+            except Exception as e:
+                logger.error(f"Failed to parse 'since' timestamp '{since_str}': {e}")
+
+        # Fetch packets from the store
+        packet_seens = await store.get_packetseens(limit=limit, after=since_time)
+        packet_seen_json = []
+        for p in packet_seens:
+            packet_seen_json.append(
+                {
+                    "uplinked_by_node_id": p.node_id,
+                    "import_time": p.import_time.isoformat(),
+                }
+            )
+
+        return web.json_response({"packet_seens": packet_seen_json})
+
+    except Exception as e:
+        logger.error(f"Error in /api/packetseens: {e}")
+        return web.json_response({"error": "Failed to fetch packetseens"}, status=500)
+
 
 @routes.get("/api/stats")
 async def api_stats(request):

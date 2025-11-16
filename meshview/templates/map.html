@@ -75,6 +75,19 @@ function fetchNewPackets(){
         });
         lastImportTime=latest;
     }).catch(console.error);
+    fetch(`/api/packetseens?since=${encodeURIComponent(lastImportTime)}`).then(r=>r.json()).then(data=>{
+        if(!data.packet_seens||data.packet_seens.length===0) return;
+        const first = Date.parse(data.packet_seens[data.packet_seens.length - 1].import_time);
+        data.packet_seens.forEach(seen=>{
+            const marker = markerById[seen.uplinked_by_node_id];
+            if(marker) {
+                const delta = Date.parse(seen.import_time) - first;
+                setTimeout(() => {
+                    blinkNode(marker,null,null,true);
+                }, delta);
+            }
+        });
+    }).catch(console.error);
 }
 
 // ---------------------- Polling ----------------------
@@ -223,19 +236,58 @@ function onNodeClick(node){
 map.on('click',e=>{ if(!e.originalEvent.target.classList.contains('leaflet-interactive')){ edgeLayer.clearLayers(); selectedNodeId=null; } });
 
 // ---------------------- Packet Blinking ----------------------
-function blinkNode(marker,longName,portnum){
+function blinkNode(marker,longName,portnum,quick){
     if(!map.hasLayer(marker)) return;
-    if(activeBlinks.has(marker)){ clearInterval(activeBlinks.get(marker)); marker.setStyle({fillColor:marker.originalColor}); if(marker.tooltip) map.removeLayer(marker.tooltip); }
-    let blinkCount=0;
-    const portName = portMap[portnum]||`Port ${portnum}`;
-    const tooltip = L.tooltip({permanent:true,direction:'top',offset:[0,-marker.options.radius-5],className:'blinking-tooltip'})
-                     .setContent(`${longName} (${portName})`).setLatLng(marker.getLatLng()).addTo(map);
-    marker.tooltip = tooltip;
-    const interval = setInterval(()=>{
-        if(map.hasLayer(marker)){ marker.setStyle({fillColor: blinkCount%2===0?'yellow':marker.originalColor}); marker.bringToFront(); }
+
+    const blink = quick ? {
+        on: 'black',
+        off: 'white',
+        prop: 'color',
+        times: 3,
+        ms: 250,
+    } : {
+        on: 'yellow',
+        off: marker.originalColor,
+        prop: 'fillColor',
+        times: 7,
+        ms: 500,
+    };
+    let interval;
+    function _clearBlink () {
+        clearInterval(interval);
+        marker.setStyle({
+            [blink.prop]: blink.off,
+        });
+        if (marker.tooltip) {
+            map.removeLayer(marker.tooltip);
+        }
+        activeBlinks.delete(marker);
+    }
+
+    if (activeBlinks.has(marker)) {
+        if (quick) { return; } // quick blinks don't override a previous blink
+        _clearBlink();
+    }
+
+    if (longName && portnum) {
+        const portName = portMap[portnum]||`Port ${portnum}`;
+        const tooltip = L.tooltip({permanent:true,direction:'top',offset:[0,-marker.options.radius-5],className:'blinking-tooltip'})
+                         .setContent(`${longName} (${portName})`).setLatLng(marker.getLatLng()).addTo(map);
+        marker.tooltip = tooltip;
+    }
+
+    let blinkCount = 0;
+    interval = setInterval(()=>{
+        if (!map.hasLayer(marker)) { return; }
+        marker.bringToFront();
+        marker.setStyle({
+            [blink.prop]: blinkCount % 2 === 0 ? blink.on : blink.off,
+        });
         blinkCount++;
-        if(blinkCount>7){ clearInterval(interval); marker.setStyle({fillColor:marker.originalColor}); map.removeLayer(tooltip); activeBlinks.delete(marker); }
-    },500);
+        if (blinkCount > blink.times) {
+            _clearBlink();
+        }
+    },blink.ms);
     activeBlinks.set(marker,interval);
 }
 
