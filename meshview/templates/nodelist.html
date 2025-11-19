@@ -350,7 +350,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 
                 row.innerHTML = `
                     <td>${node.short_name || "N/A"}</td>
-                    <td><a href="/packet_list/${node.node_id}">${node.long_name || "N/A"}</a></td>
+                    <td><a href="/new_node/${node.node_id}">${node.long_name || "N/A"}</a></td>
                     <td>${node.hw_model || "N/A"}</td>
                     <td>${node.firmware || "N/A"}</td>
                     <td>${node.role || "N/A"}</td>

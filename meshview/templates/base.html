@@ -35,37 +35,8 @@
     <div style="text-align:center" id="site-header"></div>
     <div style="text-align:center" id="site-message"></div>
     <div style="text-align:center" id="site-menu"></div>
-
     <!-- Search Form -->
-    <form class="container p-2 sticky-top mx-auto" id="search_form" action="/node_search">
-        <div class="row">
-            <input
-                class="col m-2"
-                id="q"
-                type="text"
-                name="q"
-                data-translate="node id"
-                placeholder="Node id"
-                autocomplete="off"
-                list="node_options"
-                value="{{raw_node_id}}"
-                hx-trigger="input delay:100ms"
-                hx-get="/node_match"
-                hx-target="#node_options"
-            />
-            <datalist id="node_options">
-                {% for option in node_options %}
-                <option value="{{option.id}}">{{option.id}} -- {{option.long_name}} ({{option.short_name}})</option>
-                {% endfor %}
-            </datalist>
-
-            <!-- portnum select will be translated dynamically -->
-            <select id="portnum_select" name="portnum" class="col-2 m-2"></select>
-
-            <input type="submit" value="Go to Node" class="col-2 m-2" data-translate="go to node" />
-        </div>
-    </form>
-
+    <br>
     {% block body %}{% endblock %}
 
     <br>

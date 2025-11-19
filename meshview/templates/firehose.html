@@ -217,11 +217,11 @@ async function fetchUpdates() {
             const toNodeId = pkt.to_node_id;
 
             let from = fromNodeId === 4294967295 ? `<span class="to-mqtt">All</span>` :
-                       `<a href="/packet_list/${fromNodeId}" style="text-decoration:underline; color:inherit;">${nodeMap[fromNodeId] || fromNodeId}</a>`;
+                       `<a href="/new_node/${fromNodeId}" style="text-decoration:underline; color:inherit;">${nodeMap[fromNodeId] || fromNodeId}</a>`;
 
             let to = toNodeId === 1 ? `<span class="to-mqtt">direct to MQTT</span>` :
                      toNodeId === 4294967295 ? `<span class="to-mqtt">All</span>` :
-                     `<a href="/packet_list/${toNodeId}" style="text-decoration:underline; color:inherit;">${nodeMap[toNodeId] || toNodeId}</a>`;
+                     `<a href="/new_node/${toNodeId}" style="text-decoration:underline; color:inherit;">${nodeMap[toNodeId] || toNodeId}</a>`;
 
             let links = "";
             if (pkt.portnum === 3 && pkt.payload) {

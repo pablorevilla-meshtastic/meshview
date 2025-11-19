@@ -136,7 +136,7 @@
             <table class="table table-dark table-sm seen-table">
                 <thead>
                     <tr>
-                        <th>Node</th>
+                        <th>Gateway</th>
                         <th>RSSI</th>
                         <th>SNR</th>
                         <th>Hop</th>
@@ -168,7 +168,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     const packetId = match[1];
 
     // ------------------------------------------------
-    // FETCH PACKET FIRST
+    // PORT NAME LOOKUP (your exact mapping)
+    // ------------------------------------------------
+    const PORT_NAMES = {
+        0:"UNKNOWN APP",
+        1:"Text",
+        3:"Position",
+        4:"Node Info",
+        5:"Routing",
+        6:"Admin",
+        67:"Telemetry",
+        70:"Traceroute",
+        71:"Neighbor"
+    };
+
+    // ------------------------------------------------
+    // FETCH PACKET
     // ------------------------------------------------
     const packetRes = await fetch(`/api/packets?packet_id=${packetId}`);
     const packetData = await packetRes.json();
@@ -180,7 +195,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const p = packetData.packets[0];
 
     // ------------------------------------------------
-    // FETCH NODES NOW (BEFORE RENDERING CARD)
+    // FETCH NODES
     // ------------------------------------------------
     const nodesRes = await fetch("/api/nodes");
     const nodesData = await nodesRes.json();
@@ -188,18 +203,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     const nodeLookup = {};
     (nodesData.nodes || []).forEach(n => nodeLookup[n.node_id] = n);
 
-    // Friendly From Node name
+    // Names
     const fromNodeObj   = nodeLookup[p.from_node_id];
     const fromNodeLabel = fromNodeObj?.long_name || p.from_node_id;
 
-    // Friendly To Node name
     const toNodeObj   = nodeLookup[p.to_node_id];
-    const toNodeLabel = (p.to_node_id == 4294967295)
-                        ? "Broadcast"
-                        : (toNodeObj?.long_name || p.to_node_id);
+    const toNodeLabel = p.to_node_id == 4294967295
+        ? "All"
+        : (toNodeObj?.long_name || p.to_node_id);
 
     // ------------------------------------------------
-    // Decode GPS + Telemetry
+    // Decode payload
     // ------------------------------------------------
     let lat = null, lon = null;
     const parsed = {};
@@ -226,11 +240,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         : "—";
 
     // ------------------------------------------------
-    // RENDER PACKET CARD (NOW SAFE)
+    // RENDER PACKET CARD
     // ------------------------------------------------
     packetCard.innerHTML = `
         <div class="card-header">
-            <span>Packet ${p.id}</span>
+            <span>Packet ID: <i>${p.id}</i></span>
             <small>${time}</small>
         </div>
 
@@ -240,13 +254,24 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <dd><a href="/new_node/${p.from_node_id}">${fromNodeLabel}</a></dd>
 
                 <dt>To Node</dt>
-                <dd><a href="/new_node/${p.to_node_id}">${toNodeLabel}</a></dd>
+                <dd>
+                    ${
+                        p.to_node_id == 4294967295
+                        ? `<i>All</i>`
+                        : `<a href="/new_node/${p.to_node_id}">${toNodeLabel}</a>`
+                    }
+                </dd>
 
                 <dt>Channel</dt>
                 <dd>${p.channel ?? "—"}</dd>
 
                 <dt>Port</dt>
-                <dd>${p.portnum}</dd>
+                <dd>
+                    <span style="font-style: italic;">
+                        ${PORT_NAMES[p.portnum] || "UNKNOWN APP"}
+                    </span>
+                    (${p.portnum})
+                </dd>
 
                 <dt>Raw Payload</dt>
                 <dd><pre>${escapeHtml(p.payload ?? "—")}</pre></dd>
@@ -274,7 +299,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     packetCard.classList.remove("d-none");
 
     // ------------------------------------------------
-    // ALWAYS SHOW MAP
+    // MAP INITIALIZATION
     // ------------------------------------------------
     const map = L.map("map");
     mapDiv.style.display = "block";
@@ -298,7 +323,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // ------------------------------------------------
-    // COLOR SCALE FOR HOP MARKERS
+    // Color by hop
     // ------------------------------------------------
     function hopColor(hop){
         const c=[
@@ -310,9 +335,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         return c[hop-1];
     }
 
-    // ------------------------------------------------
-    // HAVERSINE
-    // ------------------------------------------------
     function haversine(lat1,lon1,lat2,lon2){
         const R=6371;
         const dLat=(lat2-lat1)*Math.PI/180;
@@ -325,13 +347,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // ------------------------------------------------
-    // FETCH SEEN LIST
+    // SEEN LIST
     // ------------------------------------------------
     const seenRes  = await fetch(`/api/packets_seen/${packetId}`);
     const seenData = await seenRes.json();
     const seenList = seenData.seen ?? [];
 
-    // Sort by hop_start (DESC)
     const seenSorted = seenList.slice().sort((a,b)=>{
         const A=a.hop_start??-999;
         const B=b.hop_start??-999;
@@ -343,9 +364,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         seenCountSpan.textContent=`(${seenSorted.length} gateways)`;
     }
 
-    // ------------------------------------------------
-    // RENDER SEEN TABLE + MAP MARKERS
-    // ------------------------------------------------
     seenTableBody.innerHTML = seenSorted.map(s=>{
         const node=nodeLookup[s.node_id];
         const label=node?(node.long_name||node.node_id):s.node_id;
@@ -354,7 +372,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             ? new Date(s.import_time_us/1000).toLocaleTimeString()
             : "—";
 
-        // --- map marker ---
         if(node?.last_lat && node.last_long){
             const rlat=node.last_lat/1e7;
             const rlon=node.last_long/1e7;
@@ -398,7 +415,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             marker.bindPopup(`
                 <div style="font-size:0.9em">
                     <b>${node?.long_name || s.node_id}</b><br>
-                    Node ID: ${s.node_id}<br>
+                    Node ID: <a href="/new_node/${s.node_id}">${s.node_id}</a><br>
                     HW: ${node?.hw_model ?? "—"}<br>
                     Channel: ${s.channel ?? "—"}<br><br>
                     <b>Signal</b><br>
@@ -428,9 +445,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             </tr>`;
     }).join("");
 
-    // ------------------------------------------------
-    // FIT MAP TO ALL MARKERS
-    // ------------------------------------------------
     if(allBounds.length>0){
         map.fitBounds(allBounds,{padding:[40,40]});
     }

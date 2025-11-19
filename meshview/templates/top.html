@@ -187,7 +187,7 @@ function updateTable() {
     for (const node of filteredNodes) {
         const percent = mean > 0 ? ((node.total_times_seen / mean) * 100).toFixed(1) + "%" : "0%";
         const row = `<tr>
-            <td><a href="/packet_list/${node.node_id}">${node.long_name}</a></td>
+            <td><a href="/new_node/${node.node_id}">${node.long_name}</a></td>
             <td>${node.short_name}</td>
             <td>${node.channel}</td>
             <td><a href="/top?node_id=${node.node_id}">${node.total_packets_sent}</a></td>

@@ -118,8 +118,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         div.innerHTML = `
             <span class="col-2 timestamp" title="${packet.import_time_us}">${formattedTimestamp}</span>
             <span class="col-2 channel">
-                <a href="/new_packet/${packet.id}" title="${chatLang.view_packet_details || 'View details'}">✉️</a>
-                ${escapeHtml(packet.channel || "")}
+                <a href="/new_packet/${packet.id}" title="${chatLang.view_packet_details || 'View details'}">🔎</a>
+                 ${escapeHtml(packet.channel || "")}
             </span>
             <span class="col-3 nodename">
                 <a href="/new_node/${packet.from_node_id}">
