@@ -326,17 +326,18 @@ async def api_stats_count(request):
 
     channel = request.query.get("channel")
 
-    def parse_int(name):
+    def parse_int(name, request):
         value = request.query.get(name)
         if value is None:
             return None
+
         try:
             return int(value)
         except ValueError:
             raise web.HTTPBadRequest(
                 text=json.dumps({"error": f"{name} must be integer"}),
-                content_type="application/json"
-            )
+                content_type="application/json",
+            ) from None
 
     from_node = parse_int("from_node")
     to_node = parse_int("to_node")

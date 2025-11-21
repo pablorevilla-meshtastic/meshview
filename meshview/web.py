@@ -2,19 +2,17 @@ import asyncio
 import datetime
 import logging
 import os
-import pathlib
 import re
 import ssl
-import traceback
-from collections import Counter, defaultdict
 from dataclasses import dataclass
+
 import pydot
 from aiohttp import web
 from google.protobuf import text_format
 from google.protobuf.message import Message
 from jinja2 import Environment, PackageLoader, Undefined, select_autoescape
 from markupsafe import Markup
-from pandas import DataFrame
+
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import config, database, decode_payload, migrations, models, store
 from meshview.__version__ import (
