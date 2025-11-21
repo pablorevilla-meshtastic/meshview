@@ -327,7 +327,6 @@ async def api_stats_count(request):
         value = request.query.get(name)
         if value is None:
             return None
-
         try:
             return int(value)
         except ValueError:
