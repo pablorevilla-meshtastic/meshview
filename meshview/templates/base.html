@@ -22,29 +22,47 @@
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
         }
-        body.ready { opacity: 1; }
-        .htmx-indicator { opacity: 0; transition: opacity 500ms ease-in; }
-        .htmx-request .htmx-indicator { opacity: 1; }
-        #search_form { z-index: 4000; }
-        #details_map { width: 100%; height: 500px; }
+        body.ready {
+            opacity: 1;
+        }
+
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 500ms ease-in;
+        }
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+
+        #search_form {
+            z-index: 4000;
+        }
+
+        #details_map {
+            width: 100%;
+            height: 500px;
+        }
+
         {% block css %}{% endblock %}
     </style>
 </head>
+
 <body>
-    <br>
-    <div style="text-align:center" id="site-header"></div>
-    <div style="text-align:center" id="site-message"></div>
-    <div style="text-align:center" id="site-menu"></div>
-    <!-- Search Form -->
-    <br>
-    {% block body %}{% endblock %}
+<br>
+<div style="text-align:center" id="site-header"></div>
+<div style="text-align:center" id="site-message"></div>
+<div style="text-align:center" id="site-menu"></div>
 
-    <br>
-    <div style="text-align:center" id="footer" data-translate="footer"></div>
-    <div style="text-align:center"><small id="site-version">ver. unknown</small></div>
-    <br>
+<br>
 
-    <script>
+{% block body %}{% endblock %}
+
+<br>
+<div style="text-align:center" id="footer" data-translate="footer"></div>
+<div style="text-align:center"><small id="site-version">ver. unknown</small></div>
+<br>
+
+<script>
 // --- Shared Promises ---
 if (!window._siteConfigPromise) {
     window._siteConfigPromise = (async () => {
@@ -61,20 +79,22 @@ if (!window._siteConfigPromise) {
     })();
 }
 
-// --- Wait for config before deciding which language to load ---
+// --- Load language AFTER config ---
 if (!window._langPromise) {
     window._langPromise = (async () => {
         try {
             const cfg = await window._siteConfigPromise;
             const site = cfg.site || {};
-            const userLang = site.language || "en";  // <-- ✅ read language from /api/config
+            const userLang = site.language || "en";
             const section = "base";
 
             const url = `/api/lang?lang=${userLang}&section=${section}`;
             const res = await fetch(url);
             const lang = await res.json();
+
             window._lang = lang;
             console.log(`Loaded language (${userLang}):`, lang);
+
             return lang;
         } catch (err) {
             console.error("Failed to load language:", err);
@@ -102,7 +122,7 @@ function applyTranslations(dict) {
     });
 }
 
-// --- Fill <select> dynamically using translation data ---
+// --- Fill portnum select dynamically ---
 function fillPortnumSelect(dict, selectedValue) {
     const sel = document.getElementById("portnum_select");
     if (!sel) return;
@@ -120,7 +140,9 @@ function fillPortnumSelect(dict, selectedValue) {
         const opt = document.createElement("option");
         opt.value = val;
         opt.textContent = label;
-        if (parseInt(val) === parseInt(selectedValue)) opt.selected = true;
+        if (parseInt(val) === parseInt(selectedValue)) {
+            opt.selected = true;
+        }
         sel.appendChild(opt);
     }
 }
@@ -142,27 +164,31 @@ async function initializePage() {
         // Header & Message
         document.getElementById("site-header").innerHTML =
             `<strong>${site.title || ""} ${site.domain ? "(" + site.domain + ")" : ""}</strong>`;
+
         document.getElementById("site-message").textContent = site.message || "";
 
         // Menu
         const menu = document.getElementById("site-menu");
         if (menu) {
             const items = [];
-            const keys = ["nodes","conversations","everything","graph","net","map","stats","top"];
-            const urls = ["/nodelist","/chat","/firehose","/nodegraph","/net","/map","/stats","/top"];
+            const keys = ["nodes", "conversations", "everything", "graphs", "net", "map", "stats", "top"];
+            const urls = ["/nodelist", "/chat", "/firehose", "/nodegraph", "/net", "/map", "/stats", "/top"];
+
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
                 if (site[key] === "true") {
                     items.push(`<a href="${urls[i]}">${dict[key] || key}</a>`);
                 }
             }
+
             menu.innerHTML = items.join("&nbsp;-&nbsp;");
         }
 
         // Version
-        document.getElementById("site-version").textContent = "ver. " + (site.version || "unknown");
+        document.getElementById("site-version").textContent =
+            "ver. " + (site.version || "unknown");
 
-        // Apply translations and portnum select
+        // Apply translations
         applyTranslations(dict);
         fillPortnumSelect(dict, "{{ portnum or '' }}");
 
@@ -175,5 +201,6 @@ async function initializePage() {
 
 document.addEventListener("DOMContentLoaded", initializePage);
 </script>
+
 </body>
 </html>

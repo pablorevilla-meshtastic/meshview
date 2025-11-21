@@ -79,7 +79,8 @@ async def api_nodes(request):
                     "last_lat": getattr(n, "last_lat", None),
                     "last_long": getattr(n, "last_long", None),
                     "channel": n.channel,
-                    "last_update": n.last_update.isoformat(),
+                    #"last_update": n.last_update.isoformat(),
+                    "last_seen_us":n.last_seen_us,
                 }
             )
 
@@ -216,25 +217,56 @@ async def api_packets(request):
 @routes.get("/api/stats")
 async def api_stats(request):
     """
-    Return packet statistics for a given period type, length,
-    and optional filters for channel, portnum, to_node, from_node.
+    Enhanced stats endpoint:
+    - Supports global stats (existing behavior)
+    - Supports per-node stats using ?node=<node_id>
+      returning both sent AND seen counts in the specified period
     """
     allowed_periods = {"hour", "day"}
 
-    # period_type validation
     period_type = request.query.get("period_type", "hour").lower()
     if period_type not in allowed_periods:
         return web.json_response(
-            {"error": f"Invalid period_type. Must be one of {allowed_periods}"}, status=400
+            {"error": f"Invalid period_type. Must be one of {allowed_periods}"},
+            status=400,
         )
 
-    # length validation
     try:
         length = int(request.query.get("length", 24))
     except ValueError:
         return web.json_response({"error": "length must be an integer"}, status=400)
 
-    # Optional filters
+    # NEW: optional combined node stats
+    node_str = request.query.get("node")
+    if node_str:
+        try:
+            node_id = int(node_str)
+        except ValueError:
+            return web.json_response({"error": "node must be an integer"}, status=400)
+
+        # Fetch sent packets
+        sent = await store.get_packet_stats(
+            period_type=period_type,
+            length=length,
+            from_node=node_id,
+        )
+
+        # Fetch seen packets
+        seen = await store.get_packet_stats(
+            period_type=period_type,
+            length=length,
+            to_node=node_id,
+        )
+
+        return web.json_response({
+            "node_id": node_id,
+            "period_type": period_type,
+            "length": length,
+            "sent": sent.get("total", 0),
+            "seen": seen.get("total", 0),
+        })
+
+    # ---- Existing full stats mode (unchanged) ----
     channel = request.query.get("channel")
 
     def parse_int_param(name):
@@ -253,7 +285,6 @@ async def api_stats(request):
     to_node = parse_int_param("to_node")
     from_node = parse_int_param("from_node")
 
-    # Fetch stats
     stats = await store.get_packet_stats(
         period_type=period_type,
         length=length,
@@ -264,6 +295,95 @@ async def api_stats(request):
     )
 
     return web.json_response(stats)
+
+
+@routes.get("/api/stats/count")
+async def api_stats_count(request):
+    """
+    Returns packet and packet_seen totals.
+    Behavior:
+      • If no filters → total packets ever + total seen ever
+      • If filters → apply window/channel/from/to + packet_id
+    """
+
+    # -------- Parse request parameters --------
+    packet_id_str = request.query.get("packet_id")
+    packet_id = None
+    if packet_id_str:
+        try:
+            packet_id = int(packet_id_str)
+        except ValueError:
+            return web.json_response({"error": "packet_id must be integer"}, status=400)
+
+    period_type = request.query.get("period_type")
+    length_str = request.query.get("length")
+    length = None
+    if length_str:
+        try:
+            length = int(length_str)
+        except ValueError:
+            return web.json_response({"error": "length must be integer"}, status=400)
+
+    channel = request.query.get("channel")
+
+    def parse_int(name):
+        value = request.query.get(name)
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except ValueError:
+            raise web.HTTPBadRequest(
+                text=json.dumps({"error": f"{name} must be integer"}),
+                content_type="application/json"
+            )
+
+    from_node = parse_int("from_node")
+    to_node = parse_int("to_node")
+
+    # -------- Case 1: NO FILTERS → return global totals --------
+    no_filters = (
+        period_type is None and
+        length is None and
+        channel is None and
+        from_node is None and
+        to_node is None and
+        packet_id is None
+    )
+
+    if no_filters:
+        total_packets = await store.get_total_packet_count()
+        total_seen = await store.get_total_packet_seen_count()
+        return web.json_response({
+            "total_packets": total_packets,
+            "total_seen": total_seen
+        })
+
+    # -------- Case 2: Apply filters → compute totals --------
+    total_packets = await store.get_total_packet_count(
+        period_type=period_type,
+        length=length,
+        channel=channel,
+        from_node=from_node,
+        to_node=to_node,
+    )
+
+    total_seen = await store.get_total_packet_seen_count(
+        packet_id=packet_id,
+        period_type=period_type,
+        length=length,
+        channel=channel,
+        from_node=from_node,
+        to_node=to_node,
+    )
+
+    return web.json_response({
+        "total_packets": total_packets,
+        "total_seen": total_seen
+    })
+
+
+
 
 
 @routes.get("/api/edges")

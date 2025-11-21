@@ -135,7 +135,7 @@
 {% block body %}
 <div class="container">
 
-    <h5 class="mb-3">📡 Node Details: <span id="nodeLabel"></span></h5>
+    <h5 class="mb-3">📡 Specifications: <span id="nodeLabel"></span></h5>
 
     <!-- Node Info (3 column grid) -->
     <div id="node-info" class="node-info">
@@ -289,11 +289,18 @@ async function loadNodeInfo(){
         document.getElementById("info-lat").textContent = node.last_lat ? (node.last_lat / 1e7).toFixed(6) : "—";
         document.getElementById("info-lon").textContent = node.last_long ? (node.last_long / 1e7).toFixed(6) : "—";
 
-        const last = node.last_update
-            ? new Date(node.last_update).toLocaleString([], { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" })
-            : "—";
+        let lastSeen = "—";
+        if (node.last_seen_us) {
+            lastSeen = new Date(node.last_seen_us / 1000).toLocaleString([], {
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
 
-        document.getElementById("info-last-update").textContent = last;
+        document.getElementById("info-last-update").textContent = lastSeen;
+
 
     } catch (err) {
         console.error("Failed to load node info:", err);
@@ -307,33 +314,21 @@ function nodeLink(id){
     if (id === 1)          return `<span class="to-mqtt">Direct to MQTT</span>`;
     return `<a href="/new_node/${id}" style="text-decoration:underline; color:inherit;">${nodeMap[id] || id}</a>`;
 }
-function portLabel(p, id){
+function portLabel(p){
     const names = {
-        0:"UNKNOWN APP",
-        1:"Text",
-        3:"Position",
-        4:"Node Info",
-        5:"Routing",
-        6:"Admin",
-        67:"Telemetry",
-        70:"Traceroute",
-        71:"Neighbor"
+        0: "UNKNOWN APP",
+        1: "Text",
+        3: "Position",
+        4: "Node Info",
+        5: "Routing",
+        6: "Admin",
+        67: "Telemetry",
+        70: "Traceroute",
+        71: "Neighbor"
     };
-
     const label = names[p] || "Unknown";
-
-    // Add arrow ONLY for traceroute packets
-    if (p === 70) {
-        return `
-            <span class="port-tag port-${p}">${label}</span>
-            <a href="/graph/traceroute/${id}"
-               style="color:#ccc; text-decoration:none; margin-left:6px;">⮕️</a>
-        `;
-    }
-
     return `<span class="port-tag port-${p}">${label}</span>`;
 }
-
 function formatLocalTime(us){
     return new Date(us / 1000).toLocaleString([], {
         month: "2-digit",
@@ -397,26 +392,19 @@ function ensureMapVisible(){
     });
 }
 
-// --- Position Track  ---
+// --- Position Track (last 50 position packets) ---
 async function loadTrack(){
     try {
         const url = new URL("/api/packets", window.location.origin);
         url.searchParams.set("portnum", 3);
         url.searchParams.set("from_node_id", fromNodeId);
-
-        // Last 24 hours in microseconds
-        const nowUs = Date.now() * 1000;
-        const sinceUs = nowUs - (24 * 60 * 60 * 1000 * 1000);
-
-        url.searchParams.set("since", sinceUs);
-        url.searchParams.set("limit", 50);   // large enough to capture full day
+        url.searchParams.set("limit", 50);
 
         const res = await fetch(url);
         if (!res.ok) {
             hideMap();
             return;
         }
-
 
         const data = await res.json();
         const packets = data.packets || [];
@@ -459,7 +447,7 @@ async function loadTrack(){
 
         const latlngs = points.map(p => [p.lat, p.lon]);
         const trackLine = L.polyline(latlngs, {
-            color: '#6e460b',
+            color: '#052152',
             weight: 2
         }).addTo(map);
 
@@ -555,7 +543,7 @@ async function loadPackets(){
     <td><span class="toggle-btn">▶</span> <a href="/new_packet/${pkt.id}" style="text-decoration:underline; color:inherit;">${pkt.id}</a></td>
     <td>${fromCell}</td>
     <td>${toCell}</td>
-    <td>${portLabel(pkt.portnum, pkt.id)}</td>
+    <td>${portLabel(pkt.portnum)}</td>
 </tr>
 <tr class="payload-row">
     <td colspan="5" class="payload-cell">${safePayload}</td>
