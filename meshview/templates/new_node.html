@@ -130,6 +130,17 @@
     background:#1b1e22; border-radius:8px;
     width:90%; height:85%; padding:10px;
 }
+
+/* Link next to port tag */
+.inline-link {
+    margin-left: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #9fd4ff;
+}
+.inline-link:hover {
+    color: #c7e6ff;
+}
 {% endblock %}
 
 {% block body %}
@@ -537,13 +548,34 @@ async function loadPackets(){
             drawNeighbors(pkt.from_node_id, nids);
         }
 
+        let inlineLinks = "";
+
+    if (pkt.portnum === 3 && pkt.payload) {
+        const latMatch = pkt.payload.match(/latitude_i:\s*(-?\d+)/);
+        const lonMatch = pkt.payload.match(/longitude_i:\s*(-?\d+)/);
+
+        if (latMatch && lonMatch) {
+            const lat = parseFloat(latMatch[1]) / 1e7;
+            const lon = parseFloat(lonMatch[1]) / 1e7;
+            inlineLinks += ` <a class="inline-link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">📍</a>`;
+        }
+    }
+
+    if (pkt.portnum === 70) {
+        let traceId = pkt.id;
+        const match = pkt.payload?.match(/ID:\s*(\d+)/i);
+        if (match) traceId = match[1];
+        inlineLinks += ` <a class="inline-link" href="/graph/traceroute/${traceId}" target="_blank">⮕</a>`;
+    }
+
+
         list.insertAdjacentHTML("afterbegin", `
 <tr class="packet-row">
     <td>${localTime}</td>
     <td><span class="toggle-btn">▶</span> <a href="/new_packet/${pkt.id}" style="text-decoration:underline; color:inherit;">${pkt.id}</a></td>
     <td>${fromCell}</td>
     <td>${toCell}</td>
-    <td>${portLabel(pkt.portnum)}</td>
+    <td>${portLabel(pkt.portnum)}${inlineLinks}</td>
 </tr>
 <tr class="payload-row">
     <td colspan="5" class="payload-cell">${safePayload}</td>
