@@ -93,26 +93,31 @@
 
 {% block body %}
 <div class="main-container">
-    <h2 class="main-header" data-translate-lang="mesh_stats_summary">Mesh Statistics - Summary (all available in Database)</h2>
+    <h2 class="main-header" data-translate-lang="mesh_stats_summary">
+        Mesh Statistics - Summary (all available in Database)
+    </h2>
 
+    <!-- Summary cards now fully driven by API + JS -->
     <div class="summary-container" style="display:flex; justify-content:space-between; gap:10px; margin-bottom:20px;">
         <div class="summary-card" style="flex:1;">
             <p data-translate-lang="total_nodes">Total Nodes</p>
-            <div class="summary-count">{{ "{:,}".format(total_nodes) }}</div>
+            <div class="summary-count" id="summary_nodes">0</div>
         </div>
         <div class="summary-card" style="flex:1;">
             <p data-translate-lang="total_packets">Total Packets</p>
-            <div class="summary-count">{{ "{:,}".format(total_packets) }}</div>
+            <div class="summary-count" id="summary_packets">0</div>
         </div>
         <div class="summary-card" style="flex:1;">
             <p data-translate-lang="total_packets_seen">Total Packets Seen</p>
-            <div class="summary-count">{{ "{:,}".format(total_packets_seen) }}</div>
+            <div class="summary-count" id="summary_seen">0</div>
         </div>
     </div>
 
     <!-- Daily Charts -->
     <div class="card-section">
-        <p class="section-header" data-translate-lang="packets_per_day_all">Packets per Day - All Ports (Last 14 Days)</p>
+        <p class="section-header" data-translate-lang="packets_per_day_all">
+            Packets per Day - All Ports (Last 14 Days)
+        </p>
         <div id="total_daily_all" class="total-count">Total: 0</div>
         <button class="expand-btn" data-chart="chart_daily_all" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_daily_all" data-translate-lang="export_csv">Export CSV</button>
@@ -121,7 +126,9 @@
 
     <!-- Packet Types Pie Chart with Channel Selector -->
     <div class="card-section">
-        <p class="section-header" data-translate-lang="packet_types_last_24h">Packet Types - Last 24 Hours</p>
+        <p class="section-header" data-translate-lang="packet_types_last_24h">
+            Packet Types - Last 24 Hours
+        </p>
         <select id="channelSelect">
             <option value="" data-translate-lang="all_channels">All Channels</option>
         </select>
@@ -131,7 +138,9 @@
     </div>
 
     <div class="card-section">
-        <p class="section-header" data-translate-lang="packets_per_day_text">Packets per Day - Text Messages (Port 1, Last 14 Days)</p>
+        <p class="section-header" data-translate-lang="packets_per_day_text">
+            Packets per Day - Text Messages (Port 1, Last 14 Days)
+        </p>
         <div id="total_daily_portnum_1" class="total-count">Total: 0</div>
         <button class="expand-btn" data-chart="chart_daily_portnum_1" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_daily_portnum_1" data-translate-lang="export_csv">Export CSV</button>
@@ -140,7 +149,9 @@
 
     <!-- Hourly Charts -->
     <div class="card-section">
-        <p class="section-header" data-translate-lang="packets_per_hour_all">Packets per Hour - All Ports</p>
+        <p class="section-header" data-translate-lang="packets_per_hour_all">
+            Packets per Hour - All Ports
+        </p>
         <div id="total_hourly_all" class="total-count">Total: 0</div>
         <button class="expand-btn" data-chart="chart_hourly_all" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_hourly_all" data-translate-lang="export_csv">Export CSV</button>
@@ -148,7 +159,9 @@
     </div>
 
     <div class="card-section">
-        <p class="section-header" data-translate-lang="packets_per_hour_text">Packets per Hour - Text Messages (Port 1)</p>
+        <p class="section-header" data-translate-lang="packets_per_hour_text">
+            Packets per Hour - Text Messages (Port 1)
+        </p>
         <div id="total_portnum_1" class="total-count">Total: 0</div>
         <button class="expand-btn" data-chart="chart_portnum_1" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_portnum_1" data-translate-lang="export_csv">Export CSV</button>
@@ -214,17 +227,123 @@ async function fetchStats(period_type,length,portnum=null,channel=null){
     }catch{return [];}
 }
 
-async function fetchNodes(){ try{ const res=await fetch("/api/nodes"); const json=await res.json(); return json.nodes||[];}catch{return [];} }
-async function fetchChannels(){ try{ const res = await fetch("/api/channels"); const json = await res.json(); return json.channels || [];}catch{return [];} }
+async function fetchNodes(){
+    try{
+        const res=await fetch("/api/nodes");
+        const json=await res.json();
+        return json.nodes||[];
+    }catch{
+        return [];
+    }
+}
 
-function processCountField(nodes,field){ const counts={}; nodes.forEach(n=>{ const key=n[field]||"Unknown"; counts[key]=(counts[key]||0)+1; }); return Object.entries(counts).map(([name,value])=>({name,value})); }
-function updateTotalCount(domId,data){ const el=document.getElementById(domId); if(!el||!data.length) return; const total=data.reduce((acc,d)=>acc+(d.count??d.packet_count??0),0); el.textContent=`Total: ${total.toLocaleString()}`; }
-function prepareTopN(data,n=20){ data.sort((a,b)=>b.value-a.value); let top=data.slice(0,n); if(data.length>n){ const otherValue=data.slice(n).reduce((sum,item)=>sum+item.value,0); top.push({name:"Other", value:otherValue}); } return top; }
+async function fetchChannels(){
+    try{
+        const res = await fetch("/api/channels");
+        const json = await res.json();
+        return json.channels || [];
+    }catch{
+        return [];
+    }
+}
+
+function processCountField(nodes,field){
+    const counts={};
+    nodes.forEach(n=>{
+        const key=n[field]||"Unknown";
+        counts[key]=(counts[key]||0)+1;
+    });
+    return Object.entries(counts).map(([name,value])=>({name,value}));
+}
+
+function updateTotalCount(domId,data){
+    const el=document.getElementById(domId);
+    if(!el||!data.length) return;
+    const total=data.reduce((acc,d)=>acc+(d.count??d.packet_count??0),0);
+    el.textContent=`Total: ${total.toLocaleString()}`;
+}
+
+function prepareTopN(data,n=20){
+    data.sort((a,b)=>b.value-a.value);
+    let top=data.slice(0,n);
+    if(data.length>n){
+        const otherValue=data.slice(n).reduce((sum,item)=>sum+item.value,0);
+        top.push({name:"Other", value:otherValue});
+    }
+    return top;
+}
 
 // --- Chart Rendering ---
-function renderChart(domId,data,type,color){ const el=document.getElementById(domId); if(!el) return; const chart=echarts.init(el); const periods=data.map(d=>(d.period??d.period===0)?d.period.toString():''); const counts=data.map(d=>d.count??d.packet_count??0); chart.setOption({backgroundColor:'#272b2f', tooltip:{trigger:'axis'}, grid:{left:'6%', right:'6%', bottom:'18%'}, xAxis:{type:'category', data:periods, axisLine:{lineStyle:{color:'#aaa'}}, axisLabel:{rotate:45,color:'#ccc'}}, yAxis:{type:'value', axisLine:{lineStyle:{color:'#aaa'}}, axisLabel:{color:'#ccc'}}, series:[{data:counts,type:type,smooth:type==='line',itemStyle:{color:color}, areaStyle:type==='line'?{}:undefined}]}); return chart; }
+function renderChart(domId,data,type,color){
+    const el=document.getElementById(domId);
+    if(!el) return;
+    const chart=echarts.init(el);
+    const periods=data.map(d=>(d.period??d.period===0)?d.period.toString():'');
+    const counts=data.map(d=>d.count??d.packet_count??0);
+    chart.setOption({
+        backgroundColor:'#272b2f',
+        tooltip:{trigger:'axis'},
+        grid:{left:'6%', right:'6%', bottom:'18%'},
+        xAxis:{
+            type:'category',
+            data:periods,
+            axisLine:{lineStyle:{color:'#aaa'}},
+            axisLabel:{rotate:45,color:'#ccc'}
+        },
+        yAxis:{
+            type:'value',
+            axisLine:{lineStyle:{color:'#aaa'}},
+            axisLabel:{color:'#ccc'}
+        },
+        series:[{
+            data:counts,
+            type:type,
+            smooth:type==='line',
+            itemStyle:{color:color},
+            areaStyle:type==='line'?{}:undefined
+        }]
+    });
+    return chart;
+}
 
-function renderPieChart(elId,data,name){ const el=document.getElementById(elId); if(!el) return; const chart=echarts.init(el); const top20=prepareTopN(data,20); chart.setOption({backgroundColor:"#272b2f", tooltip:{trigger:"item", formatter: params=>`${params.name}: ${Math.round(params.percent)}% (${params.value})`}, series:[{name:name, type:"pie", radius:["30%","70%"], center:["50%","50%"], avoidLabelOverlap:true, itemStyle:{borderRadius:6,borderColor:"#272b2f",borderWidth:2}, label:{show:true,formatter:"{b}\n{d}%", color:"#ccc", fontSize:10}, labelLine:{show:true,length:10,length2:6}, data:top20}]}); return chart; }
+function renderPieChart(elId,data,name){
+    const el=document.getElementById(elId);
+    if(!el) return;
+    const chart=echarts.init(el);
+    const top20=prepareTopN(data,20);
+    chart.setOption({
+        backgroundColor:"#272b2f",
+        tooltip:{
+            trigger:"item",
+            formatter: params=>`${params.name}: ${Math.round(params.percent)}% (${params.value})`
+        },
+        series:[{
+            name:name,
+            type:"pie",
+            radius:["30%","70%"],
+            center:["50%","50%"],
+            avoidLabelOverlap:true,
+            itemStyle:{
+                borderRadius:6,
+                borderColor:"#272b2f",
+                borderWidth:2
+            },
+            label:{
+                show:true,
+                formatter:"{b}\n{d}%",
+                color:"#ccc",
+                fontSize:10
+            },
+            labelLine:{
+                show:true,
+                length:10,
+                length2:6
+            },
+            data:top20
+        }]
+    });
+    return chart;
+}
 
 // --- Packet Type Pie Chart ---
 async function fetchPacketTypeBreakdown(channel=null) {
@@ -234,8 +353,10 @@ async function fetchPacketTypeBreakdown(channel=null) {
         const total = (data || []).reduce((sum,d)=>sum+(d.count??d.packet_count??0),0);
         return {portnum: pn, count: total};
     });
+
     const allData = await fetchStats('hour',24,null,channel);
     const totalAll = allData.reduce((sum,d)=>sum+(d.count??d.packet_count??0),0);
+
     const results = await Promise.all(requests);
     const trackedTotal = results.reduce((sum,d)=>sum+d.count,0);
     const other = Math.max(totalAll - trackedTotal,0);
@@ -250,40 +371,102 @@ let chartHwModel, chartRole, chartChannel;
 let chartPacketTypes;
 
 async function init(){
+    // Channel selector
     const channels = await fetchChannels();
     const select = document.getElementById("channelSelect");
-    channels.forEach(ch=>{ const opt = document.createElement("option"); opt.value = ch; opt.textContent = ch; select.appendChild(opt); });
+    channels.forEach(ch=>{
+        const opt = document.createElement("option");
+        opt.value = ch;
+        opt.textContent = ch;
+        select.appendChild(opt);
+    });
 
+    // Daily all ports
     const dailyAllData=await fetchStats('day',14);
     updateTotalCount('total_daily_all',dailyAllData);
     chartDailyAll=renderChart('chart_daily_all',dailyAllData,'line','#66bb6a');
 
+    // Daily port 1
     const dailyPort1Data=await fetchStats('day',14,1);
     updateTotalCount('total_daily_portnum_1',dailyPort1Data);
     chartDailyPortnum1=renderChart('chart_daily_portnum_1',dailyPort1Data,'bar','#ff5722');
 
+    // Hourly all ports
     const hourlyAllData=await fetchStats('hour',24);
     updateTotalCount('total_hourly_all',hourlyAllData);
     chartHourlyAll=renderChart('chart_hourly_all',hourlyAllData,'bar','#03dac6');
 
+    // Hourly per port
     const portnums=[1,3,4,67,70,71];
     const colors=['#ff5722','#2196f3','#9c27b0','#ffeb3b','#795548','#4caf50'];
     const domIds=['chart_portnum_1','chart_portnum_3','chart_portnum_4','chart_portnum_67','chart_portnum_70','chart_portnum_71'];
     const totalIds=['total_portnum_1','total_portnum_3','total_portnum_4','total_portnum_67','total_portnum_70','total_portnum_71'];
-    const allData=await Promise.all(portnums.map(pn=>fetchStats('hour',24,pn)));
-    for(let i=0;i<portnums.length;i++){ updateTotalCount(totalIds[i],allData[i]); window['chartPortnum'+portnums[i]]=renderChart(domIds[i],allData[i],'bar',colors[i]); }
 
+    const allData=await Promise.all(portnums.map(pn=>fetchStats('hour',24,pn)));
+    for(let i=0;i<portnums.length;i++){
+        updateTotalCount(totalIds[i],allData[i]);
+        window['chartPortnum'+portnums[i]]=renderChart(domIds[i],allData[i],'bar',colors[i]);
+    }
+
+    // Nodes for breakdown + summary node count
     const nodes=await fetchNodes();
     chartHwModel=renderPieChart("chart_hw_model",processCountField(nodes,"hw_model"),"Hardware");
     chartRole=renderPieChart("chart_role",processCountField(nodes,"role"),"Role");
     chartChannel=renderPieChart("chart_channel",processCountField(nodes,"channel"),"Channel");
 
+    const summaryNodesEl = document.getElementById("summary_nodes");
+    if (summaryNodesEl) {
+        summaryNodesEl.textContent = nodes.length.toLocaleString();
+    }
+
+    // Packet types pie
     const packetTypesData = await fetchPacketTypeBreakdown();
-    const formatted = packetTypesData.filter(d=>d.count>0).map(d=>({ name: d.portnum==="other" ? "Other" : (PORTNUM_LABELS[d.portnum]||`Port ${d.portnum}`), value: d.count }));
+    const formatted = packetTypesData
+        .filter(d=>d.count>0)
+        .map(d=>({
+            name: d.portnum==="other"
+                ? "Other"
+                : (PORTNUM_LABELS[d.portnum]||`Port ${d.portnum}`),
+            value: d.count
+        }));
     chartPacketTypes = renderPieChart("chart_packet_types",formatted,"Packet Types (Last 24h)");
+
+    // Total packet + total seen from /api/stats/count
+    try {
+        const countsRes = await fetch("/api/stats/count");
+        if (countsRes.ok) {
+            const countsJson = await countsRes.json();
+            const elPackets = document.getElementById("summary_packets");
+            const elSeen = document.getElementById("summary_seen");
+            if (elPackets) {
+                elPackets.textContent = (countsJson.total_packets || 0).toLocaleString();
+            }
+            if (elSeen) {
+                elSeen.textContent = (countsJson.total_seen || 0).toLocaleString();
+            }
+        }
+    } catch (err) {
+        console.error("Failed to load /api/stats/count:", err);
+    }
 }
 
-window.addEventListener('resize',()=>{ [chartHourlyAll,chartPortnum1,chartPortnum3,chartPortnum4,chartPortnum67,chartPortnum70,chartPortnum71, chartDailyAll,chartDailyPortnum1,chartHwModel,chartRole,chartChannel,chartPacketTypes].forEach(c=>c?.resize()); });
+window.addEventListener('resize',()=>{
+    [
+        chartHourlyAll,
+        chartPortnum1,
+        chartPortnum3,
+        chartPortnum4,
+        chartPortnum67,
+        chartPortnum70,
+        chartPortnum71,
+        chartDailyAll,
+        chartDailyPortnum1,
+        chartHwModel,
+        chartRole,
+        chartChannel,
+        chartPacketTypes
+    ].forEach(c=>c?.resize());
+});
 
 const modal=document.getElementById("chartModal");
 const modalChartEl=document.getElementById("modalChart");
@@ -345,31 +528,51 @@ document.querySelectorAll(".export-btn").forEach(btn=>{
 document.getElementById("channelSelect").addEventListener("change", async (e)=>{
     const channel = e.target.value;
     const packetTypesData = await fetchPacketTypeBreakdown(channel);
-    const formatted = packetTypesData.filter(d=>d.count>0).map(d=>({ name: d.portnum==="other" ? "Other" : (PORTNUM_LABELS[d.portnum]||`Port ${d.portnum}`), value: d.count }));
+    const formatted = packetTypesData
+        .filter(d=>d.count>0)
+        .map(d=>({
+            name: d.portnum==="other"
+                ? "Other"
+                : (PORTNUM_LABELS[d.portnum]||`Port ${d.portnum}`),
+            value: d.count
+        }));
     chartPacketTypes?.dispose();
     chartPacketTypes = renderPieChart("chart_packet_types",formatted,"Packet Types (Last 24h)");
 });
 
+// Kick everything off
 init();
 
-// --- Translation Loader ---
-async function loadTranslations() {
-    const langCode = "{{ site_config.get('site', {}).get('language','en') }}";
+// --- Load config and translations ---
+async function loadConfigAndTranslations() {
+    let langCode = "en";
     try {
-        const res = await fetch(`/api/lang?lang=${langCode}&section=stats`);
-        window.statsTranslations = await res.json();
-    } catch(err){
+        const resConfig = await fetch("/api/config");
+        const cfg = await resConfig.json();
+        window.site_config = cfg;
+        langCode = cfg?.site?.language || "en";
+    } catch(err) {
+        console.error("Failed to load /api/config:", err);
+        window.site_config = { site: { language: "en" } };
+    }
+
+    try {
+        const resLang = await fetch(`/api/lang?lang=${langCode}&section=stats`);
+        window.statsTranslations = await resLang.json();
+    } catch(err) {
         console.error("Stats translation load failed:", err);
         window.statsTranslations = {};
     }
-}
-function applyTranslations() {
+
+    // Apply translations
     const t = window.statsTranslations || {};
     document.querySelectorAll("[data-translate-lang]").forEach(el=>{
         const key = el.getAttribute("data-translate-lang");
         if(t[key]) el.textContent = t[key];
     });
 }
-loadTranslations().then(applyTranslations);
+
+// Call after init
+loadConfigAndTranslations();
 </script>
 {% endblock %}

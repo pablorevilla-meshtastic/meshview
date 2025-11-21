@@ -1,0 +1,37 @@
+diff --git a/sample.config.ini b/sample.config.ini
+index 0e64980..494685c 100644
+--- a/sample.config.ini
++++ b/sample.config.ini
+@@ -3,7 +3,7 @@
+ # -------------------------
+ [server]
+ # The address to bind the server to. Use * to listen on all interfaces.
+-bind = *
++bind = 0.0.0.0
+ 
+ # Port to run the web server on.
+ port = 8081
+@@ -64,7 +64,7 @@ net_tag = #BayMeshNet
+ # -------------------------
+ [mqtt]
+ # MQTT server hostname or IP.
+-server = mqtt.bayme.sh
++server = mqtt.meshtastic.org
+ 
+ # Topics to subscribe to (as JSON-like list, but still a string).
+ topics = ["msh/US/bayarea/#", "msh/US/CA/mrymesh/#", "msh/US/CA/sacvalley"]
+@@ -82,7 +82,7 @@ password = large4cats
+ # -------------------------
+ [database]
+ # SQLAlchemy connection string. This one uses SQLite with asyncio support.
+-connection_string = sqlite+aiosqlite:///packets.db
++connection_string = sqlite+aiosqlite:////var/lib/meshview/packets.db
+ 
+ 
+ # -------------------------
+@@ -110,4 +110,4 @@ vacuum = False
+ # Set to True to enable, False to disable (default: False)
+ access_log = False
+ # Database cleanup logfile
+-db_cleanup_logfile = dbcleanup.log
++db_cleanup_logfile = /var/log/meshview/dbcleanup.log

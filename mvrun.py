@@ -59,14 +59,11 @@ def signal_handler(sig, frame):
 
 
 # Run python in subprocess
-def run_script(script_name, pid_file, *args):
+def run_script(python_executable, script_name, pid_file, *args):
     process = None
     try:
-        # Path to the Python interpreter inside the virtual environment
-        python_executable = './env/bin/python'
-
         # Combine the script name and arguments
-        command = [python_executable, script_name] + list(args)
+        command = [python_executable, '-u', script_name] + list(args)
 
         # Run the subprocess (output goes directly to console for real-time viewing)
         process = subprocess.Popen(command)
@@ -101,11 +98,13 @@ def main():
 
     # Add --config runtime argument
     parser.add_argument('--config', help="Path to the configuration file.", default='config.ini')
+    parser.add_argument('--pid_dir', help="PID files path.", default='.')
+    parser.add_argument('--py_exec', help="Path to the Python executable.", default=sys.executable)
     args = parser.parse_args()
 
     # PID file paths
-    db_pid_file = 'meshview-db.pid'
-    web_pid_file = 'meshview-web.pid'
+    db_pid_file = os.path.join(args.pid_dir, 'meshview-db.pid')
+    web_pid_file = os.path.join(args.pid_dir, 'meshview-web.pid')
 
     # Track PID files globally for cleanup
     pid_files.append(db_pid_file)
@@ -113,12 +112,12 @@ def main():
 
     # Database Thread
     dbthrd = threading.Thread(
-        target=run_script, args=('startdb.py', db_pid_file, '--config', args.config)
+        target=run_script, args=(args.py_exec, 'startdb.py', db_pid_file, '--config', args.config)
     )
 
     # Web server thread
     webthrd = threading.Thread(
-        target=run_script, args=('main.py', web_pid_file, '--config', args.config)
+        target=run_script, args=(args.py_exec, 'main.py', web_pid_file, '--config', args.config)
     )
 
     # Start Meshview subprocess threads

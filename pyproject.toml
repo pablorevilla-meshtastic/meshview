@@ -1,3 +1,49 @@
+[project]
+name = "meshview"
+version = "3.0.0"
+description = "Real-time monitoring and diagnostic tool for the Meshtastic mesh network"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # Core async + networking
+    "aiohttp>=3.11.12,<4.0.0",
+    "aiohttp-sse",
+    "aiodns>=3.2.0,<4.0.0",
+    "aiomqtt>=2.3.0,<3.0.0",
+    "asyncpg>=0.30.0,<0.31.0",
+    "aiosqlite>=0.21.0,<0.22.0",
+    # Database + ORM
+    "sqlalchemy[asyncio]>=2.0.38,<3.0.0",
+    "alembic>=1.14.0,<2.0.0",
+    # Serialization / security
+    "protobuf>=5.29.3,<6.0.0",
+    "cryptography>=44.0.1,<45.0.0",
+    # Templates
+    "Jinja2>=3.1.5,<4.0.0",
+    "MarkupSafe>=3.0.2,<4.0.0",
+    # Graphs / diagrams
+    "pydot>=3.0.4,<4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Data science stack
+    "numpy>=2.2.3,<3.0.0",
+    "pandas>=2.2.3,<3.0.0",
+    "matplotlib>=3.10.0,<4.0.0",
+    "seaborn>=0.13.2,<1.0.0",
+    "plotly>=6.0.0,<7.0.0",
+    # Image support
+    "pillow>=11.1.0,<12.0.0",
+    # Debugging / profiling
+    "psutil>=7.0.0,<8.0.0",
+    "objgraph>=3.6.2,<4.0.0",
+    # Testing
+    "pytest>=8.3.4,<9.0.0",
+    "pytest-aiohttp>=1.0.5,<2.0.0",
+    "pytest-asyncio>=0.24.0,<1.0.0",
+]
+
 [tool.ruff]
 # Linting
 target-version = "py313"

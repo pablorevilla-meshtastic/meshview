@@ -4,6 +4,31 @@
 
 The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
 
+### Version 3.0.0 update - November 2025
+
+**Major Infrastructure Improvements:**
+
+* **Database Migrations**: Alembic integration for safe schema upgrades and database versioning
+* **Automated Backups**: Independent database backup system with gzip compression (separate from cleanup)
+* **Development Tools**: Quick setup script (`setup-dev.sh`) with pre-commit hooks for code quality
+* **Docker Support**: Pre-built containers now available on GitHub Container Registry with automatic builds - ogarcia 
+
+**New Features:**
+
+* **Traceroute Return Path**: Log and display return path data for traceroute packets - jschrempp 
+* **Microsecond Timestamps**: Added `import_time_us` columns for higher precision time tracking
+
+**Technical Improvements:**
+
+* Migration from manual SQL to Alembic-managed schema
+* Container images use `uv` for faster dependency installation
+* Python 3.13 support with slim Debian-based images
+* Documentation collection in `docs/` directory
+* API routes moved to separate modules for better organization
+* /version and /health endpoints added for monitoring
+
+See [README-Docker.md](README-Docker.md) for container deployment and [docs/](docs/) for technical documentation.
+
 ### Version 2.0.7 update - September 2025
 * New database maintenance capability to automatically keep a specific number of days of data.
 * Added configuration for update intervals for both the Live Map and the Firehose pages.
@@ -61,20 +86,42 @@ Samples of currently running instances:
 
 ## Installing
 
-Requires **`python3.11`** or above.
+### Using Docker (Recommended)
+
+The easiest way to run MeshView is using Docker. Pre-built images are available from GitHub Container Registry.
+
+See **[README-Docker.md](README-Docker.md)** for complete Docker installation and usage instructions.
+
+### Manual Installation
+
+Requires **`python3.13`** or above.
 
 Clone the repo from GitHub:
 
 ```bash
 git clone https://github.com/pablorevilla-meshtastic/meshview.git
-```
-
-```bash
 cd meshview
 ```
+
+#### Quick Setup (Recommended)
+
+Run the development setup script:
+
+```bash
+./setup-dev.sh
+```
+
+This will:
+- Create Python virtual environment
+- Install all requirements
+- Install development tools (pre-commit, pytest)
+- Set up pre-commit hooks for code formatting
+- Create config.ini from sample
+
+#### Manual Setup
+
 Create a Python virtual environment:
 
-from the meshview directory...
 ```bash
 python3 -m venv env
 ```
@@ -222,6 +269,8 @@ vacuum = False
 # Application logs (errors, startup messages, etc.) are unaffected
 # Set to True to enable, False to disable (default: False)
 access_log = False
+# Database cleanup logfile location
+db_cleanup_logfile = dbcleanup.log
 ```
 
 ---
@@ -255,10 +304,27 @@ Open in your browser: http://localhost:8081/
 ## Running Meshview with `mvrun.py`
 
 - `mvrun.py` starts both `startdb.py` and `main.py` in separate threads and merges the output.
-- It accepts the `--config` argument like the others.
+- It accepts several command-line arguments for flexible deployment.
 
 ```bash
 ./env/bin/python mvrun.py
+```
+
+**Command-line options:**
+- `--config CONFIG` - Path to the configuration file (default: `config.ini`)
+- `--pid_dir PID_DIR` - Directory for PID files (default: `.`)
+- `--py_exec PY_EXEC` - Path to the Python executable (default: `./env/bin/python`)
+
+**Examples:**
+```bash
+# Use a specific config file
+./env/bin/python mvrun.py --config /etc/meshview/config.ini
+
+# Store PID files in a specific directory
+./env/bin/python mvrun.py --pid_dir /var/run/meshview
+
+# Use a different Python executable
+./env/bin/python mvrun.py --py_exec /usr/bin/python3
 ```
 
 ---
@@ -366,6 +432,15 @@ hour = 2
 minute = 00
 # Run VACUUM after cleanup
 vacuum = False
+
+# -------------------------
+# Logging Configuration
+# -------------------------
+[logging]
+# Enable or disable HTTP access logs from the web server
+access_log = False
+# Database cleanup logfile location
+db_cleanup_logfile = dbcleanup.log
 ```
 Once changes are done you need to restart the script for changes to load.
 
@@ -414,3 +489,20 @@ Add schedule to the bottom of the file (modify /path/to/file/ to the correct pat
 ```
 
 Check the log file to see it the script run at the specific time.
+
+---
+
+## Testing
+
+MeshView includes a test suite using pytest. For detailed testing documentation, see [README-testing.md](README-testing.md).
+
+Quick start:
+```bash
+./env/bin/pytest tests/test_api_simple.py -v
+```
+
+---
+
+## Technical Documentation
+
+For more detailed technical documentation including database migrations, architecture details, and advanced topics, see the [docs/](docs/) directory.

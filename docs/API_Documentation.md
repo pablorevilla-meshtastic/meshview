@@ -111,12 +111,29 @@ Returns a list of packets with optional filters.
 
 ---
 
-### Notes
-- All timestamps (`import_time`, `last_seen`) are returned in ISO 8601 format.
-- `portnum` is an integer representing the packet type.
-- `payload` is always a UTF-8 decoded string.
+---
 
-## 4 Statistics API: GET `/api/stats`
+## 4. Channels API
+
+### GET `/api/channels`
+Returns a list of channels seen in a given time period.
+
+**Query Parameters**
+- `period_type` (optional, string): Time granularity (`hour` or `day`). Default: `hour`.
+- `length` (optional, int): Number of periods to look back. Default: `24`.
+
+**Response Example**
+```json
+{
+  "channels": ["LongFast", "MediumFast", "ShortFast"]
+}
+```
+
+---
+
+## 5. Statistics API
+
+### GET `/api/stats`
 
 Retrieve packet statistics aggregated by time periods, with optional filtering.
 
@@ -157,3 +174,171 @@ Retrieve packet statistics aggregated by time periods, with optional filtering.
     // more entries...
   ]
 }
+```
+
+---
+
+## 6. Edges API
+
+### GET `/api/edges`
+Returns network edges (connections between nodes) based on traceroutes and neighbor info.
+
+**Query Parameters**
+- `type` (optional, string): Filter by edge type (`traceroute` or `neighbor`). If omitted, returns both types.
+
+**Response Example**
+```json
+{
+  "edges": [
+    {
+      "from": 12345678,
+      "to": 87654321,
+      "type": "traceroute"
+    },
+    {
+      "from": 11111111,
+      "to": 22222222,
+      "type": "neighbor"
+    }
+  ]
+}
+```
+
+---
+
+## 7. Configuration API
+
+### GET `/api/config`
+Returns the current site configuration (safe subset exposed to clients).
+
+**Response Example**
+```json
+{
+  "site": {
+    "domain": "meshview.example.com",
+    "language": "en",
+    "title": "Bay Area Mesh",
+    "message": "Real time data from around the bay area",
+    "starting": "/chat",
+    "nodes": "true",
+    "conversations": "true",
+    "everything": "true",
+    "graphs": "true",
+    "stats": "true",
+    "net": "true",
+    "map": "true",
+    "top": "true",
+    "map_top_left_lat": 39.0,
+    "map_top_left_lon": -123.0,
+    "map_bottom_right_lat": 36.0,
+    "map_bottom_right_lon": -121.0,
+    "map_interval": 3,
+    "firehose_interval": 3,
+    "weekly_net_message": "Weekly Mesh check-in message.",
+    "net_tag": "#BayMeshNet",
+    "version": "2.0.8 ~ 10-22-25"
+  },
+  "mqtt": {
+    "server": "mqtt.bayme.sh",
+    "topics": ["msh/US/bayarea/#"]
+  },
+  "cleanup": {
+    "enabled": "false",
+    "days_to_keep": "14",
+    "hour": "2",
+    "minute": "0",
+    "vacuum": "false"
+  }
+}
+```
+
+---
+
+## 8. Language/Translations API
+
+### GET `/api/lang`
+Returns translation strings for the UI.
+
+**Query Parameters**
+- `lang` (optional, string): Language code (e.g., `en`, `es`). Defaults to site language setting.
+- `section` (optional, string): Specific section to retrieve translations for.
+
+**Response Example (full)**
+```json
+{
+  "chat": {
+    "title": "Chat",
+    "send": "Send"
+  },
+  "map": {
+    "title": "Map",
+    "zoom_in": "Zoom In"
+  }
+}
+```
+
+**Response Example (section-specific)**
+Request: `/api/lang?section=chat`
+```json
+{
+  "title": "Chat",
+  "send": "Send"
+}
+```
+
+---
+
+## 9. Health Check API
+
+### GET `/health`
+Health check endpoint for monitoring, load balancers, and orchestration systems.
+
+**Response Example (Healthy)**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-11-03T14:30:00.123456Z",
+  "version": "3.0.0",
+  "git_revision": "6416978",
+  "database": "connected",
+  "database_size": "853.03 MB",
+  "database_size_bytes": 894468096
+}
+```
+
+**Response Example (Unhealthy)**
+Status Code: `503 Service Unavailable`
+```json
+{
+  "status": "unhealthy",
+  "timestamp": "2025-11-03T14:30:00.123456Z",
+  "version": "2.0.8",
+  "git_revision": "6416978",
+  "database": "disconnected"
+}
+```
+
+---
+
+## 10. Version API
+
+### GET `/version`
+Returns detailed version information including semver, release date, and git revision.
+
+**Response Example**
+```json
+{
+  "version": "2.0.8",
+  "release_date": "2025-10-22",
+  "git_revision": "6416978a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q",
+  "git_revision_short": "6416978"
+}
+```
+
+---
+
+## Notes
+- All timestamps (`import_time`, `last_seen`) are returned in ISO 8601 format.
+- `portnum` is an integer representing the packet type.
+- `payload` is always a UTF-8 decoded string.
+- Node IDs are integers (e.g., `12345678`).

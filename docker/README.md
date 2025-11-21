@@ -1,44 +1,36 @@
 # MeshView Docker Container
 
-This Dockerfile builds a containerized version of the [MeshView](https://github.com/pablorevilla-meshtastic/meshview) application. It uses a lightweight Python environment and sets up the required virtual environment as expected by the application.
+> **Note:** This directory contains legacy Docker build files.
+>
+> **For current Docker usage instructions, please see [README-Docker.md](../README-Docker.md) in the project root.**
 
-## Image Details
+## Current Approach
 
-- **Base Image**: `python:3.12-slim`
-- **Working Directory**: `/app`
-- **Python Virtual Environment**: `/app/env`
+Pre-built container images are automatically built and published to GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/pablorevilla-meshtastic/meshview:latest
+```
+
+See **[README-Docker.md](../README-Docker.md)** for:
+- Quick start instructions
+- Volume mount configuration
+- Docker Compose examples
+- Backup configuration
+- Troubleshooting
+
+## Legacy Build (Not Recommended)
+
+If you need to build your own image for development:
+
+```bash
+# From project root
+docker build -f Containerfile -t meshview:local .
+```
+
+The current Containerfile uses:
+- **Base Image**: `python:3.13-slim` (Debian-based)
+- **Build tool**: `uv` for fast dependency installation
+- **User**: Non-root user `app` (UID 10001)
 - **Exposed Port**: `8081`
-
-## Build Instructions
-
-Build the Docker image:
-
-```bash
-docker build -t meshview-docker .
-```
-
-## Run Instructions
-
-Run the container:
-
-```bash
-docker run -d --name meshview-docker -p 8081:8081 meshview-docker
-```
-
-This maps container port `8081` to your host. The application runs via:
-
-```bash
-/app/env/bin/python /app/mvrun.py
-```
-
-## Web Interface
-
-Once the container is running, you can access the MeshView web interface by visiting:
-
-http://localhost:8081
-
-If running on a remote server, replace `localhost` with the host's IP or domain name:
-
-http://<host>:8081
-
-Ensure that port `8081` is open and not blocked by a firewall or security group.
+- **Volumes**: `/etc/meshview`, `/var/lib/meshview`, `/var/log/meshview`
