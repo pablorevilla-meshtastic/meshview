@@ -193,6 +193,7 @@ async def index(request):
     starting_url = CONFIG["site"].get("starting", "/map")  # default to /map if not set
     raise web.HTTPFound(location=starting_url)
 
+
 @routes.get("/net")
 async def net(request):
     return web.Response(
@@ -200,21 +201,21 @@ async def net(request):
         content_type="text/html",
     )
 
+
 @routes.get("/map")
 async def map(request):
     template = env.get_template("map.html")
-    return web.Response(
-        text=template.render(),
-        content_type="text/html"
-    )
+    return web.Response(text=template.render(), content_type="text/html")
+
 
 @routes.get("/nodelist")
 async def nodelist(request):
-        template = env.get_template("nodelist.html")
-        return web.Response(
-            text=template.render(),
-            content_type="text/html",
-        )
+    template = env.get_template("nodelist.html")
+    return web.Response(
+        text=template.render(),
+        content_type="text/html",
+    )
+
 
 @routes.get("/firehose")
 async def firehose(request):
@@ -223,21 +224,24 @@ async def firehose(request):
         content_type="text/html",
     )
 
+
 @routes.get("/chat")
 async def chat(request):
-        template = env.get_template("chat.html")
-        return web.Response(
-            text=template.render(),
-            content_type="text/html",
-        )
+    template = env.get_template("chat.html")
+    return web.Response(
+        text=template.render(),
+        content_type="text/html",
+    )
+
 
 @routes.get("/new_packet/{packet_id}")
 async def new_packet(request):
-        template = env.get_template("new_packet.html")
-        return web.Response(
-            text=template.render(),
-            content_type="text/html",
-        )
+    template = env.get_template("new_packet.html")
+    return web.Response(
+        text=template.render(),
+        content_type="text/html",
+    )
+
 
 @routes.get("/new_node/{from_node_id}")
 async def firehose_node(request):
@@ -247,6 +251,7 @@ async def firehose_node(request):
         content_type="text/html",
     )
 
+
 @routes.get("/nodegraph")
 async def nodegraph(request):
     template = env.get_template("nodegraph.html")
@@ -255,6 +260,7 @@ async def nodegraph(request):
         content_type="text/html",
     )
 
+
 @routes.get("/top")
 async def top(request):
     template = env.get_template("top.html")
@@ -262,6 +268,7 @@ async def top(request):
         text=template.render(),
         content_type="text/html",
     )
+
 
 # Keep !!
 @routes.get("/graph/traceroute/{packet_id}")
@@ -370,6 +377,7 @@ async def graph_traceroute(request):
         content_type="image/svg+xml",
     )
 
+
 @routes.get("/stats")
 async def stats(request):
     try:
@@ -391,6 +399,7 @@ async def stats(request):
             status=500,
             content_type="text/plain",
         )
+
 
 '''
 @routes.get("/top")
@@ -469,6 +478,7 @@ async def top(request):
         )
         return web.Response(text=rendered, status=500, content_type="text/html")
 '''
+
 
 async def run_server():
     # Wait for database migrations to complete before starting web server

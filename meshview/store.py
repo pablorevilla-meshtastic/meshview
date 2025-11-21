@@ -24,7 +24,9 @@ async def get_fuzzy_nodes(query):
         return result.scalars()
 
 
-async def get_packets(node_id=None, portnum=None, after=None, before=None, limit=None, packet_id=None):
+async def get_packets(
+    node_id=None, portnum=None, after=None, before=None, limit=None, packet_id=None
+):
     async with database.async_session() as session:
         # --- Fast path: fetch by packet_id (uses primary key lookup) ---
         if packet_id is not None:
@@ -53,7 +55,6 @@ async def get_packets(node_id=None, portnum=None, after=None, before=None, limit
         return packets
 
 
-
 async def get_packets_from(node_id=None, portnum=None, since=None, limit=500):
     async with database.async_session() as session:
         q = select(Packet)
@@ -73,7 +74,6 @@ async def get_packet(packet_id):
         q = select(Packet).where(Packet.id == packet_id)
         result = await session.execute(q)
         return result.scalar_one_or_none()
-
 
 
 async def get_packets_seen(packet_id):
@@ -373,11 +373,11 @@ async def get_total_packet_count(
 
     # CASE 1: no filters -> count everything
     if (
-        period_type is None and
-        length is None and
-        channel is None and
-        from_node is None and
-        to_node is None
+        period_type is None
+        and length is None
+        and channel is None
+        and from_node is None
+        and to_node is None
     ):
         async with database.async_session() as session:
             q = select(func.count(Packet.id))
@@ -431,19 +431,17 @@ async def get_total_packet_seen_count(
     # SPECIAL CASE: direct packet_id lookup
     if packet_id is not None:
         async with database.async_session() as session:
-            q = select(func.count(PacketSeen.packet_id)).where(
-                PacketSeen.packet_id == packet_id
-            )
+            q = select(func.count(PacketSeen.packet_id)).where(PacketSeen.packet_id == packet_id)
             res = await session.execute(q)
             return res.scalar() or 0
 
     # No filters -> return ALL seen entries
     if (
-        period_type is None and
-        length is None and
-        channel is None and
-        from_node is None and
-        to_node is None
+        period_type is None
+        and length is None
+        and channel is None
+        and from_node is None
+        and to_node is None
     ):
         async with database.async_session() as session:
             q = select(func.count(PacketSeen.packet_id))
