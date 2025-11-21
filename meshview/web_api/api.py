@@ -326,7 +326,7 @@ async def api_stats_count(request):
 
     channel = request.query.get("channel")
 
-    def parse_int(name, request):
+    def parse_int(name):
         value = request.query.get(name)
         if value is None:
             return None
