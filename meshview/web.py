@@ -269,6 +269,14 @@ async def top(request):
         content_type="text/html",
     )
 
+@routes.get("/stats")
+async def stats(request):
+    template = env.get_template("stats.html")
+    return web.Response(
+        text=template.render(),
+        content_type="text/html",
+    )
+
 
 # Keep !!
 @routes.get("/graph/traceroute/{packet_id}")
@@ -377,7 +385,7 @@ async def graph_traceroute(request):
         content_type="image/svg+xml",
     )
 
-
+'''
 @routes.get("/stats")
 async def stats(request):
     try:
@@ -399,86 +407,7 @@ async def stats(request):
             status=500,
             content_type="text/plain",
         )
-
-
 '''
-@routes.get("/top")
-async def top(request):
-    import time
-
-    try:
-        # Check if performance metrics should be displayed
-        show_perf = request.query.get("perf", "").lower() in ("true", "1", "yes")
-
-        # Start overall timing
-        start_time = time.perf_counter()
-        timing_data = None
-
-        node_id = request.query.get("node_id")  # Get node_id from the URL query parameters
-
-        if node_id:
-            # If node_id is provided, fetch traffic data for the specific node
-            db_start = time.perf_counter()
-            node_traffic = await store.get_node_traffic(int(node_id))
-            db_time = time.perf_counter() - db_start
-
-            template = env.get_template("node_traffic.html")
-            html_content = template.render(
-                traffic=node_traffic, node_id=node_id, site_config=CONFIG
-            )
-        else:
-            # Otherwise, fetch top traffic nodes as usual
-            db_start = time.perf_counter()
-            top_nodes = await store.get_top_traffic_nodes()
-            db_time = time.perf_counter() - db_start
-
-            # Data processing timing
-            process_start = time.perf_counter()
-
-            # Count records processed
-            total_packets = sum(node.get('total_packets_sent', 0) for node in top_nodes)
-            total_seen = sum(node.get('total_times_seen', 0) for node in top_nodes)
-
-            process_time = time.perf_counter() - process_start
-
-            # Calculate total time
-            total_time = time.perf_counter() - start_time
-
-            # Only include timing_data if perf parameter is set
-            if show_perf:
-                timing_data = {
-                    'db_query_ms': f"{db_time * 1000:.2f}",
-                    'processing_ms': f"{process_time * 1000:.2f}",
-                    'total_ms': f"{total_time * 1000:.2f}",
-                    'node_count': len(top_nodes),
-                    'total_packets': total_packets,
-                    'total_seen': total_seen,
-                }
-
-            template = env.get_template("top.html")
-            html_content = template.render(
-                nodes=top_nodes,
-                timing_data=timing_data,
-                site_config=CONFIG,
-                SOFTWARE_RELEASE=SOFTWARE_RELEASE,
-            )
-
-        return web.Response(
-            text=html_content,
-            content_type="text/html",
-        )
-    except Exception as e:
-        logger.error(f"Error in /top: {e}")
-        template = env.get_template("error.html")
-        rendered = template.render(
-            error_message="An error occurred in /top",
-            error_details=traceback.format_exc(),
-            site_config=CONFIG,
-            SOFTWARE_RELEASE=SOFTWARE_RELEASE,
-        )
-        return web.Response(text=rendered, status=500, content_type="text/html")
-'''
-
 
 async def run_server():
     # Wait for database migrations to complete before starting web server

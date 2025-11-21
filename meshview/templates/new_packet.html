@@ -48,10 +48,10 @@
     display: none;
 }
 
-/* --- Source Marker (bigger, no animation) --- */
+/* --- Source Marker: 2px bigger than gateway (26px vs 24px) --- */
 .source-marker {
-    width: 36px;
-    height: 36px;
+    width: 26px;
+    height: 26px;
     background: rgba(255,0,0,0.55);
     border: 3px solid #ff0000;
     border-radius: 50%;
@@ -268,17 +268,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const allBounds = [];
 
-    /* -------------------------------------------------------
-       PACKET SOURCE MARKER: bigger red circle, no animation
-    -------------------------------------------------------- */
+    /* --------------------------------------------------------------------
+       SOURCE MARKER (26px vs 24px)
+    --------------------------------------------------------------------- */
     if (lat && lon) {
         allBounds.push([lat, lon]);
 
         const sourceIcon = L.divIcon({
             html: `<div class="source-marker"></div>`,
             className: "",
-            iconSize: [36, 36],
-            iconAnchor: [18, 18]
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
         });
 
         const sourceMarker = L.marker([lat, lon], {
@@ -303,14 +303,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     /* -------------------------
        Helpers
     -------------------------- */
-    function hopColor(hop){
-        const c=[
-            "#ff3b30","#ff6b22","#ff9f0c",
-            "#ffd60a","#87d957","#57d9c4","#3db2ff"
+
+    /* 0 = warmest → 7 = coldest */
+    function hopColor(hopValue){
+        const colors = [
+            "#ff3b30", // 0 red
+            "#ff6b22",
+            "#ff9f0c",
+            "#ffd60a",
+            "#87d957",
+            "#57d9c4",
+            "#3db2ff",
+            "#1e63ff"  // 7 deep cold blue
         ];
-        if(!hop||hop<1)return"#aaa";
-        if(hop>7)hop=7;
-        return c[hop-1];
+
+        let h = Number(hopValue);
+        if (isNaN(h)) return "#aaa";
+        if (h < 0) h = 0;
+        if (h > 7) h = 7;
+        return colors[h];
     }
 
     function haversine(lat1,lon1,lat2,lon2){
@@ -360,9 +371,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             const start = Number(s.hop_start ?? 0);
             const limit = Number(s.hop_limit ?? 0);
-            const hopValue = limit - start;
+            const hopValue = start - limit;
 
-            const color = hopColor(Number(s.hop_limit));
+            const color = hopColor(hopValue);
 
             const iconHtml = `
                 <div style="
@@ -404,8 +415,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <b>Signal</b><br>
                     RSSI: ${s.rx_rssi ?? "—"}<br>
                     SNR: ${s.rx_snr ?? "—"}<br><br>
-                    <b>Hop Distance</b><br>
-                    hop_limit (${limit}) − hop_start (${start}) = <b>${hopValue}</b><br><br>
+                    <b>Hops</b>: ${hopValue}<br>
                     <b>Distance</b><br>
                     ${
                         distKm
