@@ -87,7 +87,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderedPacketIds.add(packet.id);
         packetMap.set(packet.id, packet);
 
-        const date = new Date(packet.import_time_us / 1000);
+        // NOTE: Temporary stopgap - fallback to import_time until old data with
+        // import_time_us=0 is migrated/cleaned up. Can be simplified once all
+        // legacy records have been updated.
+        // Fall back to import_time if import_time_us is 0, null, or undefined
+        let date;
+        if (packet.import_time_us && packet.import_time_us > 0) {
+            date = new Date(packet.import_time_us / 1000);
+        } else if (packet.import_time) {
+            date = new Date(packet.import_time);
+        } else {
+            // Last resort: use current time
+            date = new Date();
+        }
         const formattedTime = date.toLocaleTimeString([], { hour:"numeric", minute:"2-digit", second:"2-digit", hour12:true });
         const formattedDate = `${(date.getMonth()+1).toString().padStart(2,"0")}/${date.getDate().toString().padStart(2,"0")}/${date.getFullYear()}`;
         const formattedTimestamp = `${formattedTime} - ${formattedDate}`;
@@ -136,7 +148,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function renderPacketsEnsureDescending(packets, highlight=false) {
         if (!Array.isArray(packets) || packets.length===0) return;
-        const sortedDesc = packets.slice().sort((a,b)=>b.import_time_us - a.import_time_us);
+        const sortedDesc = packets.slice().sort((a,b)=>{
+            // NOTE: Temporary stopgap - fallback to import_time until old data with
+            // import_time_us=0 is migrated/cleaned up. Can be simplified once all
+            // legacy records have been updated.
+            // Sort by import_time_us with fallback to import_time
+            const aTime = (a.import_time_us && a.import_time_us > 0) ? a.import_time_us : 
+                         (a.import_time ? new Date(a.import_time).getTime() * 1000 : 0);
+            const bTime = (b.import_time_us && b.import_time_us > 0) ? b.import_time_us : 
+                         (b.import_time ? new Date(b.import_time).getTime() * 1000 : 0);
+            return bTime - aTime;
+        });
         for (let i=sortedDesc.length-1; i>=0; i--) renderPacket(sortedDesc[i], highlight);
     }
 
