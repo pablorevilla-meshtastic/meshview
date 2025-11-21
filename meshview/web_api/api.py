@@ -79,8 +79,8 @@ async def api_nodes(request):
                     "last_lat": getattr(n, "last_lat", None),
                     "last_long": getattr(n, "last_long", None),
                     "channel": n.channel,
-                    #"last_update": n.last_update.isoformat(),
-                    "last_seen_us":n.last_seen_us,
+                    # "last_update": n.last_update.isoformat(),
+                    "last_seen_us": n.last_seen_us,
                 }
             )
 
@@ -170,14 +170,9 @@ async def api_packets(request):
 
         # --- Text message filtering ---
         if portnum == PortNum.TEXT_MESSAGE_APP:
-            ui_packets = [
-                p for p in ui_packets
-                if p.payload and not SEQ_REGEX.fullmatch(p.payload)
-            ]
+            ui_packets = [p for p in ui_packets if p.payload and not SEQ_REGEX.fullmatch(p.payload)]
             if contains:
-                ui_packets = [
-                    p for p in ui_packets if contains.lower() in p.payload.lower()
-                ]
+                ui_packets = [p for p in ui_packets if contains.lower() in p.payload.lower()]
 
         # --- Sort descending by import_time_us ---
         ui_packets.sort(key=lambda p: p.import_time_us, reverse=True)
@@ -258,13 +253,15 @@ async def api_stats(request):
             to_node=node_id,
         )
 
-        return web.json_response({
-            "node_id": node_id,
-            "period_type": period_type,
-            "length": length,
-            "sent": sent.get("total", 0),
-            "seen": seen.get("total", 0),
-        })
+        return web.json_response(
+            {
+                "node_id": node_id,
+                "period_type": period_type,
+                "length": length,
+                "sent": sent.get("total", 0),
+                "seen": seen.get("total", 0),
+            }
+        )
 
     # ---- Existing full stats mode (unchanged) ----
     channel = request.query.get("channel")
@@ -344,21 +341,18 @@ async def api_stats_count(request):
 
     # -------- Case 1: NO FILTERS → return global totals --------
     no_filters = (
-        period_type is None and
-        length is None and
-        channel is None and
-        from_node is None and
-        to_node is None and
-        packet_id is None
+        period_type is None
+        and length is None
+        and channel is None
+        and from_node is None
+        and to_node is None
+        and packet_id is None
     )
 
     if no_filters:
         total_packets = await store.get_total_packet_count()
         total_seen = await store.get_total_packet_seen_count()
-        return web.json_response({
-            "total_packets": total_packets,
-            "total_seen": total_seen
-        })
+        return web.json_response({"total_packets": total_packets, "total_seen": total_seen})
 
     # -------- Case 2: Apply filters → compute totals --------
     total_packets = await store.get_total_packet_count(
@@ -378,13 +372,7 @@ async def api_stats_count(request):
         to_node=to_node,
     )
 
-    return web.json_response({
-        "total_packets": total_packets,
-        "total_seen": total_seen
-    })
-
-
-
+    return web.json_response({"total_packets": total_packets, "total_seen": total_seen})
 
 
 @routes.get("/api/edges")
@@ -618,6 +606,7 @@ async def version_endpoint(request):
         logger.error(f"Error in /version: {e}")
         return web.json_response({"error": "Failed to fetch version info"}, status=500)
 
+
 @routes.get("/api/packets_seen/{packet_id}")
 async def api_packets_seen(request):
     try:
@@ -634,22 +623,22 @@ async def api_packets_seen(request):
         rows = await store.get_packets_seen(packet_id)
 
         items = []
-        for row in rows:   # <-- FIX: normal for-loop
-            items.append({
-                "packet_id": row.packet_id,
-                "node_id": row.node_id,
-                "rx_time": row.rx_time,
-                "hop_limit": row.hop_limit,
-                "hop_start": row.hop_start,
-                "channel": row.channel,
-                "rx_snr": row.rx_snr,
-                "rx_rssi": row.rx_rssi,
-                "topic": row.topic,
-                "import_time": (
-                    row.import_time.isoformat() if row.import_time else None
-                ),
-                "import_time_us": row.import_time_us,
-            })
+        for row in rows:  # <-- FIX: normal for-loop
+            items.append(
+                {
+                    "packet_id": row.packet_id,
+                    "node_id": row.node_id,
+                    "rx_time": row.rx_time,
+                    "hop_limit": row.hop_limit,
+                    "hop_start": row.hop_start,
+                    "channel": row.channel,
+                    "rx_snr": row.rx_snr,
+                    "rx_rssi": row.rx_rssi,
+                    "topic": row.topic,
+                    "import_time": (row.import_time.isoformat() if row.import_time else None),
+                    "import_time_us": row.import_time_us,
+                }
+            )
 
         return web.json_response({"seen": items})
 
