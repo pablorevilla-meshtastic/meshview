@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, nullslast, select, text
 from sqlalchemy.orm import lazyload
 
 from meshview import database
@@ -45,7 +45,10 @@ async def get_packets(
         if before:
             q = q.where(Packet.import_time_us < before)
 
-        q = q.order_by(Packet.import_time_us.desc())
+        # Order by import_time_us when available, fallback to import_time for old data
+        # This handles databases where import_time_us may be NULL (old backups)
+        # First sort by import_time_us (NULLs last), then by import_time for those rows
+        q = q.order_by(nullslast(Packet.import_time_us.desc()), Packet.import_time.desc())
 
         if limit is not None:
             q = q.limit(limit)

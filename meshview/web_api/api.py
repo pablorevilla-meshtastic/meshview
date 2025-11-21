@@ -121,6 +121,10 @@ async def api_packets(request):
                 "portnum": int(p.portnum) if p.portnum is not None else None,
                 "payload": (p.payload or "").strip(),
                 "import_time_us": p.import_time_us,
+                # NOTE: Temporary stopgap - include import_time as fallback until old data
+                # with import_time_us=0 is migrated/cleaned up. Can be removed once all
+                # legacy records have been updated.
+                "import_time": p.import_time.isoformat() if p.import_time else None,
                 "channel": getattr(p.from_node, "channel", ""),
                 "long_name": getattr(p.from_node, "long_name", ""),
             }
@@ -175,7 +179,10 @@ async def api_packets(request):
                 ui_packets = [p for p in ui_packets if contains.lower() in p.payload.lower()]
 
         # --- Sort descending by import_time_us ---
-        ui_packets.sort(key=lambda p: p.import_time_us, reverse=True)
+        # Handle None values by treating them as smallest (will be sorted last)
+        ui_packets.sort(
+            key=lambda p: (p.import_time_us is not None, p.import_time_us or 0), reverse=True
+        )
         ui_packets = ui_packets[:limit]
 
         # --- Prepare output ---
@@ -184,6 +191,10 @@ async def api_packets(request):
             packet_dict = {
                 "id": p.id,
                 "import_time_us": p.import_time_us,
+                # NOTE: Temporary stopgap - include import_time as fallback until old data
+                # with import_time_us=0 is migrated/cleaned up. Can be removed once all
+                # legacy records have been updated.
+                "import_time": p.import_time.isoformat() if p.import_time else None,
                 "channel": getattr(p.from_node, "channel", ""),
                 "from_node_id": p.from_node_id,
                 "to_node_id": p.to_node_id,
@@ -202,7 +213,32 @@ async def api_packets(request):
 
             packets_data.append(packet_dict)
 
-        return web.json_response({"packets": packets_data})
+        # Calculate latest_import_time for incremental updates
+        # NOTE: Temporary stopgap - fallback to import_time until old data with
+        # import_time_us=0 is migrated/cleaned up. Can be simplified once all
+        # legacy records have been updated.
+        # Use the highest import_time_us, with fallback to import_time
+        latest_import_time = None
+        if packets_data:
+            for p in packets_data:
+                if p.get("import_time_us") and p["import_time_us"] > 0:
+                    if latest_import_time is None or p["import_time_us"] > latest_import_time:
+                        latest_import_time = p["import_time_us"]
+                elif p.get("import_time") and latest_import_time is None:
+                    # Fallback: convert ISO string to microseconds if import_time_us is missing
+                    try:
+                        dt = datetime.datetime.fromisoformat(
+                            p["import_time"].replace("Z", "+00:00")
+                        )
+                        latest_import_time = int(dt.timestamp() * 1_000_000)
+                    except (ValueError, AttributeError):
+                        pass
+
+        response = {"packets": packets_data}
+        if latest_import_time is not None:
+            response["latest_import_time"] = latest_import_time
+
+        return web.json_response(response)
 
     except Exception as e:
         logger.error(f"Error in /api/packets: {e}")

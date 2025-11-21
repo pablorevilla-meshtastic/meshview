@@ -99,9 +99,7 @@ def main():
     # Add --config runtime argument
     parser.add_argument('--config', help="Path to the configuration file.", default='config.ini')
     parser.add_argument('--pid_dir', help="PID files path.", default='.')
-    parser.add_argument(
-        '--py_exec', help="Path to the Python executable.", default='./env/bin/python'
-    )
+    parser.add_argument('--py_exec', help="Path to the Python executable.", default=sys.executable)
     args = parser.parse_args()
 
     # PID file paths
