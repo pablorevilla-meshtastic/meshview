@@ -197,7 +197,7 @@ async def index(request):
 @routes.get("/packet_list/{packet_id}")
 async def redirect_packet_list(request):
     packet_id = request.match_info["packet_id"]
-    raise web.HTTPFound(location=f"/new_node/{packet_id}")
+    raise web.HTTPFound(location=f"/node/{packet_id}")
 
 
 # redirect for backwards compatibility
