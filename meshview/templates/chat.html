@@ -134,7 +134,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                  ${escapeHtml(packet.channel || "")}
             </span>
             <span class="col-3 nodename">
-                <a href="/node/${packet.from_node_id}">
+                <a href="/new_node/${packet.from_node_id}">
                     ${escapeHtml((packet.long_name || "").trim() || `Node ${packet.from_node_id}`)}
                 </a>
             </span>
@@ -153,9 +153,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             // import_time_us=0 is migrated/cleaned up. Can be simplified once all
             // legacy records have been updated.
             // Sort by import_time_us with fallback to import_time
-            const aTime = (a.import_time_us && a.import_time_us > 0) ? a.import_time_us : 
+            const aTime = (a.import_time_us && a.import_time_us > 0) ? a.import_time_us :
                          (a.import_time ? new Date(a.import_time).getTime() * 1000 : 0);
-            const bTime = (b.import_time_us && b.import_time_us > 0) ? b.import_time_us : 
+            const bTime = (b.import_time_us && b.import_time_us > 0) ? b.import_time_us :
                          (b.import_time ? new Date(b.import_time).getTime() * 1000 : 0);
             return bTime - aTime;
         });

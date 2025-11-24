@@ -1,6 +1,6 @@
   {
     "base": {
-      "conversations": "Conversations",
+      "chat": "Chat",
       "nodes": "Nodes",
       "everything": "See Everything",
       "graphs": "Mesh Graphs",

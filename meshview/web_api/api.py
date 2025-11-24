@@ -496,7 +496,7 @@ async def api_config(request):
             "message": get_str(site, "message", ""),
             "starting": get_str(site, "starting", "/chat"),
             "nodes": get_bool(site, "nodes", True),
-            "conversations": get_bool(site, "conversations", True),
+            "chat": get_bool(site, "chat", True),
             "everything": get_bool(site, "everything", True),
             "graphs": get_bool(site, "graphs", True),
             "stats": get_bool(site, "stats", True),
