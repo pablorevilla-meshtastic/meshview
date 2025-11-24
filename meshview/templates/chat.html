@@ -146,7 +146,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                  ${escapeHtml(packet.channel || "")}
             </span>
             <span class="col-3 nodename">
-                <a href="/new_node/${packet.from_node_id}">
+                <a href="/node/${packet.from_node_id}">
                     ${escapeHtml((packet.long_name || "").trim() || `Node ${packet.from_node_id}`)}
                 </a>
             </span>
