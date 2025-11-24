@@ -219,13 +219,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div class="card-body">
             <dl>
                 <dt>From Node</dt>
-                <dd><a href="/new_node/${p.from_node_id}">${fromNodeLabel}</a></dd>
+                <dd><a href="/node/${p.from_node_id}">${fromNodeLabel}</a></dd>
 
                 <dt>To Node</dt>
                 <dd>${
                        p.to_node_id == 4294967295
                        ? `<i>All</i>`
-                       : `<a href="/new_node/${p.to_node_id}">${toNodeLabel}</a>`
+                       : `<a href="/node/${p.to_node_id}">${toNodeLabel}</a>`
                     }
                 </dd>
 
@@ -409,7 +409,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             marker.bindPopup(`
                 <div style="font-size:0.9em">
                     <b>${node?.long_name || s.node_id}</b><br>
-                    Node ID: <a href="/new_node/${s.node_id}">${s.node_id}</a><br>
+                    Node ID: <a href="/node/${s.node_id}">${s.node_id}</a><br>
                     HW: ${node?.hw_model ?? "—"}<br>
                     Channel: ${s.channel ?? "—"}<br><br>
                     <b>Signal</b><br>
@@ -428,7 +428,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         return `
             <tr>
-                <td><a href="/new_node/${s.node_id}">${label}</a></td>
+                <td><a href="/node/${s.node_id}">${label}</a></td>
                 <td>${s.rx_rssi ?? "—"}</td>
                 <td>${s.rx_snr ?? "—"}</td>
                 <td>${s.hop_start ?? "—"} → ${s.hop_limit ?? "—"}</td>

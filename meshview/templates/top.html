@@ -197,12 +197,12 @@ async function renderTable() {
     const rowRefs = filtered.map(n => {
         const tr = document.createElement("tr");
         tr.addEventListener("click", () => {
-            window.location.href = `/new_node/${n.node_id}`;
+            window.location.href = `/node/${n.node_id}`;
         });
 
         const tdLong = document.createElement("td");
         const a = document.createElement("a");
-        a.href = `/new_node/${n.node_id}`;
+        a.href = `/node/${n.node_id}`;
         a.textContent = n.long_name || n.node_id;
         a.className = "node-link";
         a.addEventListener("click", e => e.stopPropagation());

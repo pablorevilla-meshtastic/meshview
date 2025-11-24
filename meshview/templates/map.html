@@ -205,7 +205,7 @@ function renderNodesOnMap(){
         marker.nodeId = node.key;
         marker.originalColor = color;
         markerById[node.key] = marker;
-        const popup = `<b><a href="/new_node/${node.node_id}">${node.long_name}</a> (${node.short_name})</b><br>
+        const popup = `<b><a href="/node/${node.node_id}">${node.long_name}</a> (${node.short_name})</b><br>
                        <b>Channel:</b> ${node.channel}<br>
                        <b>Model:</b> ${node.hw_model}<br>
                        <b>Role:</b> ${node.role}<br>

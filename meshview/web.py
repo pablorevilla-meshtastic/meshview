@@ -193,6 +193,18 @@ async def index(request):
     starting_url = CONFIG["site"].get("starting", "/map")  # default to /map if not set
     raise web.HTTPFound(location=starting_url)
 
+# redirect for backwards compatibility
+@routes.get("/packet_list/{packet_id}")
+async def redirect_packet_list(request):
+    packet_id = request.match_info["packet_id"]
+    raise web.HTTPFound(location=f"/new_node/{packet_id}")
+
+
+# redirect for backwards compatibility
+@routes.get("/packet/{packet_id}")
+async def redirect_packet_list(request):
+    packet_id = request.match_info["packet_id"]
+    raise web.HTTPFound(location=f"/new_packet/{packet_id}")
 
 @routes.get("/net")
 async def net(request):
@@ -243,9 +255,9 @@ async def new_packet(request):
     )
 
 
-@routes.get("/new_node/{from_node_id}")
+@routes.get("/node/{from_node_id}")
 async def firehose_node(request):
-    template = env.get_template("new_node.html")
+    template = env.get_template("node.html")
     return web.Response(
         text=template.render(),
         content_type="text/html",

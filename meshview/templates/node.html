@@ -323,7 +323,7 @@ async function loadNodeInfo(){
 function nodeLink(id){
     if (id === 4294967295) return `<span class="to-mqtt">All</span>`;
     if (id === 1)          return `<span class="to-mqtt">Direct to MQTT</span>`;
-    return `<a href="/new_node/${id}" style="text-decoration:underline; color:inherit;">${nodeMap[id] || id}</a>`;
+    return `<a href="/node/${id}" style="text-decoration:underline; color:inherit;">${nodeMap[id] || id}</a>`;
 }
 function portLabel(p){
     const names = {

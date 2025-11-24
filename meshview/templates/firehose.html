@@ -229,13 +229,13 @@ async function fetchUpdates() {
         for (const pkt of packets.reverse()) {
             const from = pkt.from_node_id === 4294967295
                 ? `<span class="to-mqtt">All</span>`
-                : `<a href="/new_node/${pkt.from_node_id}" style="text-decoration:underline; color:inherit;">${nodeMap[pkt.from_node_id] || pkt.from_node_id}</a>`;
+                : `<a href="/node/${pkt.from_node_id}" style="text-decoration:underline; color:inherit;">${nodeMap[pkt.from_node_id] || pkt.from_node_id}</a>`;
 
             const to = pkt.to_node_id === 1
                 ? `<span class="to-mqtt">direct to MQTT</span>`
                 : pkt.to_node_id === 4294967295
                 ? `<span class="to-mqtt">All</span>`
-                : `<a href="/new_node/${pkt.to_node_id}" style="text-decoration:underline; color:inherit;">${nodeMap[pkt.to_node_id] || pkt.to_node_id}</a>`;
+                : `<a href="/node/${pkt.to_node_id}" style="text-decoration:underline; color:inherit;">${nodeMap[pkt.to_node_id] || pkt.to_node_id}</a>`;
 
             // Inline link next to port tag
             let inlineLinks = "";
