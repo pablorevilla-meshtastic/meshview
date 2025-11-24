@@ -9,12 +9,12 @@
 .chat-packet:nth-of-type(odd) { background-color: #3a3a3a; }
 .chat-packet {
     border-bottom: 1px solid #555;
-    padding: 3px 6px;      /* slightly more horizontal breathing room */
+    padding: 3px 6px;
     border-radius: 6px;
     margin: 0;
 }
 
-/* Wider spacing between Bootstrap-style columns */
+/* Same column spacing as before */
 .chat-packet > [class^="col-"] {
     padding-left: 10px !important;
     padding-right: 10px !important;
@@ -49,7 +49,15 @@
 {% endblock %}
 
 {% block body %}
-<div id="chat-container">
+<div id="chat-container" class="mt-3">
+
+    <!-- ⭐ CHAT TITLE WITH ICON, aligned to container ⭐ -->
+    <div class="container px-2">
+        <h2 data-translate="chat_title" style="color:white; margin:0 0 10px 0;">
+            💬 Chat
+        </h2>
+    </div>
+
     <div class="container" id="chat-log"></div>
 </div>
 
@@ -63,7 +71,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const packetMap = new Map();
     let chatLang = {};
 
-    // --- Reuse translation helper from base ---
     function applyTranslations(dict, root = document) {
         root.querySelectorAll("[data-translate]").forEach(el => {
             const key = el.dataset.translate;
@@ -87,21 +94,26 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderedPacketIds.add(packet.id);
         packetMap.set(packet.id, packet);
 
-        // NOTE: Temporary stopgap - fallback to import_time until old data with
-        // import_time_us=0 is migrated/cleaned up. Can be simplified once all
-        // legacy records have been updated.
-        // Fall back to import_time if import_time_us is 0, null, or undefined
         let date;
         if (packet.import_time_us && packet.import_time_us > 0) {
             date = new Date(packet.import_time_us / 1000);
         } else if (packet.import_time) {
             date = new Date(packet.import_time);
         } else {
-            // Last resort: use current time
             date = new Date();
         }
-        const formattedTime = date.toLocaleTimeString([], { hour:"numeric", minute:"2-digit", second:"2-digit", hour12:true });
-        const formattedDate = `${(date.getMonth()+1).toString().padStart(2,"0")}/${date.getDate().toString().padStart(2,"0")}/${date.getFullYear()}`;
+
+        const formattedTime = date.toLocaleTimeString([], {
+            hour:"numeric",
+            minute:"2-digit",
+            second:"2-digit",
+            hour12:true
+        });
+        const formattedDate =
+            `${(date.getMonth()+1).toString().padStart(2,"0")}/` +
+            `${date.getDate().toString().padStart(2,"0")}/` +
+            `${date.getFullYear()}`;
+
         const formattedTimestamp = `${formattedTime} - ${formattedDate}`;
 
         let replyHtml = "";
@@ -149,14 +161,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     function renderPacketsEnsureDescending(packets, highlight=false) {
         if (!Array.isArray(packets) || packets.length===0) return;
         const sortedDesc = packets.slice().sort((a,b)=>{
-            // NOTE: Temporary stopgap - fallback to import_time until old data with
-            // import_time_us=0 is migrated/cleaned up. Can be simplified once all
-            // legacy records have been updated.
-            // Sort by import_time_us with fallback to import_time
-            const aTime = (a.import_time_us && a.import_time_us > 0) ? a.import_time_us :
-                         (a.import_time ? new Date(a.import_time).getTime() * 1000 : 0);
-            const bTime = (b.import_time_us && b.import_time_us > 0) ? b.import_time_us :
-                         (b.import_time ? new Date(b.import_time).getTime() * 1000 : 0);
+            const aTime =
+                (a.import_time_us && a.import_time_us > 0)
+                    ? a.import_time_us
+                    : (a.import_time ? new Date(a.import_time).getTime() * 1000 : 0);
+            const bTime =
+                (b.import_time_us && b.import_time_us > 0)
+                    ? b.import_time_us
+                    : (b.import_time ? new Date(b.import_time).getTime() * 1000 : 0);
             return bTime - aTime;
         });
         for (let i=sortedDesc.length-1; i>=0; i--) renderPacket(sortedDesc[i], highlight);
@@ -193,7 +205,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         } catch(err){ console.error("Chat translation load failed:", err); }
     }
 
-    // --- Main init ---
     await Promise.all([loadChatLang(), fetchInitial()]);
     setInterval(fetchUpdates, 5000);
 });
