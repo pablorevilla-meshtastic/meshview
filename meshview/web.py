@@ -202,9 +202,9 @@ async def redirect_packet_list(request):
 
 # redirect for backwards compatibility
 @routes.get("/packet/{packet_id}")
-async def redirect_packet_list(request):
+async def redirect_packet(request):
     packet_id = request.match_info["packet_id"]
-    raise web.HTTPFound(location=f"/new_packet/{packet_id}")
+    raise web.HTTPFound(location=f"/packet/{packet_id}")
 
 @routes.get("/net")
 async def net(request):
