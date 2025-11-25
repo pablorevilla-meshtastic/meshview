@@ -222,23 +222,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         <div class="card-body">
             <dl>
-                <dt>From Node</dt>
+                <dt>From Node:</dt>
                 <dd><a href="/node/${p.from_node_id}">${fromNodeLabel}</a></dd>
-
-                <dt>To Node</dt>
+                <dt>To Node:</dt>
                 <dd>${
-                       p.to_node_id == 4294967295
-                       ? `<i>All</i>`
-                       : `<a href="/node/${p.to_node_id}">${toNodeLabel}</a>`
-                    }
-                </dd>
+                    p.to_node_id === 4294967295
+                        ? `<i>All</i>`
+                        : p.to_node_id === 1
+                            ? `<i>Direct to MQTT</i>`
+                            : `<a href="/node/${p.to_node_id}">${toNodeLabel}</a>`
+                }</dd>
 
-                <dt>Channel</dt><dd>${p.channel ?? "—"}</dd>
 
-                <dt>Port</dt>
+                <dt>Channel:</dt><dd>${p.channel ?? "—"}</dd>
+
+                <dt>Port:</dt>
                 <dd><i>${PORT_NAMES[p.portnum] || "UNKNOWN APP"}</i> (${p.portnum})</dd>
 
-                <dt>Raw Payload</dt>
+                <dt>Raw Payload:</dt>
                 <dd><pre>${escapeHtml(p.payload ?? "—")}</pre></dd>
 
                 ${
@@ -250,7 +251,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 ${
                     lat && lon
-                    ? `<dt>Location</dt><dd>${lat.toFixed(6)}, ${lon.toFixed(6)}</dd>`
+                    ? `<dt>Location:</dt><dd>${lat.toFixed(6)}, ${lon.toFixed(6)}</dd>`
                     : ""
                 }
             </dl>
