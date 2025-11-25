@@ -180,9 +180,10 @@ async def api_packets(request):
         packets = await store.get_packets(
             from_node_id=from_node_id,
             to_node_id=to_node_id,
-            node_id=node_id,      # old behavior: match from OR to
+            node_id=node_id,
             portnum=portnum,
             after=since,
+            contains=contains,
             limit=limit,
         )
 

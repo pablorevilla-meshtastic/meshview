@@ -24,25 +24,24 @@ async def get_fuzzy_nodes(query):
         return result.scalars()
 
 
-
 async def get_packets(
     from_node_id=None,
     to_node_id=None,
-    node_id=None,       # legacy: match either from/to
+    node_id=None,       # legacy: match either from OR to
     portnum=None,
     after=None,
+    contains=None,      # NEW: SQL-level substring match
     limit=50,
 ):
     """
     SQLAlchemy 2.0 async ORM version.
-    Supports strict from/to/node filtering, portnum, since, limit.
+    Supports strict from/to/node filtering, substring payload search,
+    portnum, since, and limit.
     """
 
     async with database.async_session() as session:
 
-        # Start select
         stmt = select(models.Packet)
-
         conditions = []
 
         # Strict FROM filter
@@ -53,7 +52,7 @@ async def get_packets(
         if to_node_id is not None:
             conditions.append(models.Packet.to_node_id == to_node_id)
 
-        # Legacy "node_id = match either direction"
+        # Legacy node ID filter: match either direction
         if node_id is not None:
             conditions.append(
                 or_(
@@ -66,26 +65,30 @@ async def get_packets(
         if portnum is not None:
             conditions.append(models.Packet.portnum == portnum)
 
-        # Time filter
+        # Timestamp filter
         if after is not None:
             conditions.append(models.Packet.import_time_us > after)
 
-        # Apply WHERE clause if needed
+        # Case-insensitive substring search on UTF-8 payload (stored as BLOB)
+        if contains:
+            contains_lower = contains.lower()
+            conditions.append(
+                func.lower(models.Packet.payload).like(f"%{contains_lower}%")
+            )
+
+        # Apply all conditions
         if conditions:
             stmt = stmt.where(and_(*conditions))
 
-        # Sort newest → oldest
+        # Order newest → oldest
         stmt = stmt.order_by(models.Packet.import_time_us.desc())
 
-        # Limit
+        # Apply limit
         stmt = stmt.limit(limit)
 
-        # Execute
+        # Execute query
         result = await session.execute(stmt)
-
-        # Convert ORM rows to models
         return result.scalars().all()
-
 
 
 async def get_packets_from(node_id=None, portnum=None, since=None, limit=500):
