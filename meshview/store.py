@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, nullslast, select, text
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.orm import lazyload
 
-from meshview import database
+from meshview import database, models
 from meshview.models import Node, Packet, PacketSeen, Traceroute
 
 
@@ -24,38 +24,68 @@ async def get_fuzzy_nodes(query):
         return result.scalars()
 
 
+
 async def get_packets(
-    node_id=None, portnum=None, after=None, before=None, limit=None, packet_id=None
+    from_node_id=None,
+    to_node_id=None,
+    node_id=None,       # legacy: match either from/to
+    portnum=None,
+    after=None,
+    limit=50,
 ):
+    """
+    SQLAlchemy 2.0 async ORM version.
+    Supports strict from/to/node filtering, portnum, since, limit.
+    """
+
     async with database.async_session() as session:
-        # --- Fast path: fetch by packet_id (uses primary key lookup) ---
-        if packet_id is not None:
-            packet = await session.get(Packet, packet_id)
-            return [packet] if packet else []
 
-        # --- Normal query path ---
-        q = select(Packet)
+        # Start select
+        stmt = select(models.Packet)
 
-        if node_id:
-            q = q.where((Packet.from_node_id == node_id) | (Packet.to_node_id == node_id))
-        if portnum:
-            q = q.where(Packet.portnum == portnum)
-        if after:
-            q = q.where(Packet.import_time_us > after)
-        if before:
-            q = q.where(Packet.import_time_us < before)
+        conditions = []
 
-        # Order by import_time_us when available, fallback to import_time for old data
-        # This handles databases where import_time_us may be NULL (old backups)
-        # First sort by import_time_us (NULLs last), then by import_time for those rows
-        q = q.order_by(nullslast(Packet.import_time_us.desc()), Packet.import_time.desc())
+        # Strict FROM filter
+        if from_node_id is not None:
+            conditions.append(models.Packet.from_node_id == from_node_id)
 
-        if limit is not None:
-            q = q.limit(limit)
+        # Strict TO filter
+        if to_node_id is not None:
+            conditions.append(models.Packet.to_node_id == to_node_id)
 
-        result = await session.execute(q)
-        packets = list(result.scalars())
-        return packets
+        # Legacy "node_id = match either direction"
+        if node_id is not None:
+            conditions.append(
+                or_(
+                    models.Packet.from_node_id == node_id,
+                    models.Packet.to_node_id == node_id
+                )
+            )
+
+        # Port filter
+        if portnum is not None:
+            conditions.append(models.Packet.portnum == portnum)
+
+        # Time filter
+        if after is not None:
+            conditions.append(models.Packet.import_time_us > after)
+
+        # Apply WHERE clause if needed
+        if conditions:
+            stmt = stmt.where(and_(*conditions))
+
+        # Sort newest → oldest
+        stmt = stmt.order_by(models.Packet.import_time_us.desc())
+
+        # Limit
+        stmt = stmt.limit(limit)
+
+        # Execute
+        result = await session.execute(stmt)
+
+        # Convert ORM rows to models
+        return result.scalars().all()
+
 
 
 async def get_packets_from(node_id=None, portnum=None, since=None, limit=500):

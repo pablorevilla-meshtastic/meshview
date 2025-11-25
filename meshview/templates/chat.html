@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 replyHtml = `
                     <div class="replying-to">
                         ${replyPrefix}
-                        <a href="/new_packet/${packet.reply_id}">${packet.reply_id}</a>
+                        <a href="/packet/${packet.reply_id}">${packet.reply_id}</a>
                     </div>`;
             }
         }
@@ -142,7 +142,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         div.innerHTML = `
             <span class="col-2 timestamp" title="${packet.import_time_us}">${formattedTimestamp}</span>
             <span class="col-2 channel">
-                <a href="/new_packet/${packet.id}" title="${chatLang.view_packet_details || 'View details'}">🔎</a>
+                <a href="/packet/${packet.id}" title="${chatLang.view_packet_details || 'View details'}">🔎</a>
                  ${escapeHtml(packet.channel || "")}
             </span>
             <span class="col-3 nodename">

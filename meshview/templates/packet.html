@@ -48,10 +48,10 @@
     display: none;
 }
 
-/* --- Source Marker: 2px bigger than gateway (26px vs 24px) --- */
+/* --- SOURCE MARKER (slightly bigger) --- */
 .source-marker {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     background: rgba(255,0,0,0.55);
     border: 3px solid #ff0000;
     border-radius: 50%;
@@ -135,13 +135,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     const seenTableBody = document.getElementById("seen-table-body");
     const seenCountSpan = document.getElementById("seen-count");
 
-    const match = window.location.pathname.match(/\/new_packet\/(\d+)/);
+    /* ---------------------------------------------
+       Identify packet ID
+    ----------------------------------------------*/
+    const match = window.location.pathname.match(/\/packet\/(\d+)/);
     if (!match) {
         loading.textContent = "Invalid packet URL";
         return;
     }
     const packetId = match[1];
 
+    /* PORT NAME MAP */
     const PORT_NAMES = {
         0:"UNKNOWN APP",
         1:"Text",
@@ -154,9 +158,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         71:"Neighbor"
     };
 
-    /* -------------------------
+    /* ---------------------------------------------
        Fetch packet
-    -------------------------- */
+    ----------------------------------------------*/
     const packetRes = await fetch(`/api/packets?packet_id=${packetId}`);
     const packetData = await packetRes.json();
     if (!packetData.packets.length) {
@@ -165,24 +169,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     const p = packetData.packets[0];
 
-    /* -------------------------
-       Fetch nodes
-    -------------------------- */
+    /* ---------------------------------------------
+       Fetch all nodes
+    ----------------------------------------------*/
     const nodesRes = await fetch("/api/nodes");
     const nodesData = await nodesRes.json();
     const nodeLookup = {};
     (nodesData.nodes || []).forEach(n => nodeLookup[n.node_id] = n);
 
     const fromNodeObj   = nodeLookup[p.from_node_id];
-    const fromNodeLabel = fromNodeObj?.long_name || p.from_node_id;
+    const toNodeObj     = nodeLookup[p.to_node_id];
 
-    const toNodeObj   = nodeLookup[p.to_node_id];
+    const fromNodeLabel = fromNodeObj?.long_name || p.from_node_id;
     const toNodeLabel =
         p.to_node_id == 4294967295 ? "All" : (toNodeObj?.long_name || p.to_node_id);
 
-    /* -------------------------
-       Parse payload
-    -------------------------- */
+    /* ---------------------------------------------
+       Parse payload for lat/lon if this *packet* is a position packet
+    ----------------------------------------------*/
     let lat = null, lon = null;
     const parsed = {};
 
@@ -197,19 +201,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
+    /* ---------------------------------------------
+       Render packet header & details
+    ----------------------------------------------*/
+    const time = p.import_time_us
+        ? new Date(p.import_time_us / 1000).toLocaleString()
+        : "—";
+
     const telemetryExtras = [];
     if (parsed.PDOP) telemetryExtras.push(`PDOP: ${parsed.PDOP}`);
     if (parsed.sats_in_view) telemetryExtras.push(`Sats: ${parsed.sats_in_view}`);
     if (parsed.ground_speed) telemetryExtras.push(`Speed: ${parsed.ground_speed}`);
     if (parsed.altitude)     telemetryExtras.push(`Altitude: ${parsed.altitude}`);
 
-    const time = p.import_time_us
-        ? new Date(p.import_time_us / 1000).toLocaleString()
-        : "—";
-
-    /* -------------------------
-       Render packet card
-    -------------------------- */
     packetCard.innerHTML = `
         <div class="card-header">
             <span>Packet ID: <i>${p.id}</i></span>
@@ -256,9 +260,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     loading.classList.add("d-none");
     packetCard.classList.remove("d-none");
 
-    /* -------------------------
-       Map init
-    -------------------------- */
+    /* ---------------------------------------------
+       Map initialization
+    ----------------------------------------------*/
     const map = L.map("map");
     mapDiv.style.display = "block";
 
@@ -268,11 +272,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const allBounds = [];
 
-    /* --------------------------------------------------------------------
-       SOURCE MARKER (26px vs 24px)
-    --------------------------------------------------------------------- */
-    if (lat && lon) {
-        allBounds.push([lat, lon]);
+    /* ---------------------------------------------
+       ALWAYS SHOW SOURCE POSITION
+       Priority:
+         1) position from packet payload
+         2) fallback: last_lat/last_long from /api/nodes
+    ----------------------------------------------*/
+    let srcLat = lat;
+    let srcLon = lon;
+
+    if ((!srcLat || !srcLon) && fromNodeObj?.last_lat && fromNodeObj?.last_long) {
+        srcLat = fromNodeObj.last_lat / 1e7;
+        srcLon = fromNodeObj.last_long / 1e7;
+    }
+
+    if (srcLat && srcLon) {
+        allBounds.push([srcLat, srcLon]);
 
         const sourceIcon = L.divIcon({
             html: `<div class="source-marker"></div>`,
@@ -281,7 +296,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             iconAnchor: [13, 13]
         });
 
-        const sourceMarker = L.marker([lat, lon], {
+        const sourceMarker = L.marker([srcLat, srcLon], {
             icon: sourceIcon,
             zIndexOffset: 9999
         }).addTo(map);
@@ -289,34 +304,32 @@ document.addEventListener("DOMContentLoaded", async () => {
         sourceMarker.bindPopup(`
             <div style="font-size:0.9em">
                 <b>Packet Source</b><br>
-                Lat: ${lat.toFixed(6)}<br>
-                Lon: ${lon.toFixed(6)}<br>
+                Lat: ${srcLat.toFixed(6)}<br>
+                Lon: ${srcLon.toFixed(6)}<br>
                 From Node: ${fromNodeLabel}<br>
                 Channel: ${p.channel ?? "—"}<br>
                 Port: ${PORT_NAMES[p.portnum] || "UNKNOWN"} (${p.portnum})
             </div>
         `);
+
     } else {
-        map.setView([0, 0], 2);
+        map.setView([0,0], 2);
     }
 
-    /* -------------------------
-       Helpers
-    -------------------------- */
-
-    /* 0 = warmest → 7 = coldest */
+    /* ---------------------------------------------
+       Color for hop indicator markers (warm → cold)
+    ----------------------------------------------*/
     function hopColor(hopValue){
         const colors = [
-            "#ff3b30", // 0 red
+            "#ff3b30",
             "#ff6b22",
             "#ff9f0c",
             "#ffd60a",
             "#87d957",
             "#57d9c4",
             "#3db2ff",
-            "#1e63ff"  // 7 deep cold blue
+            "#1e63ff"
         ];
-
         let h = Number(hopValue);
         if (isNaN(h)) return "#aaa";
         if (h < 0) h = 0;
@@ -324,6 +337,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return colors[h];
     }
 
+    /* Distance helper */
     function haversine(lat1,lon1,lat2,lon2){
         const R=6371;
         const dLat=(lat2-lat1)*Math.PI/180;
@@ -335,13 +349,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         return R*(2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
     }
 
-    /* -------------------------
-       Fetch seen list
-    -------------------------- */
+    /* ---------------------------------------------
+       Fetch packets_seen
+    ----------------------------------------------*/
     const seenRes  = await fetch(`/api/packets_seen/${packetId}`);
     const seenData = await seenRes.json();
     const seenList = seenData.seen ?? [];
 
+    /* sort by hop_start descending (warm → cold) */
     const seenSorted = seenList.slice().sort((a,b)=>{
         const A=a.hop_start??-999;
         const B=b.hop_start??-999;
@@ -353,9 +368,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         seenCountSpan.textContent=`(${seenSorted.length} gateways)`;
     }
 
-    /* -------------------------
-       Gateway markers + table
-    -------------------------- */
+    /* ---------------------------------------------
+       Gateway markers and seen table
+    ----------------------------------------------*/
     seenTableBody.innerHTML = seenSorted.map(s=>{
         const node=nodeLookup[s.node_id];
         const label=node?(node.long_name||node.node_id):s.node_id;
@@ -401,8 +416,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             }).addTo(map);
 
             let distKm=null,distMi=null;
-            if(lat&&lon){
-                distKm=haversine(lat,lon,rlat,rlon);
+            if(srcLat&&srcLon){
+                distKm=haversine(srcLat,srcLon,rlat,rlon);
                 distMi=distKm*0.621371;
             }
 
@@ -437,10 +452,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             </tr>`;
     }).join("");
 
+    /* ---------------------------------------------
+       Fit map to all markers
+    ----------------------------------------------*/
     if(allBounds.length>0){
         map.fitBounds(allBounds,{padding:[40,40]});
     }
 
+    /* ---------------------------------------------
+       Escape HTML
+    ----------------------------------------------*/
     function escapeHtml(unsafe) {
         return (unsafe??"").replace(/[&<"'>]/g,m=>({
             "&":"&amp;",

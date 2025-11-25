@@ -200,12 +200,6 @@ async def redirect_packet_list(request):
     raise web.HTTPFound(location=f"/node/{packet_id}")
 
 
-# redirect for backwards compatibility
-@routes.get("/packet/{packet_id}")
-async def redirect_packet(request):
-    packet_id = request.match_info["packet_id"]
-    raise web.HTTPFound(location=f"/packet/{packet_id}")
-
 @routes.get("/net")
 async def net(request):
     return web.Response(
@@ -246,9 +240,9 @@ async def chat(request):
     )
 
 
-@routes.get("/new_packet/{packet_id}")
+@routes.get("/packet/{packet_id}")
 async def new_packet(request):
-    template = env.get_template("new_packet.html")
+    template = env.get_template("packet.html")
     return web.Response(
         text=template.render(),
         content_type="text/html",

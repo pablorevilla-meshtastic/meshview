@@ -100,9 +100,13 @@ async def api_packets(request):
         since_str = request.query.get("since")
         portnum_str = request.query.get("portnum")
         contains = request.query.get("contains")
-        from_node_id_str = request.query.get("from_node_id")
 
-        # --- If a packet_id is provided, fetch just that one ---
+        # NEW — explicit filters
+        from_node_id_str = request.query.get("from_node_id")
+        to_node_id_str   = request.query.get("to_node_id")
+        node_id_str      = request.query.get("node_id")  # legacy: match either from/to
+
+        # --- If a packet_id is provided, return only that packet ---
         if packet_id_str:
             try:
                 packet_id = int(packet_id_str)
@@ -111,7 +115,7 @@ async def api_packets(request):
 
             packet = await store.get_packet(packet_id)
             if not packet:
-                return web.json_response({"packets": []})  # consistent shape
+                return web.json_response({"packets": []})
 
             p = Packet.from_model(packet)
             data = {
@@ -121,24 +125,19 @@ async def api_packets(request):
                 "portnum": int(p.portnum) if p.portnum is not None else None,
                 "payload": (p.payload or "").strip(),
                 "import_time_us": p.import_time_us,
-                # NOTE: Temporary stopgap - include import_time as fallback until old data
-                # with import_time_us=0 is migrated/cleaned up. Can be removed once all
-                # legacy records have been updated.
                 "import_time": p.import_time.isoformat() if p.import_time else None,
                 "channel": getattr(p.from_node, "channel", ""),
                 "long_name": getattr(p.from_node, "long_name", ""),
             }
-            return web.json_response({"packets": [data]})  # unified key
+            return web.json_response({"packets": [data]})
 
-        # --- Otherwise: multi-packet listing mode ---
-
-        # Limit validation
+        # --- Parse limit ---
         try:
             limit = min(max(int(limit_str), 1), 100)
         except ValueError:
             limit = 50
 
-        # Parse 'since' timestamp
+        # --- Parse since timestamp ---
         since = None
         if since_str:
             try:
@@ -146,15 +145,7 @@ async def api_packets(request):
             except ValueError:
                 logger.warning(f"Invalid 'since' value (expected microseconds): {since_str}")
 
-        # Parse from_node_id (decimal or hex)
-        node_id = None
-        if from_node_id_str:
-            try:
-                node_id = int(from_node_id_str, 0)
-            except ValueError:
-                logger.warning(f"Invalid from_node_id: {from_node_id_str}")
-
-        # Parse portnum safely
+        # --- Parse portnum ---
         portnum = None
         if portnum_str:
             try:
@@ -162,9 +153,34 @@ async def api_packets(request):
             except ValueError:
                 logger.warning(f"Invalid portnum: {portnum_str}")
 
-        # --- Fetch packets ---
+        # --- Parse node filters ---
+        from_node_id = None
+        to_node_id = None
+        node_id = None  # legacy: match either from/to
+
+        if from_node_id_str:
+            try:
+                from_node_id = int(from_node_id_str, 0)
+            except ValueError:
+                logger.warning(f"Invalid from_node_id: {from_node_id_str}")
+
+        if to_node_id_str:
+            try:
+                to_node_id = int(to_node_id_str, 0)
+            except ValueError:
+                logger.warning(f"Invalid to_node_id: {to_node_id_str}")
+
+        if node_id_str:
+            try:
+                node_id = int(node_id_str, 0)
+            except ValueError:
+                logger.warning(f"Invalid node_id: {node_id_str}")
+
+        # --- Fetch packets using explicit filters ---
         packets = await store.get_packets(
-            node_id=node_id,
+            from_node_id=from_node_id,
+            to_node_id=to_node_id,
+            node_id=node_id,      # old behavior: match from OR to
             portnum=portnum,
             after=since,
             limit=limit,
@@ -179,21 +195,18 @@ async def api_packets(request):
                 ui_packets = [p for p in ui_packets if contains.lower() in p.payload.lower()]
 
         # --- Sort descending by import_time_us ---
-        # Handle None values by treating them as smallest (will be sorted last)
         ui_packets.sort(
-            key=lambda p: (p.import_time_us is not None, p.import_time_us or 0), reverse=True
+            key=lambda p: (p.import_time_us is not None, p.import_time_us or 0),
+            reverse=True
         )
         ui_packets = ui_packets[:limit]
 
-        # --- Prepare output ---
+        # --- Build JSON output ---
         packets_data = []
         for p in ui_packets:
             packet_dict = {
                 "id": p.id,
                 "import_time_us": p.import_time_us,
-                # NOTE: Temporary stopgap - include import_time as fallback until old data
-                # with import_time_us=0 is migrated/cleaned up. Can be removed once all
-                # legacy records have been updated.
                 "import_time": p.import_time.isoformat() if p.import_time else None,
                 "channel": getattr(p.from_node, "channel", ""),
                 "from_node_id": p.from_node_id,
@@ -213,25 +226,19 @@ async def api_packets(request):
 
             packets_data.append(packet_dict)
 
-        # Calculate latest_import_time for incremental updates
-        # NOTE: Temporary stopgap - fallback to import_time until old data with
-        # import_time_us=0 is migrated/cleaned up. Can be simplified once all
-        # legacy records have been updated.
-        # Use the highest import_time_us, with fallback to import_time
+        # --- Latest import_time for incremental fetch ---
         latest_import_time = None
         if packets_data:
             for p in packets_data:
                 if p.get("import_time_us") and p["import_time_us"] > 0:
-                    if latest_import_time is None or p["import_time_us"] > latest_import_time:
-                        latest_import_time = p["import_time_us"]
+                    latest_import_time = max(latest_import_time or 0, p["import_time_us"])
                 elif p.get("import_time") and latest_import_time is None:
-                    # Fallback: convert ISO string to microseconds if import_time_us is missing
                     try:
                         dt = datetime.datetime.fromisoformat(
                             p["import_time"].replace("Z", "+00:00")
                         )
                         latest_import_time = int(dt.timestamp() * 1_000_000)
-                    except (ValueError, AttributeError):
+                    except Exception:
                         pass
 
         response = {"packets": packets_data}
@@ -243,6 +250,7 @@ async def api_packets(request):
     except Exception as e:
         logger.error(f"Error in /api/packets: {e}")
         return web.json_response({"error": "Failed to fetch packets"}, status=500)
+
 
 
 @routes.get("/api/stats")

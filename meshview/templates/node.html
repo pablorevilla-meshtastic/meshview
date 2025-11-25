@@ -572,7 +572,7 @@ async function loadPackets(){
         list.insertAdjacentHTML("afterbegin", `
 <tr class="packet-row">
     <td>${localTime}</td>
-    <td><span class="toggle-btn">▶</span> <a href="/new_packet/${pkt.id}" style="text-decoration:underline; color:inherit;">${pkt.id}</a></td>
+    <td><span class="toggle-btn">▶</span> <a href="/packet/${pkt.id}" style="text-decoration:underline; color:inherit;">${pkt.id}</a></td>
     <td>${fromCell}</td>
     <td>${toCell}</td>
     <td>${portLabel(pkt.portnum)}${inlineLinks}</td>
