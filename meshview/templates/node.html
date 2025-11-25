@@ -351,7 +351,7 @@ function formatLocalTime(us){
 
 // --- Map ---
 function initMap(){
-    map = L.map('map', { preferCanvas:true }).setView([37.7749, -122.4194], 12);
+    map = L.map('map', { preferCanvas:true }).setView([37.7749, -122.4194], 8);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution:'&copy; OpenStreetMap'
     }).addTo(map);
@@ -397,9 +397,10 @@ function ensureMapVisible(){
         map.invalidateSize();
         const group = L.featureGroup(Object.values(markers));
         if (group.getLayers().length > 0)
-            map.fitBounds(group.getBounds(), { padding:[20,20] });
-        else
-            map.setView([37.7749, -122.4194], 11);
+        map.fitBounds(group.getBounds(), {
+            padding: [20, 20],
+            maxZoom: 11   // ← minimum zoom level after fitting
+        });
     });
 }
 

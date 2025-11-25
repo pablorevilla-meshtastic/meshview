@@ -368,30 +368,38 @@ async def get_packet_stats(
 
 async def get_channels_in_period(period_type: str = "hour", length: int = 24):
     """
-    Returns a list of distinct channels used in packets over a given period.
+    Returns a sorted list of distinct channels used in packets over a given period.
     period_type: "hour" or "day"
     length: number of hours or days to look back
     """
-    now = datetime.now()
+    now_us = int(datetime.utcnow().timestamp() * 1_000_000)
 
     if period_type == "hour":
-        start_time = now - timedelta(hours=length)
+        delta_us = length * 3600 * 1_000_000
     elif period_type == "day":
-        start_time = now - timedelta(days=length)
+        delta_us = length * 86400 * 1_000_000
     else:
         raise ValueError("period_type must be 'hour' or 'day'")
 
+    start_us = now_us - delta_us
+
     async with database.async_session() as session:
-        q = (
+        stmt = (
             select(Packet.channel)
-            .where(Packet.import_time >= start_time)
-            .distinct()
-            .order_by(Packet.channel)
+                .where(Packet.import_time_us >= start_us)
+                .distinct()
+                .order_by(Packet.channel)
         )
 
-        result = await session.execute(q)
-        channels = [row[0] for row in result if row[0] is not None]
+        result = await session.execute(stmt)
+
+        channels = [
+            ch for ch in result.scalars().all()
+            if ch is not None
+        ]
+
         return channels
+
 
 
 async def get_total_packet_count(
