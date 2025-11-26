@@ -27,10 +27,10 @@ async def get_fuzzy_nodes(query):
 async def get_packets(
     from_node_id=None,
     to_node_id=None,
-    node_id=None,       # legacy: match either from OR to
+    node_id=None,  # legacy: match either from OR to
     portnum=None,
     after=None,
-    contains=None,      # NEW: SQL-level substring match
+    contains=None,  # NEW: SQL-level substring match
     limit=50,
 ):
     """
@@ -40,7 +40,6 @@ async def get_packets(
     """
 
     async with database.async_session() as session:
-
         stmt = select(models.Packet)
         conditions = []
 
@@ -55,10 +54,7 @@ async def get_packets(
         # Legacy node ID filter: match either direction
         if node_id is not None:
             conditions.append(
-                or_(
-                    models.Packet.from_node_id == node_id,
-                    models.Packet.to_node_id == node_id
-                )
+                or_(models.Packet.from_node_id == node_id, models.Packet.to_node_id == node_id)
             )
 
         # Port filter
@@ -72,9 +68,7 @@ async def get_packets(
         # Case-insensitive substring search on UTF-8 payload (stored as BLOB)
         if contains:
             contains_lower = contains.lower()
-            conditions.append(
-                func.lower(models.Packet.payload).like(f"%{contains_lower}%")
-            )
+            conditions.append(func.lower(models.Packet.payload).like(f"%{contains_lower}%"))
 
         # Apply all conditions
         if conditions:
@@ -386,20 +380,16 @@ async def get_channels_in_period(period_type: str = "hour", length: int = 24):
     async with database.async_session() as session:
         stmt = (
             select(Packet.channel)
-                .where(Packet.import_time_us >= start_us)
-                .distinct()
-                .order_by(Packet.channel)
+            .where(Packet.import_time_us >= start_us)
+            .distinct()
+            .order_by(Packet.channel)
         )
 
         result = await session.execute(stmt)
 
-        channels = [
-            ch for ch in result.scalars().all()
-            if ch is not None
-        ]
+        channels = [ch for ch in result.scalars().all() if ch is not None]
 
         return channels
-
 
 
 async def get_total_packet_count(

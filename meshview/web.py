@@ -193,6 +193,7 @@ async def index(request):
     starting_url = CONFIG["site"].get("starting", "/map")  # default to /map if not set
     raise web.HTTPFound(location=starting_url)
 
+
 # redirect for backwards compatibility
 @routes.get("/packet_list/{packet_id}")
 async def redirect_packet_list(request):
@@ -274,6 +275,7 @@ async def top(request):
         text=template.render(),
         content_type="text/html",
     )
+
 
 @routes.get("/stats")
 async def stats(request):
@@ -391,6 +393,7 @@ async def graph_traceroute(request):
         content_type="image/svg+xml",
     )
 
+
 '''
 @routes.get("/stats")
 async def stats(request):
@@ -414,6 +417,7 @@ async def stats(request):
             content_type="text/plain",
         )
 '''
+
 
 async def run_server():
     # Wait for database migrations to complete before starting web server

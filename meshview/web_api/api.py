@@ -103,8 +103,8 @@ async def api_packets(request):
 
         # NEW — explicit filters
         from_node_id_str = request.query.get("from_node_id")
-        to_node_id_str   = request.query.get("to_node_id")
-        node_id_str      = request.query.get("node_id")  # legacy: match either from/to
+        to_node_id_str = request.query.get("to_node_id")
+        node_id_str = request.query.get("node_id")  # legacy: match either from/to
 
         # --- If a packet_id is provided, return only that packet ---
         if packet_id_str:
@@ -197,8 +197,7 @@ async def api_packets(request):
 
         # --- Sort descending by import_time_us ---
         ui_packets.sort(
-            key=lambda p: (p.import_time_us is not None, p.import_time_us or 0),
-            reverse=True
+            key=lambda p: (p.import_time_us is not None, p.import_time_us or 0), reverse=True
         )
         ui_packets = ui_packets[:limit]
 
@@ -251,7 +250,6 @@ async def api_packets(request):
     except Exception as e:
         logger.error(f"Error in /api/packets: {e}")
         return web.json_response({"error": "Failed to fetch packets"}, status=500)
-
 
 
 @routes.get("/api/stats")
