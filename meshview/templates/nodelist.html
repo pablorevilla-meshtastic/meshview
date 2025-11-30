@@ -196,7 +196,7 @@ function toggleFavorite(nodeId) {
         favorites.push(nodeId);
     }
     saveFavorites(favorites);
-    applyFilters();
+    // Note: applyFilters() will be called by the event listener after this function returns
 }
 
 function isFavorite(nodeId) {
@@ -257,6 +257,8 @@ document.addEventListener("DOMContentLoaded", async function() {
             
             // Save to localStorage
             toggleFavorite(nodeId);
+            // Reapply filters after toggling favorite
+            applyFilters();
         }
     });
 
@@ -318,11 +320,27 @@ document.addEventListener("DOMContentLoaded", async function() {
             const hwMatch = !hwFilter.value || node.hw_model === hwFilter.value;
             const firmwareMatch = !firmwareFilter.value || node.firmware === firmwareFilter.value;
 
-            const searchMatch = !searchTerm ||
-                (node.long_name && node.long_name.toLowerCase().includes(searchTerm)) ||
-                (node.short_name && node.short_name.toLowerCase().includes(searchTerm)) ||
-                (node.node_id && node.node_id.toString().includes(searchTerm)) ||
-                (node.id && node.id.toString().includes(searchTerm));
+            // Improved search matching that handles null/undefined values properly
+            let searchMatch = true;
+            if (searchTerm) {
+                searchMatch = false;
+                // Check long_name
+                if (node.long_name && typeof node.long_name === 'string' && node.long_name.toLowerCase().includes(searchTerm)) {
+                    searchMatch = true;
+                }
+                // Check short_name
+                if (!searchMatch && node.short_name && typeof node.short_name === 'string' && node.short_name.toLowerCase().includes(searchTerm)) {
+                    searchMatch = true;
+                }
+                // Check node_id (case-insensitive)
+                if (!searchMatch && node.node_id != null && String(node.node_id).toLowerCase().includes(searchTerm)) {
+                    searchMatch = true;
+                }
+                // Check id (case-insensitive)
+                if (!searchMatch && node.id != null && String(node.id).toLowerCase().includes(searchTerm)) {
+                    searchMatch = true;
+                }
+            }
 
             const favoriteMatch = !showOnlyFavorites || isFavorite(node.node_id);
 
