@@ -1,20 +1,63 @@
 {% extends "base.html" %}
 
 {% block css %}
-.timestamp { min-width: 10em; }
+.timestamp {
+    min-width: 10em;
+    color: #ccc;
+}
+
 .chat-packet:nth-of-type(odd) { background-color: #3a3a3a; }
-.chat-packet { border-bottom: 1px solid #555; padding: 8px; border-radius: 8px; }
+.chat-packet {
+    border-bottom: 1px solid #555;
+    padding: 3px 6px;
+    border-radius: 6px;
+    margin: 0;
+}
+
+/* Same column spacing as before */
+.chat-packet > [class^="col-"] {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+}
+
 .chat-packet:nth-of-type(even) { background-color: #333333; }
 
-@keyframes flash { 0% { background-color: #ffe066; } 100% { background-color: inherit; } }
+.channel {
+    font-style: italic;
+    color: #bbb;
+}
+.channel a {
+    font-style: normal;
+    color: #999;
+}
+
+@keyframes flash {
+    0% { background-color: #ffe066; }
+    100% { background-color: inherit; }
+}
 .chat-packet.flash { animation: flash 3.5s ease-out; }
 
-.replying-to { font-size: 0.85em; color: #aaa; margin-top: 4px; padding-left: 20px; }
+.replying-to {
+    font-size: 0.8em;
+    color: #aaa;
+    margin-top: 2px;
+    padding-left: 10px;
+}
 .replying-to .reply-preview { color: #aaa; }
 {% endblock %}
 
 {% block body %}
-<div id="chat-container">
+<div id="chat-container" class="mt-3">
+
+    <!-- ⭐ CHAT TITLE WITH ICON, aligned to container ⭐ -->
+    <div class="container px-2">
+        <h2 data-translate="chat_title" style="color:white; margin:0 0 10px 0;">
+            💬 Chat
+        </h2>
+    </div>
+
     <div class="container" id="chat-log"></div>
 </div>
 
@@ -26,7 +69,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     let lastTime = null;
     const renderedPacketIds = new Set();
     const packetMap = new Map();
-    let chatTranslations = {};
+    let chatLang = {};
+
+    function applyTranslations(dict, root = document) {
+        root.querySelectorAll("[data-translate]").forEach(el => {
+            const key = el.dataset.translate;
+            const val = dict[key];
+            if (!val) return;
+            if (el.placeholder) el.placeholder = val;
+            else if (el.tagName === "INPUT" && el.value) el.value = val;
+            else if (key === "footer") el.innerHTML = val;
+            else el.textContent = val;
+        });
+    }
 
     function escapeHtml(text) {
         const div = document.createElement("div");
@@ -34,43 +89,50 @@ document.addEventListener("DOMContentLoaded", async () => {
         return div.innerHTML;
     }
 
-    function applyTranslations(translations, root=document) {
-        root.querySelectorAll("[data-translate-lang]").forEach(el => {
-            const key = el.dataset.translateLang;
-            if (translations[key]) el.textContent = translations[key];
-        });
-        root.querySelectorAll("[data-translate-lang-title]").forEach(el => {
-            const key = el.dataset.translateLangTitle;
-            if (translations[key]) el.title = translations[key];
-        });
-    }
-
     function renderPacket(packet, highlight = false) {
         if (renderedPacketIds.has(packet.id)) return;
         renderedPacketIds.add(packet.id);
         packetMap.set(packet.id, packet);
 
-        const date = new Date(packet.import_time);
-        const formattedTime = date.toLocaleTimeString([], { hour:"numeric", minute:"2-digit", second:"2-digit", hour12:true });
-        const formattedDate = `${(date.getMonth()+1).toString().padStart(2,"0")}/${date.getDate().toString().padStart(2,"0")}/${date.getFullYear()}`;
+        let date;
+        if (packet.import_time_us && packet.import_time_us > 0) {
+            date = new Date(packet.import_time_us / 1000);
+        } else if (packet.import_time) {
+            date = new Date(packet.import_time);
+        } else {
+            date = new Date();
+        }
+
+        const formattedTime = date.toLocaleTimeString([], {
+            hour:"numeric",
+            minute:"2-digit",
+            second:"2-digit",
+            hour12:true
+        });
+        const formattedDate =
+            `${(date.getMonth()+1).toString().padStart(2,"0")}/` +
+            `${date.getDate().toString().padStart(2,"0")}/` +
+            `${date.getFullYear()}`;
+
         const formattedTimestamp = `${formattedTime} - ${formattedDate}`;
 
         let replyHtml = "";
         if (packet.reply_id) {
             const parent = packetMap.get(packet.reply_id);
+            const replyPrefix = `<i data-translate="replying_to"></i>`;
             if (parent) {
-                replyHtml = `<div class="replying-to">
-                    <div class="reply-preview">
-                        <i data-translate-lang="replying_to"></i>
+                replyHtml = `
+                    <div class="replying-to">
+                        ${replyPrefix}
                         <strong>${escapeHtml((parent.long_name || "").trim() || `Node ${parent.from_node_id}`)}</strong>:
                         ${escapeHtml(parent.payload || "")}
-                    </div>
-                </div>`;
+                    </div>`;
             } else {
-                replyHtml = `<div class="replying-to">
-                    <i data-translate-lang="replying_to"></i>
-                    <a href="/packet/${packet.reply_id}">${packet.reply_id}</a>
-                </div>`;
+                replyHtml = `
+                    <div class="replying-to">
+                        ${replyPrefix}
+                        <a href="/packet/${packet.reply_id}">${packet.reply_id}</a>
+                    </div>`;
             }
         }
 
@@ -78,33 +140,43 @@ document.addEventListener("DOMContentLoaded", async () => {
         div.className = "row chat-packet" + (highlight ? " flash" : "");
         div.dataset.packetId = packet.id;
         div.innerHTML = `
-            <span class="col-2 timestamp" title="${packet.import_time}">${formattedTimestamp}</span>
+            <span class="col-2 timestamp" title="${packet.import_time_us}">${formattedTimestamp}</span>
             <span class="col-2 channel">
-                <a href="/packet/${packet.id}" data-translate-lang-title="view_packet_details">✉️</a>
-                ${escapeHtml(packet.channel || "")}
+                <a href="/packet/${packet.id}" title="${chatLang.view_packet_details || 'View details'}">🔎</a>
+                 ${escapeHtml(packet.channel || "")}
             </span>
             <span class="col-3 nodename">
-                <a href="/packet_list/${packet.from_node_id}">
+                <a href="/node/${packet.from_node_id}">
                     ${escapeHtml((packet.long_name || "").trim() || `Node ${packet.from_node_id}`)}
                 </a>
             </span>
             <span class="col-5 message">${escapeHtml(packet.payload)}${replyHtml}</span>
         `;
         chatContainer.prepend(div);
-        applyTranslations(chatTranslations, div);
+        applyTranslations(chatLang, div);
 
         if (highlight) setTimeout(() => div.classList.remove("flash"), 2500);
     }
 
     function renderPacketsEnsureDescending(packets, highlight=false) {
         if (!Array.isArray(packets) || packets.length===0) return;
-        const sortedDesc = packets.slice().sort((a,b)=>new Date(b.import_time)-new Date(a.import_time));
+        const sortedDesc = packets.slice().sort((a,b)=>{
+            const aTime =
+                (a.import_time_us && a.import_time_us > 0)
+                    ? a.import_time_us
+                    : (a.import_time ? new Date(a.import_time).getTime() * 1000 : 0);
+            const bTime =
+                (b.import_time_us && b.import_time_us > 0)
+                    ? b.import_time_us
+                    : (b.import_time ? new Date(b.import_time).getTime() * 1000 : 0);
+            return bTime - aTime;
+        });
         for (let i=sortedDesc.length-1; i>=0; i--) renderPacket(sortedDesc[i], highlight);
     }
 
     async function fetchInitial() {
         try {
-            const resp = await fetch("/api/chat?limit=100");
+            const resp = await fetch("/api/packets?portnum=1&limit=100");
             const data = await resp.json();
             if (data?.packets?.length) renderPacketsEnsureDescending(data.packets);
             lastTime = data?.latest_import_time || lastTime;
@@ -113,7 +185,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function fetchUpdates() {
         try {
-            const url = new URL("/api/chat", window.location.origin);
+            const url = new URL("/api/packets?portnum=1", window.location.origin);
             url.searchParams.set("limit","100");
             if (lastTime) url.searchParams.set("since", lastTime);
             const resp = await fetch(url);
@@ -123,18 +195,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         } catch(err){ console.error("Fetch updates error:", err); }
     }
 
-    async function loadTranslations() {
+    async function loadChatLang() {
         try {
             const cfg = await window._siteConfigPromise;
             const langCode = cfg?.site?.language || "en";
             const res = await fetch(`/api/lang?lang=${langCode}&section=chat`);
-            chatTranslations = await res.json();
-            applyTranslations(chatTranslations, document);
+            chatLang = await res.json();
+            applyTranslations(chatLang);
         } catch(err){ console.error("Chat translation load failed:", err); }
     }
 
-    await loadTranslations();
-    await fetchInitial();
+    await Promise.all([loadChatLang(), fetchInitial()]);
     setInterval(fetchUpdates, 5000);
 });
 </script>

@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, select, text
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.orm import lazyload
 
-from meshview import database
+from meshview import database, models
 from meshview.models import Node, Packet, PacketSeen, Traceroute
 
 
@@ -24,27 +24,65 @@ async def get_fuzzy_nodes(query):
         return result.scalars()
 
 
-async def get_packets(node_id=None, portnum=None, after=None, before=None, limit=None):
+async def get_packets(
+    from_node_id=None,
+    to_node_id=None,
+    node_id=None,  # legacy: match either from OR to
+    portnum=None,
+    after=None,
+    contains=None,  # NEW: SQL-level substring match
+    limit=50,
+):
+    """
+    SQLAlchemy 2.0 async ORM version.
+    Supports strict from/to/node filtering, substring payload search,
+    portnum, since, and limit.
+    """
+
     async with database.async_session() as session:
-        q = select(Packet)
+        stmt = select(models.Packet)
+        conditions = []
 
-        if node_id:
-            q = q.where((Packet.from_node_id == node_id) | (Packet.to_node_id == node_id))
-        if portnum:
-            q = q.where(Packet.portnum == portnum)
-        if after:
-            q = q.where(Packet.import_time > after)
-        if before:
-            q = q.where(Packet.import_time < before)
+        # Strict FROM filter
+        if from_node_id is not None:
+            conditions.append(models.Packet.from_node_id == from_node_id)
 
-        q = q.order_by(Packet.import_time.desc())
+        # Strict TO filter
+        if to_node_id is not None:
+            conditions.append(models.Packet.to_node_id == to_node_id)
 
-        if limit is not None:
-            q = q.limit(limit)
+        # Legacy node ID filter: match either direction
+        if node_id is not None:
+            conditions.append(
+                or_(models.Packet.from_node_id == node_id, models.Packet.to_node_id == node_id)
+            )
 
-        result = await session.execute(q)
-        packets = list(result.scalars())
-        return packets
+        # Port filter
+        if portnum is not None:
+            conditions.append(models.Packet.portnum == portnum)
+
+        # Timestamp filter
+        if after is not None:
+            conditions.append(models.Packet.import_time_us > after)
+
+        # Case-insensitive substring search on UTF-8 payload (stored as BLOB)
+        if contains:
+            contains_lower = contains.lower()
+            conditions.append(func.lower(models.Packet.payload).like(f"%{contains_lower}%"))
+
+        # Apply all conditions
+        if conditions:
+            stmt = stmt.where(and_(*conditions))
+
+        # Order newest → oldest
+        stmt = stmt.order_by(models.Packet.import_time_us.desc())
+
+        # Apply limit
+        stmt = stmt.limit(limit)
+
+        # Execute query
+        result = await session.execute(stmt)
+        return result.scalars().all()
 
 
 async def get_packets_from(node_id=None, portnum=None, since=None, limit=500):
@@ -66,21 +104,6 @@ async def get_packet(packet_id):
         q = select(Packet).where(Packet.id == packet_id)
         result = await session.execute(q)
         return result.scalar_one_or_none()
-
-
-async def get_uplinked_packets(node_id, portnum=None):
-    async with database.async_session() as session:
-        q = (
-            select(Packet)
-            .join(PacketSeen)
-            .where(PacketSeen.node_id == node_id)
-            .order_by(Packet.import_time.desc())
-            .limit(500)
-        )
-        if portnum:
-            q = q.where(Packet.portnum == portnum)
-        result = await session.execute(q)
-        return result.scalars()
 
 
 async def get_packets_seen(packet_id):
@@ -143,23 +166,6 @@ async def get_mqtt_neighbors(since):
             )
         )
         return result
-
-
-# We count the total amount of packages
-# This is to be used by /stats in web.py
-async def get_total_packet_count():
-    async with database.async_session() as session:
-        q = select(func.count(Packet.id))  # Use SQLAlchemy's func to count packets
-        result = await session.execute(q)
-        return result.scalar()  # Return the total count of packets
-
-
-# We count the total amount of seen packets
-async def get_total_packet_seen_count():
-    async with database.async_session() as session:
-        q = select(func.count(PacketSeen.node_id))  # Use SQLAlchemy's func to count nodes
-        result = await session.execute(q)
-        return result.scalar()  # Return the` total count of seen packets
 
 
 async def get_total_node_count(channel: str = None) -> int:
@@ -356,27 +362,155 @@ async def get_packet_stats(
 
 async def get_channels_in_period(period_type: str = "hour", length: int = 24):
     """
-    Returns a list of distinct channels used in packets over a given period.
+    Returns a sorted list of distinct channels used in packets over a given period.
     period_type: "hour" or "day"
     length: number of hours or days to look back
     """
-    now = datetime.now()
+    now_us = int(datetime.utcnow().timestamp() * 1_000_000)
 
     if period_type == "hour":
-        start_time = now - timedelta(hours=length)
+        delta_us = length * 3600 * 1_000_000
     elif period_type == "day":
-        start_time = now - timedelta(days=length)
+        delta_us = length * 86400 * 1_000_000
     else:
         raise ValueError("period_type must be 'hour' or 'day'")
 
+    start_us = now_us - delta_us
+
     async with database.async_session() as session:
-        q = (
+        stmt = (
             select(Packet.channel)
-            .where(Packet.import_time >= start_time)
+            .where(Packet.import_time_us >= start_us)
             .distinct()
             .order_by(Packet.channel)
         )
 
-        result = await session.execute(q)
-        channels = [row[0] for row in result if row[0] is not None]
+        result = await session.execute(stmt)
+
+        channels = [ch for ch in result.scalars().all() if ch is not None]
+
         return channels
+
+
+async def get_total_packet_count(
+    period_type: str | None = None,
+    length: int | None = None,
+    channel: str | None = None,
+    from_node: int | None = None,
+    to_node: int | None = None,
+):
+    """
+    Count total packets, with ALL filters optional.
+    If no filters -> return ALL packets ever.
+    Uses import_time_us (microseconds).
+    """
+
+    # CASE 1: no filters -> count everything
+    if (
+        period_type is None
+        and length is None
+        and channel is None
+        and from_node is None
+        and to_node is None
+    ):
+        async with database.async_session() as session:
+            q = select(func.count(Packet.id))
+            res = await session.execute(q)
+            return res.scalar() or 0
+
+    # CASE 2: filtered mode -> compute time window using import_time_us
+    now_us = int(datetime.now().timestamp() * 1_000_000)
+
+    if period_type is None:
+        period_type = "day"
+    if length is None:
+        length = 1
+
+    if period_type == "hour":
+        start_time_us = now_us - (length * 3600 * 1_000_000)
+    elif period_type == "day":
+        start_time_us = now_us - (length * 86400 * 1_000_000)
+    else:
+        raise ValueError("period_type must be 'hour' or 'day'")
+
+    async with database.async_session() as session:
+        q = select(func.count(Packet.id)).where(Packet.import_time_us >= start_time_us)
+
+        if channel:
+            q = q.where(func.lower(Packet.channel) == channel.lower())
+        if from_node:
+            q = q.where(Packet.from_node_id == from_node)
+        if to_node:
+            q = q.where(Packet.to_node_id == to_node)
+
+        res = await session.execute(q)
+        return res.scalar() or 0
+
+
+async def get_total_packet_seen_count(
+    packet_id: int | None = None,
+    period_type: str | None = None,
+    length: int | None = None,
+    channel: str | None = None,
+    from_node: int | None = None,
+    to_node: int | None = None,
+):
+    """
+    Count total PacketSeen rows.
+    - If packet_id is provided -> count only that packet's seen entries.
+    - Otherwise match EXACT SAME FILTERS as get_total_packet_count.
+    Uses import_time_us for time window.
+    """
+
+    # SPECIAL CASE: direct packet_id lookup
+    if packet_id is not None:
+        async with database.async_session() as session:
+            q = select(func.count(PacketSeen.packet_id)).where(PacketSeen.packet_id == packet_id)
+            res = await session.execute(q)
+            return res.scalar() or 0
+
+    # No filters -> return ALL seen entries
+    if (
+        period_type is None
+        and length is None
+        and channel is None
+        and from_node is None
+        and to_node is None
+    ):
+        async with database.async_session() as session:
+            q = select(func.count(PacketSeen.packet_id))
+            res = await session.execute(q)
+            return res.scalar() or 0
+
+    # Compute time window
+    now_us = int(datetime.now().timestamp() * 1_000_000)
+
+    if period_type is None:
+        period_type = "day"
+    if length is None:
+        length = 1
+
+    if period_type == "hour":
+        start_time_us = now_us - (length * 3600 * 1_000_000)
+    elif period_type == "day":
+        start_time_us = now_us - (length * 86400 * 1_000_000)
+    else:
+        raise ValueError("period_type must be 'hour' or 'day'")
+
+    # JOIN Packet so we can apply identical filters
+    async with database.async_session() as session:
+        q = (
+            select(func.count(PacketSeen.packet_id))
+            .join(Packet, Packet.id == PacketSeen.packet_id)
+            .where(Packet.import_time_us >= start_time_us)
+        )
+
+        if channel:
+            q = q.where(func.lower(Packet.channel) == channel.lower())
+        if from_node:
+            q = q.where(Packet.from_node_id == from_node)
+        if to_node:
+            q = q.where(Packet.to_node_id == to_node)
+
+        res = await session.execute(q)
+        return res.scalar() or 0

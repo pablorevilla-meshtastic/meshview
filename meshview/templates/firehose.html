@@ -2,7 +2,6 @@
 
 {% block css %}
 .container {
-    max-width: 900px;
     margin: 0 auto;
     padding: 10px;
 }
@@ -19,6 +18,7 @@
     font-size: 0.85rem;
     color: #e4e9ee;
 }
+
 .packet-table th, .packet-table td {
     border: 1px solid #3a3f44;
     padding: 6px 10px;
@@ -30,6 +30,7 @@
 }
 .packet-table tr:nth-of-type(odd) { background-color: #272b2f; }
 .packet-table tr:nth-of-type(even) { background-color: #212529; }
+
 .port-tag {
     display: inline-block;
     padding: 1px 6px;
@@ -38,8 +39,6 @@
     font-weight: 500;
     color: #fff;
 }
-
-/* --- Color-coded port labels --- */
 .port-0  { background-color: #6c757d; }
 .port-1  { background-color: #007bff; }
 .port-3  { background-color: #28a745; }
@@ -51,16 +50,9 @@
 .port-70 { background-color: #6f42c1; }
 .port-71 { background-color: #fd7e14; }
 
-.to-mqtt {
-    font-style: italic;
-    color: #aaa;
-}
+.to-mqtt { font-style: italic; color: #aaa; }
 
-/* --- Payload rows --- */
-.payload-row {
-    display: none;
-    background-color: #1b1e22;
-}
+.payload-row { display: none; background-color: #1b1e22; }
 .payload-cell {
     padding: 8px 12px;
     font-family: monospace;
@@ -68,35 +60,43 @@
     color: #b0bec5;
     border-top: none;
 }
-.packet-table tr.expanded + .payload-row {
-    display: table-row;
-}
+.packet-table tr.expanded + .payload-row { display: table-row; }
+
 .toggle-btn {
     cursor: pointer;
     color: #aaa;
     margin-right: 6px;
     font-weight: bold;
 }
-.toggle-btn:hover {
-    color: #fff;
+.toggle-btn:hover { color: #fff; }
+
+/* Link next to port tag */
+.inline-link {
+    margin-left: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #9fd4ff;
+}
+.inline-link:hover {
+    color: #c7e6ff;
 }
 {% endblock %}
 
 {% block body %}
 <div class="container">
     <form class="d-flex align-items-center justify-content-between mb-3">
-        <h5 class="mb-0">📡 Live Feed</h5>
-        <button type="button" id="pause-button" class="btn btn-sm btn-outline-secondary">Pause</button>
+        <h5 class="mb-0" data-translate-lang="live_feed">📡 Live Feed</h5>
+        <button type="button" id="pause-button" class="btn btn-sm btn-outline-secondary" data-translate-lang="pause">Pause</button>
     </form>
 
     <table class="packet-table">
         <thead>
             <tr>
-                <th>Packet ID</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Port</th>
-                <th>Links</th>
+                <th data-translate-lang="time">Time</th>
+                <th data-translate-lang="packet_id">Packet ID</th>
+                <th data-translate-lang="from">From</th>
+                <th data-translate-lang="to">To</th>
+                <th data-translate-lang="port">Port</th>
             </tr>
         </thead>
         <tbody id="packet_list"></tbody>
@@ -104,10 +104,30 @@
 </div>
 
 <script>
-let lastImportTime = null;
+let lastImportTimeUs = null;
 let updatesPaused = false;
 let nodeMap = {};
 let updateInterval = 3000;
+let firehoseTranslations = {};
+
+function applyTranslations(translations, root=document) {
+    root.querySelectorAll("[data-translate-lang]").forEach(el => {
+        const key = el.dataset.translateLang;
+        if (translations[key]) el.textContent = translations[key];
+    });
+}
+
+async function loadTranslations() {
+    try {
+        const cfg = await window._siteConfigPromise;
+        const langCode = cfg?.site?.language || "en";
+        const res = await fetch(`/api/lang?lang=${langCode}&section=firehose`);
+        firehoseTranslations = await res.json();
+        applyTranslations(firehoseTranslations, document);
+    } catch (err) {
+        console.error("Firehose translation load failed:", err);
+    }
+}
 
 const PORT_MAP = {
     0: "UNKNOWN APP",
@@ -145,14 +165,13 @@ const PORT_COLORS = {
     78: "#795548"
 };
 
-// --- Load node names ---
+// Load node names
 async function loadNodes() {
     const res = await fetch("/api/nodes");
     if (!res.ok) return;
     const data = await res.json();
     for (const n of data.nodes || []) {
-        const name = n.long_name || n.short_name || n.id || n.node_id;
-        nodeMap[n.node_id] = name;
+        nodeMap[n.node_id] = n.long_name || n.short_name || n.id || n.node_id;
     }
     nodeMap[4294967295] = "All";
 }
@@ -162,33 +181,40 @@ function nodeName(id) {
     return nodeMap[id] || id;
 }
 
-function portLabel(portnum, payload) {
+function portLabel(portnum, payload, linksHtml) {
     const name = PORT_MAP[portnum] || "Unknown";
     const color = PORT_COLORS[portnum] || "#6c757d";
     const safePayload = payload ? payload.replace(/"/g, "&quot;") : "";
-    return `<span class="port-tag" style="background-color:${color}" title="${safePayload}">${name}</span>
-            <span class="text-secondary">(${portnum})</span>`;
+
+    return `
+        <span class="port-tag" style="background-color:${color}" title="${safePayload}">
+            ${name}
+        </span>
+        <span class="text-secondary">(${portnum})</span>
+        ${linksHtml || ""}
+    `;
 }
 
-// --- Fetch firehose interval from shared site config ---
+function formatLocalTime(importTimeUs) {
+    const ms = importTimeUs / 1000;
+    const date = new Date(ms);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
 async function configureFirehose() {
     try {
         const cfg = await window._siteConfigPromise;
         const intervalSec = cfg?.site?.firehose_interval;
-        if (intervalSec && !isNaN(intervalSec)) {
-            updateInterval = parseInt(intervalSec) * 1000;
-        }
-        console.log("Firehose update interval:", updateInterval, "ms");
+        if (intervalSec && !isNaN(intervalSec)) updateInterval = parseInt(intervalSec) * 1000;
     } catch (err) {
         console.warn("Failed to read firehose interval:", err);
     }
 }
 
-// --- Fetch and render packets ---
 async function fetchUpdates() {
     if (updatesPaused) return;
     const url = new URL("/api/packets", window.location.origin);
-    if (lastImportTime) url.searchParams.set("since", lastImportTime);
+    if (lastImportTimeUs) url.searchParams.set("since", lastImportTimeUs);
     url.searchParams.set("limit", 50);
 
     try {
@@ -201,43 +227,48 @@ async function fetchUpdates() {
         const list = document.getElementById("packet_list");
 
         for (const pkt of packets.reverse()) {
-            const fromNodeId = pkt.from_node_id;
-            const toNodeId = pkt.to_node_id;
+            const from = pkt.from_node_id === 4294967295
+                ? `<span class="to-mqtt">All</span>`
+                : `<a href="/node/${pkt.from_node_id}" style="text-decoration:underline; color:inherit;">${nodeMap[pkt.from_node_id] || pkt.from_node_id}</a>`;
 
-            let from = fromNodeId === 4294967295 ? `<span class="to-mqtt">All</span>` :
-                       `<a href="/packet_list/${fromNodeId}" style="text-decoration:underline; color:inherit;">${nodeMap[fromNodeId] || fromNodeId}</a>`;
+            const to = pkt.to_node_id === 1
+                ? `<span class="to-mqtt">direct to MQTT</span>`
+                : pkt.to_node_id === 4294967295
+                ? `<span class="to-mqtt">All</span>`
+                : `<a href="/node/${pkt.to_node_id}" style="text-decoration:underline; color:inherit;">${nodeMap[pkt.to_node_id] || pkt.to_node_id}</a>`;
 
-            let to = toNodeId === 1 ? `<span class="to-mqtt">direct to MQTT</span>` :
-                     toNodeId === 4294967295 ? `<span class="to-mqtt">All</span>` :
-                     `<a href="/packet_list/${toNodeId}" style="text-decoration:underline; color:inherit;">${nodeMap[toNodeId] || toNodeId}</a>`;
+            // Inline link next to port tag
+            let inlineLinks = "";
 
-            let links = "";
             if (pkt.portnum === 3 && pkt.payload) {
                 const latMatch = pkt.payload.match(/latitude_i:\s*(-?\d+)/);
                 const lonMatch = pkt.payload.match(/longitude_i:\s*(-?\d+)/);
+
                 if (latMatch && lonMatch) {
                     const lat = parseInt(latMatch[1]) / 1e7;
                     const lon = parseInt(lonMatch[1]) / 1e7;
-                    links += `<a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener noreferrer" style="font-weight:bold; text-decoration:none;">Map</a>`;
+                    inlineLinks += ` <a class="inline-link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">📍</a>`;
                 }
             }
 
             if (pkt.portnum === 70) {
                 let traceId = pkt.id;
-                const idMatch = pkt.payload.match(/ID:\s*(\d+)/i);
-                if (idMatch) traceId = idMatch[1];
-                if (links) links += "&nbsp;|&nbsp;";
-                links += `<a href="/graph/traceroute/${traceId}" target="_blank" rel="noopener noreferrer" style="font-weight:bold; text-decoration:none;">Graph</a>`;
+                const match = pkt.payload.match(/ID:\s*(\d+)/i);
+                if (match) traceId = match[1];
+
+                inlineLinks += ` <a class="inline-link" href="/graph/traceroute/${traceId}" target="_blank">⮕</a>`;
             }
 
             const safePayload = (pkt.payload || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const localTime = formatLocalTime(pkt.import_time_us);
+
             const html = `
 <tr class="packet-row" data-id="${pkt.id}">
+    <td>${localTime}</td>
     <td><span class="toggle-btn">▶</span> <a href="/packet/${pkt.id}" style="text-decoration:underline; color:inherit;">${pkt.id}</a></td>
     <td>${from}</td>
     <td>${to}</td>
-    <td>${portLabel(pkt.portnum, pkt.payload)}</td>
-    <td>${links}</td>
+    <td>${portLabel(pkt.portnum, pkt.payload, inlineLinks)}</td>
 </tr>
 <tr class="payload-row">
     <td colspan="5" class="payload-cell">${safePayload}</td>
@@ -246,7 +277,7 @@ async function fetchUpdates() {
         }
 
         while (list.rows.length > 400) list.deleteRow(-1);
-        lastImportTime = packets[packets.length - 1].import_time;
+        lastImportTimeUs = packets[packets.length - 1].import_time_us;
 
     } catch (err) {
         console.error("Packet fetch failed:", err);
@@ -258,7 +289,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const pauseBtn = document.getElementById("pause-button");
     pauseBtn.addEventListener("click", () => {
         updatesPaused = !updatesPaused;
-        pauseBtn.textContent = updatesPaused ? "Resume" : "Pause";
+        pauseBtn.textContent = updatesPaused
+            ? (firehoseTranslations.resume || "Resume")
+            : (firehoseTranslations.pause || "Pause");
     });
 
     document.addEventListener("click", (e) => {
@@ -269,11 +302,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         btn.textContent = row.classList.contains("expanded") ? "▼" : "▶";
     });
 
+    await loadTranslations();
     await configureFirehose();
     await loadNodes();
     fetchUpdates();
     setInterval(fetchUpdates, updateInterval);
 });
 </script>
-
 {% endblock %}

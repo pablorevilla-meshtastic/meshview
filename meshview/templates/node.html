@@ -1,234 +1,885 @@
 {% extends "base.html" %}
 
 {% block css %}
-    /* Styles for the node info card */
-    #node_info {
-        height: 100%;
-    }
+{{ super() }}
 
-    /* Styles for the map */
-    #map {
-        height: 100%;
-        min-height: 400px;
-    }
+/* --- Map --- */
+#map {
+    width: 100%;
+    height: 400px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    display: block;
+}
+.leaflet-container {
+    background: #1a1a1a;
+    z-index: 1;
+}
 
-    /* Styles for packet details section */
-    #packet_details {
-        height: 95vh;
-        overflow: scroll;
-        top: 3em;
-    }
+/* --- Node Info (3-column compact grid) --- */
+.node-info {
+    background-color: #1f2226;
+    border: 1px solid #3a3f44;
+    color: #ddd;
+    font-size: 0.88rem;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    border-radius: 8px;
 
-    /* Ensure inline display for details */
-    div.tab-pane > dl {
-        display: inline-block;
-    }
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    grid-column-gap: 14px;
+    grid-row-gap: 6px;
+}
 
-    /* Set the maximum width of the page to 900px */
-    .container {
-        max-width: 900px;
-        margin: 0 auto; /* Center the content horizontally */
-    }
+.node-info div {
+    padding: 2px 0;
+}
+
+.node-info strong {
+    color: #9fd4ff;
+    font-weight: 600;
+}
+
+/* --- Charts --- */
+.chart-container {
+    width: 100%;
+    height: 320px;
+    margin-bottom: 25px;
+    border: 1px solid #3a3f44;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #16191d;
+}
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1f2226;
+    padding: 6px 12px;
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+.chart-actions button {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #ccc;
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.chart-actions button:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.15);
+    border-color: #888;
+}
+
+/* --- Packet Table --- */
+.packet-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    color: #e4e9ee;
+}
+.packet-table th, .packet-table td {
+    border: 1px solid #3a3f44;
+    padding: 6px 10px;
+    text-align: left;
+}
+.packet-table th {
+    background-color: #1f2226;
+    font-weight: bold;
+}
+.packet-table tr:nth-of-type(odd) { background-color: #272b2f; }
+.packet-table tr:nth-of-type(even) { background-color: #212529; }
+
+.port-tag {
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #fff;
+}
+.port-1  { background-color: #007bff; }
+.port-3  { background-color: #28a745; }
+.port-4  { background-color: #ffc107; color:#000; }
+.port-5  { background-color: #dc3545; }
+.port-6  { background-color: #20c997; }
+.port-67 { background-color: #17a2b8; }
+.port-70 { background-color: #ff7043; }
+.port-71 { background-color: #ff66cc; }
+.port-0  { background-color: #6c757d; }
+
+.to-mqtt { font-style: italic; color: #aaa; }
+.payload-row { display: none; background-color: #1b1e22; }
+.payload-cell { padding: 8px 12px; font-family: monospace; white-space: pre-wrap; color: #b0bec5; border-top: none; }
+.packet-table tr.expanded + .payload-row { display: table-row; }
+.toggle-btn { cursor: pointer; color: #aaa; margin-right: 6px; }
+.toggle-btn:hover { color: #fff; }
+
+/* --- Chart Modal --- */
+#chartModal {
+    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.9); z-index:9999;
+    align-items:center; justify-content:center;
+}
+#chartModal > div {
+    background:#1b1e22; border-radius:8px;
+    width:90%; height:85%; padding:10px;
+}
+
+/* Link next to port tag */
+.inline-link {
+    margin-left: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #9fd4ff;
+}
+.inline-link:hover {
+    color: #c7e6ff;
+}
 {% endblock %}
 
 {% block body %}
-<div id="node" class="container text-center">
-    <div class="container">
-        <div class="row">
-            <div class="col mb-3">
-                <!-- Node Information Card -->
-                <div class="card" id="node_info">
-                    {% if node %}
-                    <div class="card-header" id="node_color">
-                        <strong style="margin-right: 1em ; margin-left: 1em; font-size: x-large;">{{node.short_name}}</strong>
-                        <p style="margin-bottom: 0px; font-size: large; font-weight: bold;">{{node.long_name}}</p>
-                        </div>
-                        <div class="card-body">
-                            <dl >
-                                {% if trace %}
-                                <dd id="map"></dd>
-                                {% endif %}
-                                <dt>NodeID</dt>
-                                <dd>{{node.node_id|node_id_to_hex}}</dd>
-                                <dt>Channel</dt>
-                                <dd>{{node.channel}}</dd>
-                                <dt>HW Model</dt>
-                                <dd>{{node.hw_model}}</dd>
-                                <dt>Role</dt>
-                                <dd>{{node.role}}</dd>
-                                {% if node.firmware %}
-                                <dt>Firmware</dt>
-                                <dd>{{node.firmware}}</dd>
-                                {% endif %}
-                            </dl>
-                        <a href="/top?node_id={{node.node_id}}" >Get node traffic totals</a>
-                        {% include "node_graphs.html" %}
-                    </div>
-                    {% else %}
-                    <div class="card-body">
-                        A NodeInfo has not been seen.
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+<div class="container">
 
-        <div class="row">
-            <div class="col">
-                <!-- Additional buttons can be included here -->
-            </div>
-        </div>
+    <h5 class="mb-3">📡 Specifications: <span id="nodeLabel"></span></h5>
 
-        <div class="row">
-            <div class="col">
-                {% include 'packet_list.html' %}
+    <!-- Node Info (3 column grid) -->
+    <div id="node-info" class="node-info">
+        <div><strong>Node ID:</strong> <span id="info-node-id">—</span></div>
+        <div><strong>Long Name:</strong> <span id="info-long-name">—</span></div>
+        <div><strong>Short Name:</strong> <span id="info-short-name">—</span></div>
+
+        <div><strong>Hardware Model:</strong> <span id="info-hw-model">—</span></div>
+        <div><strong>Firmware:</strong> <span id="info-firmware">—</span></div>
+        <div><strong>Role:</strong> <span id="info-role">—</span></div>
+
+        <div><strong>Channel:</strong> <span id="info-channel">—</span></div>
+        <div><strong>Latitude:</strong> <span id="info-lat">—</span></div>
+        <div><strong>Longitude:</strong> <span id="info-lon">—</span></div>
+
+        <div><strong>Last Update:</strong> <span id="info-last-update">—</span></div>
+    </div>
+
+    <!-- Map -->
+    <div id="map" style="min-height:400px;"></div>
+
+    <!-- Charts -->
+    <div id="battery_voltage_container" class="chart-container">
+        <div class="chart-header">
+            🔋 Battery & Voltage
+            <div class="chart-actions">
+                <button onclick="expandChart('battery_voltage')">Expand</button>
+                <button onclick="exportCSV('battery_voltage')">Export CSV</button>
             </div>
-            <!-- <div class="col sticky-top" id="packet_details"></div> -->
         </div>
+        <div id="chart_battery_voltage" style="height:260px;"></div>
+    </div>
+
+    <div id="air_channel_container" class="chart-container">
+        <div class="chart-header">
+            📶 Air & Channel Utilization
+            <div class="chart-actions">
+                <button onclick="expandChart('air_channel')">Expand</button>
+                <button onclick="exportCSV('air_channel')">Export CSV</button>
+            </div>
+        </div>
+        <div id="chart_air_channel" style="height:260px;"></div>
+    </div>
+
+    <div id="env_chart_container" class="chart-container" style="display:none;">
+        <div class="chart-header">
+            🌡️ Environment Metrics
+            <div class="chart-actions">
+                <button onclick="expandChart('environment')">Expand</button>
+                <button onclick="exportCSV('environment')">Export CSV</button>
+            </div>
+        </div>
+        <div id="chart_environment" style="height:260px;"></div>
+    </div>
+
+    <!-- Neighbors chart -->
+    <div id="neighbor_chart_container" class="chart-container" style="display:none;">
+        <div class="chart-header">
+            📡 Neighbors (Signal-to-Noise)
+            <div class="chart-actions">
+                <button onclick="expandChart('neighbors')">Expand</button>
+                <button onclick="exportCSV('neighbors')">Export CSV</button>
+            </div>
+        </div>
+        <div id="chart_neighbors" style="height:260px;"></div>
+    </div>
+
+    <!-- Table -->
+    <table class="packet-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Packet ID</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Port</th>
+            </tr>
+        </thead>
+        <tbody id="packet_list"></tbody>
+    </table>
+
+</div>
+
+<!-- Modal -->
+<div id="chartModal">
+    <div>
+        <div style="text-align:right;">
+            <button onclick="closeModal()" style="background:none;border:none;color:#ccc;">✖</button>
+        </div>
+        <div id="modalChart" style="width:100%; height:90%;"></div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <script>
-    var node_color = document.getElementById('node_color');
-    var node_id = '{{node.node_id | node_id_to_hex}}';
-    var color = node_id.slice(-6);
-    var bg_color = "#"+color;
-    node_color.style.background = bg_color;
-    var hex = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(bg_color);
-    var text_color = [
-        parseInt(hex[1], 16),
-        parseInt(hex[2], 16),
-        parseInt(hex[3], 16),
-    ];
+let nodeMap = {}, nodePositions = {}, map, markers = {};
+let chartData = {}, neighborData = { ids:[], names:[], snrs:[] };
+let allNodes = [];
+let fromNodeId = new URLSearchParams(window.location.search).get("from_node_id");
+if (!fromNodeId) {
+    const parts = window.location.pathname.split("/");
+    fromNodeId = parts[parts.length - 1];
+}
 
-    const brightness = Math.round(((parseInt(text_color[0]) * 299) +
-                      (parseInt(text_color[1]) * 587) +
-                      (parseInt(text_color[2]) * 114)) / 1000);
+// --- Load nodes ---
+async function loadNodes(){
+    try {
+        const res = await fetch("/api/nodes");
+        if (!res.ok) {
+            console.error("Failed /api/nodes", res.status);
+            return;
+        }
+        const data = await res.json();
+        allNodes = data.nodes || [];
 
-    if (brightness > 125) {
-        var textColor = '#212529'
-        node_color.style.color = textColor
+        for (const n of allNodes) {
+            const name = n.long_name || n.short_name || n.id || n.node_id;
+            nodeMap[n.node_id] = name;
+
+            if (n.last_lat && n.last_long)
+                nodePositions[n.node_id] = [n.last_lat / 1e7, n.last_long / 1e7];
+        }
+
+        nodeMap[4294967295] = "All";
+        document.getElementById("nodeLabel").textContent = nodeMap[fromNodeId] || fromNodeId;
+
+    } catch (err) {
+        console.error("Error loading nodes:", err);
     }
-</script>
+}
 
-{% if trace %}
-<script>
-    var trace = {{ trace | tojson }}; // Load trace data into JavaScript
-    var map = L.map('map').setView(trace[0], 13); // Initialize map centered at first trace point
-    var markers = L.featureGroup(); // Create a feature group for markers
-    markers.addTo(map);
+// --- Load Node Info ---
+async function loadNodeInfo(){
+    try {
+        if (!allNodes.length) await loadNodes();
 
-    // Add tile layer (OpenStreetMap)
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        const node = allNodes.find(n => String(n.node_id) === String(fromNodeId));
+        if (!node) {
+            document.getElementById("node-info").style.display = "none";
+            return;
+        }
+
+        document.getElementById("info-node-id").textContent    = node.node_id ?? "—";
+        document.getElementById("info-long-name").textContent  = node.long_name ?? "—";
+        document.getElementById("info-short-name").textContent = node.short_name ?? "—";
+        document.getElementById("info-hw-model").textContent   = node.hw_model ?? "—";
+        document.getElementById("info-firmware").textContent   = node.firmware ?? "—";
+        document.getElementById("info-role").textContent       = node.role ?? "—";
+        document.getElementById("info-channel").textContent    = node.channel ?? "—";
+
+        document.getElementById("info-lat").textContent = node.last_lat ? (node.last_lat / 1e7).toFixed(6) : "—";
+        document.getElementById("info-lon").textContent = node.last_long ? (node.last_long / 1e7).toFixed(6) : "—";
+
+        let lastSeen = "—";
+        if (node.last_seen_us) {
+            lastSeen = new Date(node.last_seen_us / 1000).toLocaleString([], {
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
+        document.getElementById("info-last-update").textContent = lastSeen;
+
+
+    } catch (err) {
+        console.error("Failed to load node info:", err);
+        document.getElementById("node-info").style.display = "none";
+    }
+}
+
+// --- Helpers ---
+function nodeLink(id){
+    if (id === 4294967295) return `<span class="to-mqtt">All</span>`;
+    if (id === 1)          return `<span class="to-mqtt">Direct to MQTT</span>`;
+    return `<a href="/node/${id}" style="text-decoration:underline; color:inherit;">${nodeMap[id] || id}</a>`;
+}
+function portLabel(p){
+    const names = {
+        0: "UNKNOWN APP",
+        1: "Text",
+        3: "Position",
+        4: "Node Info",
+        5: "Routing",
+        6: "Admin",
+        67: "Telemetry",
+        70: "Traceroute",
+        71: "Neighbor"
+    };
+    const label = names[p] || "Unknown";
+    return `<span class="port-tag port-${p}">${label}</span>`;
+}
+function formatLocalTime(us){
+    return new Date(us / 1000).toLocaleString([], {
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+// --- Map ---
+function initMap(){
+    map = L.map('map', { preferCanvas:true }).setView([37.7749, -122.4194], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:'&copy; OpenStreetMap'
     }).addTo(map);
+}
 
-    // Draw a polyline along the trace path
-    L.polyline(trace, { color: 'blue', weight: 1}).addTo(map);
-
-    // Add a red circle marker for the starting node with a tooltip
-    var startMarker = L.circleMarker(trace[0], {
-        radius: 8,
-        color: 'red',
-        weight: 1,
-        fillColor: 'red',
-        fillOpacity: 0.5
-    }).addTo(markers) // Add to feature group
-      .bindPopup(`
-        <b>{{node.long_name}}</b><br/>
-        <b>Short:</b> {{node.short_name}}<br/>
-        <b>Channel:</b> {{node.channel}}<br/>
-        <b>Hardware:</b> {{node.hw_model}}<br/>
-        <b>Role:</b> {{node.role}}<br/>
-        <b>Firmware:</b> {{node.firmware}}<br/>
-        <b>Coordinates:</b> [{{node.last_lat}} , {{node.last_long}}]
-      `, {permanent: false, direction: 'top', opacity: 0.9});
-
-    // Function to calculate distance and convert to miles
-    function getDistanceInMiles(latlng1, latlng2) {
-        var meters = latlng1.distanceTo(latlng2); // Get distance in meters
-        return meters * 0.000621371; // Convert meters to miles
+function hideMap(){
+    const mapDiv = document.getElementById("map");
+    if (mapDiv) {
+        mapDiv.style.display = "none";
     }
+}
 
-    {% for n in neighbors %}
-        var neighborLatLng = L.latLng([{{n.location[0]}}, {{n.location[1]}}]);
-        var startLatLng = L.latLng(trace[0]);
+function addMarker(id, lat, lon, label, color = "red"){
+    if (!map) return;
+    if (isNaN(lat) || isNaN(lon)) return;
+    nodePositions[id] = [lat, lon];
+    const m = L.circleMarker([lat, lon], {
+        radius: 5,
+        color,
+        fillColor: color,
+        fillOpacity: 1
+    }).addTo(map).bindPopup(label);
+    markers[id] = m;
+    m.bringToFront();
+}
 
-        // Calculate distance in miles with 1 decimal place
-        var distanceMiles = getDistanceInMiles(startLatLng, neighborLatLng).toFixed(1);
+function drawNeighbors(src, nids){
+    if (!map) return;
+    const s = nodePositions[src];
+    if (!s) return;
+    for (const nid of nids) {
+        const pos = nodePositions[nid];
+        if (pos) {
+            addMarker(nid, pos[0], pos[1], nodeMap[nid] || nid, "blue");
+            L.polyline([s, pos], { color:'gray', weight:1 }).addTo(map);
+        }
+    }
+}
 
-        // Create a blue circle marker for each neighbor node
-        var m = L.circleMarker(neighborLatLng, {
-            radius: 6,
-            color: 'blue',
-            weight: 1,
-            fillColor: 'blue',
-            fillOpacity: 0.5
-        }).addTo(markers) // Add to feature group
-          .bindPopup(`
-            <b><a href="/packet_list/{{n.node_id}}">{{n.long_name}}</a></b><br>
-            <b>{{n.short_name}}</b> <br/>
-            <b>SNR:</b> {{n.snr}} <br/>
-            <b>Distance:</b> ${distanceMiles} miles <br/>
-        `, {permanent: false, direction: 'top', opacity: 0.9});
+function ensureMapVisible(){
+    if (!map) return;
+    requestAnimationFrame(() => {
+        map.invalidateSize();
+        const group = L.featureGroup(Object.values(markers));
+        if (group.getLayers().length > 0)
+        map.fitBounds(group.getBounds(), {
+            padding: [20, 20],
+            maxZoom: 11   //
+        });
+    });
+}
 
-        // Draw a polyline from the first trace point to each neighbor node
-        L.polyline([startLatLng, neighborLatLng], {
-            color: 'grey',
-            weight: 1
+// --- Position Track (last 50 position packets) ---
+async function loadTrack(){
+    try {
+        const url = new URL("/api/packets", window.location.origin);
+        url.searchParams.set("portnum", 3);
+        url.searchParams.set("from_node_id", fromNodeId);
+        url.searchParams.set("limit", 50);
+
+        const res = await fetch(url);
+        if (!res.ok) {
+            hideMap();
+            return;
+        }
+
+        const data = await res.json();
+        const packets = data.packets || [];
+        const points = [];
+
+        for (const pkt of packets) {
+            if (!pkt.payload) continue;
+            const latMatch = pkt.payload.match(/latitude_i:\s*(-?\d+)/);
+            const lonMatch = pkt.payload.match(/longitude_i:\s*(-?\d+)/);
+            if (!latMatch || !lonMatch) continue;
+
+            const lat = parseInt(latMatch[1], 10) / 1e7;
+            const lon = parseInt(lonMatch[1], 10) / 1e7;
+            if (isNaN(lat) || isNaN(lon)) continue;
+
+            points.push({
+                lat,
+                lon,
+                time: pkt.import_time_us
+            });
+        }
+
+        if (!points.length) {
+            // No position packets -> hide map entirely
+            hideMap();
+            return;
+        }
+
+        // Sort chronologically (oldest -> newest)
+        points.sort((a, b) => a.time - b.time);
+
+        // Track node's last known position
+        const latest = points[points.length - 1];
+        nodePositions[fromNodeId] = [latest.lat, latest.lon];
+
+        // Ensure map exists
+        if (!map) {
+            initMap();
+        }
+
+        const latlngs = points.map(p => [p.lat, p.lon]);
+        const trackLine = L.polyline(latlngs, {
+            color: '#052152',
+            weight: 2
         }).addTo(map);
 
-    {% endfor %}
+        // First + last markers only
+        const first = points[0];
+        const last  = points[points.length - 1];
 
-    // Add a legend to the map
-    var legend = L.control({ position: 'bottomleft' });
+        const startMarker = L.circleMarker([first.lat, first.lon], {
+            radius: 6,
+            color: 'green',
+            fillColor: 'green',
+            fillOpacity: 1
+        }).addTo(map).bindPopup("Start");
+        const endMarker = L.circleMarker([last.lat, last.lon], {
+            radius: 6,
+            color: 'red',
+            fillColor: 'red',
+            fillOpacity: 1
+        }).addTo(map).bindPopup("Latest");
 
-    legend.onAdd = function(map) {
-        var div = L.DomUtil.create('div', 'info legend');
-        div.style.background = 'white';
-        div.style.padding = '8px';
-        div.style.border = '1px solid black';
-        div.style.borderRadius = '5px';
-        div.style.boxShadow = '0 0 5px rgba(0,0,0,0.3)';
-        div.style.color = 'black'; // Ensure text is black
-        div.style.textAlign = 'left'; /* Ensure left alignment */
-        div.innerHTML = `
-        <b>Legend</b><br>
-        <svg width="16" height="16">
-            <circle cx="8" cy="8" r="6" fill="blue" stroke="blue" stroke-width="1" fill-opacity="0.4"/>
-        </svg> Neighbor Node<br>
-        <svg width="20" height="20">
-            <circle cx="10" cy="10" r="8" fill="red" stroke="red" stroke-width="1" fill-opacity="0.4"/>
-        </svg> Home Node<br>
-        <svg width="20" height="4">
-            <line x1="0" y1="2" x2="20" y2="2" stroke="grey" stroke-width="2"/>
-        </svg> Connection to Neighbors<br>
-        <svg width="20" height="4">
-            <line x1="0" y1="2" x2="20" y2="2" stroke="blue" stroke-width="2"/>
-        </svg> Path taken by node
-        `;
-        return div;
+        markers["__track_start"] = startMarker;
+        markers["__track_end"]   = endMarker;
+
+        // Hover tooltip on the track: nearest point to cursor
+        trackLine.on('mousemove', function(e){
+            const { lat, lng } = e.latlng;
+            let bestIdx = 0;
+            let bestDist = Infinity;
+            for (let i = 0; i < latlngs.length; i++) {
+                const dLat = latlngs[i][0] - lat;
+                const dLng = latlngs[i][1] - lng;
+                const dist = dLat * dLat + dLng * dLng;
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestIdx = i;
+                }
+            }
+            const p  = points[bestIdx];
+            const dt = new Date(p.time / 1000);
+            const ts = dt.toLocaleString([], {
+                month:"2-digit",
+                day:"2-digit",
+                hour:"2-digit",
+                minute:"2-digit"
+            });
+            const tooltipHtml =
+                `${ts}<br>` +
+                `Lat: ${p.lat.toFixed(6)}<br>` +
+                `Lon: ${p.lon.toFixed(6)}`;
+
+            trackLine.bindTooltip(tooltipHtml, { sticky:true }).openTooltip(e.latlng);
+        });
+
+        // Fit map to full track
+        map.fitBounds(trackLine.getBounds(), { padding:[20,20] });
+
+    } catch (err) {
+        console.error("Failed to load track:", err);
+        hideMap();
+    }
+}
+
+// --- Packets (for table + neighbor map overlay) ---
+async function loadPackets(){
+    const url = new URL("/api/packets", window.location.origin);
+    url.searchParams.set("from_node_id", fromNodeId);
+    url.searchParams.set("limit", 200);
+
+    const res = await fetch(url);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const list = document.getElementById("packet_list");
+
+    for (const pkt of (data.packets || []).reverse()) {
+        const safePayload = (pkt.payload || "").replace(/[<>]/g, m => m == "<" ? "&lt;" : "&gt;");
+        const localTime   = formatLocalTime(pkt.import_time_us);
+        const fromCell    = nodeLink(pkt.from_node_id);
+        const toCell      = nodeLink(pkt.to_node_id);
+
+        // Neighbor packets still update map overlay if map exists
+        if (pkt.portnum === 71 && pkt.payload) {
+            const nids = [];
+            const re = /neighbors\s*\{\s*node_id:\s*(\d+)/g;
+            let m;
+            while ((m = re.exec(pkt.payload)) !== null) nids.push(parseInt(m[1]));
+            drawNeighbors(pkt.from_node_id, nids);
+        }
+
+        let inlineLinks = "";
+
+    if (pkt.portnum === 3 && pkt.payload) {
+        const latMatch = pkt.payload.match(/latitude_i:\s*(-?\d+)/);
+        const lonMatch = pkt.payload.match(/longitude_i:\s*(-?\d+)/);
+
+        if (latMatch && lonMatch) {
+            const lat = parseFloat(latMatch[1]) / 1e7;
+            const lon = parseFloat(lonMatch[1]) / 1e7;
+            inlineLinks += ` <a class="inline-link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">📍</a>`;
+        }
+    }
+
+    if (pkt.portnum === 70) {
+        let traceId = pkt.id;
+        const match = pkt.payload?.match(/ID:\s*(\d+)/i);
+        if (match) traceId = match[1];
+        inlineLinks += ` <a class="inline-link" href="/graph/traceroute/${traceId}" target="_blank">⮕</a>`;
+    }
+
+
+        list.insertAdjacentHTML("afterbegin", `
+<tr class="packet-row">
+    <td>${localTime}</td>
+    <td><span class="toggle-btn">▶</span> <a href="/packet/${pkt.id}" style="text-decoration:underline; color:inherit;">${pkt.id}</a></td>
+    <td>${fromCell}</td>
+    <td>${toCell}</td>
+    <td>${portLabel(pkt.portnum)}${inlineLinks}</td>
+</tr>
+<tr class="payload-row">
+    <td colspan="5" class="payload-cell">${safePayload}</td>
+</tr>`);
+    }
+}
+
+// --- Telemetry Charts (battery / air / env) ---
+async function loadTelemetryCharts(){
+    const url = `/api/packets?portnum=67&from_node_id=${fromNodeId}`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const data = await res.json();
+    const packets = data.packets || [];
+    chartData = {
+        times: [],
+        battery: [], voltage: [],
+        airUtil: [], chanUtil: [],
+        temperature: [], humidity: [], pressure: []
     };
 
-    legend.addTo(map);
+    for (const pkt of packets.reverse()) {
+        const pl = pkt.payload || "";
+        const t  = new Date(pkt.import_time_us / 1000);
+        chartData.times.push(
+            t.toLocaleString([], { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" })
+        );
+        chartData.battery.push(parseFloat(pl.match(/battery_level:\s*([\d.]+)/)?.[1] || NaN));
+        chartData.voltage.push(parseFloat(pl.match(/voltage:\s*([\d.]+)/)?.[1] || NaN));
+        chartData.airUtil.push(parseFloat(pl.match(/air_util_tx:\s*([\d.]+)/)?.[1] || NaN));
+        chartData.chanUtil.push(parseFloat(pl.match(/channel_utilization:\s*([\d.]+)/)?.[1] || NaN));
+        chartData.temperature.push(parseFloat(pl.match(/temperature:\s*([\d.]+)/)?.[1] || NaN));
+        chartData.humidity.push(parseFloat(pl.match(/relative_humidity:\s*([\d.]+)/)?.[1] || NaN));
+        chartData.pressure.push(parseFloat(pl.match(/barometric_pressure:\s*([\d.]+)/)?.[1] || NaN));
+    }
 
-    // Ensure the map adjusts to fit all markers and trace points
-    setTimeout(() => {
-        if (markers.getLayers().length > 0 || trace.length > 0) {
-            var bounds = markers.getBounds(); // Get bounds from markers
+    const hasBattery = chartData.battery.some(v => !isNaN(v));
+    const hasVoltage = chartData.voltage.some(v => !isNaN(v));
+    const hasAir     = chartData.airUtil.some(v => !isNaN(v));
+    const hasChan    = chartData.chanUtil.some(v => !isNaN(v));
+    const hasEnv     =
+        chartData.temperature.some(v => !isNaN(v)) ||
+        chartData.humidity.some(v => !isNaN(v))   ||
+        chartData.pressure.some(v => !isNaN(v));
 
-            // Ensure trace points are included in the bounds
-            trace.forEach(point => {
-                bounds.extend(point);
-            });
+    const batteryContainer = document.getElementById("battery_voltage_container");
+    const airContainer     = document.getElementById("air_channel_container");
+    const envContainer     = document.getElementById("env_chart_container");
 
-            map.fitBounds(bounds.pad(0.1), { maxZoom: 10 });
+    const makeLine = (name, color, data, yAxisIndex = 0) => ({
+        name,
+        type: 'line',
+        smooth: true,
+        connectNulls: true,
+        yAxisIndex,
+        showSymbol: true,
+        symbol: 'circle',
+        symbolSize: 8,
+        lineStyle: {
+            width: 2,
+            color,
+            shadowColor: color.replace('1)', '0.4)'),
+            shadowBlur: 8,
+            shadowOffsetY: 3
+        },
+        itemStyle: {
+            color,
+            borderColor: '#000',
+            borderWidth: 1
+        },
+        areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0,   color: color.replace('1)', '0.65)') },
+                { offset: 0.5, color: color.replace('1)', '0.35)') },
+                { offset: 1,   color: 'rgba(0,0,0,0)' }
+            ])
+        },
+        data: data.map(v => isNaN(v) ? null : v)
+    });
+
+    let chart1 = null, chart2 = null, chart3 = null;
+
+    // Battery / Voltage chart
+    if (hasBattery || hasVoltage) {
+        batteryContainer.style.display = "block";
+        chart1 = echarts.init(document.getElementById('chart_battery_voltage'));
+        chart1.setOption({
+            tooltip: { trigger:'axis' },
+            legend: { data:['Battery Level','Voltage'], textStyle:{ color:'#ccc' } },
+            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#ccc' } },
+            yAxis: [
+                { type:'value', name:'Battery (%)', axisLabel:{ color:'#ccc' } },
+                { type:'value', name:'Voltage (V)', axisLabel:{ color:'#ccc' } }
+            ],
+            series: [
+                makeLine('Battery Level', 'rgba(255,214,82,1)', chartData.battery),
+                makeLine('Voltage', 'rgba(79,155,255,1)', chartData.voltage, 1)
+            ]
+        });
+    } else {
+        batteryContainer.style.display = "none";
+    }
+
+    // Air / Channel chart
+    if (hasAir || hasChan) {
+        airContainer.style.display = "block";
+        chart2 = echarts.init(document.getElementById('chart_air_channel'));
+        chart2.setOption({
+            tooltip: { trigger:'axis' },
+            legend: { data:['Air Util Tx','Channel Utilization'], textStyle:{ color:'#ccc' } },
+            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#ccc' } },
+            yAxis: { type:'value', name:'%', axisLabel:{ color:'#ccc' } },
+            series: [
+                makeLine('Air Util Tx', 'rgba(138,255,108,1)', chartData.airUtil),
+                makeLine('Channel Utilization', 'rgba(255,102,204,1)', chartData.chanUtil)
+            ]
+        });
+    } else {
+        airContainer.style.display = "none";
+    }
+
+    // Environment chart
+    if (hasEnv) {
+        envContainer.style.display = "block";
+        chart3 = echarts.init(document.getElementById('chart_environment'));
+        chart3.setOption({
+            tooltip: { trigger:'axis' },
+            legend: { data:['Temperature (°C)','Humidity (%)','Pressure (hPa)'], textStyle:{ color:'#ccc' } },
+            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#ccc' } },
+            yAxis: [
+                { type:'value', name:'°C / %', axisLabel:{ color:'#ccc' } },
+                { type:'value', name:'hPa', axisLabel:{ color:'#ccc' } }
+            ],
+            series: [
+                makeLine('Temperature (°C)', 'rgba(255,138,82,1)', chartData.temperature),
+                makeLine('Humidity (%)', 'rgba(138,255,108,1)', chartData.humidity),
+                makeLine('Pressure (hPa)', 'rgba(79,155,255,1)', chartData.pressure, 1)
+            ]
+        });
+    } else {
+        envContainer.style.display = "none";
+    }
+
+    // Resize charts that exist
+    window.addEventListener("resize", () => {
+        [chart1, chart2, chart3].forEach(c => { if (c) c.resize(); });
+    });
+}
+
+// --- Neighbor chart (latest portnum=71) ---
+async function loadNeighborChart(){
+    const url = `/api/packets?portnum=71&from_node_id=${fromNodeId}&limit=1`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const packets = data.packets || [];
+    if (!packets.length) {
+        document.getElementById("neighbor_chart_container").style.display = "none";
+        return;
+    }
+
+    const pkt = packets[0];
+    const payload = pkt.payload || "";
+
+    const re = /neighbors\s*\{\s*([^}]+)\}/g;
+    let m;
+    const ids = [], names = [], snrs = [];
+    while ((m = re.exec(payload)) !== null) {
+        const block = m[1];
+        const idMatch  = block.match(/node_id:\s*(\d+)/);
+        const snrMatch = block.match(/snr:\s*(-?\d+(?:\.\d+)?)/);
+        if (!idMatch || !snrMatch) continue;
+
+        const nid = parseInt(idMatch[1], 10);
+        const snr = parseFloat(snrMatch[1]);
+
+        ids.push(nid);
+        names.push(nodeMap[nid] || nid);
+        snrs.push(snr);
+    }
+
+    if (!ids.length) {
+        document.getElementById("neighbor_chart_container").style.display = "none";
+        return;
+    }
+
+    neighborData = { ids, names, snrs };
+
+    const container = document.getElementById("neighbor_chart_container");
+    container.style.display = "block";
+
+    const chartEl = document.getElementById("chart_neighbors");
+    const neighborChart = echarts.init(chartEl);
+
+    neighborChart.setOption({
+        tooltip: { trigger:'axis' },
+        legend: { data:['SNR (dB)'], textStyle:{ color:'#ccc' } },
+        xAxis: {
+            type:'category',
+            data:names,
+            axisLabel:{ color:'#ccc', rotate: names.length > 8 ? 45 : 0 }
+        },
+        yAxis: {
+            type:'value',
+            name:'SNR (dB)',
+            axisLabel:{ color:'#ccc' }
+        },
+        series:[{
+            name:'SNR (dB)',
+            type:'bar',
+            data:snrs,
+            itemStyle:{ color:'rgba(138,255,108,1)' }
+        }]
+    });
+
+    window.addEventListener("resize", () => {
+        neighborChart.resize();
+    });
+}
+
+// --- Expand / Export ---
+function expandChart(type){
+    const srcEl = document.getElementById(`chart_${type}`);
+    if (!srcEl) return;
+    const sourceChart = echarts.getInstanceByDom(srcEl);
+    if (!sourceChart) return;
+
+    const modal = document.getElementById('chartModal');
+    const modalChart = echarts.init(document.getElementById('modalChart'));
+    modal.style.display = "flex";
+    modalChart.setOption(sourceChart.getOption());
+    modalChart.resize();
+}
+function closeModal(){
+    document.getElementById('chartModal').style.display = "none";
+}
+
+function exportCSV(type){
+    const rows = [["Time"]];
+
+    if (type === "battery_voltage") {
+        rows[0].push("Battery Level", "Voltage");
+        for (let i = 0; i < chartData.times.length; i++)
+            rows.push([chartData.times[i], chartData.battery[i], chartData.voltage[i]]);
+    }
+    else if (type === "air_channel") {
+        rows[0].push("Air Util Tx", "Channel Utilization");
+        for (let i = 0; i < chartData.times.length; i++)
+            rows.push([chartData.times[i], chartData.airUtil[i], chartData.chanUtil[i]]);
+    }
+    else if (type === "environment") {
+        rows[0].push("Temperature", "Humidity", "Pressure");
+        for (let i = 0; i < chartData.times.length; i++)
+            rows.push([
+                chartData.times[i],
+                chartData.temperature[i],
+                chartData.humidity[i],
+                chartData.pressure[i]
+            ]);
+    }
+    else if (type === "neighbors") {
+        rows[0] = ["Neighbor Node ID", "Neighbor Name", "SNR (dB)"];
+        for (let i = 0; i < neighborData.ids.length; i++) {
+            rows.push([
+                neighborData.ids[i],
+                neighborData.names[i],
+                neighborData.snrs[i]
+            ]);
         }
-    }, 200); // Slightly longer delay to ensure all elements are fully loaded
+    }
 
+    const csv  = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type:"text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${type}_${fromNodeId}.csv`;
+    link.click();
+}
+
+// --- Expand payload rows ---
+document.addEventListener("click", e => {
+    const btn = e.target.closest(".toggle-btn");
+    if (!btn) return;
+    const row = btn.closest(".packet-row");
+    row.classList.toggle("expanded");
+    btn.textContent = row.classList.contains("expanded") ? "▼" : "▶";
+});
+
+// --- Init ---
+document.addEventListener("DOMContentLoaded", async () => {
+    requestAnimationFrame(async () => {
+        await loadNodes();
+        await loadNodeInfo();
+        await loadTrack();            // builds track & decides whether to show map
+        await loadPackets();          // table + neighbor overlay (if map exists)
+        await loadTelemetryCharts();
+        await loadNeighborChart();
+        ensureMapVisible();
+        setTimeout(ensureMapVisible, 1000);
+        window.addEventListener("resize", ensureMapVisible);
+        window.addEventListener("focus", ensureMapVisible);
+    });
+});
 </script>
-
-{% endif %}
-
 {% endblock %}

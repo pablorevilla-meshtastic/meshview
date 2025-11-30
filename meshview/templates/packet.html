@@ -1,69 +1,478 @@
-<div class="card mt-2">
-    <div class="card-header">
-        {% set from_me = packet.from_node_id == node_id %}
-        {% set to_me = packet.to_node_id == node_id %}
-        <span {% if from_me %} class="fw-bold" {% endif %}>
-            {{packet.from_node.long_name}}(
-            {%- if not from_me -%}
-            <a href="/node_search?q={{packet.from_node_id|node_id_to_hex}}">
-            {%- endif -%}
-            {{packet.from_node_id|node_id_to_hex}}
-            {%- if not from_me -%}
-            </a>
-            {%- endif -%}
-            )
-        </span>
-        <span {% if to_me %} class="fw-bold" {% endif %}>
-            {{packet.to_node.long_name}}(
-            {%- if not to_me -%}
-            <a hx-target="#node" href="/node_search?q={{packet.to_node_id|node_id_to_hex}}">
-            {%- endif -%}
-            {{packet.to_node_id|node_id_to_hex}}
-            {%- if not to_me -%}
-            </a>
-            {%- endif -%}
-            )
-        </span>
-    </div>
-    <div class="card-body">
-        <div class="card-title">
-        {{packet.id}}
-            <a href="/packet/{{packet.id}}">🔎</a>
-        </div>
-        <div class="card-text text-start">
-            <dl>
-                <dt>Import Time</dt>
-                <dd>{{packet.import_time.strftime('%-I:%M:%S %p - %m-%d-%Y')}}</dd>
-                <dt>packet</dt>
-                <dd><pre>{{packet.data}}</pre></dd>
-                <dt>payload</dt>
-                <dd>
-                    {% if packet.pretty_payload %}
-                    <div>{{packet.pretty_payload}}</div>
-                    {% endif %}
-                    {% if packet.raw_mesh_packet and packet.raw_mesh_packet.decoded and packet.raw_mesh_packet.decoded.reply_id %}
-                     <i>(Replying to: <a href="/packet/{{ packet.raw_mesh_packet.decoded.reply_id }}">{{ packet.raw_mesh_packet.decoded.reply_id }}</a>)</i>
-                    {% endif %}
-                    {% if  packet.raw_mesh_packet.decoded and packet.raw_mesh_packet.decoded.portnum == 70 %}
-                        <ul>
-                            {% for node_id in packet.raw_payload.route %}
-                                <li><a
-                                        href="/packet_list/{{node_id}}"
-                                    >
-                                        {{node_id | node_id_to_hex}}
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                        {% if packet.raw_mesh_packet.decoded.want_response %}
-                        <a href="/graph/traceroute/{{packet.id}}">graph</a>
-                        {% else %}
-                        <a href="/graph/traceroute/{{packet.raw_mesh_packet.decoded.request_id}}">graph</a>
-                        {% endif %}
-                    {% endif %}
-                    <pre>{{packet.payload}}</pre>
-                </dd>
-            </dl>
+{% extends "base.html" %}
+
+{% block title %}Packet Details{%endblock%}
+
+{% block css %}
+{{ super() }}
+<style>
+
+/* --- Packet page container --- */
+.packet-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 15px;
+    font-family: "JetBrains Mono", monospace;
+}
+
+/* --- Packet Details Card --- */
+.packet-card .card-body { padding: 26px 30px; }
+.packet-card {
+    background-color: #1e1f22;
+    border: 1px solid #3a3a3a;
+    border-radius: 12px;
+    color: #ddd;
+    margin-top: 35px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.35);
+    overflow: hidden;
+}
+
+.packet-card .card-header {
+    background: linear-gradient(90deg, #2c2f35, #25262a);
+    border-bottom: 1px solid #3f3f3f;
+    font-weight: 600;
+    font-size: 1.1em;
+    padding: 14px 18px;
+    color: #e2e6ea;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* --- Map --- */
+#map {
+    width: 100%;
+    height: 640px;
+    border-radius: 10px;
+    margin-top: 20px;
+    border: 1px solid #333;
+    display: none;
+}
+
+/* --- SOURCE MARKER (slightly bigger) --- */
+.source-marker {
+    width: 24px;
+    height: 24px;
+    background: rgba(255,0,0,0.55);
+    border: 3px solid #ff0000;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(255,0,0,0.7);
+}
+
+/* --- Seen Table --- */
+.seen-table {
+    border-collapse: separate;
+    border-spacing: 0 6px;
+    font-size: 0.92em;
+}
+.seen-table thead th {
+    background-color: #2a2b2f;
+    color: #e2e2e2;
+    padding: 10px 12px;
+    border: none !important;
+    text-transform: uppercase;
+    font-size: 0.75em;
+}
+.seen-table tbody td {
+    background: #323338;
+    color: #f0f0f0;
+    border-top: 1px solid #4a4c4f !important;
+    border-bottom: 1px solid #4a4c4f !important;
+    padding: 10px 12px !important;
+}
+.seen-table tbody tr:hover td { background-color: #3a3c41 !important; }
+.seen-table tbody tr td:first-child {
+    border-left: 1px solid #4a4c4f;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+.seen-table tbody tr td:last-child {
+    border-right: 1px solid #4a4c4f;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container mt-4 mb-5 packet-container">
+
+    <div id="loading">Loading packet information...</div>
+    <div id="packet-card" class="packet-card d-none"></div>
+
+    <div id="map"></div>
+
+    <div id="seen-container" class="mt-4 d-none">
+        <h5 style="color:#ccc; margin:15px 0 10px 0;">
+            📡 Seen By <span id="seen-count" style="color:#4da6ff;"></span>
+        </h5>
+
+        <div class="table-responsive">
+            <table class="table table-dark table-sm seen-table">
+                <thead>
+                    <tr>
+                        <th>Gateway</th>
+                        <th>RSSI</th>
+                        <th>SNR</th>
+                        <th>Hop</th>
+                        <th>Channel</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="seen-table-body"></tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+
+    const packetCard    = document.getElementById("packet-card");
+    const loading       = document.getElementById("loading");
+    const mapDiv        = document.getElementById("map");
+    const seenContainer = document.getElementById("seen-container");
+    const seenTableBody = document.getElementById("seen-table-body");
+    const seenCountSpan = document.getElementById("seen-count");
+
+    /* ---------------------------------------------
+       Identify packet ID
+    ----------------------------------------------*/
+    const match = window.location.pathname.match(/\/packet\/(\d+)/);
+    if (!match) {
+        loading.textContent = "Invalid packet URL";
+        return;
+    }
+    const packetId = match[1];
+
+    /* PORT NAME MAP */
+    const PORT_NAMES = {
+        0:"UNKNOWN APP",
+        1:"Text",
+        3:"Position",
+        4:"Node Info",
+        5:"Routing",
+        6:"Admin",
+        67:"Telemetry",
+        70:"Traceroute",
+        71:"Neighbor"
+    };
+
+    /* ---------------------------------------------
+       Fetch packet
+    ----------------------------------------------*/
+    const packetRes = await fetch(`/api/packets?packet_id=${packetId}`);
+    const packetData = await packetRes.json();
+    if (!packetData.packets.length) {
+        loading.textContent = "Packet not found.";
+        return;
+    }
+    const p = packetData.packets[0];
+
+    /* ---------------------------------------------
+       Fetch all nodes
+    ----------------------------------------------*/
+    const nodesRes = await fetch("/api/nodes");
+    const nodesData = await nodesRes.json();
+    const nodeLookup = {};
+    (nodesData.nodes || []).forEach(n => nodeLookup[n.node_id] = n);
+
+    const fromNodeObj   = nodeLookup[p.from_node_id];
+    const toNodeObj     = nodeLookup[p.to_node_id];
+
+    const fromNodeLabel = fromNodeObj?.long_name || p.from_node_id;
+    const toNodeLabel =
+        p.to_node_id == 4294967295 ? "All" : (toNodeObj?.long_name || p.to_node_id);
+
+    /* ---------------------------------------------
+       Parse payload for lat/lon if this *packet* is a position packet
+    ----------------------------------------------*/
+    let lat = null, lon = null;
+    const parsed = {};
+
+    if (p.payload?.includes(":")) {
+        p.payload.split("\n").forEach(line => {
+            const [k, v] = line.split(":").map(x=>x.trim());
+            if (k && v !== undefined) {
+                parsed[k] = v;
+                if (k === "latitude_i")  lat = Number(v) / 1e7;
+                if (k === "longitude_i") lon = Number(v) / 1e7;
+            }
+        });
+    }
+
+    /* ---------------------------------------------
+       Render packet header & details
+    ----------------------------------------------*/
+    const time = p.import_time_us
+        ? new Date(p.import_time_us / 1000).toLocaleString()
+        : "—";
+
+    const telemetryExtras = [];
+    if (parsed.PDOP) telemetryExtras.push(`PDOP: ${parsed.PDOP}`);
+    if (parsed.sats_in_view) telemetryExtras.push(`Sats: ${parsed.sats_in_view}`);
+    if (parsed.ground_speed) telemetryExtras.push(`Speed: ${parsed.ground_speed}`);
+    if (parsed.altitude)     telemetryExtras.push(`Altitude: ${parsed.altitude}`);
+
+    packetCard.innerHTML = `
+        <div class="card-header">
+            <span>Packet ID: <i>${p.id}</i></span>
+            <small>${time}</small>
+        </div>
+
+        <div class="card-body">
+            <dl>
+                <dt>From Node:</dt>
+                <dd><a href="/node/${p.from_node_id}">${fromNodeLabel}</a></dd>
+                <dt>To Node:</dt>
+                <dd>${
+                    p.to_node_id === 4294967295
+                        ? `<i>All</i>`
+                        : p.to_node_id === 1
+                            ? `<i>Direct to MQTT</i>`
+                            : `<a href="/node/${p.to_node_id}">${toNodeLabel}</a>`
+                }</dd>
+
+
+                <dt>Channel:</dt><dd>${p.channel ?? "—"}</dd>
+
+                <dt>Port:</dt>
+                <dd><i>${PORT_NAMES[p.portnum] || "UNKNOWN APP"}</i> (${p.portnum})</dd>
+
+                <dt>Raw Payload:</dt>
+                <dd><pre>${escapeHtml(p.payload ?? "—")}</pre></dd>
+
+                ${
+                    telemetryExtras.length
+                    ? `<dt>Decoded Telemetry</dt>
+                       <dd><pre>${telemetryExtras.join("\n")}</pre></dd>`
+                    : ""
+                }
+
+                ${
+                    lat && lon
+                    ? `<dt>Location:</dt><dd>${lat.toFixed(6)}, ${lon.toFixed(6)}</dd>`
+                    : ""
+                }
+            </dl>
+        </div>
+    `;
+
+    loading.classList.add("d-none");
+    packetCard.classList.remove("d-none");
+
+    /* ---------------------------------------------
+       Map initialization
+    ----------------------------------------------*/
+    const map = L.map("map");
+    mapDiv.style.display = "block";
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19
+    }).addTo(map);
+
+    const allBounds = [];
+
+    /* ---------------------------------------------
+       ALWAYS SHOW SOURCE POSITION
+       Priority:
+         1) position from packet payload
+         2) fallback: last_lat/last_long from /api/nodes
+    ----------------------------------------------*/
+    let srcLat = lat;
+    let srcLon = lon;
+
+    if ((!srcLat || !srcLon) && fromNodeObj?.last_lat && fromNodeObj?.last_long) {
+        srcLat = fromNodeObj.last_lat / 1e7;
+        srcLon = fromNodeObj.last_long / 1e7;
+    }
+
+    if (srcLat && srcLon) {
+        allBounds.push([srcLat, srcLon]);
+
+        const sourceIcon = L.divIcon({
+            html: `<div class="source-marker"></div>`,
+            className: "",
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
+        });
+
+        const sourceMarker = L.marker([srcLat, srcLon], {
+            icon: sourceIcon,
+            zIndexOffset: 9999
+        }).addTo(map);
+
+        sourceMarker.bindPopup(`
+            <div style="font-size:0.9em">
+                <b>Packet Source</b><br>
+                Lat: ${srcLat.toFixed(6)}<br>
+                Lon: ${srcLon.toFixed(6)}<br>
+                From Node: ${fromNodeLabel}<br>
+                Channel: ${p.channel ?? "—"}<br>
+                Port: ${PORT_NAMES[p.portnum] || "UNKNOWN"} (${p.portnum})
+            </div>
+        `);
+
+    } else {
+        map.setView([0,0], 2);
+    }
+
+    /* ---------------------------------------------
+       Color for hop indicator markers (warm → cold)
+    ----------------------------------------------*/
+    function hopColor(hopValue){
+        const colors = [
+            "#ff3b30",
+            "#ff6b22",
+            "#ff9f0c",
+            "#ffd60a",
+            "#87d957",
+            "#57d9c4",
+            "#3db2ff",
+            "#1e63ff"
+        ];
+        let h = Number(hopValue);
+        if (isNaN(h)) return "#aaa";
+        if (h < 0) h = 0;
+        if (h > 7) h = 7;
+        return colors[h];
+    }
+
+    /* Distance helper */
+    function haversine(lat1,lon1,lat2,lon2){
+        const R=6371;
+        const dLat=(lat2-lat1)*Math.PI/180;
+        const dLon=(lon2-lon1)*Math.PI/180;
+        const a=Math.sin(dLat/2)**2+
+            Math.cos(lat1*Math.PI/180)*
+            Math.cos(lat2*Math.PI/180)*
+            Math.sin(dLon/2)**2;
+        return R*(2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+    }
+
+    /* ---------------------------------------------
+       Fetch packets_seen
+    ----------------------------------------------*/
+    const seenRes  = await fetch(`/api/packets_seen/${packetId}`);
+    const seenData = await seenRes.json();
+    const seenList = seenData.seen ?? [];
+
+    /* sort by hop_start descending (warm → cold) */
+    const seenSorted = seenList.slice().sort((a,b)=>{
+        const A=a.hop_start??-999;
+        const B=b.hop_start??-999;
+        return B-A;
+    });
+
+    if (seenSorted.length){
+        seenContainer.classList.remove("d-none");
+        seenCountSpan.textContent=`(${seenSorted.length} gateways)`;
+    }
+
+    /* ---------------------------------------------
+       Gateway markers and seen table
+    ----------------------------------------------*/
+    seenTableBody.innerHTML = seenSorted.map(s=>{
+        const node=nodeLookup[s.node_id];
+        const label=node?(node.long_name||node.node_id):s.node_id;
+
+        const timeStr = s.import_time_us
+            ? new Date(s.import_time_us/1000).toLocaleTimeString()
+            : "—";
+
+        if(node?.last_lat && node.last_long){
+            const rlat=node.last_lat/1e7;
+            const rlon=node.last_long/1e7;
+            allBounds.push([rlat,rlon]);
+
+            const start = Number(s.hop_start ?? 0);
+            const limit = Number(s.hop_limit ?? 0);
+            const hopValue = start - limit;
+
+            const color = hopColor(hopValue);
+
+            const iconHtml = `
+                <div style="
+                    background:${color};
+                    width:24px;
+                    height:24px;
+                    border-radius:50%;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    color:white;
+                    font-size:11px;
+                    font-weight:700;
+                    border:2px solid rgba(0,0,0,0.35);
+                    box-shadow:0 0 5px rgba(0,0,0,0.45);
+                ">${hopValue}</div>`;
+
+            const marker=L.marker([rlat,rlon],{
+                icon:L.divIcon({
+                    html:iconHtml,
+                    className:"",
+                    iconSize:[24,24],
+                    iconAnchor:[12,12]
+                })
+            }).addTo(map);
+
+            let distKm=null,distMi=null;
+            if(srcLat&&srcLon){
+                distKm=haversine(srcLat,srcLon,rlat,rlon);
+                distMi=distKm*0.621371;
+            }
+
+            marker.bindPopup(`
+                <div style="font-size:0.9em">
+                    <b>${node?.long_name || s.node_id}</b><br>
+                    Node ID: <a href="/node/${s.node_id}">${s.node_id}</a><br>
+                    HW: ${node?.hw_model ?? "—"}<br>
+                    Channel: ${s.channel ?? "—"}<br><br>
+                    <b>Signal</b><br>
+                    RSSI: ${s.rx_rssi ?? "—"}<br>
+                    SNR: ${s.rx_snr ?? "—"}<br><br>
+                    <b>Hops</b>: ${hopValue}<br>
+                    <b>Distance</b><br>
+                    ${
+                        distKm
+                        ? `${distKm.toFixed(2)} km (${distMi.toFixed(2)} mi)`
+                        : "—"
+                    }
+                </div>
+            `);
+        }
+
+        return `
+            <tr>
+                <td><a href="/node/${s.node_id}">${label}</a></td>
+                <td>${s.rx_rssi ?? "—"}</td>
+                <td>${s.rx_snr ?? "—"}</td>
+                <td>${s.hop_start ?? "—"} → ${s.hop_limit ?? "—"}</td>
+                <td>${s.channel ?? "—"}</td>
+                <td>${timeStr}</td>
+            </tr>`;
+    }).join("");
+
+    /* ---------------------------------------------
+       Fit map to all markers
+    ----------------------------------------------*/
+    if(allBounds.length>0){
+        map.fitBounds(allBounds,{padding:[40,40]});
+    }
+
+    /* ---------------------------------------------
+       Escape HTML
+    ----------------------------------------------*/
+    function escapeHtml(unsafe) {
+        return (unsafe??"").replace(/[&<"'>]/g,m=>({
+            "&":"&amp;",
+            "<":"&lt;",
+            ">":"&gt;",
+            "\"":"&quot;",
+            "'":"&#039;"
+        })[m]);
+    }
+
+});
+</script>
+{% endblock %}

@@ -1,110 +1,141 @@
-{
-  "base": {
-    "conversations": "Conversations",
-    "nodes": "Nodes",
-    "everything": "See Everything",
-    "graph": "Mesh Graphs",
-    "net": "Weekly Net",
-    "map": "Live Map",
-    "stats": "Stats",
-    "top": "Top Traffic Nodes",
-    "footer": "Visit <strong><a href=\"https://github.com/pablorevilla-meshtastic/meshview\">Meshview</a></strong> on GitHub",
-    "node id": "Node id",
-    "go to node": "Go to Node",
-    "all": "All",
-    "portnum_options": {
-      "1": "Text Message",
-      "3": "Position",
-      "4": "Node Info",
-      "67": "Telemetry",
-      "70": "Traceroute",
-      "71": "Neighbor Info"
-      }
+  {
+    "base": {
+      "chat": "Chat",
+      "nodes": "Nodes",
+      "everything": "See Everything",
+      "graphs": "Mesh Graphs",
+      "net": "Weekly Net",
+      "map": "Live Map",
+      "stats": "Stats",
+      "top": "Top Traffic Nodes",
+      "footer": "Visit <strong><a href=\"https://github.com/pablorevilla-meshtastic/meshview\">Meshview</a></strong> on GitHub",
+      "node id": "Node id",
+      "go to node": "Go to Node",
+      "all": "All",
+      "portnum_options": {
+        "1": "Text Message",
+        "3": "Position",
+        "4": "Node Info",
+        "67": "Telemetry",
+        "70": "Traceroute",
+        "71": "Neighbor Info"
+        }
+      },
+   "chat": {
+        "replying_to": "Replying to:",
+        "view_packet_details": "View packet details"
+   },
+    "nodelist": {
+      "search_placeholder": "Search by name or ID...",
+      "all_roles": "All Roles",
+      "all_channels": "All Channels",
+      "all_hw_models": "All HW Models",
+      "all_firmware": "All Firmware",
+      "export_csv": "Export CSV",
+      "clear_filters": "Clear Filters",
+      "showing": "Showing",
+      "nodes": "nodes",
+      "short": "Short",
+      "long_name": "Long Name",
+      "hw_model": "HW Model",
+      "firmware": "Firmware",
+      "role": "Role",
+      "last_lat": "Last Latitude",
+      "last_long": "Last Longitude",
+      "channel": "Channel",
+      "last_update": "Last Update",
+      "loading_nodes": "Loading nodes...",
+      "no_nodes": "No nodes found",
+      "error_nodes": "Error loading nodes"
     },
- "chat": {
-      "replying_to": "Replying to:",
-      "view_packet_details": "View packet details"
- },
-  "nodelist": {
-    "search_placeholder": "Search by name or ID...",
-    "all_roles": "All Roles",
-    "all_channels": "All Channels",
-    "all_hw_models": "All HW Models",
-    "all_firmware": "All Firmware",
-    "export_csv": "Export CSV",
-    "clear_filters": "Clear Filters",
-    "showing": "Showing",
-    "nodes": "nodes",
-    "short": "Short",
-    "long_name": "Long Name",
-    "hw_model": "HW Model",
-    "firmware": "Firmware",
-    "role": "Role",
-    "last_lat": "Last Latitude",
-    "last_long": "Last Longitude",
-    "channel": "Channel",
-    "last_update": "Last Update",
-    "loading_nodes": "Loading nodes...",
-    "no_nodes": "No nodes found",
-    "error_nodes": "Error loading nodes"
-  },
-  "net": {
-    "number_of_checkins": "Number of Check-ins:",
-    "view_packet_details": "View packet details",
-    "view_all_packets_from_node": "View all packets from this node",
-    "no_packets_found": "No packets found."
-  },
-  "map": {
-    "channel": "Channel:",
-    "model": "Model:",
-    "role": "Role:",
-    "last_seen": "Last seen:",
-    "firmware": "Firmware:",
-    "show_routers_only": "Show Routers Only",
-    "share_view": "Share This View"
-  },
-  "stats":
-  {
-    "mesh_stats_summary": "Mesh Statistics - Summary (all available in Database)",
-    "total_nodes": "Total Nodes",
-    "total_packets": "Total Packets",
-    "total_packets_seen": "Total Packets Seen",
-    "packets_per_day_all": "Packets per Day - All Ports (Last 14 Days)",
-    "packets_per_day_text": "Packets per Day - Text Messages (Port 1, Last 14 Days)",
-    "packets_per_hour_all": "Packets per Hour - All Ports",
-    "packets_per_hour_text": "Packets per Hour - Text Messages (Port 1)",
-    "packet_types_last_24h": "Packet Types - Last 24 Hours",
-    "hardware_breakdown": "Hardware Breakdown",
-    "role_breakdown": "Role Breakdown",
-    "channel_breakdown": "Channel Breakdown",
-    "expand_chart": "Expand Chart",
-    "export_csv": "Export CSV",
-    "all_channels": "All Channels"
-  },
-  "top":
-  {
-    "top_traffic_nodes": "Top Traffic Nodes (last 24 hours)",
-    "chart_description_1": "This chart shows a bell curve (normal distribution) based on the total \"Times Seen\" values for all nodes. It helps visualize how frequently nodes are heard, relative to the average.",
-    "chart_description_2": "This \"Times Seen\" value is the closest that we can get to Mesh utilization by node.",
-    "mean_label": "Mean:",
-    "stddev_label": "Standard Deviation:",
-    "long_name": "Long Name",
-    "short_name": "Short Name",
-    "channel": "Channel",
-    "packets_sent": "Packets Sent",
-    "times_seen": "Times Seen",
-    "seen_percent": "Seen % of Mean",
-    "no_nodes": "No top traffic nodes available."
-  },
-  "nodegraph":
-  {
-    "channel_label": "Channel:",
-    "search_node_placeholder": "Search node...",
-    "search_button": "Search",
-    "long_name_label": "Long Name:",
-    "short_name_label": "Short Name:",
-    "role_label": "Role:",
-    "hw_model_label": "Hardware Model:",
-    "node_not_found": "Node not found in current channel!"
+    "net": {
+      "number_of_checkins": "Number of Check-ins:",
+      "view_packet_details": "View packet details",
+      "view_all_packets_from_node": "View all packets from this node",
+      "no_packets_found": "No packets found."
+    },
+    "map": {
+      "channel": "Channel:",
+      "model": "Model:",
+      "role": "Role:",
+      "last_seen": "Last seen:",
+      "firmware": "Firmware:",
+      "show_routers_only": "Show Routers Only",
+      "share_view": "Share This View"
+    },
+    "stats":
+    {
+      "mesh_stats_summary": "Mesh Statistics - Summary (all available in Database)",
+      "total_nodes": "Total Nodes",
+      "total_packets": "Total Packets",
+      "total_packets_seen": "Total Packets Seen",
+      "packets_per_day_all": "Packets per Day - All Ports (Last 14 Days)",
+      "packets_per_day_text": "Packets per Day - Text Messages (Port 1, Last 14 Days)",
+      "packets_per_hour_all": "Packets per Hour - All Ports",
+      "packets_per_hour_text": "Packets per Hour - Text Messages (Port 1)",
+      "packet_types_last_24h": "Packet Types - Last 24 Hours",
+      "hardware_breakdown": "Hardware Breakdown",
+      "role_breakdown": "Role Breakdown",
+      "channel_breakdown": "Channel Breakdown",
+      "expand_chart": "Expand Chart",
+      "export_csv": "Export CSV",
+      "all_channels": "All Channels",
+      "node_id": "Node ID"
+    },
+    "top":
+    {
+      "top_traffic_nodes": "Top Traffic Nodes (last 24 hours)",
+      "chart_description_1": "This chart shows a bell curve (normal distribution) based on the total \"Times Seen\" values for all nodes. It helps visualize how frequently nodes are heard, relative to the average.",
+      "chart_description_2": "This \"Times Seen\" value is the closest that we can get to Mesh utilization by node.",
+      "mean_label": "Mean:",
+      "stddev_label": "Standard Deviation:",
+      "long_name": "Long Name",
+      "short_name": "Short Name",
+      "channel": "Channel",
+      "packets_sent": "Packets Sent",
+      "times_seen": "Times Seen",
+      "seen_percent": "Seen % of Mean",
+      "no_nodes": "No top traffic nodes available."
+    },
+    "nodegraph":
+    {
+      "channel_label": "Channel:",
+      "search_node_placeholder": "Search node...",
+      "search_button": "Search",
+      "long_name_label": "Long Name:",
+      "short_name_label": "Short Name:",
+      "role_label": "Role:",
+      "hw_model_label": "Hardware Model:",
+      "node_not_found": "Node not found in current channel!"
+    },
+    "firehose":
+      {
+        "live_feed": "📡 Live Feed",
+        "pause": "Pause",
+        "resume": "Resume",
+        "time": "Time",
+        "packet_id": "Packet ID",
+        "from": "From",
+        "to": "To",
+        "port": "Port",
+        "links": "Links",
+
+        "unknown_app": "UNKNOWN APP",
+        "text_message": "Text Message",
+        "position": "Position",
+        "node_info": "Node Info",
+        "routing": "Routing",
+        "administration": "Administration",
+        "waypoint": "Waypoint",
+        "store_forward": "Store Forward",
+        "telemetry": "Telemetry",
+        "trace_route": "Trace Route",
+        "neighbor_info": "Neighbor Info",
+
+        "direct_to_mqtt": "direct to MQTT",
+        "all": "All",
+        "map": "Map",
+        "graph": "Graph"
+      }
+
   }
-}

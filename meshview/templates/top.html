@@ -2,287 +2,283 @@
 
 {% block css %}
 <style>
-/* General table styling */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
+    body { background-color: #121212; color: #ddd; }
+    h1 { text-align: center; margin-top: 20px; color: #fff; }
 
-table th, table td {
-    padding: 12px;
-    text-align: left;
-    border: 1px solid #ddd;
-    cursor: pointer;
-}
-
-table th {
-    background-color: #333;
-    color: #fff;
-    font-weight: bold;
-}
-
-table tbody tr:nth-child(odd) {
-    background-color: #272b2f;
-}
-
-table tbody tr:nth-child(even) {
-    background-color: #212529;
-}
-
-table tbody tr:hover {
-    background-color: #555;
-}
-
-table td {
-    color: #ddd;
-}
-
-table th, table td {
-    border-radius: 8px;
-}
-
-@media (max-width: 768px) {
-    table th, table td {
-        padding: 8px;
+    .top-container {
+        max-width: 1100px;
+        margin: 25px auto;
+        padding: 0 15px;
     }
-}
 
-h1 {
-    text-align: center;
-    color: #ddd;
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
 
-#bellCurveChart {
-    height: 400px;
-    width: 100%;
-    max-width: 100%;
-    margin-top: 30px;
-}
+    .filter-bar select {
+        background-color: #1f2327;
+        border: 1px solid #444;
+        color: #ddd;
+    }
 
-#stats {
-    text-align: center;
-    margin-top: 20px;
-    color: #fff;
-}
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
 
-select {
-    margin: 10px auto;
-    display: block;
-    padding: 6px 10px;
-    border-radius: 6px;
-    background-color: #333;
-    color: #fff;
-    border: 1px solid #555;
-}
+    table th, table td {
+        padding: 12px;
+        border: 1px solid #444;
+        text-align: left;
+        color: #ddd;
+    }
+
+    .filter-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    }
+
+
+    table th { background-color: #333; }
+    table tbody tr:nth-child(odd) { background-color: #272b2f; }
+    table tbody tr:nth-child(even) { background-color: #212529; }
+    table tbody tr:hover { background-color: #555; cursor: pointer; }
+
+    .node-link {
+        color: #9fd4ff;
+        text-decoration: none;
+    }
+    .node-link:hover { text-decoration: underline; }
+
+    .good-x { color: #81ff81; font-weight: bold; }
+    .ok-x { color: #e8e86d; font-weight: bold; }
+    .bad-x { color: #ff6464; font-weight: bold; }
 </style>
 {% endblock %}
 
 {% block body %}
-<h1 data-translate-lang="top_traffic_nodes">Top Traffic Nodes (last 24 hours)</h1>
 
-<!-- Channel Filter Dropdown -->
-<select id="channelFilter"></select>
+<h1>Top Nodes Traffic</h1>
 
-<div id="stats">
-  <p data-translate-lang="chart_description_1">
-    This chart shows a bell curve (normal distribution) based on the total <strong>"Times Seen"</strong> values for all nodes. It helps visualize how frequently nodes are heard, relative to the average.
-  </p>
-  <p data-translate-lang="chart_description_2">
-    This "Times Seen" value is the closest that we can get to Mesh utilization by node.
-  </p>
-  <p>
-    <strong data-translate-lang="mean_label">Mean:</strong> <span id="mean"></span> -
-    <strong data-translate-lang="stddev_label">Standard Deviation:</strong> <span id="stdDev"></span>
-  </p>
+<div class="top-container">
+
+<div class="filter-bar">
+    <div>
+        <label for="channelFilter">Channel:</label>
+        <select id="channelFilter" class="form-select form-select-sm" style="width:auto;"></select>
+    </div>
+
+    <div>
+        <label for="nodeSearch">Search:</label>
+        <input id="nodeSearch" type="text" class="form-control form-control-sm"
+               placeholder="Search nodes..."
+               style="width:180px; display:inline-block;">
+    </div>
 </div>
 
-<!-- Chart -->
-<div id="bellCurveChart"></div>
 
-<!-- Table -->
-{% if nodes %}
-<div class="container">
-    <table id="trafficTable">
-        <thead>
-            <tr>
-                <th data-translate-lang="long_name" onclick="sortTable(0)">Long Name</th>
-                <th data-translate-lang="short_name" onclick="sortTable(1)">Short Name</th>
-                <th data-translate-lang="channel" onclick="sortTable(2)">Channel</th>
-                <th data-translate-lang="packets_sent" onclick="sortTable(3)">Packets Sent</th>
-                <th data-translate-lang="times_seen" onclick="sortTable(4)">Times Seen</th>
-                <th data-translate-lang="seen_percent" onclick="sortTable(5)">Seen % of Mean</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+
+
+    <div class="table-responsive">
+        <table id="nodesTable">
+            <thead>
+                <tr>
+                    <th>Long Name</th>
+                    <th>Short Name</th>
+                    <th>Channel</th>
+                    <th>Sent (24h)</th>
+                    <th>Seen (24h)</th>
+                    <th>Avg Gateways</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
 </div>
-{% else %}
-<p style="text-align: center;" data-translate-lang="no_nodes">No top traffic nodes available.</p>
-{% endif %}
 
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
 <script>
-const nodes = {{ nodes | tojson }};
-let filteredNodes = [];
+    let allNodes = [];
 
-// --- Language support ---
-async function loadTopTranslations() {
-    const langCode = "{{ site_config.get('site', {}).get('language','en') }}";
-    try {
-        const res = await fetch(`/api/lang?lang=${langCode}&section=top`);
-        window.topTranslations = await res.json();
-    } catch(err) {
-        console.error("Top page translation load failed:", err);
-        window.topTranslations = {};
+    async function loadChannels() {
+        try {
+            const res = await fetch("/api/channels");
+            const data = await res.json();
+            const channels = data.channels || [];
+
+            const select = document.getElementById("channelFilter");
+
+            // Default LongFast first
+            if (channels.includes("LongFast")) {
+                const opt = document.createElement("option");
+                opt.value = "LongFast";
+                opt.textContent = "LongFast";
+                select.appendChild(opt);
+            }
+
+            for (const ch of channels) {
+                if (ch === "LongFast") continue;
+                const opt = document.createElement("option");
+                opt.value = ch;
+                opt.textContent = ch;
+                select.appendChild(opt);
+            }
+
+            select.addEventListener("change", renderTable);
+        } catch (err) {
+            console.error("Error loading channels:", err);
+        }
     }
-}
 
-function applyTopTranslations() {
-    const t = window.topTranslations || {};
-    document.querySelectorAll("[data-translate-lang]").forEach(el=>{
-        const key = el.getAttribute("data-translate-lang");
-        if(t[key]) el.textContent = t[key];
-    });
-}
+    async function loadNodes() {
+        try {
+            const res = await fetch("/api/nodes");
+            const data = await res.json();
+            allNodes = data.nodes || [];
+        } catch (err) {
+            console.error("Error loading nodes:", err);
+        }
+    }
 
-// --- Chart & Table code ---
-const chart = echarts.init(document.getElementById('bellCurveChart'));
-const meanEl = document.getElementById('mean');
-const stdEl = document.getElementById('stdDev');
+    async function fetchNodeStats(nodeId) {
+        try {
+            const url = `/api/stats/count?from_node=${nodeId}&period_type=day&length=1`;
+            const res = await fetch(url);
+            const data = await res.json();
 
-// Populate channel dropdown
-const channelSet = new Set();
-nodes.forEach(n => channelSet.add(n.channel));
-const dropdown = document.getElementById('channelFilter');
-[...channelSet].sort().forEach(channel => {
-    const option = document.createElement('option');
-    option.value = channel;
-    option.textContent = channel;
-    if (channel === "LongFast") option.selected = true;
-    dropdown.appendChild(option);
-});
+            const sent = data.total_packets || 0;
+            const seen = data.total_seen || 0;
+            const avg = seen / Math.max(sent, 1);
 
-// Filter default
-filteredNodes = nodes.filter(n => n.channel === "LongFast");
-dropdown.addEventListener('change', () => {
-    const val = dropdown.value;
-    filteredNodes = nodes.filter(n => n.channel === val);
-    updateTable();
-    updateStatsAndChart();
-});
+            return {
+                sent,
+                seen,
+                avg: avg
+            };
+        } catch (err) {
+            console.error("Stat error", err);
+            return { sent: 0, seen: 0, avg: 0 };
+        }
+    }
 
-// Normal distribution
-function normalDistribution(x, mean, stdDev) {
-    return (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / stdDev, 2));
-}
+    function avgClass(v) {
+        if (v >= 10) return "good-x";   // Very strong node
+        if (v >= 2)  return "ok-x";     // Normal node
+        return "bad-x";                 // Weak node
+    }
 
-// Update table
-function updateTable() {
-    const tbody = document.querySelector('#trafficTable tbody');
+async function renderTable() {
+    const tbody = document.querySelector("#nodesTable tbody");
     tbody.innerHTML = "";
-    const mean = filteredNodes.reduce((sum, n) => sum + n.total_times_seen, 0) / (filteredNodes.length || 1);
-    for (const node of filteredNodes) {
-        const percent = mean > 0 ? ((node.total_times_seen / mean) * 100).toFixed(1) + "%" : "0%";
-        const row = `<tr>
-            <td><a href="/packet_list/${node.node_id}">${node.long_name}</a></td>
-            <td>${node.short_name}</td>
-            <td>${node.channel}</td>
-            <td><a href="/top?node_id=${node.node_id}">${node.total_packets_sent}</a></td>
-            <td>${node.total_times_seen}</td>
-            <td>${percent}</td>
-        </tr>`;
-        tbody.insertAdjacentHTML('beforeend', row);
+
+    const channel = document.getElementById("channelFilter").value;
+    const searchText = document.getElementById("nodeSearch").value.trim().toLowerCase();
+
+    // Filter nodes by channel FIRST
+    let filtered = allNodes.filter(n => n.channel === channel);
+
+    // Then apply search
+    if (searchText !== "") {
+        filtered = filtered.filter(n =>
+            (n.long_name && n.long_name.toLowerCase().includes(searchText)) ||
+            (n.short_name && n.short_name.toLowerCase().includes(searchText)) ||
+            String(n.node_id).includes(searchText)
+        );
+    }
+
+    // --- Create placeholder rows ---
+    const rowRefs = filtered.map(n => {
+        const tr = document.createElement("tr");
+        tr.addEventListener("click", () => {
+            window.location.href = `/node/${n.node_id}`;
+        });
+
+        const tdLong = document.createElement("td");
+        const a = document.createElement("a");
+        a.href = `/node/${n.node_id}`;
+        a.textContent = n.long_name || n.node_id;
+        a.className = "node-link";
+        a.addEventListener("click", e => e.stopPropagation());
+        tdLong.appendChild(a);
+
+        const tdShort = document.createElement("td");
+        tdShort.textContent = n.short_name || "";
+
+        const tdChannel = document.createElement("td");
+        tdChannel.textContent = n.channel || "";
+
+        const tdSent = document.createElement("td");
+        tdSent.textContent = "Loading...";
+
+        const tdSeen = document.createElement("td");
+        tdSeen.textContent = "Loading...";
+
+        const tdAvg = document.createElement("td");
+        tdAvg.textContent = "Loading...";
+
+        tr.appendChild(tdLong);
+        tr.appendChild(tdShort);
+        tr.appendChild(tdChannel);
+        tr.appendChild(tdSent);
+        tr.appendChild(tdSeen);
+        tr.appendChild(tdAvg);
+
+        tbody.appendChild(tr);
+
+        return { node: n, tr, tdSent, tdSeen, tdAvg };
+    });
+
+    // --- Stats fetch ---
+    const statsList = await Promise.all(
+        rowRefs.map(ref => fetchNodeStats(ref.node.node_id))
+    );
+
+    // --- Update + cleanup empty nodes ---
+    let combined = rowRefs.map((ref, i) => {
+        const stats = statsList[i];
+
+        ref.tdSent.textContent = stats.sent;
+        ref.tdSeen.textContent = stats.seen;
+        ref.tdAvg.innerHTML = `<span class="${avgClass(stats.avg)}">${stats.avg.toFixed(1)}</span>`;
+
+        return {
+            tr: ref.tr,
+            sent: stats.sent,
+            seen: stats.seen
+        };
+    });
+
+    // Remove nodes with no traffic
+    combined = combined.filter(r => !(r.sent === 0 && r.seen === 0));
+
+    // Sort by traffic (seen)
+    combined.sort((a, b) => b.seen - a.seen);
+
+    // Rebuild table
+    tbody.innerHTML = "";
+    for (const r of combined) {
+        tbody.appendChild(r.tr);
     }
 }
 
-// Update chart & stats
-function updateStatsAndChart() {
-    const timesSeen = filteredNodes.map(n => n.total_times_seen);
-    const mean = timesSeen.reduce((sum,v)=>sum+v,0)/(timesSeen.length||1);
-    const stdDev = Math.sqrt(timesSeen.reduce((sum,v)=>sum+Math.pow(v-mean,2),0)/(timesSeen.length||1));
-    meanEl.textContent = mean.toFixed(2);
-    stdEl.textContent = stdDev.toFixed(2);
 
-    const min = Math.min(...timesSeen);
-    const max = Math.max(...timesSeen);
-    const step = (max - min) / 100;
-    const xData=[], yData=[];
-    for(let x=min;x<=max;x+=step){ xData.push(x); yData.push(normalDistribution(x,mean,stdDev)); }
 
-    chart.setOption({
-        animation:false,
-        tooltip:{ trigger:'axis' },
-        xAxis:{ name:'Total Times Seen', type:'value', min, max },
-        yAxis:{ name:'Probability Density', type:'value' },
-        series:[{ data:xData.map((x,i)=>[x,yData[i]]), type:'line', smooth:true, color:'blue', lineStyle:{ width:3 }}]
-    });
-    chart.resize();
-}
+(async () => {
+    await loadNodes();
+    await loadChannels();
+    document.getElementById("channelFilter").value = "LongFast";
 
-// Sort table
-function sortTable(n) {
-    const table = document.getElementById("trafficTable");
-    const rows = Array.from(table.rows).slice(1);
-    const header = table.rows[0].cells[n];
-    const isNumeric = !isNaN(rows[0].cells[n].innerText.replace('%',''));
-    let sortedRows = rows.sort((a,b)=>{
-        const valA = isNumeric ? parseFloat(a.cells[n].innerText.replace('%','')) : a.cells[n].innerText.toLowerCase();
-        const valB = isNumeric ? parseFloat(b.cells[n].cells[n].innerText.replace('%','')) : b.cells[n].innerText.toLowerCase();
-        return valA > valB ? 1 : -1;
-    });
-    if(header.getAttribute('data-sort-direction')==='asc'){ sortedRows.reverse(); header.setAttribute('data-sort-direction','desc'); }
-    else header.setAttribute('data-sort-direction','asc');
-    const tbody = table.tBodies[0];
-    sortedRows.forEach(row=>tbody.appendChild(row));
-}
+    document.getElementById("nodeSearch").addEventListener("input", renderTable);
 
-// Initialize
-(async ()=>{
-    await loadTopTranslations();
-    applyTopTranslations();
-    updateTable();
-    updateStatsAndChart();
-    window.addEventListener('resize',()=>chart.resize());
+    renderTable();
 })();
 </script>
-
-{% if timing_data %}
-<!-- Performance Metrics Summary -->
-<div style="background-color: #1a1d21; border: 1px solid #444; border-radius: 8px; padding: 15px; margin: 20px auto; max-width: 800px; color: #fff;">
-    <h3 style="margin-top: 0; color: #4CAF50;">⚡ Performance Metrics</h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-        <div>
-            <strong>Database Query:</strong><br>
-            <span style="color: #FFD700; font-size: 1.2em;">{{ timing_data.db_query_ms }}ms</span>
-        </div>
-        <div>
-            <strong>Data Processing:</strong><br>
-            <span style="color: #FFD700; font-size: 1.2em;">{{ timing_data.processing_ms }}ms</span>
-        </div>
-        <div>
-            <strong>Total Time:</strong><br>
-            <span style="color: #FFD700; font-size: 1.2em;">{{ timing_data.total_ms }}ms</span>
-        </div>
-        <div>
-            <strong>Nodes Processed:</strong><br>
-            <span style="color: #4CAF50; font-size: 1.2em;">{{ timing_data.node_count }}</span>
-        </div>
-        <div>
-            <strong>Total Packets:</strong><br>
-            <span style="color: #4CAF50; font-size: 1.2em;">{{ "{:,}".format(timing_data.total_packets) }}</span>
-        </div>
-        <div>
-            <strong>Times Seen:</strong><br>
-            <span style="color: #4CAF50; font-size: 1.2em;">{{ "{:,}".format(timing_data.total_seen) }}</span>
-        </div>
-    </div>
-    <p style="margin-bottom: 0; margin-top: 10px; font-size: 0.9em; color: #888;">
-        📊 Use these metrics to measure performance before and after database index changes
-    </p>
-</div>
-{% endif %}
 
 {% endblock %}

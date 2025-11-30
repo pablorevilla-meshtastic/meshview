@@ -1,0 +1,10 @@
+# This keeps Docker from including hostOS virtual environment folders
+env/
+.venv/
+
+# Database files and backups
+*.db
+*.db-shm
+*.db-wal
+backups/
+*.db.gz

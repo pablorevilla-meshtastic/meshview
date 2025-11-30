@@ -60,21 +60,36 @@ function hashToColor(str){ if(colorMap.has(str)) return colorMap.get(str); const
 function isInvalidCoord(n){ return !n||!n.lat||!n.long||n.lat===0||n.long===0||Number.isNaN(n.lat)||Number.isNaN(n.long); }
 
 // ---------------------- Packet Fetching ----------------------
-function fetchLatestPacket(){ fetch(`/api/packets?limit=1`).then(r=>r.json()).then(data=>{ lastImportTime=data.packets?.[0]?.import_time||new Date().toISOString(); }).catch(console.error); }
+function fetchLatestPacket(){
+    fetch(`/api/packets?limit=1`)
+      .then(r=>r.json())
+      .then(data=>{
+          lastImportTime=data.packets?.[0]?.import_time_us||0;
+      })
+      .catch(console.error);
+}
+
 function fetchNewPackets(){
     if(mapInterval <= 0) return;
-    if(!lastImportTime) return;
-    fetch(`/api/packets?since=${encodeURIComponent(lastImportTime)}`).then(r=>r.json()).then(data=>{
-        if(!data.packets||data.packets.length===0) return;
-        let latest = lastImportTime;
-        data.packets.forEach(pkt=>{
-            if(pkt.import_time>latest) latest=pkt.import_time;
-            const marker = markerById[pkt.from_node_id];
-            const nodeData = nodeMap.get(pkt.from_node_id);
-            if(marker && nodeData) blinkNode(marker,nodeData.long_name,pkt.portnum);
-        });
-        lastImportTime=latest;
-    }).catch(console.error);
+    if(lastImportTime===null) return;
+    const url = new URL(`/api/packets`, window.location.origin);
+    url.searchParams.set("since", lastImportTime);
+    url.searchParams.set("limit", 50);
+
+    fetch(url)
+      .then(r=>r.json())
+      .then(data=>{
+          if(!data.packets || data.packets.length===0) return;
+          let latest = lastImportTime;
+          data.packets.forEach(pkt=>{
+              if(pkt.import_time_us > latest) latest = pkt.import_time_us;
+              const marker = markerById[pkt.from_node_id];
+              const nodeData = nodeMap.get(pkt.from_node_id);
+              if(marker && nodeData) blinkNode(marker,nodeData.long_name,pkt.portnum);
+          });
+          lastImportTime = latest;
+      })
+      .catch(console.error);
 }
 
 // ---------------------- Polling ----------------------
@@ -190,7 +205,7 @@ function renderNodesOnMap(){
         marker.nodeId = node.key;
         marker.originalColor = color;
         markerById[node.key] = marker;
-        const popup = `<b><a href="/packet_list/${node.node_id}">${node.long_name}</a> (${node.short_name})</b><br>
+        const popup = `<b><a href="/node/${node.node_id}">${node.long_name}</a> (${node.short_name})</b><br>
                        <b>Channel:</b> ${node.channel}<br>
                        <b>Model:</b> ${node.hw_model}<br>
                        <b>Role:</b> ${node.role}<br>

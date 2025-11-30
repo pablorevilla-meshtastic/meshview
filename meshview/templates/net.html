@@ -1,75 +1,184 @@
 {% extends "base.html" %}
 
 {% block css %}
-.timestamp {
-    min-width:10em;
-}
-.chat-packet:nth-of-type(odd){
-    background-color: #3a3a3a; /* Lighter than #2a2a2a */
-}
+.timestamp { min-width: 10em; color: #ccc; }
+
+.chat-packet:nth-of-type(odd) { background-color: #3a3a3a; }
 .chat-packet {
     border-bottom: 1px solid #555;
-    padding: 8px;
-    border-radius: 8px; /* Adjust the value to make the corners more or less rounded */
+    padding: 3px 6px;
+    border-radius: 6px;
+    margin: 0;
 }
-.chat-packet:nth-of-type(even){
-    background-color: #333333; /* Slightly lighter than the previous #181818 */
+
+.chat-packet > [class^="col-"] {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
 }
+
+.chat-packet:nth-of-type(even) { background-color: #333333; }
+
+.channel { font-style: italic; color: #bbb; }
+.channel a { font-style: normal; color: #999; }
+
+@keyframes flash { 0% { background-color: #ffe066; } 100% { background-color: inherit; } }
+.chat-packet.flash { animation: flash 3.5s ease-out; }
+
+.replying-to { font-size: 0.8em; color: #aaa; margin-top: 2px; padding-left: 10px; }
+.replying-to .reply-preview { color: #aaa; }
+
+#weekly-message { margin: 15px 0; font-weight: bold; color: #ffeb3b; }
+#total-count { margin-bottom: 10px; font-style: italic; color: #ccc; }
 {% endblock %}
 
 {% block body %}
 <div class="container">
-    <span>{{ site_config["site"]["weekly_net_message"] }}</span> <br><br>
+    <div id="weekly-message">Loading weekly message...</div>
+    <div id="total-count">Total messages: 0</div>
 
-    <h5>
-        <span data-translate-lang="number_of_checkins">Number of Check-ins:</span> {{ packets|length }}
-    </h5>
-</div>
-
-<div class="container">
-  {% for packet in packets %}
-  <div
-      class="row chat-packet"
-      data-packet-id="{{ packet.id }}"
-      role="article"
-      aria-label="Chat message from {{ packet.from_node.long_name or (packet.from_node_id | node_id_to_hex) }}"
-  >
-      <span class="col-2 timestamp">
-          {{ packet.import_time.strftime('%-I:%M:%S %p - %m-%d-%Y') }}
-      </span>
-      <span class="col-1 timestamp">
-          <a href="/packet/{{ packet.id }}" title="View packet details">✉️</a> {{ packet.from_node.channel }}
-      </span>
-      <span class="col-2 username">
-          <a href="/packet_list/{{ packet.from_node_id }}" title="View all packets from this node">
-              {{ packet.from_node.long_name or (packet.from_node_id | node_id_to_hex) }}
-          </a>
-      </span>
-      <span class="col-5 message">
-          {{ packet.payload }}
-      </span>
-  </div>
-  {% else %}
-  <span data-translate-lang="no_packets_found">No packets found.</span>
-  {% endfor %}
+    <div id="chat-container">
+        <div class="container" id="chat-log"></div>
+    </div>
 </div>
 
 <script>
-async function loadTranslations() {
-    try {
-        const langCode = "{{ site_config.get('site', {}).get('language','en') }}";
-        const res = await fetch(`/api/lang?lang=${langCode}&section=net`);
-        const translations = await res.json();
-        document.querySelectorAll("[data-translate-lang]").forEach(el => {
-            const key = el.dataset.translateLang;
-            if(el.placeholder !== undefined && el.placeholder !== "") el.placeholder = translations[key] || el.placeholder;
-            else el.textContent = translations[key] || el.textContent;
-        });
-    } catch(err) {
-        console.error("Net translations load failed:", err);
+document.addEventListener("DOMContentLoaded", async () => {
+    const chatContainer = document.querySelector("#chat-log");
+    const totalCountEl = document.querySelector("#total-count");
+    const weeklyMessageEl = document.querySelector("#weekly-message");
+    if (!chatContainer || !totalCountEl || !weeklyMessageEl) {
+        console.error("Required elements not found");
+        return;
     }
-}
 
-document.addEventListener("DOMContentLoaded", loadTranslations());
+    const renderedPacketIds = new Set();
+    const packetMap = new Map();
+    let chatTranslations = {};
+    let netTag = "";
+
+    function updateTotalCount() {
+        totalCountEl.textContent = `Total messages: ${renderedPacketIds.size}`;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text ?? "";
+        return div.innerHTML;
+    }
+
+    function applyTranslations(translations, root = document) {
+        root.querySelectorAll("[data-translate-lang]").forEach(el => {
+            const key = el.dataset.translateLang;
+            if (translations[key]) el.textContent = translations[key];
+        });
+        root.querySelectorAll("[data-translate-lang-title]").forEach(el => {
+            const key = el.dataset.translateLangTitle;
+            if (translations[key]) el.title = translations[key];
+        });
+    }
+
+    function renderPacket(packet) {
+        if (renderedPacketIds.has(packet.id)) return;
+        renderedPacketIds.add(packet.id);
+        packetMap.set(packet.id, packet);
+
+        const date = new Date(packet.import_time_us / 1000);
+        const formattedTime = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
+        const formattedDate = `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getDate().toString().padStart(2, "0")}/${date.getFullYear()}`;
+        const formattedTimestamp = `${formattedTime} - ${formattedDate}`;
+
+        let replyHtml = "";
+        if (packet.reply_id) {
+            const parent = packetMap.get(packet.reply_id);
+            if (parent) {
+                replyHtml = `<div class="replying-to">
+                    <div class="reply-preview">
+                        <i data-translate-lang="replying_to"></i>
+                        <strong>${escapeHtml((parent.long_name || "").trim() || `Node ${parent.from_node_id}`)}</strong>:
+                        ${escapeHtml(parent.payload || "")}
+                    </div>
+                </div>`;
+            } else {
+                replyHtml = `<div class="replying-to">
+                    <i data-translate-lang="replying_to"></i>
+                    <a href="/packet/${packet.reply_id}">${packet.reply_id}</a>
+                </div>`;
+            }
+        }
+
+        const div = document.createElement("div");
+        div.className = "row chat-packet";
+        div.dataset.packetId = packet.id;
+        div.innerHTML = `
+            <span class="col-2 timestamp" title="${packet.import_time_us}">${formattedTimestamp}</span>
+            <span class="col-2 channel">
+                <a href="/packet/${packet.id}" data-translate-lang-title="view_packet_details">✉️</a>
+                ${escapeHtml(packet.channel || "")}
+            </span>
+            <span class="col-3 nodename">
+                <a href="/packet_list/${packet.from_node_id}">
+                    ${escapeHtml((packet.long_name || "").trim() || `Node ${packet.from_node_id}`)}
+                </a>
+            </span>
+            <span class="col-5 message">${escapeHtml(packet.payload)}${replyHtml}</span>
+        `;
+        chatContainer.prepend(div);
+        applyTranslations(chatTranslations, div);
+        updateTotalCount();
+    }
+
+    function renderPacketsEnsureDescending(packets) {
+        if (!Array.isArray(packets) || packets.length === 0) return;
+        const sortedDesc = packets.slice().sort((a, b) => b.import_time_us - a.import_time_us);
+        for (let i = sortedDesc.length - 1; i >= 0; i--) renderPacket(sortedDesc[i]);
+    }
+
+    async function fetchInitialPackets(tag) {
+        if (!tag) {
+            console.warn("No net_tag defined, skipping packet fetch.");
+            return;
+        }
+        try {
+            console.log("Fetching packets for netTag:", tag);
+            const sixDaysAgoMs = Date.now() - (6 * 24 * 60 * 60 * 1000);
+            const sinceUs = Math.floor(sixDaysAgoMs * 1000);
+            const resp = await fetch(`/api/packets?portnum=1&contains=${encodeURIComponent(tag)}&since=${sinceUs}`);
+            const data = await resp.json();
+            console.log("Packets received:", data?.packets?.length);
+            if (data?.packets?.length) renderPacketsEnsureDescending(data.packets);
+        } catch (err) {
+            console.error("Initial fetch error:", err);
+        }
+    }
+
+    async function loadTranslations(cfg) {
+        try {
+            const langCode = cfg?.site?.language || "en";
+            const res = await fetch(`/api/lang?lang=${langCode}&section=chat`);
+            chatTranslations = await res.json();
+            applyTranslations(chatTranslations, document);
+        } catch (err) {
+            console.error("Chat translation load failed:", err);
+        }
+    }
+
+    // --- MAIN LOGIC ---
+    try {
+        const cfg = await window._siteConfigPromise; // ✅ Already fetched by base.html
+        const site = cfg?.site || {};
+
+        // Populate from config
+        netTag = site.net_tag || "";
+        weeklyMessageEl.textContent = site.weekly_net_message || "Weekly message not set.";
+
+        await loadTranslations(cfg);
+        await fetchInitialPackets(netTag);
+    } catch (err) {
+        console.error("Initialization failed:", err);
+        weeklyMessageEl.textContent = "Failed to load site config.";
+    }
+});
 </script>
 {% endblock %}
