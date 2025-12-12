@@ -1,5 +1,6 @@
 import asyncio
 import base64
+from json import loads
 import logging
 import random
 import time
@@ -9,6 +10,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from google.protobuf.message import DecodeError
 
 from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
+from meshview.config import CONFIG
 
 KEY = base64.b64decode("1PG7OiApB1nwvP+rz05pAQ==")
 
@@ -19,6 +21,18 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+mqtt = CONFIG.get("mqtt", {})
+ignore_raw = mqtt.get("ignore_nodes", [])
+if isinstance(ignore_raw, str):
+    try:
+        ignore_nodes = loads(ignore_raw)
+    except Exception:
+        ignore_nodes = [ignore_raw]
+elif isinstance(ignore_raw, list):
+    ignore_nodes = ignore_raw
+else:
+    ignore_nodes = []
 
 
 def decrypt(packet):
@@ -71,8 +85,7 @@ async def get_topic_envelopes(mqtt_server, mqtt_port, topics, mqtt_user, mqtt_pa
                         continue
 
                     # Skip packets from specific node
-                    # FIXME: make this configurable as a list of node IDs to skip
-                    if getattr(envelope.packet, "from", None) == 2144342101:
+                    if getattr(envelope.packet, "from", None) in ignore_nodes:
                         continue
 
                     msg_count += 1
