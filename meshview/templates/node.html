@@ -1143,7 +1143,7 @@ async function loadNodeStats(nodeId) {
         const seen    = data?.total_seen ?? 0;
 
         document.getElementById("info-stats").textContent =
-            `24h · Packets sent: ${packets.toLocaleString()} · Times seen: ${seen.toLocaleString()}`;
+            `24h · Packets sent: ${packets.toLocaleString()} · Times seen: ${seen.toLocaleString()} `;
     } catch (err) {
         console.error("Failed to load node stats:", err);
         document.getElementById("info-stats").textContent = "—";
