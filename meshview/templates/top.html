@@ -19,8 +19,7 @@
         margin-bottom: 15px;
     }
 
-    .filter-bar select,
-    .filter-bar input {
+    .filter-bar select {
         background-color: #1f2327;
         border: 1px solid #444;
         color: #ddd;
@@ -45,7 +44,10 @@
     table tbody tr:nth-child(even) { background-color: #212529; }
     table tbody tr:hover { background-color: #555; cursor: pointer; }
 
-    .node-link { color: #9fd4ff; text-decoration: none; }
+    .node-link {
+        color: #9fd4ff;
+        text-decoration: none;
+    }
     .node-link:hover { text-decoration: underline; }
 
     .good-x { color: #81ff81; font-weight: bold; }
@@ -71,15 +73,6 @@
         <div>
             <label data-translate-lang="channel">Channel:</label>
             <select id="channelFilter"></select>
-        </div>
-
-        <div>
-            <label data-translate-lang="search">Search:</label>
-            <input id="nodeSearch"
-                   type="text"
-                   placeholder="Search nodes..."
-                   data-translate-lang="search_placeholder"
-                   style="width:180px;">
         </div>
     </div>
 
@@ -121,12 +114,7 @@ function applyTranslationsTop(dict, root=document) {
     root.querySelectorAll("[data-translate-lang]").forEach(el => {
         const key = el.dataset.translateLang;
         if (!dict[key]) return;
-
-        if (el.tagName === "INPUT" && el.placeholder !== undefined) {
-            el.placeholder = dict[key];
-        } else {
-            el.textContent = dict[key];
-        }
+        el.textContent = dict[key];
     });
 }
 
@@ -170,7 +158,7 @@ async function loadChannels() {
         sel.appendChild(opt);
     }
 
-    sel.value = "LongFast";
+    sel.value = "MediumFast";
 }
 
 /* ======================================================
@@ -181,7 +169,6 @@ async function renderTable() {
     tbody.innerHTML = "";
 
     const channel = document.getElementById("channelFilter").value;
-    const search  = document.getElementById("nodeSearch").value.toLowerCase();
     const offset  = currentPage * PAGE_SIZE;
 
     const url = new URL("/api/stats/top", window.location.origin);
@@ -194,16 +181,7 @@ async function renderTable() {
 
     totalRows = data.total || 0;
 
-    let rows = data.nodes || [];
-    if (search) {
-        rows = rows.filter(n =>
-            (n.long_name || "").toLowerCase().includes(search) ||
-            (n.short_name || "").toLowerCase().includes(search) ||
-            String(n.node_id).includes(search)
-        );
-    }
-
-    for (const n of rows) {
+    for (const n of data.nodes || []) {
         const tr = document.createElement("tr");
         tr.onclick = () => location.href = `/node/${n.node_id}`;
 
@@ -224,6 +202,7 @@ async function renderTable() {
     }
 
     const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+
     document.getElementById("node-count").textContent = totalRows;
     document.getElementById("pageInfo").textContent =
         `Page ${currentPage + 1} / ${totalPages}`;
@@ -241,11 +220,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await renderTable();
 
     channelFilter.onchange = () => {
-        currentPage = 0;
-        renderTable();
-    };
-
-    nodeSearch.oninput = () => {
         currentPage = 0;
         renderTable();
     };
