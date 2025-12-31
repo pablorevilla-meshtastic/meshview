@@ -724,3 +724,189 @@ async def api_packets_seen(request):
             {"error": "Internal server error"},
             status=500,
         )
+
+@routes.get("/api/traceroute/{packet_id}")
+async def api_traceroute(request):
+    packet_id = int(request.match_info['packet_id'])
+
+    traceroutes = list(await store.get_traceroute(packet_id))
+    packet = await store.get_packet(packet_id)
+
+    if not packet:
+        return web.json_response({"error": "Packet not found"}, status=404)
+
+    tr_groups = []
+
+    # --------------------------------------------
+    # Decode each traceroute entry
+    # --------------------------------------------
+    for idx, tr in enumerate(traceroutes):
+        route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
+
+        forward_list = list(route.route)
+        reverse_list = list(route.route_back)
+
+        tr_groups.append({
+            "index": idx,
+            "import_time": tr.import_time.isoformat() if tr.import_time else None,
+            "gateway_node_id": tr.gateway_node_id,
+            "done": tr.done,
+            "forward_hops": forward_list,
+            "reverse_hops": reverse_list,
+        })
+
+    # --------------------------------------------
+    # Compute UNIQUE paths + counts + winning path
+    # --------------------------------------------
+    from collections import Counter
+
+    forward_paths = []
+    reverse_paths = []
+    winning_paths = []
+
+    for tr in tr_groups:
+        f = tuple(tr["forward_hops"])
+        r = tuple(tr["reverse_hops"])
+
+        if tr["forward_hops"]:
+            forward_paths.append(f)
+
+        if tr["reverse_hops"]:
+            reverse_paths.append(r)
+
+        if tr["done"]:
+            winning_paths.append(f)
+
+    # Deduplicate
+    unique_forward_paths = sorted(set(forward_paths))
+    unique_reverse_paths = sorted(set(reverse_paths))
+
+    # Count occurrences
+    forward_counts = Counter(forward_paths)
+
+    # Convert for JSON output
+    unique_forward_paths_json = [
+        {"path": list(p), "count": forward_counts[p]} for p in unique_forward_paths
+    ]
+
+    unique_reverse_paths_json = [list(p) for p in unique_reverse_paths]
+
+    winning_paths_json = [list(p) for p in set(winning_paths)]
+
+    # --------------------------------------------
+    # Final API output
+    # --------------------------------------------
+    return web.json_response({
+        "packet": {
+            "id": packet.id,
+            "from": packet.from_node_id,
+            "to": packet.to_node_id,
+            "channel": packet.channel,
+        },
+        "traceroute_packets": tr_groups,
+        "unique_forward_paths": unique_forward_paths_json,
+        "unique_reverse_paths": unique_reverse_paths_json,
+        "winning_paths": winning_paths_json,
+    })
+
+
+@routes.get("/api/stats/top")
+async def api_stats_top(request):
+    """
+    Returns nodes sorted by SEEN (high → low) with pagination.
+    """
+
+    period_type = request.query.get("period_type", "day")
+    length = int(request.query.get("length", 1))
+    channel = request.query.get("channel")
+
+    limit = min(int(request.query.get("limit", 20)), 100)
+    offset = int(request.query.get("offset", 0))
+
+    params = {
+        "period_type": period_type,
+        "length": length,
+        "limit": limit,
+        "offset": offset,
+    }
+
+    channel_filter = ""
+    if channel:
+        channel_filter = "AND n.channel = :channel"
+        params["channel"] = channel
+
+    sql = f"""
+    WITH sent AS (
+        SELECT
+            p.from_node_id AS node_id,
+            COUNT(*) AS sent
+        FROM packet p
+        WHERE p.import_time_us >= (
+            SELECT MAX(import_time_us) FROM packet
+        ) - (
+            CASE
+                WHEN :period_type = 'hour' THEN :length * 3600 * 1000000
+                ELSE :length * 86400 * 1000000
+            END
+        )
+        GROUP BY p.from_node_id
+    ),
+    seen AS (
+        SELECT
+            p.from_node_id AS node_id,
+            COUNT(*) AS seen
+        FROM packet_seen ps
+        JOIN packet p ON p.id = ps.packet_id
+        WHERE ps.import_time_us >= (
+            SELECT MAX(import_time_us) FROM packet_seen
+        ) - (
+            CASE
+                WHEN :period_type = 'hour' THEN :length * 3600 * 1000000
+                ELSE :length * 86400 * 1000000
+            END
+        )
+        GROUP BY p.from_node_id
+    )
+    SELECT
+        n.node_id,
+        n.long_name,
+        n.short_name,
+        n.channel,
+        COALESCE(s.sent, 0) AS sent,
+        COALESCE(se.seen, 0) AS seen
+    FROM node n
+    LEFT JOIN sent s ON s.node_id = n.node_id
+    LEFT JOIN seen se ON se.node_id = n.node_id
+    WHERE 1=1
+        {channel_filter}
+    ORDER BY seen DESC
+    LIMIT :limit OFFSET :offset
+    """
+
+    count_sql = f"""
+    SELECT COUNT(*) FROM node n WHERE 1=1 {channel_filter}
+    """
+
+    async with database.async_session() as session:
+        rows = (await session.execute(text(sql), params)).all()
+        total = (await session.execute(text(count_sql), params)).scalar() or 0
+
+    nodes = []
+    for r in rows:
+        avg = r.seen / max(r.sent, 1)
+        nodes.append({
+            "node_id": r.node_id,
+            "long_name": r.long_name,
+            "short_name": r.short_name,
+            "channel": r.channel,
+            "sent": r.sent,
+            "seen": r.seen,
+            "avg": round(avg, 2),
+        })
+
+    return web.json_response({
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "nodes": nodes,
+    })

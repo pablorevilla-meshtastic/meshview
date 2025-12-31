@@ -94,7 +94,8 @@ Samples of currently running instances:
 - https://map.nswmesh.au (Sydney - Australia)
 - https://meshview.pvmesh.org (Pioneer Valley, Massachusetts)
 - https://meshview.louisianamesh.org (Louisiana)
-- https://meshview.meshcolombia.co/ (Colombia)
+- https://www.swlamesh.com/map (Southwest Louisiana)
+  - https://meshview.meshcolombia.co/ (Colombia)
 - https://meshview-salzburg.jmt.gr/ (Salzburg / Austria)
 ---
 
