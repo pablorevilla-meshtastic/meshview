@@ -157,6 +157,11 @@
         <div><strong data-translate-lang="longitude">Longitude</strong><strong>: </strong> <span id="info-lon">—</span></div>
 
         <div><strong data-translate-lang="last_update">Last Update</strong><strong>: </strong> <span id="info-last-update">—</span></div>
+        <div>
+            <strong data-translate-lang="statistics">Statistics</strong><strong>: </strong>
+            <span id="info-stats">—</span>
+        </div>
+
     </div>
 
     <!-- Map. -->
@@ -426,6 +431,7 @@ async function loadNodeInfo(){
             lastSeen = formatLastSeen(node.last_seen_us);
         }
         document.getElementById("info-last-update").textContent = lastSeen;
+        loadNodeStats(node.node_id);
     } catch (err) {
         console.error("Failed to load node info:", err);
         document.getElementById("node-info").style.display = "none";
@@ -1120,6 +1126,29 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.addEventListener("focus", ensureMapVisible);
     });
 });
+
+async function loadNodeStats(nodeId) {
+    try {
+        const res = await fetch(
+            `/api/stats/count?from_node=${nodeId}&period_type=day&length=1`
+        );
+
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        const packets = data?.total_packets ?? 0;
+        const seen    = data?.total_seen ?? 0;
+
+        document.getElementById("info-stats").textContent =
+            `24h · Packets sent: ${packets.toLocaleString()} · Times seen: ${seen.toLocaleString()}`;
+    } catch (err) {
+        console.error("Failed to load node stats:", err);
+        document.getElementById("info-stats").textContent = "—";
+    }
+}
 
 </script>
 {% endblock %}
