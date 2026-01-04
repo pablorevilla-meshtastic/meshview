@@ -443,7 +443,7 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                 if (srcLat && srcLon) {
                     distanceKm = haversine(srcLat, srcLon, rlat, rlon);
                 }
-
+                const distanceMi = distanceKm !== null ? distanceKm * 0.621371 : null;
                 const color = hopColor(hopKey);
 
                 const marker = L.marker([rlat,rlon],{
@@ -477,9 +477,11 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                     <span data-translate-lang="channel">Channel</span>: ${s.channel ?? "—"}<br>
                     ${
                         distanceKm !== null
-                            ? `<span data-translate-lang="distance">Distance</span>: ${distanceKm.toFixed(1)} km<br>`
+                            ? `<span data-translate-lang="distance">Distance</span>:
+                               ${distanceKm.toFixed(1)} km / ${distanceMi.toFixed(1)} mi<br>`
                             : ""
                     }
+
                     <br>
 
                     <b data-translate-lang="signal">Signal</b><br>
