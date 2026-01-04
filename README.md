@@ -91,7 +91,6 @@ Samples of currently running instances:
 - https://meshview.meshtastic.es (Spain)
 - https://view.mtnme.sh (North Georgia / East Tennessee)
 - https://meshview.lsinfra.de (Hessen - Germany)
-- https://map.nswmesh.au (Sydney - Australia)
 - https://meshview.pvmesh.org (Pioneer Valley, Massachusetts)
 - https://meshview.louisianamesh.org (Louisiana)
 - https://www.swlamesh.com/map (Southwest Louisiana)
