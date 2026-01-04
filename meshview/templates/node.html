@@ -239,6 +239,9 @@
         <option value="3600">Last hour</option>
         <option value="21600">Last 6 hours</option>
         <option value="86400">Last 24 hours</option>
+        <option value="172800">Last 2 days</option>
+        <option value="259200">Last 3 days</option>
+        <option value="432000">Last 5 days</option>
         <option value="604800">Last 7 days</option>
     </select>
 
@@ -246,10 +249,10 @@
         <option value="">All ports</option>
     </select>
 
-    <button onclick="reloadPackets()" style="padding:4px 10px;">
-        Apply
-    </button>
+    <button onclick="reloadPackets()">Apply</button>
+    <button onclick="exportPacketsCSV()">Export CSV</button>
 </div>
+
 
 
 
@@ -422,6 +425,7 @@ let nodeMap = {};          // node_id -> label
 let nodePositions = {};    // node_id -> [lat, lon]
 let nodeCache = {};        // node_id -> full node object
 let currentNode = null;
+let currentPacketRows = [];
 
 let map, markers = {};
 let chartData = {}, neighborData = { ids:[], names:[], snrs:[] };
@@ -760,6 +764,9 @@ async function loadPackets(filters = {}) {
     if (!res.ok) return;
 
     const data = await res.json();
+    const packets = data.packets || [];
+    currentPacketRows = packets;
+
 
     for (const pkt of (data.packets || []).reverse()) {
         const safePayload = (pkt.payload || "")
@@ -1317,6 +1324,49 @@ async function loadNodeStats(nodeId) {
 
     loadPackets(filters);
 }
+
+    function exportPacketsCSV() {
+    if (!currentPacketRows.length) {
+        alert("No packets to export.");
+        return;
+    }
+
+    const rows = [
+        ["Time", "Packet ID", "From Node", "To Node", "Port", "Port Name", "Payload"]
+    ];
+
+    for (const pkt of currentPacketRows) {
+        const time = pkt.import_time_us
+            ? new Date(pkt.import_time_us / 1000).toISOString()
+            : "";
+
+        const portName = PORT_LABEL_MAP[pkt.portnum] || `Port ${pkt.portnum}`;
+
+        // Escape quotes + line breaks for CSV safety
+        const payload = (pkt.payload || "")
+            .replace(/"/g, '""')
+            .replace(/\r?\n/g, " ");
+
+        rows.push([
+            time,
+            pkt.id,
+            pkt.from_node_id,
+            pkt.to_node_id,
+            pkt.portnum,
+            portName,
+            `"${payload}"`
+        ]);
+    }
+
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `packets_${fromNodeId}_${Date.now()}.csv`;
+    link.click();
+}
+
 
 
 </script>
