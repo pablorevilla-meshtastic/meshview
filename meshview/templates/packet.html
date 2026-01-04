@@ -439,6 +439,10 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                 const rlat = node.last_lat/1e7;
                 const rlon = node.last_long/1e7;
                 allBounds.push([rlat, rlon]);
+                let distanceKm = null;
+                if (srcLat && srcLon) {
+                    distanceKm = haversine(srcLat, srcLon, rlat, rlon);
+                }
 
                 const color = hopColor(hopKey);
 
@@ -465,20 +469,27 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                 }).addTo(map);
 
                 marker.bindPopup(`
-                    <div style="font-size:0.9em">
-                        <b>${label}</b><br>
-                        <span data-translate-lang="node_id_short">Node ID</span>:
-                        <a href="/node/${s.node_id}">${s.node_id}</a><br>
-                        HW: ${node?.hw_model ?? "—"}<br>
-                        <span data-translate-lang="channel">Channel</span>: ${s.channel ?? "—"}<br><br>
+                <div style="font-size:0.9em">
+                    <b>${label}</b><br>
+                    <span data-translate-lang="node_id_short">Node ID</span>:
+                    <a href="/node/${s.node_id}">${s.node_id}</a><br>
+                    HW: ${node?.hw_model ?? "—"}<br>
+                    <span data-translate-lang="channel">Channel</span>: ${s.channel ?? "—"}<br>
+                    ${
+                        distanceKm !== null
+                            ? `<span data-translate-lang="distance">Distance</span>: ${distanceKm.toFixed(1)} km<br>`
+                            : ""
+                    }
+                    <br>
 
-                        <b data-translate-lang="signal">Signal</b><br>
-                        RSSI: ${s.rx_rssi ?? "—"}<br>
-                        SNR: ${s.rx_snr ?? "—"}<br><br>
+                    <b data-translate-lang="signal">Signal</b><br>
+                    RSSI: ${s.rx_rssi ?? "—"}<br>
+                    SNR: ${s.rx_snr ?? "—"}<br><br>
 
-                        <b data-translate-lang="hops">Hops</b>: ${hopKey}
-                    </div>
-                `);
+                    <b data-translate-lang="hops">Hops</b>: ${hopKey}
+                </div>
+            `);
+
             }
 
             return `
