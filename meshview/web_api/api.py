@@ -134,7 +134,7 @@ async def api_packets(request):
 
         # --- Parse limit ---
         try:
-            limit = min(max(int(limit_str), 1), 100)
+            limit = min(max(int(limit_str), 1), 1000)
         except ValueError:
             limit = 50
 

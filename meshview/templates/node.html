@@ -746,7 +746,7 @@ async function loadPackets(filters = {}) {
 
     const url = new URL("/api/packets", window.location.origin);
     url.searchParams.set("node_id", fromNodeId);
-    url.searchParams.set("limit", 2000);
+    url.searchParams.set("limit", 1000);
 
     if (filters.since) {
         url.searchParams.set("since", filters.since);
