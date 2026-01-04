@@ -164,7 +164,11 @@
     "to": "A",
     "port": "Puerto",
     "direct_to_mqtt": "Directo a MQTT",
-    "all_broadcast": "Todos"
+    "all_broadcast": "Todos",
+    "statistics": "Estadísticas",
+    "last_24h": "24h",
+    "packets_sent": "Paquetes enviados",
+    "times_seen": "Veces visto"
   },
 
   "packet": {

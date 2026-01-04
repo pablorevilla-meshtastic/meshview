@@ -179,7 +179,11 @@
         "to": "To",
         "port": "Port",
         "direct_to_mqtt": "Direct to MQTT",
-        "all_broadcast": "All"
+        "all_broadcast": "All",
+        "statistics": "Statistics",
+        "last_24h": "24h",
+        "packets_sent": "Packets sent",
+        "times_seen": "Times seen"
     },
     "packet": {
       "loading": "Loading packet information...",

@@ -159,8 +159,12 @@
         <div><strong data-translate-lang="last_update">Last Update</strong><strong>: </strong> <span id="info-last-update">—</span></div>
         <div>
             <strong data-translate-lang="statistics">Statistics</strong><strong>: </strong>
-            <span id="info-stats">—</span>
+            <span id="info-stats"
+                  data-label-24h="24h"
+                  data-label-sent="Packets sent"
+                  data-label-seen="Times seen">—</span>
         </div>
+
 
     </div>
 
@@ -216,6 +220,19 @@
     <div id="chart_neighbors" style="height:380px;"></div>
 </div>
 
+    <!-- Packet Histogram -->
+<div id="packet_histogram_container" class="chart-container">
+    <div class="chart-header">
+        📊 <span data-translate-lang="packets_per_day">Packets per Day (Last 7 Days)</span>
+        <div class="chart-actions">
+            <button onclick="expandChart('packet_histogram')" data-translate-lang="expand">Expand</button>
+            <button onclick="exportCSV('packet_histogram')" data-translate-lang="export_csv">Export CSV</button>
+        </div>
+    </div>
+    <div id="chart_packet_histogram" style="height:380px;"></div>
+</div>
+
+
 
     <!-- Packets -->
     <table class="packet-table">
@@ -246,6 +263,42 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 
 <script>
+
+    const PORT_COLOR_MAP = {
+    0:  "#6c757d",
+    1:  "#007bff",
+    3:  "#28a745",
+    4:  "#ffc107",
+    5:  "#dc3545",
+    6:  "#20c997",
+    65: "#6610f2",
+    67: "#17a2b8",
+    68: "#fd7e14",
+    69: "#6f42c1",
+    70: "#ff4444",
+    71: "#ff66cc",
+    72: "#00cc99",
+    73: "#9999ff",
+    74: "#cc00cc",
+    75: "#ffbb33",
+    76: "#00bcd4",
+    77: "#8bc34a",
+    78: "#795548"
+};
+
+const PORT_LABEL_MAP = {
+    0:  "UNKNOWN",
+    1:  "Text",
+    3:  "Position",
+    4:  "Node Info",
+    5:  "Routing",
+    6:  "Admin",
+    65: "Store & Forward",
+    67: "Telemetry",
+    70: "Traceroute",
+    71: "Neighbor"
+};
+
 /* ======================================================
    NODE PAGE TRANSLATION (isolated from base)
    ====================================================== */
@@ -471,41 +524,6 @@ function nodeLink(id, labelOverride = null) {
    ====================================================== */
 
 function portLabel(p) {
-    const PORT_COLOR_MAP = {
-        0:  "#6c757d",
-        1:  "#007bff",
-        3:  "#28a745",
-        4:  "#ffc107",
-        5:  "#dc3545",
-        6:  "#20c997",
-        65: "#6610f2",
-        67: "#17a2b8",
-        68: "#fd7e14",
-        69: "#6f42c1",
-        70: "#ff4444",
-        71: "#ff66cc",
-        72: "#00cc99",
-        73: "#9999ff",
-        74: "#cc00cc",
-        75: "#ffbb33",
-        76: "#00bcd4",
-        77: "#8bc34a",
-        78: "#795548"
-    };
-
-    const PORT_LABEL_MAP = {
-        0:  "UNKNOWN",
-        1:  "Text",
-        3:  "Position",
-        4:  "Node Info",
-        5:  "Routing",
-        6:  "Admin",
-        65: "Store & Forward",
-        67: "Telemetry",
-        70: "Traceroute",
-        71: "Neighbor"
-    };
-
     const color = PORT_COLOR_MAP[p] || "#6c757d";
     const label = PORT_LABEL_MAP[p] || `Port ${p}`;
 
@@ -518,6 +536,7 @@ function portLabel(p) {
         <span class="text-secondary">(${p})</span>
     `;
 }
+
 
 /* ======================================================
     MAP SETUP
@@ -1031,6 +1050,99 @@ async function loadNeighborTimeSeries() {
 }
 
 
+async function loadPacketHistogram() {
+    const DAYS = 7;
+    const now = new Date();
+
+    const dayKeys = [];
+    const dayLabels = [];
+
+    for (let i = DAYS - 1; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        dayKeys.push(d.toISOString().slice(0, 10));
+        dayLabels.push(
+            d.toLocaleDateString([], { month: "short", day: "numeric" })
+        );
+    }
+
+    const url = new URL("/api/packets", window.location.origin);
+    url.searchParams.set("node_id", fromNodeId);
+
+    // last 7 days only (microseconds)
+    const sinceUs = Date.now() * 1000 - (7 * 24 * 60 * 60 * 1_000_000);
+    url.searchParams.set("since", sinceUs);
+
+    // modest safety limit (still applies after server-side filter)
+    url.searchParams.set("limit", 2000);
+
+
+    const res = await fetch(url);
+    if (!res.ok) return;
+
+    const packets = (await res.json()).packets || [];
+
+    const counts = {};   // { port: { day: count } }
+    const ports = new Set();
+
+    for (const pkt of packets) {
+        if (!pkt.import_time_us) continue;
+
+        const day = new Date(pkt.import_time_us / 1000)
+            .toISOString()
+            .slice(0, 10);
+
+        if (!dayKeys.includes(day)) continue;
+
+        const port = pkt.portnum ?? 0;
+        ports.add(port);
+
+        counts[port] ??= {};
+        counts[port][day] = (counts[port][day] || 0) + 1;
+    }
+
+    if (!ports.size) {
+        document.getElementById("packet_histogram_container").style.display = "none";
+        return;
+    }
+
+    const series = Array.from(ports)
+        .sort((a, b) => a - b)
+        .map(port => ({
+            name: PORT_LABEL_MAP[port] || `Port ${port}`,
+            type: "bar",
+            stack: "total",
+            barMaxWidth: 42,
+            itemStyle: {
+                color: PORT_COLOR_MAP[port] || "#888"
+            },
+            data: dayKeys.map(d => counts[port]?.[d] || 0)
+        }));
+
+    const chart = echarts.init(
+        document.getElementById("chart_packet_histogram")
+    );
+
+    chart.setOption({
+        animation: false,
+        tooltip: { trigger: "axis" },
+        legend: { textStyle: { color: "#ccc" } },
+        xAxis: {
+            type: "category",
+            data: dayLabels,
+            axisLabel: { color: "#ccc" }
+        },
+        yAxis: {
+            type: "value",
+            axisLabel: { color: "#ccc" }
+        },
+        series
+    });
+
+    window.addEventListener("resize", () => chart.resize());
+}
+
+
 
 /* ======================================================
    EXPAND / EXPORT BUTTONS
@@ -1120,6 +1232,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         await loadPackets();
         await loadTelemetryCharts();
         await loadNeighborTimeSeries();
+        await loadPacketHistogram();
         ensureMapVisible();
         setTimeout(ensureMapVisible, 1000);
         window.addEventListener("resize", ensureMapVisible);
