@@ -232,6 +232,25 @@
     <div id="chart_packet_histogram" style="height:380px;"></div>
 </div>
 
+    <!-- Packet Filters -->
+<div class="filter-container" style="margin-bottom:10px; display:flex; gap:12px; flex-wrap:wrap;">
+    <select id="packet_since">
+        <option value="">All time</option>
+        <option value="3600">Last hour</option>
+        <option value="21600">Last 6 hours</option>
+        <option value="86400">Last 24 hours</option>
+        <option value="604800">Last 7 days</option>
+    </select>
+
+    <select id="packet_port">
+        <option value="">All ports</option>
+    </select>
+
+    <button onclick="reloadPackets()" style="padding:4px 10px;">
+        Apply
+    </button>
+</div>
+
 
 
     <!-- Packets -->
@@ -518,6 +537,21 @@ function nodeLink(id, labelOverride = null) {
             </a>`;
 }
 
+function initPacketPortFilter() {
+    const sel = document.getElementById("packet_port");
+    if (!sel) return;
+
+    Object.keys(PORT_LABEL_MAP)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .forEach(p => {
+            const opt = document.createElement("option");
+            opt.value = p;
+            opt.textContent = `${PORT_LABEL_MAP[p]} (${p})`;
+            sel.appendChild(opt);
+        });
+}
+
 
 /* ======================================================
     PORT LABELS
@@ -706,62 +740,64 @@ async function loadTrack(){
    PACKETS TABLE + NEIGHBOR OVERLAY
    ====================================================== */
 
-async function loadPackets(){
+async function loadPackets(filters = {}) {
+    const list = document.getElementById("packet_list");
+    list.innerHTML = "";
+
     const url = new URL("/api/packets", window.location.origin);
-    url.searchParams.set("node_id", fromNodeId); // node_id includes to/from
-    url.searchParams.set("limit", 200);
+    url.searchParams.set("node_id", fromNodeId);
+    url.searchParams.set("limit", 2000);
+
+    if (filters.since) {
+        url.searchParams.set("since", filters.since);
+    }
+
+    if (filters.portnum) {
+        url.searchParams.set("portnum", filters.portnum);
+    }
 
     const res = await fetch(url);
     if (!res.ok) return;
 
     const data = await res.json();
-    const list = document.getElementById("packet_list");
 
     for (const pkt of (data.packets || []).reverse()) {
-        const safePayload = (pkt.payload || "").replace(/[<>]/g, m => m === "<" ? "&lt;" : "&gt;");
-        const localTime   = formatLocalTime(pkt.import_time_us);
-        const fromCell    = nodeLink(pkt.from_node_id,pkt.long_name);
-        const toCell = nodeLink(pkt.to_node_id, pkt.to_long_name);
+        const safePayload = (pkt.payload || "")
+            .replace(/[<>]/g, m => (m === "<" ? "&lt;" : "&gt;"));
 
-        // Neighbor packets (port 71) → draw neighbors on map
-        if (pkt.portnum === 71 && pkt.payload) {
-            const nids = [];
-            const re = /neighbors\s*\{\s*node_id:\s*(\d+)/g;
-            let m;
-            while ((m = re.exec(pkt.payload)) !== null) {
-                nids.push(parseInt(m[1]));
-            }
-            if (nids.length && map) {
-                await drawNeighbors(pkt.from_node_id, nids);
-            }
-        }
+        const localTime = formatLocalTime(pkt.import_time_us);
+        const fromCell  = nodeLink(pkt.from_node_id, pkt.long_name);
+        const toCell    = nodeLink(pkt.to_node_id, pkt.to_long_name);
 
         let inlineLinks = "";
 
-        // Position link (Google Maps)
         if (pkt.portnum === 3 && pkt.payload) {
             const latMatch = pkt.payload.match(/latitude_i:\s*(-?\d+)/);
             const lonMatch = pkt.payload.match(/longitude_i:\s*(-?\d+)/);
-
             if (latMatch && lonMatch) {
                 const lat = parseFloat(latMatch[1]) / 1e7;
                 const lon = parseFloat(lonMatch[1]) / 1e7;
-                inlineLinks += ` <a class="inline-link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">📍</a>`;
+                inlineLinks +=
+                    ` <a class="inline-link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">📍</a>`;
             }
         }
 
-        // Traceroute link
         if (pkt.portnum === 70) {
             let traceId = pkt.id;
             const match = pkt.payload?.match(/ID:\s*(\d+)/i);
             if (match) traceId = match[1];
-            inlineLinks += ` <a class="inline-link" href="/graph/traceroute/${traceId}" target="_blank">⮕</a>`;
+            inlineLinks +=
+                ` <a class="inline-link" href="/graph/traceroute/${traceId}" target="_blank">⮕</a>`;
         }
 
         list.insertAdjacentHTML("afterbegin", `
 <tr class="packet-row">
     <td>${localTime}</td>
-    <td><span class="toggle-btn">▶</span> <a href="/packet/${pkt.id}" style="text-decoration:underline; color:inherit;">${pkt.id}</a></td>
+    <td><span class="toggle-btn">▶</span>
+        <a href="/packet/${pkt.id}" style="text-decoration:underline; color:inherit;">
+            ${pkt.id}
+        </a>
+    </td>
     <td>${fromCell}</td>
     <td>${toCell}</td>
     <td>${portLabel(pkt.portnum)}${inlineLinks}</td>
@@ -771,6 +807,7 @@ async function loadPackets(){
 </tr>`);
     }
 }
+
 
 /* ======================================================
     TELEMETRY CHARTS (portnum=67)
@@ -955,7 +992,6 @@ async function loadNeighborTimeSeries() {
         return;
     }
 
-    // --- FIX #1: enforce chronological order (oldest → newest) ---
     packets.sort((a, b) => (a.import_time_us || 0) - (b.import_time_us || 0));
 
     // neighborHistory = { node_id: { name, snr:[...], times:[...] } }
@@ -1230,6 +1266,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!map) initMap();           // init map early so neighbors can draw
         await loadTrack();
         await loadPackets();
+        initPacketPortFilter();
         await loadTelemetryCharts();
         await loadNeighborTimeSeries();
         await loadPacketHistogram();
@@ -1262,6 +1299,25 @@ async function loadNodeStats(nodeId) {
         document.getElementById("info-stats").textContent = "—";
     }
 }
+
+    function reloadPackets() {
+    const sinceSel = document.getElementById("packet_since").value;
+    const portSel  = document.getElementById("packet_port").value;
+
+    const filters = {};
+
+    if (sinceSel) {
+        const sinceUs = Date.now() * 1000 - (parseInt(sinceSel, 10) * 1_000_000);
+        filters.since = sinceUs;
+    }
+
+    if (portSel) {
+        filters.portnum = portSel;
+    }
+
+    loadPackets(filters);
+}
+
 
 </script>
 {% endblock %}
