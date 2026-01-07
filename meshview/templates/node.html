@@ -608,10 +608,16 @@ function addMarker(id, lat, lon, color = "red", node = null) {
     m.bringToFront();
 }
 
-async function drawNeighbors(src, nids){
+async function drawNeighbors(src, nids) {
     if (!map) return;
-    const srcPos = nodePositions[src];
-    if (!srcPos) return;
+
+    // Ensure source node position exists
+    const srcNode = await fetchNodeFromApi(src);
+    if (!srcNode || !srcNode.last_lat || !srcNode.last_long) return;
+
+    const srcLat = srcNode.last_lat / 1e7;
+    const srcLon = srcNode.last_long / 1e7;
+    nodePositions[src] = [srcLat, srcLon];
 
     for (const nid of nids) {
         const neighbor = await fetchNodeFromApi(nid);
@@ -620,12 +626,21 @@ async function drawNeighbors(src, nids){
         const lat = neighbor.last_lat / 1e7;
         const lon = neighbor.last_long / 1e7;
 
+        nodePositions[nid] = [lat, lon];
+
+        // Marker
         addMarker(nid, lat, lon, "blue", neighbor);
 
-        const dstPos = [lat, lon];
-        L.polyline([srcPos, dstPos], { color:'gray', weight:1 }).addTo(map);
+        // Link line
+        L.polyline(
+            [[srcLat, srcLon], [lat, lon]],
+            { color: "gray", weight: 1 }
+        ).addTo(map);
     }
+
+    ensureMapVisible();
 }
+
 
 function ensureMapVisible(){
     if (!map) return;
@@ -758,8 +773,26 @@ async function loadPackets(filters = {}) {
     const packets = data.packets || [];
     currentPacketRows = packets;
 
+    for (const pkt of packets.reverse()) {
 
-    for (const pkt of (data.packets || []).reverse()) {
+        // ================================
+        // 🔵 NEIGHBOR PACKETS → MAP OVERLAY
+        // ================================
+        if (pkt.portnum === 71 && pkt.payload && map) {
+            const nids = [];
+            const re = /neighbors\s*\{\s*node_id:\s*(\d+)/g;
+            let m;
+            while ((m = re.exec(pkt.payload)) !== null) {
+                nids.push(parseInt(m[1], 10));
+            }
+            if (nids.length) {
+                await drawNeighbors(pkt.from_node_id, nids);
+            }
+        }
+
+        // ================================
+        // TABLE ROW
+        // ================================
         const safePayload = (pkt.payload || "")
             .replace(/[<>]/g, m => (m === "<" ? "&lt;" : "&gt;"));
 
@@ -805,6 +838,7 @@ async function loadPackets(filters = {}) {
 </tr>`);
     }
 }
+
 
 
 /* ======================================================
@@ -983,7 +1017,7 @@ async function loadNeighborTimeSeries() {
     }
 
     const data = await res.json();
-    let packets = data.packets || [];
+    const packets = data.packets || [];
 
     if (!packets.length) {
         document.getElementById("neighbor_chart_container").style.display = "none";
@@ -992,7 +1026,6 @@ async function loadNeighborTimeSeries() {
 
     packets.sort((a, b) => (a.import_time_us || 0) - (b.import_time_us || 0));
 
-    // neighborHistory = { node_id: { name, snr:[...], times:[...] } }
     const neighborHistory = {};
 
     for (const pkt of packets) {
@@ -1005,9 +1038,9 @@ async function loadNeighborTimeSeries() {
             minute: "2-digit"
         });
 
-        // Extract neighbor blocks
         const blockRe = /neighbors\s*\{([^}]+)\}/g;
         let m;
+
         while ((m = blockRe.exec(pkt.payload)) !== null) {
             const block = m[1];
 
@@ -1019,9 +1052,12 @@ async function loadNeighborTimeSeries() {
             const nid = parseInt(idMatch[1], 10);
             const snr = parseFloat(snrMatch[1]);
 
+            // 🔑 ENSURE NODE DATA EXISTS
+            const neighbor = await fetchNodeFromApi(nid);
+
             if (!neighborHistory[nid]) {
                 neighborHistory[nid] = {
-                    name: nodeMap[nid] || `Node ${nid}`,
+                    name: neighbor?.short_name || neighbor?.long_name || `Node ${nid}`,
                     times: [],
                     snr: []
                 };
@@ -1037,39 +1073,29 @@ async function loadNeighborTimeSeries() {
     const legend = [];
     const series = [];
 
-    for (const [nid, entry] of Object.entries(neighborHistory)) {
+    for (const entry of Object.values(neighborHistory)) {
         legend.push(entry.name);
-
         series.push({
             name: entry.name,
             type: "line",
             smooth: true,
-            connectNulls: true,      // --- FIX #2: connect dots even if missing ---
+            connectNulls: true,
             showSymbol: false,
-            data: entry.snr,
+            data: entry.snr
         });
     }
 
-    // Collect all timestamps from all neighbors
-    const allTimesSet = new Set();
+    const allTimes = new Set();
+    Object.values(neighborHistory).forEach(e => e.times.forEach(t => allTimes.add(t)));
 
-    for (const entry of Object.values(neighborHistory)) {
-        for (const t of entry.times) {
-            allTimesSet.add(t);
-        }
-    }
-
-    // Convert to array and sort chronologically
-    const sampleTimes = Array.from(allTimesSet).sort((a, b) => {
-        return new Date(a) - new Date(b);
-    });
+    const xTimes = Array.from(allTimes).sort((a, b) => new Date(a) - new Date(b));
 
     chart.setOption({
         tooltip: { trigger: "axis" },
         legend: { data: legend, textStyle: { color: "#ccc" } },
         xAxis: {
             type: "category",
-            data: sampleTimes,
+            data: xTimes,
             axisLabel: { color: "#ccc" }
         },
         yAxis: {
