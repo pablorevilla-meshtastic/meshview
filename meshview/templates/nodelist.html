@@ -466,11 +466,17 @@ document.addEventListener("DOMContentLoaded", async function() {
             const hwMatch = !hwFilter.value || n.hw_model === hwFilter.value;
             const fwMatch = !firmwareFilter.value || n.firmware === firmwareFilter.value;
 
-            const searchMatch =
-                !searchTerm ||
-                (n.long_name && n.long_name.toLowerCase().includes(searchTerm)) ||
-                (n.short_name && n.short_name.toLowerCase().includes(searchTerm)) ||
-                n.node_id.toString().includes(searchTerm);
+            const searchBlob = [
+                n.node_id,          // numeric ID
+                n.id,               // hex ID (if present)
+                n.long_name,
+                n.short_name
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            const searchMatch = !searchTerm || searchBlob.includes(searchTerm);
 
             const favMatch = !showOnlyFavorites || isFavorite(n.node_id);
 
