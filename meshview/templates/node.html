@@ -1008,11 +1008,14 @@ async function loadTelemetryCharts(){
    ====================================================== */
 
 async function loadNeighborTimeSeries() {
+    const container = document.getElementById("neighbor_chart_container");
+    const chartEl   = document.getElementById("chart_neighbors");
+
     const url = `/api/packets?portnum=71&from_node_id=${fromNodeId}&limit=500`;
     const res = await fetch(url);
 
     if (!res.ok) {
-        document.getElementById("neighbor_chart_container").style.display = "none";
+        container.style.display = "none";
         return;
     }
 
@@ -1020,23 +1023,19 @@ async function loadNeighborTimeSeries() {
     const packets = data.packets || [];
 
     if (!packets.length) {
-        document.getElementById("neighbor_chart_container").style.display = "none";
+        container.style.display = "none";
         return;
     }
 
+    // Sort packets chronologically (microseconds)
     packets.sort((a, b) => (a.import_time_us || 0) - (b.import_time_us || 0));
 
-    const neighborHistory = {};
+    const neighborHistory = {}; // node_id -> { name, times[], snr[] }
 
     for (const pkt of packets) {
         if (!pkt.import_time_us || !pkt.payload) continue;
 
-        const ts = new Date(pkt.import_time_us / 1000).toLocaleString([], {
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit"
-        });
+        const ts = pkt.import_time_us; // KEEP NUMERIC TIMESTAMP
 
         const blockRe = /neighbors\s*\{([^}]+)\}/g;
         let m;
@@ -1052,12 +1051,14 @@ async function loadNeighborTimeSeries() {
             const nid = parseInt(idMatch[1], 10);
             const snr = parseFloat(snrMatch[1]);
 
-            // 🔑 ENSURE NODE DATA EXISTS
+            // Fetch neighbor metadata once
             const neighbor = await fetchNodeFromApi(nid);
 
             if (!neighborHistory[nid]) {
                 neighborHistory[nid] = {
-                    name: neighbor?.short_name || neighbor?.long_name || `Node ${nid}`,
+                    name: neighbor?.short_name ||
+                          neighbor?.long_name ||
+                          `Node ${nid}`,
                     times: [],
                     snr: []
                 };
@@ -1068,35 +1069,59 @@ async function loadNeighborTimeSeries() {
         }
     }
 
-    const chart = echarts.init(document.getElementById("chart_neighbors"));
+    // Collect ALL timestamps across neighbors
+    const allTimes = new Set();
+    Object.values(neighborHistory).forEach(entry => {
+        entry.times.forEach(t => allTimes.add(t));
+    });
+
+    // Sort timestamps numerically
+    const xTimes = Array.from(allTimes).sort((a, b) => a - b);
 
     const legend = [];
     const series = [];
 
     for (const entry of Object.values(neighborHistory)) {
         legend.push(entry.name);
+
         series.push({
             name: entry.name,
             type: "line",
             smooth: true,
             connectNulls: true,
             showSymbol: false,
-            data: entry.snr
+            data: xTimes.map(t => {
+                const idx = entry.times.indexOf(t);
+                return idx >= 0 ? entry.snr[idx] : null;
+            })
         });
     }
 
-    const allTimes = new Set();
-    Object.values(neighborHistory).forEach(e => e.times.forEach(t => allTimes.add(t)));
-
-    const xTimes = Array.from(allTimes).sort((a, b) => new Date(a) - new Date(b));
+    const chart = echarts.init(chartEl);
 
     chart.setOption({
-        tooltip: { trigger: "axis" },
-        legend: { data: legend, textStyle: { color: "#ccc" } },
+        tooltip: {
+            trigger: "axis",
+            axisPointer: { type: "line" }
+        },
+        legend: {
+            data: legend,
+            textStyle: { color: "#ccc" }
+        },
         xAxis: {
             type: "category",
             data: xTimes,
-            axisLabel: { color: "#ccc" }
+            axisLabel: {
+                color: "#ccc",
+                formatter: value =>
+                    new Date(value / 1000).toLocaleString([], {
+                        year: "2-digit",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    })
+            }
         },
         yAxis: {
             type: "value",
@@ -1108,6 +1133,7 @@ async function loadNeighborTimeSeries() {
 
     window.addEventListener("resize", () => chart.resize());
 }
+
 
 
 async function loadPacketHistogram() {
