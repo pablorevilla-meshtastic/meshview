@@ -82,12 +82,9 @@ async def process_envelope(topic, env):
     async with mqtt_database.async_session() as session:
         # --- Packet insert with ON CONFLICT DO NOTHING
         result = await session.execute(select(Packet).where(Packet.id == env.packet.id))
-        # FIXME: Not Used
-        # new_packet = False
         packet = result.scalar_one_or_none()
         if not packet:
-            # FIXME: Not Used
-            # new_packet = True
+
             now = datetime.datetime.now(datetime.UTC)
             now_us = int(now.timestamp() * 1_000_000)
             stmt = (
@@ -238,6 +235,3 @@ async def process_envelope(topic, env):
 
         await session.commit()
 
-        # if new_packet:
-        #    await packet.awaitable_attrs.to_node
-        #    await packet.awaitable_attrs.from_node

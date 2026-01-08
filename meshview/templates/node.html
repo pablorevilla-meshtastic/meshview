@@ -778,21 +778,6 @@ async function loadPackets(filters = {}) {
     for (const pkt of packets.reverse()) {
 
         // ================================
-        // 🔵 NEIGHBOR PACKETS → MAP OVERLAY
-        // ================================
-        if (pkt.portnum === 71 && pkt.payload && map) {
-            const nids = [];
-            const re = /neighbors\s*\{\s*node_id:\s*(\d+)/g;
-            let m;
-            while ((m = re.exec(pkt.payload)) !== null) {
-                nids.push(parseInt(m[1], 10));
-            }
-            if (nids.length) {
-                await drawNeighbors(pkt.from_node_id, nids);
-            }
-        }
-
-        // ================================
         // TABLE ROW
         // ================================
         const safePayload = (pkt.payload || "")
@@ -1007,6 +992,32 @@ async function loadTelemetryCharts(){
     window.addEventListener("resize", () => {
         [chart1, chart2, chart3].forEach(c => { if (c) c.resize(); });
     });
+}
+
+
+async function loadLatestNeighborIds() {
+    const url = new URL("/api/packets", window.location.origin);
+    url.searchParams.set("from_node_id", fromNodeId);
+    url.searchParams.set("portnum", 71);
+    url.searchParams.set("limit", 1);   // ✅ ONLY the latest packet
+
+    const res = await fetch(url);
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const pkt = data.packets?.[0];
+    if (!pkt || !pkt.payload) return [];
+
+    const ids = [];
+    const re = /neighbors\s*\{([^}]+)\}/g;
+    let m;
+
+    while ((m = re.exec(pkt.payload)) !== null) {
+        const id = m[1].match(/node_id:\s*(\d+)/);
+        if (id) ids.push(parseInt(id[1], 10));
+    }
+
+    return ids;
 }
 
 /* ======================================================
@@ -1315,23 +1326,36 @@ document.addEventListener("click", e => {
    ====================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await loadTranslationsNode();   // translations first
+    await loadTranslationsNode();
 
     requestAnimationFrame(async () => {
-        await loadNodeInfo();          // single-node fetch
-        if (!map) initMap();           // init map early so neighbors can draw
+        await loadNodeInfo();
+
+        // ✅ MAP MUST EXIST FIRST
+        if (!map) initMap();
+
+        // ✅ DRAW LATEST NEIGHBORS ONCE
+        const neighborIds = await loadLatestNeighborIds();
+        if (neighborIds.length) {
+            await drawNeighbors(fromNodeId, neighborIds);
+        }
+
+        // ⚠️ Track may add to map, but must not hide it
         await loadTrack();
+
         await loadPackets();
         initPacketPortFilter();
         await loadTelemetryCharts();
         await loadNeighborTimeSeries();
         await loadPacketHistogram();
+
         ensureMapVisible();
         setTimeout(ensureMapVisible, 1000);
         window.addEventListener("resize", ensureMapVisible);
         window.addEventListener("focus", ensureMapVisible);
     });
 });
+
 
 
 function packetSizeBytes(pkt) {
