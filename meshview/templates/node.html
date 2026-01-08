@@ -258,15 +258,17 @@
 
     <!-- Packets -->
     <table class="packet-table">
-        <thead>
-            <tr>
-                <th data-translate-lang="time">Time</th>
-                <th data-translate-lang="packet_id">Packet ID</th>
-                <th data-translate-lang="from">From</th>
-                <th data-translate-lang="to">To</th>
-                <th data-translate-lang="port">Port</th>
-            </tr>
-        </thead>
+    <thead>
+        <tr>
+            <th data-translate-lang="time">Time</th>
+            <th data-translate-lang="packet_id">Packet ID</th>
+            <th data-translate-lang="from">From</th>
+            <th data-translate-lang="to">To</th>
+            <th data-translate-lang="port">Port</th>
+            <th data-translate-lang="size">Size</th>
+        </tr>
+    </thead>
+
         <tbody id="packet_list"></tbody>
     </table>
 
@@ -821,21 +823,25 @@ async function loadPackets(filters = {}) {
                 ` <a class="inline-link" href="/graph/traceroute/${traceId}" target="_blank">⮕</a>`;
         }
 
+        const sizeBytes = packetSizeBytes(pkt);
+
         list.insertAdjacentHTML("afterbegin", `
-<tr class="packet-row">
-    <td>${localTime}</td>
-    <td><span class="toggle-btn">▶</span>
-        <a href="/packet/${pkt.id}" style="text-decoration:underline; color:inherit;">
-            ${pkt.id}
-        </a>
-    </td>
-    <td>${fromCell}</td>
-    <td>${toCell}</td>
-    <td>${portLabel(pkt.portnum)}${inlineLinks}</td>
-</tr>
-<tr class="payload-row">
-    <td colspan="5" class="payload-cell">${safePayload}</td>
-</tr>`);
+        <tr class="packet-row">
+            <td>${localTime}</td>
+            <td><span class="toggle-btn">▶</span>
+                <a href="/packet/${pkt.id}" style="text-decoration:underline; color:inherit;">
+                    ${pkt.id}
+                </a>
+            </td>
+            <td>${fromCell}</td>
+            <td>${toCell}</td>
+            <td>${portLabel(pkt.portnum)}${inlineLinks}</td>
+            <td>${sizeBytes.toLocaleString()} B</td>
+        </tr>
+        <tr class="payload-row">
+            <td colspan="6" class="payload-cell">${safePayload}</td>
+        </tr>`);
+
     }
 }
 
@@ -1326,6 +1332,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         window.addEventListener("focus", ensureMapVisible);
     });
 });
+
+
+function packetSizeBytes(pkt) {
+    if (!pkt) return 0;
+
+    // Prefer raw payload length
+    if (pkt.payload) {
+        return new TextEncoder().encode(pkt.payload).length;
+    }
+
+    // Fallbacks (if you later add protobuf/base64)
+    if (pkt.raw_payload) {
+        return atob(pkt.raw_payload).length;
+    }
+
+    return 0;
+}
+
 
 async function loadNodeStats(nodeId) {
     try {
