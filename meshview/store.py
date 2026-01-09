@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from sqlalchemy import select, and_, or_, func, cast, Text
+
+from sqlalchemy import Text, and_, cast, func, or_, select, text
 from sqlalchemy.orm import lazyload
 
 from meshview import database, models
@@ -91,8 +92,10 @@ async def get_packets_from(node_id=None, portnum=None, since=None, limit=500):
         if portnum:
             q = q.where(Packet.portnum == portnum)
         if since:
-            q = q.where(Packet.import_time > (datetime.now() - since))
-        result = await session.execute(q.limit(limit).order_by(Packet.import_time.desc()))
+            now_us = int(datetime.now().timestamp() * 1_000_000)
+            start_us = now_us - int(since.total_seconds() * 1_000_000)
+            q = q.where(Packet.import_time_us > start_us)
+        result = await session.execute(q.limit(limit).order_by(Packet.import_time_us.desc()))
         return result.scalars()
 
 
@@ -108,7 +111,7 @@ async def get_packets_seen(packet_id):
         result = await session.execute(
             select(PacketSeen)
             .where(PacketSeen.packet_id == packet_id)
-            .order_by(PacketSeen.import_time.desc())
+            .order_by(PacketSeen.import_time_us.desc())
         )
         return result.scalars()
 
@@ -129,18 +132,21 @@ async def get_traceroute(packet_id):
         result = await session.execute(
             select(Traceroute)
             .where(Traceroute.packet_id == packet_id)
-            .order_by(Traceroute.import_time)
+            .order_by(Traceroute.import_time_us)
         )
         return result.scalars()
 
 
 async def get_traceroutes(since):
+    if isinstance(since, datetime):
+        since_us = int(since.timestamp() * 1_000_000)
+    else:
+        since_us = int(since)
     async with database.async_session() as session:
         stmt = (
             select(Traceroute)
-            .join(Packet)
-            .where(Traceroute.import_time > since)
-            .order_by(Traceroute.import_time)
+            .where(Traceroute.import_time_us > since_us)
+            .order_by(Traceroute.import_time_us)
         )
         stream = await session.stream_scalars(stmt)
         async for tr in stream:
@@ -148,6 +154,8 @@ async def get_traceroutes(since):
 
 
 async def get_mqtt_neighbors(since):
+    now_us = int(datetime.now().timestamp() * 1_000_000)
+    start_us = now_us - int(since.total_seconds() * 1_000_000)
     async with database.async_session() as session:
         result = await session.execute(
             select(PacketSeen, Packet)
@@ -155,7 +163,7 @@ async def get_mqtt_neighbors(since):
             .where(
                 (PacketSeen.hop_limit == PacketSeen.hop_start)
                 & (PacketSeen.hop_start != 0)
-                & (PacketSeen.import_time > (datetime.now() - since))
+                & (PacketSeen.import_time_us > start_us)
             )
             .options(
                 lazyload(Packet.from_node),
@@ -196,7 +204,7 @@ async def get_top_traffic_nodes():
                     COUNT(ps.packet_id) AS total_times_seen
                 FROM node n
                 LEFT JOIN packet p ON n.node_id = p.from_node_id
-                    AND p.import_time >= DATETIME('now', 'localtime', '-24 hours')
+                    AND p.import_time_us >= (CAST(strftime('%s','now') AS INTEGER) - 86400) * 1000000
                 LEFT JOIN packet_seen ps ON p.id = ps.packet_id
                 GROUP BY n.node_id, n.long_name, n.short_name
                 HAVING total_packets_sent > 0
@@ -235,7 +243,7 @@ async def get_node_traffic(node_id: int):
                     FROM packet
                     JOIN node ON packet.from_node_id = node.node_id
                     WHERE node.node_id = :node_id 
-                    AND packet.import_time >= DATETIME('now', 'localtime', '-24 hours') 
+                    AND packet.import_time_us >= (CAST(strftime('%s','now') AS INTEGER) - 86400) * 1000000 
                     GROUP BY packet.portnum
                     ORDER BY packet_count DESC;
                 """),
@@ -330,9 +338,12 @@ async def get_packet_stats(
 
     async with database.async_session() as session:
         q = select(
-            func.strftime(time_format, Packet.import_time).label('period'),
+            func.strftime(
+                time_format,
+                func.datetime(Packet.import_time_us / 1_000_000, "unixepoch"),
+            ).label('period'),
             func.count().label('count'),
-        ).where(Packet.import_time >= start_time)
+        ).where(Packet.import_time_us >= int(start_time.timestamp() * 1_000_000))
 
         # Filters
         if channel:

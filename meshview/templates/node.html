@@ -285,34 +285,12 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="/static/portmaps.js"></script>
 
 <script>
 
-    const PORT_COLOR_MAP = {
-    0:  "#6c757d",
-    1:  "#007bff",
-    3:  "#28a745",
-    4:  "#ffc107",
-    5:  "#dc3545",
-    6:  "#20c997",
-    65: "#6610f2",
-    67: "#17a2b8",
-    70: "#ff9800",
-    71: "#ff66cc",
-};
-
-const PORT_LABEL_MAP = {
-    0:  "UNKNOWN",
-    1:  "Text",
-    3:  "Position",
-    4:  "Node Info",
-    5:  "Routing",
-    6:  "Admin",
-    65: "Store & Forward",
-    67: "Telemetry",
-    70: "Traceroute",
-    71: "Neighbor"
-};
+    const PORT_COLOR_MAP = window.PORT_COLOR_MAP || {};
+    const PORT_LABEL_MAP = window.PORT_LABEL_MAP || {};
 
 /* ======================================================
    NODE PAGE TRANSLATION (isolated from base)

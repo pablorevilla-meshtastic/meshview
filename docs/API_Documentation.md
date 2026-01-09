@@ -1,82 +1,38 @@
-
 # API Documentation
 
-## 1. Chat API
+Base URL: `http(s)://<host>`
 
-### GET `/api/chat`
-Returns the most recent chat messages.
+All endpoints return JSON. Timestamps are either ISO 8601 strings or `*_us` values in
+microseconds since epoch.
 
-**Query Parameters**
-- `limit` (optional, int): Maximum number of messages to return. Default: `100`.
-
-**Response Example**
-```json
-{
-  "packets": [
-    {
-      "id": 123,
-      "import_time": "2025-07-22T12:45:00",
-      "from_node_id": 987654,
-      "from_node": "Alice",
-      "channel": "main",
-      "payload": "Hello, world!"
-    }
-  ]
-}
-```
-
----
-
-### GET `/api/chat/updates`
-Returns chat messages imported after a given timestamp.
-
-**Query Parameters**
-- `last_time` (optional, ISO timestamp): Only messages imported after this time are returned.
-
-**Response Example**
-```json
-{
-  "packets": [
-    {
-      "id": 124,
-      "import_time": "2025-07-22T12:50:00",
-      "from_node_id": 987654,
-      "from_node": "Alice",
-      "channel": "main",
-      "payload": "New message!"
-    }
-  ],
-  "latest_import_time": "2025-07-22T12:50:00"
-}
-```
-
----
-
-## 2. Nodes API
+## 1. Nodes API
 
 ### GET `/api/nodes`
-Returns a list of all nodes, with optional filtering by last seen.
+Returns a list of nodes, with optional filtering.
 
-**Query Parameters**
-- `hours` (optional, int): Return nodes seen in the last N hours.
-- `days` (optional, int): Return nodes seen in the last N days.
-- `last_seen_after` (optional, ISO timestamp): Return nodes seen after this time.
+Query Parameters
+- `node_id` (optional, int): Exact node ID.
+- `role` (optional, string): Node role.
+- `channel` (optional, string): Channel name.
+- `hw_model` (optional, string): Hardware model.
+- `days_active` (optional, int): Nodes seen within the last N days.
 
-**Response Example**
+Response Example
 ```json
 {
   "nodes": [
     {
+      "id": 42,
       "node_id": 1234,
       "long_name": "Alice",
       "short_name": "A",
-      "channel": "main",
-      "last_seen": "2025-07-22T12:40:00",
-      "hardware": "T-Beam",
+      "hw_model": "T-Beam",
       "firmware": "1.2.3",
       "role": "client",
-      "last_lat": 37.7749,
-      "last_long": -122.4194
+      "last_lat": 377749000,
+      "last_long": -1224194000,
+      "channel": "main",
+      "last_seen_us": 1736370123456789
     }
   ]
 }
@@ -84,45 +40,58 @@ Returns a list of all nodes, with optional filtering by last seen.
 
 ---
 
-## 3. Packets API
+## 2. Packets API
 
 ### GET `/api/packets`
-Returns a list of packets with optional filters.
+Returns packets with optional filters.
 
-**Query Parameters**
-- `limit` (optional, int): Maximum number of packets to return. Default: `200`.
-- `since` (optional, ISO timestamp): Only packets imported after this timestamp are returned.
+Query Parameters
+- `packet_id` (optional, int): Return exactly one packet (overrides other filters).
+- `limit` (optional, int): Max packets to return, clamped 1-1000. Default: `50`.
+- `since` (optional, int): Only packets imported after this microsecond timestamp.
+- `portnum` (optional, int): Filter by port number.
+- `contains` (optional, string): Payload substring filter.
+- `from_node_id` (optional, int): Filter by sender node ID.
+- `to_node_id` (optional, int): Filter by recipient node ID.
+- `node_id` (optional, int): Legacy filter matching either from or to node ID.
 
-**Response Example**
+Response Example
 ```json
 {
   "packets": [
     {
       "id": 123,
+      "import_time_us": 1736370123456789,
+      "channel": "main",
       "from_node_id": 5678,
       "to_node_id": 91011,
       "portnum": 1,
-      "import_time": "2025-07-22T12:45:00",
-      "payload": "Hello, Bob!"
+      "long_name": "Alice",
+      "payload": "Hello, Bob!",
+      "to_long_name": "Bob",
+      "reply_id": 122
     }
-  ]
+  ],
+  "latest_import_time": 1736370123456789
 }
 ```
 
----
+Notes
+- For `portnum=1` (text messages), packets are filtered to remove sequence-only payloads.
+- `latest_import_time` is returned when available for incremental polling (microseconds).
 
 ---
 
-## 4. Channels API
+## 3. Channels API
 
 ### GET `/api/channels`
-Returns a list of channels seen in a given time period.
+Returns channels seen in a time period.
 
-**Query Parameters**
-- `period_type` (optional, string): Time granularity (`hour` or `day`). Default: `hour`.
+Query Parameters
+- `period_type` (optional, string): `hour` or `day`. Default: `hour`.
 - `length` (optional, int): Number of periods to look back. Default: `24`.
 
-**Response Example**
+Response Example
 ```json
 {
   "channels": ["LongFast", "MediumFast", "ShortFast"]
@@ -131,29 +100,21 @@ Returns a list of channels seen in a given time period.
 
 ---
 
-## 5. Statistics API
+## 4. Stats API
 
 ### GET `/api/stats`
+Returns packet statistics aggregated by time periods, with optional filtering.
 
-Retrieve packet statistics aggregated by time periods, with optional filtering.
+Query Parameters
+- `period_type` (optional, string): `hour` or `day`. Default: `hour`.
+- `length` (optional, int): Number of periods to include. Default: `24`.
+- `channel` (optional, string): Filter by channel (case-insensitive).
+- `portnum` (optional, int): Filter by port number.
+- `to_node` (optional, int): Filter by destination node ID.
+- `from_node` (optional, int): Filter by source node ID.
+- `node` (optional, int): If provided, return combined `sent` and `seen` totals for that node.
 
----
-
-## Query Parameters
-
-| Parameter    | Type    | Required | Default  | Description                                                                                       |
-|--------------|---------|----------|----------|-------------------------------------------------------------------------------------------------|
-| `period_type` | string  | No       | `hour`   | Time granularity of the stats. Allowed values: `hour`, `day`.                                   |
-| `length`      | integer | No       | 24       | Number of periods to include (hours or days).                                                   |
-| `channel`     | string  | No       | —        | Filter results by channel name (case-insensitive).                                             |
-| `portnum`     | integer | No       | —        | Filter results by port number.                                                                  |
-| `to_node`     | integer | No       | —        | Filter results to packets sent **to** this node ID.                                            |
-| `from_node`   | integer | No       | —        | Filter results to packets sent **from** this node ID.                                          |
-
----
-
-## Response
-
+Response Example (series)
 ```json
 {
   "period_type": "hour",
@@ -163,65 +124,117 @@ Retrieve packet statistics aggregated by time periods, with optional filtering.
   "to_node": 12345678,
   "from_node": 87654321,
   "data": [
+    { "period": "2025-08-08 14:00", "count": 10 },
+    { "period": "2025-08-08 15:00", "count": 7 }
+  ]
+}
+```
+
+Response Example (`node` totals)
+```json
+{
+  "node_id": 12345678,
+  "period_type": "hour",
+  "length": 24,
+  "sent": 42,
+  "seen": 58
+}
+```
+
+---
+
+### GET `/api/stats/count`
+Returns total packet counts, optionally filtered.
+
+Query Parameters
+- `packet_id` (optional, int): Filter packet_seen by packet ID.
+- `period_type` (optional, string): `hour` or `day`.
+- `length` (optional, int): Number of periods to include.
+- `channel` (optional, string): Filter by channel.
+- `from_node` (optional, int): Filter by source node ID.
+- `to_node` (optional, int): Filter by destination node ID.
+
+Response Example
+```json
+{
+  "total_packets": 12345,
+  "total_seen": 67890
+}
+```
+
+---
+
+### GET `/api/stats/top`
+Returns nodes sorted by packets seen, with pagination.
+
+Query Parameters
+- `period_type` (optional, string): `hour` or `day`. Default: `day`.
+- `length` (optional, int): Number of periods to include. Default: `1`.
+- `channel` (optional, string): Filter by channel.
+- `limit` (optional, int): Max nodes to return. Default: `20`, max `100`.
+- `offset` (optional, int): Pagination offset. Default: `0`.
+
+Response Example
+```json
+{
+  "total": 250,
+  "limit": 20,
+  "offset": 0,
+  "nodes": [
     {
-      "period": "2025-08-08 14:00",
-      "count": 10
-    },
-    {
-      "period": "2025-08-08 15:00",
-      "count": 7
+      "node_id": 1234,
+      "long_name": "Alice",
+      "short_name": "A",
+      "channel": "main",
+      "sent": 100,
+      "seen": 240,
+      "avg": 2.4
     }
-    // more entries...
   ]
 }
 ```
 
 ---
 
-## 6. Edges API
+## 5. Edges API
 
 ### GET `/api/edges`
 Returns network edges (connections between nodes) based on traceroutes and neighbor info.
+Traceroute edges are collected over the last 48 hours. Neighbor edges are based on
+port 71 packets.
 
-**Query Parameters**
-- `type` (optional, string): Filter by edge type (`traceroute` or `neighbor`). If omitted, returns both types.
+Query Parameters
+- `type` (optional, string): `traceroute` or `neighbor`. If omitted, returns both.
+- `node_id` (optional, int): Filter edges to only those touching a node.
 
-**Response Example**
+Response Example
 ```json
 {
   "edges": [
-    {
-      "from": 12345678,
-      "to": 87654321,
-      "type": "traceroute"
-    },
-    {
-      "from": 11111111,
-      "to": 22222222,
-      "type": "neighbor"
-    }
+    { "from": 12345678, "to": 87654321, "type": "traceroute" },
+    { "from": 11111111, "to": 22222222, "type": "neighbor" }
   ]
 }
 ```
 
 ---
 
-## 7. Configuration API
+## 6. Config API
 
 ### GET `/api/config`
-Returns the current site configuration (safe subset exposed to clients).
+Returns a safe subset of server configuration.
 
-**Response Example**
+Response Example
 ```json
 {
   "site": {
-    "domain": "meshview.example.com",
+    "domain": "example.com",
     "language": "en",
-    "title": "Bay Area Mesh",
-    "message": "Real time data from around the bay area",
+    "title": "Meshview",
+    "message": "",
     "starting": "/chat",
     "nodes": "true",
-    "conversations": "true",
+    "chat": "true",
     "everything": "true",
     "graphs": "true",
     "stats": "true",
@@ -236,11 +249,11 @@ Returns the current site configuration (safe subset exposed to clients).
     "firehose_interval": 3,
     "weekly_net_message": "Weekly Mesh check-in message.",
     "net_tag": "#BayMeshNet",
-    "version": "2.0.8 ~ 10-22-25"
+    "version": "3.0.0"
   },
   "mqtt": {
-    "server": "mqtt.bayme.sh",
-    "topics": ["msh/US/bayarea/#"]
+    "server": "mqtt.example.com",
+    "topics": ["msh/region/#"]
   },
   "cleanup": {
     "enabled": "false",
@@ -254,91 +267,125 @@ Returns the current site configuration (safe subset exposed to clients).
 
 ---
 
-## 8. Language/Translations API
+## 7. Language API
 
 ### GET `/api/lang`
-Returns translation strings for the UI.
+Returns translation strings.
 
-**Query Parameters**
-- `lang` (optional, string): Language code (e.g., `en`, `es`). Defaults to site language setting.
-- `section` (optional, string): Specific section to retrieve translations for.
+Query Parameters
+- `lang` (optional, string): Language code (e.g., `en`, `es`). Default from config or `en`.
+- `section` (optional, string): Return only one section (e.g., `nodelist`, `firehose`).
 
-**Response Example (full)**
+Response Example
 ```json
 {
-  "chat": {
-    "title": "Chat",
-    "send": "Send"
-  },
-  "map": {
-    "title": "Map",
-    "zoom_in": "Zoom In"
-  }
-}
-```
-
-**Response Example (section-specific)**
-Request: `/api/lang?section=chat`
-```json
-{
-  "title": "Chat",
-  "send": "Send"
+  "title": "Meshview",
+  "search_placeholder": "Search..."
 }
 ```
 
 ---
 
-## 9. Health Check API
+## 8. Packets Seen API
+
+### GET `/api/packets_seen/{packet_id}`
+Returns packet_seen entries for a packet.
+
+Path Parameters
+- `packet_id` (required, int): Packet ID.
+
+Response Example
+```json
+{
+  "seen": [
+    {
+      "packet_id": 123,
+      "node_id": 456,
+      "rx_time": "2025-07-22T12:45:00",
+      "hop_limit": 7,
+      "hop_start": 0,
+      "channel": "main",
+      "rx_snr": 5.0,
+      "rx_rssi": -90,
+      "topic": "msh/region/#",
+      "import_time_us": 1736370123456789
+    }
+  ]
+}
+```
+
+---
+
+## 9. Traceroute API
+
+### GET `/api/traceroute/{packet_id}`
+Returns traceroute details and derived paths for a packet.
+
+Path Parameters
+- `packet_id` (required, int): Packet ID.
+
+Response Example
+```json
+{
+  "packet": {
+    "id": 123,
+    "from": 111,
+    "to": 222,
+    "channel": "main"
+  },
+  "traceroute_packets": [
+    {
+      "index": 0,
+      "gateway_node_id": 333,
+      "done": true,
+      "forward_hops": [111, 444, 222],
+      "reverse_hops": [222, 444, 111]
+    }
+  ],
+  "unique_forward_paths": [
+    { "path": [111, 444, 222], "count": 2 }
+  ],
+  "unique_reverse_paths": [
+    [222, 444, 111]
+  ],
+  "winning_paths": [
+    [111, 444, 222]
+  ]
+}
+```
+
+---
+
+## 10. Health API
 
 ### GET `/health`
-Health check endpoint for monitoring, load balancers, and orchestration systems.
+Returns service health and database status.
 
-**Response Example (Healthy)**
+Response Example
 ```json
 {
   "status": "healthy",
-  "timestamp": "2025-11-03T14:30:00.123456Z",
+  "timestamp": "2025-07-22T12:45:00+00:00",
   "version": "3.0.0",
-  "git_revision": "6416978",
+  "git_revision": "abc1234",
   "database": "connected",
-  "database_size": "853.03 MB",
-  "database_size_bytes": 894468096
-}
-```
-
-**Response Example (Unhealthy)**
-Status Code: `503 Service Unavailable`
-```json
-{
-  "status": "unhealthy",
-  "timestamp": "2025-11-03T14:30:00.123456Z",
-  "version": "2.0.8",
-  "git_revision": "6416978",
-  "database": "disconnected"
+  "database_size": "12.34 MB",
+  "database_size_bytes": 12939444
 }
 ```
 
 ---
 
-## 10. Version API
+## 11. Version API
 
 ### GET `/version`
-Returns detailed version information including semver, release date, and git revision.
+Returns version metadata.
 
-**Response Example**
+Response Example
 ```json
 {
-  "version": "2.0.8",
-  "release_date": "2025-10-22",
-  "git_revision": "6416978a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q",
-  "git_revision_short": "6416978"
+  "version": "3.0.0",
+  "git_revision": "abc1234",
+  "build_time": "2025-11-01T12:00:00+00:00"
 }
 ```
-
----
-
-## Notes
-- All timestamps (`import_time`, `last_seen`) are returned in ISO 8601 format.
-- `portnum` is an integer representing the packet type.
-- `payload` is always a UTF-8 decoded string.
-- Node IDs are integers (e.g., `12345678`).

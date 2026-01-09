@@ -1,7 +1,10 @@
+"""Main web server routes and page rendering for Meshview."""
+
 import asyncio
 import datetime
 import logging
 import os
+import pathlib
 import re
 import ssl
 from dataclasses import dataclass
@@ -12,7 +15,7 @@ from google.protobuf import text_format
 from google.protobuf.message import Message
 from jinja2 import Environment, PackageLoader, Undefined, select_autoescape
 from markupsafe import Markup
-import pathlib
+
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import config, database, decode_payload, migrations, models, store
 from meshview.__version__ import (
@@ -45,6 +48,8 @@ with open(os.path.join(os.path.dirname(__file__), '1x1.png'), 'rb') as png:
 
 @dataclass
 class Packet:
+    """UI-friendly packet wrapper for templates and API payloads."""
+
     id: int
     from_node_id: int
     from_node: models.Node
@@ -56,11 +61,11 @@ class Packet:
     raw_payload: object
     payload: str
     pretty_payload: Markup
-    import_time: datetime.datetime
     import_time_us: int
 
     @classmethod
     def from_model(cls, packet):
+        """Convert a Packet ORM model into a presentation-friendly Packet."""
         mesh_packet, payload = decode_payload.decode(packet)
         pretty_payload = None
 
@@ -101,7 +106,6 @@ class Packet:
             data=text_mesh_packet,
             payload=text_payload,  # now always a string
             pretty_payload=pretty_payload,
-            import_time=packet.import_time,
             import_time_us=packet.import_time_us,  # <-- include microseconds
             raw_mesh_packet=mesh_packet,
             raw_payload=payload,
@@ -109,6 +113,7 @@ class Packet:
 
 
 async def build_trace(node_id):
+    """Build a recent GPS trace list for a node using position packets."""
     trace = []
     for raw_p in await store.get_packets_from(
         node_id, PortNum.POSITION_APP, since=datetime.timedelta(hours=24)
@@ -130,6 +135,7 @@ async def build_trace(node_id):
 
 
 async def build_neighbors(node_id):
+    """Return neighbor node metadata for the given node ID."""
     packets = await store.get_packets_from(node_id, PortNum.NEIGHBORINFO_APP, limit=1)
     packet = packets.first()
 
@@ -159,6 +165,7 @@ async def build_neighbors(node_id):
 
 
 def node_id_to_hex(node_id):
+    """Format a node_id in Meshtastic hex notation."""
     if node_id is None or isinstance(node_id, Undefined):
         return "Invalid node_id"  # i... have no clue
     if node_id == 4294967295:
@@ -168,6 +175,7 @@ def node_id_to_hex(node_id):
 
 
 def format_timestamp(timestamp):
+    """Normalize timestamps to ISO 8601 strings."""
     if isinstance(timestamp, int):
         timestamp = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
     return timestamp.isoformat(timespec="milliseconds")
@@ -185,6 +193,7 @@ routes = web.RouteTableDef()
 
 @routes.get("/")
 async def index(request):
+    """Redirect root URL to configured starting page."""
     """
     Redirect root URL '/' to the page specified in CONFIG['site']['starting'].
     Defaults to '/map' if not set.
@@ -194,15 +203,10 @@ async def index(request):
     raise web.HTTPFound(location=starting_url)
 
 
-# redirect for backwards compatibility
-@routes.get("/packet_list/{packet_id}")
-async def redirect_packet_list(request):
-    packet_id = request.match_info["packet_id"]
-    raise web.HTTPFound(location=f"/node/{packet_id}")
-
 # Generic static HTML route
 @routes.get("/{page}")
 async def serve_page(request):
+    """Serve static HTML pages from meshview/static."""
     page = request.match_info["page"]
 
     # default to index.html if no extension
@@ -215,7 +219,6 @@ async def serve_page(request):
 
     content = html_file.read_text(encoding="utf-8")
     return web.Response(text=content, content_type="text/html")
-
 
 
 @routes.get("/net")
@@ -352,8 +355,8 @@ async def graph_traceroute(request):
             # It seems some nodes add them self to the list before uplinking
             path.append(tr.gateway_node_id)
 
-        if not tr.done and tr.gateway_node_id not in node_seen_time and tr.import_time:
-            node_seen_time[path[-1]] = tr.import_time
+        if not tr.done and tr.gateway_node_id not in node_seen_time and tr.import_time_us:
+            node_seen_time[path[-1]] = tr.import_time_us
 
         mqtt_nodes.add(tr.gateway_node_id)
         node_color[path[-1]] = '#' + hex(hash(tuple(path)))[3:9]
@@ -363,7 +366,7 @@ async def graph_traceroute(request):
     for path in paths:
         used_nodes.update(path)
 
-    import_times = [tr.import_time for tr in traceroutes if tr.import_time]
+    import_times = [tr.import_time_us for tr in traceroutes if tr.import_time_us]
     if import_times:
         first_time = min(import_times)
     else:
@@ -378,7 +381,7 @@ async def graph_traceroute(request):
                 f'[{node.short_name}] {node.long_name}\n{node_id_to_hex(node_id)}\n{node.role}'
             )
         if node_id in node_seen_time:
-            ms = (node_seen_time[node_id] - first_time).total_seconds() * 1000
+            ms = (node_seen_time[node_id] - first_time) / 1000
             node_name += f'\n {ms:.2f}ms'
         style = 'dashed'
         if node_id == dest:
@@ -396,7 +399,7 @@ async def graph_traceroute(request):
                 shape='box',
                 color=node_color.get(node_id, 'black'),
                 style=style,
-                href=f"/packet_list/{node_id}",
+                href=f"/node/{node_id}",
             )
         )
 
@@ -412,6 +415,7 @@ async def graph_traceroute(request):
 
 
 async def run_server():
+    """Start the aiohttp web server after migrations are complete."""
     # Wait for database migrations to complete before starting web server
     logger.info("Checking database schema status...")
     database_url = CONFIG["database"]["connection_string"]
@@ -428,6 +432,7 @@ async def run_server():
     logger.info("Database schema verified - starting web server")
 
     app = web.Application()
+    app.router.add_static("/static/", pathlib.Path(__file__).parent / "static")
     app.add_routes(api.routes)  # Add API routes
     app.add_routes(routes)  # Add main web routes
 

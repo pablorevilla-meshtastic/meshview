@@ -115,6 +115,7 @@
 
 </div>
 
+<script src="/static/portmaps.js"></script>
 <script>
 /* ======================================================
    FIREHOSE TRANSLATION SYSTEM (isolated from base)
@@ -177,41 +178,8 @@ function nodeName(id) {
 /* ======================================================
    PORT COLORS & NAMES
    ====================================================== */
-const PORT_MAP = {
-    0: "UNKNOWN APP",
-    1: "Text Message",
-    3: "Position",
-    4: "Node Info",
-    5: "Routing",
-    6: "Administration",
-    8: "Waypoint",
-    65: "Store Forward",
-    67: "Telemetry",
-    70: "Trace Route",
-    71: "Neighbor Info"
-};
-
-const PORT_COLORS = {
-        0:  "#6c757d",
-        1:  "#007bff",
-        3:  "#28a745",
-        4:  "#ffc107",
-        5:  "#dc3545",
-        6:  "#20c997",
-        65: "#6610f2",
-        67: "#17a2b8",
-        68: "#fd7e14",
-        69: "#6f42c1",
-        70: "#ff4444",
-        71: "#ff66cc",
-        72: "#00cc99",
-        73: "#9999ff",
-        74: "#cc00cc",
-        75: "#ffbb33",
-        76: "#00bcd4",
-        77: "#8bc34a",
-        78: "#795548"
-};
+const PORT_MAP = window.PORT_MAP || {};
+const PORT_COLORS = window.PORT_COLORS || {};
 
 function portLabel(portnum, payload, linksHtml) {
     const name = PORT_MAP[portnum] || "Unknown";
@@ -261,7 +229,7 @@ async function fetchUpdates() {
     if (updatesPaused) return;
 
     const url = new URL("/api/packets", window.location.origin);
-    url.searchParams.set("limit", 50);
+    url.searchParams.set("limit", 100);
 
     if (lastImportTimeUs)
         url.searchParams.set("since", lastImportTimeUs);

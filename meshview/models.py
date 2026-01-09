@@ -55,17 +55,13 @@ class Packet(Base):
         overlaps="from_node",
     )
     payload: Mapped[bytes] = mapped_column(nullable=True)
-    import_time: Mapped[datetime] = mapped_column(nullable=True)
     import_time_us: Mapped[int] = mapped_column(BigInteger, nullable=True)
     channel: Mapped[str] = mapped_column(nullable=True)
 
     __table_args__ = (
         Index("idx_packet_from_node_id", "from_node_id"),
         Index("idx_packet_to_node_id", "to_node_id"),
-        Index("idx_packet_import_time", desc("import_time")),
         Index("idx_packet_import_time_us", desc("import_time_us")),
-        # Composite index for /top endpoint performance - filters by from_node_id AND import_time
-        Index("idx_packet_from_node_time", "from_node_id", desc("import_time")),
         Index("idx_packet_from_node_time_us", "from_node_id", desc("import_time_us")),
     )
 
@@ -86,7 +82,6 @@ class PacketSeen(Base):
     rx_snr: Mapped[float] = mapped_column(nullable=True)
     rx_rssi: Mapped[int] = mapped_column(nullable=True)
     topic: Mapped[str] = mapped_column(nullable=True)
-    import_time: Mapped[datetime] = mapped_column(nullable=True)
     import_time_us: Mapped[int] = mapped_column(BigInteger, nullable=True)
 
     __table_args__ = (
@@ -108,11 +103,7 @@ class Traceroute(Base):
     gateway_node_id: Mapped[int] = mapped_column(BigInteger, nullable=True)
     done: Mapped[bool] = mapped_column(nullable=True)
     route: Mapped[bytes] = mapped_column(nullable=True)
-    import_time: Mapped[datetime] = mapped_column(nullable=True)
     route_return: Mapped[bytes] = mapped_column(nullable=True)
     import_time_us: Mapped[int] = mapped_column(BigInteger, nullable=True)
 
-    __table_args__ = (
-        Index("idx_traceroute_import_time", "import_time"),
-        Index("idx_traceroute_import_time_us", "import_time_us"),
-    )
+    __table_args__ = (Index("idx_traceroute_import_time_us", "import_time_us"),)

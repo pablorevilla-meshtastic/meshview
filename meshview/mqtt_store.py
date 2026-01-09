@@ -84,7 +84,6 @@ async def process_envelope(topic, env):
         result = await session.execute(select(Packet).where(Packet.id == env.packet.id))
         packet = result.scalar_one_or_none()
         if not packet:
-
             now = datetime.datetime.now(datetime.UTC)
             now_us = int(now.timestamp() * 1_000_000)
             stmt = (
@@ -95,7 +94,6 @@ async def process_envelope(topic, env):
                     from_node_id=getattr(env.packet, "from"),
                     to_node_id=env.packet.to,
                     payload=env.packet.SerializeToString(),
-                    import_time=now,
                     import_time_us=now_us,
                     channel=env.channel_id,
                 )
@@ -132,7 +130,6 @@ async def process_envelope(topic, env):
                 hop_limit=env.packet.hop_limit,
                 hop_start=env.packet.hop_start,
                 topic=topic,
-                import_time=now,
                 import_time_us=now_us,
             )
             session.add(seen)
@@ -228,10 +225,8 @@ async def process_envelope(topic, env):
                         route=env.packet.decoded.payload,
                         done=not env.packet.decoded.want_response,
                         gateway_node_id=int(env.gateway_id[1:], 16),
-                        import_time=now,
                         import_time_us=now_us,
                     )
                 )
 
         await session.commit()
-

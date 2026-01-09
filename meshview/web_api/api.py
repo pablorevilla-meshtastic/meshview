@@ -126,7 +126,6 @@ async def api_packets(request):
                 "portnum": int(p.portnum) if p.portnum is not None else None,
                 "payload": (p.payload or "").strip(),
                 "import_time_us": p.import_time_us,
-                "import_time": p.import_time.isoformat() if p.import_time else None,
                 "channel": getattr(p.from_node, "channel", ""),
                 "long_name": getattr(p.from_node, "long_name", ""),
             }
@@ -208,7 +207,6 @@ async def api_packets(request):
             packet_dict = {
                 "id": p.id,
                 "import_time_us": p.import_time_us,
-                "import_time": p.import_time.isoformat() if p.import_time else None,
                 "channel": getattr(p.from_node, "channel", ""),
                 "from_node_id": p.from_node_id,
                 "to_node_id": p.to_node_id,
@@ -228,20 +226,12 @@ async def api_packets(request):
 
             packets_data.append(packet_dict)
 
-        # --- Latest import_time for incremental fetch ---
+        # --- Latest import_time_us for incremental fetch ---
         latest_import_time = None
         if packets_data:
             for p in packets_data:
                 if p.get("import_time_us") and p["import_time_us"] > 0:
                     latest_import_time = max(latest_import_time or 0, p["import_time_us"])
-                elif p.get("import_time") and latest_import_time is None:
-                    try:
-                        dt = datetime.datetime.fromisoformat(
-                            p["import_time"].replace("Z", "+00:00")
-                        )
-                        latest_import_time = int(dt.timestamp() * 1_000_000)
-                    except Exception:
-                        pass
 
         response = {"packets": packets_data}
         if latest_import_time is not None:
@@ -431,14 +421,10 @@ async def api_edges(request):
         try:
             node_filter = int(node_filter_str)
         except ValueError:
-            return web.json_response(
-                {"error": "node_id must be integer"},
-                status=400
-            )
+            return web.json_response({"error": "node_id must be integer"}, status=400)
 
     edges = {}
     traceroute_count = 0
-    neighbor_packet_count = 0
     edges_added_tr = 0
     edges_added_neighbor = 0
 
@@ -463,8 +449,6 @@ async def api_edges(request):
     # --- Neighbor edges ---
     if filter_type in (None, "neighbor"):
         packets = await store.get_packets(portnum=71)
-        neighbor_packet_count = len(packets)
-
         for packet in packets:
             try:
                 _, neighbor_info = decode_payload.decode(packet)
@@ -479,19 +463,14 @@ async def api_edges(request):
 
     # Convert to list
     edges_list = [
-        {"from": frm, "to": to, "type": edge_type}
-        for (frm, to), edge_type in edges.items()
+        {"from": frm, "to": to, "type": edge_type} for (frm, to), edge_type in edges.items()
     ]
 
     # NEW → apply node_id filtering
     if node_filter is not None:
-        edges_list = [
-            e for e in edges_list
-            if e["from"] == node_filter or e["to"] == node_filter
-        ]
+        edges_list = [e for e in edges_list if e["from"] == node_filter or e["to"] == node_filter]
 
     return web.json_response({"edges": edges_list})
-
 
 
 @routes.get("/api/config")
@@ -711,7 +690,6 @@ async def api_packets_seen(request):
                     "rx_snr": row.rx_snr,
                     "rx_rssi": row.rx_rssi,
                     "topic": row.topic,
-                    "import_time": (row.import_time.isoformat() if row.import_time else None),
                     "import_time_us": row.import_time_us,
                 }
             )
@@ -724,6 +702,7 @@ async def api_packets_seen(request):
             {"error": "Internal server error"},
             status=500,
         )
+
 
 @routes.get("/api/traceroute/{packet_id}")
 async def api_traceroute(request):
@@ -746,14 +725,15 @@ async def api_traceroute(request):
         forward_list = list(route.route)
         reverse_list = list(route.route_back)
 
-        tr_groups.append({
-            "index": idx,
-            "import_time": tr.import_time.isoformat() if tr.import_time else None,
-            "gateway_node_id": tr.gateway_node_id,
-            "done": tr.done,
-            "forward_hops": forward_list,
-            "reverse_hops": reverse_list,
-        })
+        tr_groups.append(
+            {
+                "index": idx,
+                "gateway_node_id": tr.gateway_node_id,
+                "done": tr.done,
+                "forward_hops": forward_list,
+                "reverse_hops": reverse_list,
+            }
+        )
 
     # --------------------------------------------
     # Compute UNIQUE paths + counts + winning path
@@ -796,18 +776,20 @@ async def api_traceroute(request):
     # --------------------------------------------
     # Final API output
     # --------------------------------------------
-    return web.json_response({
-        "packet": {
-            "id": packet.id,
-            "from": packet.from_node_id,
-            "to": packet.to_node_id,
-            "channel": packet.channel,
-        },
-        "traceroute_packets": tr_groups,
-        "unique_forward_paths": unique_forward_paths_json,
-        "unique_reverse_paths": unique_reverse_paths_json,
-        "winning_paths": winning_paths_json,
-    })
+    return web.json_response(
+        {
+            "packet": {
+                "id": packet.id,
+                "from": packet.from_node_id,
+                "to": packet.to_node_id,
+                "channel": packet.channel,
+            },
+            "traceroute_packets": tr_groups,
+            "unique_forward_paths": unique_forward_paths_json,
+            "unique_reverse_paths": unique_reverse_paths_json,
+            "winning_paths": winning_paths_json,
+        }
+    )
 
 
 @routes.get("/api/stats/top")
@@ -894,19 +876,23 @@ async def api_stats_top(request):
     nodes = []
     for r in rows:
         avg = r.seen / max(r.sent, 1)
-        nodes.append({
-            "node_id": r.node_id,
-            "long_name": r.long_name,
-            "short_name": r.short_name,
-            "channel": r.channel,
-            "sent": r.sent,
-            "seen": r.seen,
-            "avg": round(avg, 2),
-        })
+        nodes.append(
+            {
+                "node_id": r.node_id,
+                "long_name": r.long_name,
+                "short_name": r.short_name,
+                "channel": r.channel,
+                "sent": r.sent,
+                "seen": r.seen,
+                "avg": round(avg, 2),
+            }
+        )
 
-    return web.json_response({
-        "total": total,
-        "limit": limit,
-        "offset": offset,
-        "nodes": nodes,
-    })
+    return web.json_response(
+        {
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "nodes": nodes,
+        }
+    )
