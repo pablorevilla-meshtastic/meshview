@@ -26,7 +26,6 @@ table {
     width: max-content;   /* table keeps its natural width */
     min-width: 100%;      /* won't shrink smaller than viewport */
 }
-
 th, td {
     padding: 10px;
     border: 1px solid #333;
@@ -103,21 +102,6 @@ select, .export-btn, .search-box, .clear-btn {
     margin: 0 auto 10px;
     font-weight: bold;
     color: white;
-}
-.node-status {
-    margin-left: 10px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    border: 1px solid #2a6a8a;
-    background: #0d2a3a;
-    color: #9fd4ff;
-    font-size: 0.9em;
-    display: inline-block;
-    opacity: 0;
-    transition: opacity 0.15s ease-in-out;
-}
-.node-status.active {
-    opacity: 1;
 }
 
 /* Favorite stars */
@@ -251,7 +235,6 @@ select, .export-btn, .search-box, .clear-btn {
     <span data-translate-lang="showing_nodes">Showing</span>
     <span id="node-count">0</span>
     <span data-translate-lang="nodes_suffix">nodes</span>
-    <span id="node-status" class="node-status" aria-live="polite"></span>
 </div>
 
 <!-- Desktop table -->
@@ -322,11 +305,6 @@ let allNodes = [];
 let sortColumn = "short_name";
 let sortAsc = true;
 let showOnlyFavorites = false;
-let favoritesSet = new Set();
-let isBusy = false;
-let statusHideTimer = null;
-let statusShownAt = 0;
-const minStatusMs = 300;
 
 const headers = document.querySelectorAll("thead th");
 const keyMap = [
@@ -342,38 +320,22 @@ function debounce(fn, delay = 250) {
     };
 }
 
-function nextFrame() {
-    return new Promise(resolve => requestAnimationFrame(() => resolve()));
-}
-
-function loadFavorites() {
+function getFavorites() {
     const favorites = localStorage.getItem('nodelist_favorites');
-    if (!favorites) {
-        favoritesSet = new Set();
-        return;
-    }
-
-    try {
-        const parsed = JSON.parse(favorites);
-        favoritesSet = new Set(Array.isArray(parsed) ? parsed : []);
-    } catch (err) {
-        console.warn("Failed to parse favorites, resetting.", err);
-        favoritesSet = new Set();
-    }
+    return favorites ? JSON.parse(favorites) : [];
 }
-function saveFavorites() {
-    localStorage.setItem('nodelist_favorites', JSON.stringify([...favoritesSet]));
+function saveFavorites(favs) {
+    localStorage.setItem('nodelist_favorites', JSON.stringify(favs));
 }
 function toggleFavorite(nodeId) {
-    if (favoritesSet.has(nodeId)) {
-        favoritesSet.delete(nodeId);
-    } else {
-        favoritesSet.add(nodeId);
-    }
-    saveFavorites();
+    let favs = getFavorites();
+    const idx = favs.indexOf(nodeId);
+    if (idx >= 0) favs.splice(idx, 1);
+    else favs.push(nodeId);
+    saveFavorites(favs);
 }
 function isFavorite(nodeId) {
-    return favoritesSet.has(nodeId);
+    return getFavorites().includes(nodeId);
 }
 
 function timeAgoFromMs(msTimestamp) {
@@ -395,7 +357,6 @@ function timeAgoFromMs(msTimestamp) {
 document.addEventListener("DOMContentLoaded", async function() {
 
     await loadTranslationsNodelist();
-    loadFavorites();
 
     const tbody = document.getElementById("node-table-body");
     const mobileList = document.getElementById("mobile-node-list");
@@ -406,7 +367,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     const firmwareFilter = document.getElementById("firmware-filter");
     const searchBox = document.getElementById("search-box");
     const countSpan = document.getElementById("node-count");
-    const statusSpan = document.getElementById("node-status");
     const exportBtn = document.getElementById("export-btn");
     const clearBtn = document.getElementById("clear-btn");
     const favoritesBtn = document.getElementById("favorites-btn");
@@ -414,8 +374,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     let lastIsMobile = (window.innerWidth <= 768);
 
     try {
-        setStatus("Loading nodes…");
-        await nextFrame();
         const res = await fetch("/api/nodes?days_active=3");
         if (!res.ok) throw new Error("Failed to fetch nodes");
 
@@ -446,13 +404,11 @@ document.addEventListener("DOMContentLoaded", async function() {
         populateFilters(allNodes);
         applyFilters(); // ensures initial sort + render uses same path
         updateSortIcons();
-        setStatus("");
     } catch (err) {
         tbody.innerHTML = `<tr>
             <td colspan="10" style="text-align:center; color:red;">
                 ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
             </td></tr>`;
-        setStatus("");
         return;
     }
 
@@ -543,9 +499,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         applyFilters();
     }
 
-    async function applyFilters() {
-        setStatus("Updating…");
-        await nextFrame();
+    function applyFilters() {
         const searchTerm = searchBox.value.trim().toLowerCase();
 
         let filtered = allNodes.filter(n => {
@@ -565,34 +519,27 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         renderTable(filtered);
         updateSortIcons();
-        setStatus("");
     }
 
     function renderTable(nodes) {
+        tbody.innerHTML = "";
+        mobileList.innerHTML = "";
+
+        const tableFrag = document.createDocumentFragment();
+        const mobileFrag = document.createDocumentFragment();
+
         const isMobile = window.innerWidth <= 768;
-        const shouldRenderTable = !isMobile;
-
-        if (shouldRenderTable) {
-            tbody.innerHTML = "";
-        } else {
-            mobileList.innerHTML = "";
-        }
-
-        const tableFrag = shouldRenderTable ? document.createDocumentFragment() : null;
-        const mobileFrag = shouldRenderTable ? null : document.createDocumentFragment();
 
         if (!nodes.length) {
-            if (shouldRenderTable) {
-                tbody.innerHTML = `<tr>
-                    <td colspan="10" style="text-align:center; color:white;">
-                        ${nodelistTranslations.no_nodes_found || "No nodes found"}
-                    </td>
-                </tr>`;
-            } else {
-                mobileList.innerHTML = `<div style="text-align:center; color:white;">
+            tbody.innerHTML = `<tr>
+                <td colspan="10" style="text-align:center; color:white;">
                     ${nodelistTranslations.no_nodes_found || "No nodes found"}
-                </div>`;
-            }
+                </td>
+            </tr>`;
+
+            mobileList.innerHTML = `<div style="text-align:center; color:white;">
+                ${nodelistTranslations.no_nodes_found || "No nodes found"}
+            </div>`;
 
             countSpan.textContent = 0;
             return;
@@ -602,56 +549,54 @@ document.addEventListener("DOMContentLoaded", async function() {
             const fav = isFavorite(node.node_id);
             const star = fav ? "★" : "☆";
 
-            if (shouldRenderTable) {
-                // DESKTOP TABLE ROW
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${node.short_name || "N/A"}</td>
-                    <td><a href="/node/${node.node_id}">${node.long_name || "N/A"}</a></td>
-                    <td>${node.hw_model || "N/A"}</td>
-                    <td>${node.firmware || "N/A"}</td>
-                    <td>${node.role || "N/A"}</td>
-                    <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
-                    <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
-                    <td>${node.channel || "N/A"}</td>
-                    <td>${timeAgoFromMs(node.last_seen_ms)}</td>
-                    <td style="text-align:center;">
-                        <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
-                            ${star}
-                        </span>
-                    </td>
-                `;
-                tableFrag.appendChild(row);
-            } else {
-                // MOBILE CARD VIEW
-                const card = document.createElement("div");
-                card.className = "node-card";
-                card.innerHTML = `
-                    <div class="node-card-header">
-                        <span>${node.short_name || node.long_name || node.node_id}</span>
-                        <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
-                            ${star}
-                        </span>
-                    </div>
+            // DESKTOP TABLE ROW
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${node.short_name || "N/A"}</td>
+                <td><a href="/node/${node.node_id}">${node.long_name || "N/A"}</a></td>
+                <td>${node.hw_model || "N/A"}</td>
+                <td>${node.firmware || "N/A"}</td>
+                <td>${node.role || "N/A"}</td>
+                <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
+                <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
+                <td>${node.channel || "N/A"}</td>
+                <td>${timeAgoFromMs(node.last_seen_ms)}</td>
+                <td style="text-align:center;">
+                    <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
+                        ${star}
+                    </span>
+                </td>
+            `;
+            tableFrag.appendChild(row);
 
-                    <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
-                    <div class="node-card-field"><b>Name:</b> ${node.long_name || "N/A"}</div>
-                    <div class="node-card-field"><b>HW:</b> ${node.hw_model || "N/A"}</div>
-                    <div class="node-card-field"><b>Firmware:</b> ${node.firmware || "N/A"}</div>
-                    <div class="node-card-field"><b>Role:</b> ${node.role || "N/A"}</div>
-                    <div class="node-card-field"><b>Location:</b>
-                        ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : "N/A"},
-                        ${node.last_long ? (node.last_long / 1e7).toFixed(5) : "N/A"}
-                    </div>
-                    <div class="node-card-field"><b>Channel:</b> ${node.channel || "N/A"}</div>
-                    <div class="node-card-field"><b>Last Seen:</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
+            // MOBILE CARD VIEW
+            const card = document.createElement("div");
+            card.className = "node-card";
+            card.innerHTML = `
+                <div class="node-card-header">
+                    <span>${node.short_name || node.long_name || node.node_id}</span>
+                    <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
+                        ${star}
+                    </span>
+                </div>
 
-                    <a href="/node/${node.node_id}" style="color:#9fd4ff; text-decoration:underline; margin-top:5px; display:block;">
-                        View Node →
-                    </a>
-                `;
-                mobileFrag.appendChild(card);
-            }
+                <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
+                <div class="node-card-field"><b>Name:</b> ${node.long_name || "N/A"}</div>
+                <div class="node-card-field"><b>HW:</b> ${node.hw_model || "N/A"}</div>
+                <div class="node-card-field"><b>Firmware:</b> ${node.firmware || "N/A"}</div>
+                <div class="node-card-field"><b>Role:</b> ${node.role || "N/A"}</div>
+                <div class="node-card-field"><b>Location:</b>
+                    ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : "N/A"},
+                    ${node.last_long ? (node.last_long / 1e7).toFixed(5) : "N/A"}
+                </div>
+                <div class="node-card-field"><b>Channel:</b> ${node.channel || "N/A"}</div>
+                <div class="node-card-field"><b>Last Seen:</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
+
+                <a href="/node/${node.node_id}" style="color:#9fd4ff; text-decoration:underline; margin-top:5px; display:block;">
+                    View Node →
+                </a>
+            `;
+            mobileFrag.appendChild(card);
         });
 
         // Toggle correct view
@@ -659,11 +604,8 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         countSpan.textContent = nodes.length;
 
-        if (shouldRenderTable) {
-            tbody.appendChild(tableFrag);
-        } else {
-            mobileList.appendChild(mobileFrag);
-        }
+        tbody.appendChild(tableFrag);
+        mobileList.appendChild(mobileFrag);
     }
 
     function clearFilters() {
@@ -733,38 +675,6 @@ document.addEventListener("DOMContentLoaded", async function() {
             span.textContent =
                 keyMap[i] === sortColumn ? (sortAsc ? "▲" : "▼") : "";
         });
-    }
-
-    function setStatus(message) {
-        if (!statusSpan) return;
-        if (statusHideTimer) {
-            clearTimeout(statusHideTimer);
-            statusHideTimer = null;
-        }
-
-        if (message) {
-            statusShownAt = Date.now();
-            statusSpan.textContent = message;
-            statusSpan.classList.add("active");
-            isBusy = true;
-            return;
-        }
-
-        const elapsed = Date.now() - statusShownAt;
-        const remaining = Math.max(0, minStatusMs - elapsed);
-        if (remaining > 0) {
-            statusHideTimer = setTimeout(() => {
-                statusHideTimer = null;
-                statusSpan.textContent = "";
-                statusSpan.classList.remove("active");
-                isBusy = false;
-            }, remaining);
-            return;
-        }
-
-        statusSpan.textContent = "";
-        statusSpan.classList.remove("active");
-        isBusy = false;
     }
 });
 </script>
