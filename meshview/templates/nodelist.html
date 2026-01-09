@@ -27,7 +27,6 @@ table {
     min-width: 100%;      /* won't shrink smaller than viewport */
 }
 
-
 th, td {
     padding: 10px;
     border: 1px solid #333;
@@ -104,6 +103,21 @@ select, .export-btn, .search-box, .clear-btn {
     margin: 0 auto 10px;
     font-weight: bold;
     color: white;
+}
+.node-status {
+    margin-left: 10px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid #2a6a8a;
+    background: #0d2a3a;
+    color: #9fd4ff;
+    font-size: 0.9em;
+    display: inline-block;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+}
+.node-status.active {
+    opacity: 1;
 }
 
 /* Favorite stars */
@@ -190,7 +204,6 @@ select, .export-btn, .search-box, .clear-btn {
         font-size: 1.4em;
     }
 }
-
 </style>
 {% endblock %}
 
@@ -238,6 +251,7 @@ select, .export-btn, .search-box, .clear-btn {
     <span data-translate-lang="showing_nodes">Showing</span>
     <span id="node-count">0</span>
     <span data-translate-lang="nodes_suffix">nodes</span>
+    <span id="node-status" class="node-status" aria-live="polite"></span>
 </div>
 
 <!-- Desktop table -->
@@ -308,6 +322,11 @@ let allNodes = [];
 let sortColumn = "short_name";
 let sortAsc = true;
 let showOnlyFavorites = false;
+let favoritesSet = new Set();
+let isBusy = false;
+let statusHideTimer = null;
+let statusShownAt = 0;
+const minStatusMs = 300;
 
 const headers = document.querySelectorAll("thead th");
 const keyMap = [
@@ -315,28 +334,51 @@ const keyMap = [
     "last_lat","last_long","channel","last_seen_us"
 ];
 
-function getFavorites() {
-    const favorites = localStorage.getItem('nodelist_favorites');
-    return favorites ? JSON.parse(favorites) : [];
-}
-function saveFavorites(favs) {
-    localStorage.setItem('nodelist_favorites', JSON.stringify(favs));
-}
-function toggleFavorite(nodeId) {
-    let favs = getFavorites();
-    const idx = favs.indexOf(nodeId);
-    if (idx >= 0) favs.splice(idx, 1);
-    else favs.push(nodeId);
-    saveFavorites(favs);
-}
-function isFavorite(nodeId) {
-    return getFavorites().includes(nodeId);
+function debounce(fn, delay = 250) {
+    let t;
+    return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), delay);
+    };
 }
 
-function timeAgo(usTimestamp) {
-    if (!usTimestamp) return "N/A";
-    const ms = usTimestamp / 1000;
-    const diff = Date.now() - ms;
+function nextFrame() {
+    return new Promise(resolve => requestAnimationFrame(() => resolve()));
+}
+
+function loadFavorites() {
+    const favorites = localStorage.getItem('nodelist_favorites');
+    if (!favorites) {
+        favoritesSet = new Set();
+        return;
+    }
+
+    try {
+        const parsed = JSON.parse(favorites);
+        favoritesSet = new Set(Array.isArray(parsed) ? parsed : []);
+    } catch (err) {
+        console.warn("Failed to parse favorites, resetting.", err);
+        favoritesSet = new Set();
+    }
+}
+function saveFavorites() {
+    localStorage.setItem('nodelist_favorites', JSON.stringify([...favoritesSet]));
+}
+function toggleFavorite(nodeId) {
+    if (favoritesSet.has(nodeId)) {
+        favoritesSet.delete(nodeId);
+    } else {
+        favoritesSet.add(nodeId);
+    }
+    saveFavorites();
+}
+function isFavorite(nodeId) {
+    return favoritesSet.has(nodeId);
+}
+
+function timeAgoFromMs(msTimestamp) {
+    if (!msTimestamp) return "N/A";
+    const diff = Date.now() - msTimestamp;
 
     if (diff < 60000) return "just now";
     const mins = Math.floor(diff / 60000);
@@ -353,6 +395,7 @@ function timeAgo(usTimestamp) {
 document.addEventListener("DOMContentLoaded", async function() {
 
     await loadTranslationsNodelist();
+    loadFavorites();
 
     const tbody = document.getElementById("node-table-body");
     const mobileList = document.getElementById("mobile-node-list");
@@ -363,52 +406,82 @@ document.addEventListener("DOMContentLoaded", async function() {
     const firmwareFilter = document.getElementById("firmware-filter");
     const searchBox = document.getElementById("search-box");
     const countSpan = document.getElementById("node-count");
+    const statusSpan = document.getElementById("node-status");
     const exportBtn = document.getElementById("export-btn");
     const clearBtn = document.getElementById("clear-btn");
     const favoritesBtn = document.getElementById("favorites-btn");
 
+    let lastIsMobile = (window.innerWidth <= 768);
+
     try {
+        setStatus("Loading nodes…");
+        await nextFrame();
         const res = await fetch("/api/nodes?days_active=3");
         if (!res.ok) throw new Error("Failed to fetch nodes");
 
         const data = await res.json();
-        allNodes = data.nodes.map(n => ({
-            ...n,
-            firmware: n.firmware || n.firmware_version || ""
-        }));
+
+        allNodes = data.nodes.map(n => {
+            const firmware = n.firmware || n.firmware_version || "";
+            const last_seen_us = n.last_seen_us || 0;
+            const last_seen_ms = last_seen_us ? (last_seen_us / 1000) : 0;
+
+            return {
+                ...n,
+                firmware,
+                last_seen_us,
+                last_seen_ms,
+                _search: [
+                    n.node_id,
+                    n.id,
+                    n.long_name,
+                    n.short_name
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase()
+            };
+        });
 
         populateFilters(allNodes);
-        renderTable(allNodes);
+        applyFilters(); // ensures initial sort + render uses same path
         updateSortIcons();
+        setStatus("");
     } catch (err) {
         tbody.innerHTML = `<tr>
             <td colspan="10" style="text-align:center; color:red;">
                 ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
             </td></tr>`;
+        setStatus("");
+        return;
     }
 
     roleFilter.addEventListener("change", applyFilters);
     channelFilter.addEventListener("change", applyFilters);
     hwFilter.addEventListener("change", applyFilters);
     firmwareFilter.addEventListener("change", applyFilters);
-    searchBox.addEventListener("input", applyFilters);
+
+    // Debounced only for search typing
+    searchBox.addEventListener("input", debounce(applyFilters, 250));
+
     exportBtn.addEventListener("click", exportToCSV);
     clearBtn.addEventListener("click", clearFilters);
     favoritesBtn.addEventListener("click", toggleFavoritesFilter);
 
-    // Favorite star click handler
+    // Favorite star click handler (delegated)
     document.addEventListener("click", e => {
         if (e.target.classList.contains('favorite-star')) {
-            const nodeId = parseInt(e.target.dataset.nodeId);
-            const isFav = isFavorite(nodeId);
+            const nodeId = parseInt(e.target.dataset.nodeId, 10);
+            const fav = isFavorite(nodeId);
 
-            if (isFav) {
+            if (fav) {
                 e.target.classList.remove("active");
                 e.target.textContent = "☆";
             } else {
                 e.target.classList.add("active");
                 e.target.textContent = "★";
             }
+
             toggleFavorite(nodeId);
             applyFilters();
         }
@@ -416,12 +489,25 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     headers.forEach((th, index) => {
         th.addEventListener("click", () => {
-            let key = keyMap[index];
+            const key = keyMap[index];
+            // ignore clicks on the "favorite" (last header) which has no sort key
+            if (!key) return;
+
             sortAsc = (sortColumn === key) ? !sortAsc : true;
             sortColumn = key;
+
             applyFilters();
         });
     });
+
+    // Re-render on breakpoint change so mobile/desktop view switches instantly
+    window.addEventListener("resize", debounce(() => {
+        const isMobile = (window.innerWidth <= 768);
+        if (isMobile !== lastIsMobile) {
+            lastIsMobile = isMobile;
+            applyFilters();
+        }
+    }, 150));
 
     function populateFilters(nodes) {
         const roles = new Set(), channels = new Set(), hws = new Set(), fws = new Set();
@@ -457,7 +543,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         applyFilters();
     }
 
-    function applyFilters() {
+    async function applyFilters() {
+        setStatus("Updating…");
+        await nextFrame();
         const searchTerm = searchBox.value.trim().toLowerCase();
 
         let filtered = allNodes.filter(n => {
@@ -466,108 +554,116 @@ document.addEventListener("DOMContentLoaded", async function() {
             const hwMatch = !hwFilter.value || n.hw_model === hwFilter.value;
             const fwMatch = !firmwareFilter.value || n.firmware === firmwareFilter.value;
 
-            const searchBlob = [
-                n.node_id,          // numeric ID
-                n.id,               // hex ID (if present)
-                n.long_name,
-                n.short_name
-            ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
-
-            const searchMatch = !searchTerm || searchBlob.includes(searchTerm);
-
+            const searchMatch = !searchTerm || n._search.includes(searchTerm);
             const favMatch = !showOnlyFavorites || isFavorite(n.node_id);
 
             return roleMatch && channelMatch && hwMatch && fwMatch && searchMatch && favMatch;
         });
 
+        // IMPORTANT: Always sort the filtered subset to preserve expected behavior
         filtered = sortNodes(filtered, sortColumn, sortAsc);
+
         renderTable(filtered);
         updateSortIcons();
+        setStatus("");
     }
 
     function renderTable(nodes) {
-        tbody.innerHTML = "";
-        mobileList.innerHTML = "";
-
         const isMobile = window.innerWidth <= 768;
+        const shouldRenderTable = !isMobile;
+
+        if (shouldRenderTable) {
+            tbody.innerHTML = "";
+        } else {
+            mobileList.innerHTML = "";
+        }
+
+        const tableFrag = shouldRenderTable ? document.createDocumentFragment() : null;
+        const mobileFrag = shouldRenderTable ? null : document.createDocumentFragment();
 
         if (!nodes.length) {
-            tbody.innerHTML = `<tr>
-                <td colspan="10" style="text-align:center; color:white;">
+            if (shouldRenderTable) {
+                tbody.innerHTML = `<tr>
+                    <td colspan="10" style="text-align:center; color:white;">
+                        ${nodelistTranslations.no_nodes_found || "No nodes found"}
+                    </td>
+                </tr>`;
+            } else {
+                mobileList.innerHTML = `<div style="text-align:center; color:white;">
                     ${nodelistTranslations.no_nodes_found || "No nodes found"}
-                </td>
-            </tr>`;
+                </div>`;
+            }
 
-            mobileList.innerHTML = `<div style="text-align:center; color:white;">No nodes found</div>`;
             countSpan.textContent = 0;
             return;
         }
 
         nodes.forEach(node => {
-            const isFav = isFavorite(node.node_id);
-            const star = isFav ? "★" : "☆";
+            const fav = isFavorite(node.node_id);
+            const star = fav ? "★" : "☆";
 
-            // DESKTOP TABLE ROW
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${node.short_name || "N/A"}</td>
-                <td><a href="/node/${node.node_id}">${node.long_name || "N/A"}</a></td>
-                <td>${node.hw_model || "N/A"}</td>
-                <td>${node.firmware || "N/A"}</td>
-                <td>${node.role || "N/A"}</td>
-                <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
-                <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
-                <td>${node.channel || "N/A"}</td>
-                <td>${timeAgo(node.last_seen_us)}</td>
-                <td style="text-align:center;">
-                    <span class="favorite-star ${isFav ? "active" : ""}" data-node-id="${node.node_id}">
-                        ${star}
-                    </span>
-                </td>
-            `;
-            tbody.appendChild(row);
+            if (shouldRenderTable) {
+                // DESKTOP TABLE ROW
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${node.short_name || "N/A"}</td>
+                    <td><a href="/node/${node.node_id}">${node.long_name || "N/A"}</a></td>
+                    <td>${node.hw_model || "N/A"}</td>
+                    <td>${node.firmware || "N/A"}</td>
+                    <td>${node.role || "N/A"}</td>
+                    <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
+                    <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
+                    <td>${node.channel || "N/A"}</td>
+                    <td>${timeAgoFromMs(node.last_seen_ms)}</td>
+                    <td style="text-align:center;">
+                        <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
+                            ${star}
+                        </span>
+                    </td>
+                `;
+                tableFrag.appendChild(row);
+            } else {
+                // MOBILE CARD VIEW
+                const card = document.createElement("div");
+                card.className = "node-card";
+                card.innerHTML = `
+                    <div class="node-card-header">
+                        <span>${node.short_name || node.long_name || node.node_id}</span>
+                        <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
+                            ${star}
+                        </span>
+                    </div>
 
-            // MOBILE CARD VIEW
-            const card = document.createElement("div");
-            card.className = "node-card";
-            card.innerHTML = `
-                <div class="node-card-header">
-                    <span>${node.short_name || node.long_name || node.node_id}</span>
-                    <span class="favorite-star ${isFav ? "active" : ""}" data-node-id="${node.node_id}">
-                        ${star}
-                    </span>
-                </div>
+                    <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
+                    <div class="node-card-field"><b>Name:</b> ${node.long_name || "N/A"}</div>
+                    <div class="node-card-field"><b>HW:</b> ${node.hw_model || "N/A"}</div>
+                    <div class="node-card-field"><b>Firmware:</b> ${node.firmware || "N/A"}</div>
+                    <div class="node-card-field"><b>Role:</b> ${node.role || "N/A"}</div>
+                    <div class="node-card-field"><b>Location:</b>
+                        ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : "N/A"},
+                        ${node.last_long ? (node.last_long / 1e7).toFixed(5) : "N/A"}
+                    </div>
+                    <div class="node-card-field"><b>Channel:</b> ${node.channel || "N/A"}</div>
+                    <div class="node-card-field"><b>Last Seen:</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
 
-                <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
-                <div class="node-card-field"><b>Name:</b> ${node.long_name || "N/A"}</div>
-                <div class="node-card-field"><b>HW:</b> ${node.hw_model || "N/A"}</div>
-                <div class="node-card-field"><b>Firmware:</b> ${node.firmware || "N/A"}</div>
-                <div class="node-card-field"><b>Role:</b> ${node.role || "N/A"}</div>
-                <div class="node-card-field"><b>Location:</b>
-                    ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : "N/A"},
-                    ${node.last_long ? (node.last_long / 1e7).toFixed(5) : "N/A"}
-                </div>
-                <div class="node-card-field"><b>Channel:</b> ${node.channel}</div>
-                <div class="node-card-field"><b>Last Seen:</b> ${timeAgo(node.last_seen_us)}</div>
-
-                <a href="/node/${node.node_id}" style="color:#9fd4ff; text-decoration:underline; margin-top:5px; display:block;">
-                    View Node →
-                </a>
-            `;
-            mobileList.appendChild(card);
+                    <a href="/node/${node.node_id}" style="color:#9fd4ff; text-decoration:underline; margin-top:5px; display:block;">
+                        View Node →
+                    </a>
+                `;
+                mobileFrag.appendChild(card);
+            }
         });
 
         // Toggle correct view
-        if (isMobile) {
-            mobileList.style.display = "block";
-        } else {
-            mobileList.style.display = "none";
-        }
+        mobileList.style.display = isMobile ? "block" : "none";
 
         countSpan.textContent = nodes.length;
+
+        if (shouldRenderTable) {
+            tbody.appendChild(tableFrag);
+        } else {
+            mobileList.appendChild(mobileFrag);
+        }
     }
 
     function clearFilters() {
@@ -576,6 +672,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         hwFilter.value = "";
         firmwareFilter.value = "";
         searchBox.value = "";
+
         sortColumn = "short_name";
         sortAsc = true;
         showOnlyFavorites = false;
@@ -583,7 +680,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         favoritesBtn.textContent = "⭐ Show Favorites";
         favoritesBtn.classList.remove("active");
 
-        renderTable(allNodes);
+        applyFilters();
         updateSortIcons();
     }
 
@@ -619,6 +716,10 @@ document.addEventListener("DOMContentLoaded", async function() {
                 B = B || 0;
             }
 
+            // Normalize strings for stable sorting
+            if (typeof A === "string") A = A.toLowerCase();
+            if (typeof B === "string") B = B.toLowerCase();
+
             if (A < B) return asc ? -1 : 1;
             if (A > B) return asc ? 1 : -1;
             return 0;
@@ -632,6 +733,38 @@ document.addEventListener("DOMContentLoaded", async function() {
             span.textContent =
                 keyMap[i] === sortColumn ? (sortAsc ? "▲" : "▼") : "";
         });
+    }
+
+    function setStatus(message) {
+        if (!statusSpan) return;
+        if (statusHideTimer) {
+            clearTimeout(statusHideTimer);
+            statusHideTimer = null;
+        }
+
+        if (message) {
+            statusShownAt = Date.now();
+            statusSpan.textContent = message;
+            statusSpan.classList.add("active");
+            isBusy = true;
+            return;
+        }
+
+        const elapsed = Date.now() - statusShownAt;
+        const remaining = Math.max(0, minStatusMs - elapsed);
+        if (remaining > 0) {
+            statusHideTimer = setTimeout(() => {
+                statusHideTimer = null;
+                statusSpan.textContent = "";
+                statusSpan.classList.remove("active");
+                isBusy = false;
+            }, remaining);
+            return;
+        }
+
+        statusSpan.textContent = "";
+        statusSpan.classList.remove("active");
+        isBusy = false;
     }
 });
 </script>
