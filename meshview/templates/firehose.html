@@ -201,13 +201,37 @@ function portLabel(portnum, payload, linksHtml) {
 /* ======================================================
    TIME FORMAT
    ====================================================== */
-function formatLocalTime(importTimeUs) {
-    const ms = importTimeUs / 1000;
-    return new Date(ms).toLocaleTimeString([], {
+function formatTimes(importTimeUs) {
+    const ms = Number(importTimeUs) / 1000;
+    if (!Number.isFinite(ms)) {
+        return { local: "—", utc: "—", epoch: "—" };
+    }
+    const date = new Date(ms);
+    const local = date.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
-        second: "2-digit"
+        second: "2-digit",
+        timeZoneName: "short"
     });
+    const utc = date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZone: "UTC",
+        timeZoneName: "short"
+    });
+    return { local, utc, epoch: String(importTimeUs) };
+}
+
+function logPacketTimes(packet) {
+    const times = formatTimes(packet.import_time_us);
+    console.log(
+        "[firehose] packet time",
+        "id=" + packet.id,
+        "epoch_us=" + times.epoch,
+        "local=" + times.local,
+        "utc=" + times.utc
+    );
 }
 
 /* ======================================================
@@ -245,6 +269,7 @@ async function fetchUpdates() {
         const list = document.getElementById("packet_list");
 
         for (const pkt of packets.reverse()) {
+            logPacketTimes(pkt);
 
             /* FROM — includes translation */
             const from =
@@ -304,7 +329,9 @@ async function fetchUpdates() {
             const html = `
 <tr class="packet-row">
 
-    <td>${formatLocalTime(pkt.import_time_us)}</td>
+    <td>
+        ${formatTimes(pkt.import_time_us).local}<br>
+    </td>
 
     <td>
         <span class="toggle-btn">▶</span>

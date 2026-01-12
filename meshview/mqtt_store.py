@@ -1,14 +1,20 @@
 import datetime
+import logging
 import re
+import time
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.exc import IntegrityError
 
 from meshtastic.protobuf.config_pb2 import Config
 from meshtastic.protobuf.mesh_pb2 import HardwareModel
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import decode_payload, mqtt_database
 from meshview.models import Node, Packet, PacketSeen, Traceroute
+
+logger = logging.getLogger(__name__)
 
 
 async def process_envelope(topic, env):
@@ -37,8 +43,7 @@ async def process_envelope(topic, env):
                     await session.execute(select(Node).where(Node.node_id == node_id))
                 ).scalar_one_or_none()
 
-                now = datetime.datetime.now(datetime.UTC)
-                now_us = int(now.timestamp() * 1_000_000)
+                now_us = int(time.time() * 1_000_000)
 
                 if node:
                     node.node_id = node_id
@@ -50,7 +55,6 @@ async def process_envelope(topic, env):
                     node.last_lat = map_report.latitude_i
                     node.last_long = map_report.longitude_i
                     node.firmware = map_report.firmware_version
-                    node.last_update = now
                     node.last_seen_us = now_us
                     if node.first_seen_us is None:
                         node.first_seen_us = now_us
@@ -66,7 +70,6 @@ async def process_envelope(topic, env):
                         firmware=map_report.firmware_version,
                         last_lat=map_report.latitude_i,
                         last_long=map_report.longitude_i,
-                        last_update=now,
                         first_seen_us=now_us,
                         last_seen_us=now_us,
                     )
@@ -84,22 +87,41 @@ async def process_envelope(topic, env):
         result = await session.execute(select(Packet).where(Packet.id == env.packet.id))
         packet = result.scalar_one_or_none()
         if not packet:
-            now = datetime.datetime.now(datetime.UTC)
-            now_us = int(now.timestamp() * 1_000_000)
-            stmt = (
-                sqlite_insert(Packet)
-                .values(
-                    id=env.packet.id,
-                    portnum=env.packet.decoded.portnum,
-                    from_node_id=getattr(env.packet, "from"),
-                    to_node_id=env.packet.to,
-                    payload=env.packet.SerializeToString(),
-                    import_time_us=now_us,
-                    channel=env.channel_id,
+            now_us = int(time.time() * 1_000_000)
+            packet_values = {
+                "id": env.packet.id,
+                "portnum": env.packet.decoded.portnum,
+                "from_node_id": getattr(env.packet, "from"),
+                "to_node_id": env.packet.to,
+                "payload": env.packet.SerializeToString(),
+                "import_time_us": now_us,
+                "channel": env.channel_id,
+            }
+            utc_time = datetime.datetime.fromtimestamp(now_us / 1_000_000, datetime.UTC)
+            dialect = session.get_bind().dialect.name
+            stmt = None
+            if dialect == "sqlite":
+                stmt = (
+                    sqlite_insert(Packet)
+                    .values(**packet_values)
+                    .on_conflict_do_nothing(index_elements=["id"])
                 )
-                .on_conflict_do_nothing(index_elements=["id"])
-            )
-            await session.execute(stmt)
+            elif dialect == "postgresql":
+                stmt = (
+                    pg_insert(Packet)
+                    .values(**packet_values)
+                    .on_conflict_do_nothing(index_elements=["id"])
+                )
+
+            if stmt is not None:
+                await session.execute(stmt)
+            else:
+                try:
+                    async with session.begin_nested():
+                        session.add(Packet(**packet_values))
+                        await session.flush()
+                except IntegrityError:
+                    pass
 
         # --- PacketSeen (no conflict handling here, normal insert)
 
@@ -118,8 +140,7 @@ async def process_envelope(topic, env):
             )
         )
         if not result.scalar_one_or_none():
-            now = datetime.datetime.now(datetime.UTC)
-            now_us = int(now.timestamp() * 1_000_000)
+            now_us = int(time.time() * 1_000_000)
             seen = PacketSeen(
                 packet_id=env.packet.id,
                 node_id=int(env.gateway_id[1:], 16),
@@ -161,8 +182,7 @@ async def process_envelope(topic, env):
                         await session.execute(select(Node).where(Node.id == user.id))
                     ).scalar_one_or_none()
 
-                    now = datetime.datetime.now(datetime.UTC)
-                    now_us = int(now.timestamp() * 1_000_000)
+                    now_us = int(time.time() * 1_000_000)
 
                     if node:
                         node.node_id = node_id
@@ -171,7 +191,6 @@ async def process_envelope(topic, env):
                         node.hw_model = hw_model
                         node.role = role
                         node.channel = env.channel_id
-                        node.last_update = now
                         node.last_seen_us = now_us
                         if node.first_seen_us is None:
                             node.first_seen_us = now_us
@@ -184,7 +203,6 @@ async def process_envelope(topic, env):
                             hw_model=hw_model,
                             role=role,
                             channel=env.channel_id,
-                            last_update=now,
                             first_seen_us=now_us,
                             last_seen_us=now_us,
                         )
@@ -203,11 +221,9 @@ async def process_envelope(topic, env):
                     await session.execute(select(Node).where(Node.node_id == from_node_id))
                 ).scalar_one_or_none()
                 if node:
-                    now = datetime.datetime.now(datetime.UTC)
-                    now_us = int(now.timestamp() * 1_000_000)
+                    now_us = int(time.time() * 1_000_000)
                     node.last_lat = position.latitude_i
                     node.last_long = position.longitude_i
-                    node.last_update = now
                     node.last_seen_us = now_us
                     if node.first_seen_us is None:
                         node.first_seen_us = now_us
@@ -217,8 +233,7 @@ async def process_envelope(topic, env):
         if env.packet.decoded.portnum == PortNum.TRACEROUTE_APP:
             packet_id = env.packet.id
             if packet_id is not None:
-                now = datetime.datetime.now(datetime.UTC)
-                now_us = int(now.timestamp() * 1_000_000)
+                now_us = int(time.time() * 1_000_000)
                 session.add(
                     Traceroute(
                         packet_id=packet_id,

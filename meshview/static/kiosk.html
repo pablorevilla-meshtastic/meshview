@@ -75,8 +75,8 @@ body { margin: 0; font-family: monospace; background: #121212; color: #eee; }
         return color;
     }
 
-    function timeAgo(dateStr){
-        const diff = Date.now() - new Date(dateStr);
+    function timeAgoFromUs(us){
+        const diff = Date.now() - (us / 1000);
         const s=Math.floor(diff/1000), m=Math.floor(s/60), h=Math.floor(m/60), d=Math.floor(h/24);
         if(d>0) return d+'d'; if(h>0) return h+'h'; if(m>0) return m+'m'; return s+'s';
     }
@@ -118,7 +118,7 @@ body { margin: 0; font-family: monospace; background: #121212; color: #eee; }
                           <b>Channel:</b> ${node.channel}<br>
                           <b>Model:</b> ${node.hw_model}<br>
                           <b>Role:</b> ${node.role}<br>`;
-        if(node.last_update) popupContent+=`<b>Last seen:</b> ${timeAgo(node.last_update)}<br>`;
+        if(node.last_seen_us) popupContent+=`<b>Last seen:</b> ${timeAgoFromUs(node.last_seen_us)}<br>`;
         if(node.firmware) popupContent+=`<b>Firmware:</b> ${node.firmware}<br>`;
 
         marker.on('click', e=>{
