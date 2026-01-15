@@ -278,6 +278,18 @@ password = large4cats
 #   postgresql+asyncpg://user:pass@host:5432/meshview
 connection_string = sqlite+aiosqlite:///packets.db
 
+> **NOTE (PostgreSQL setup)**  
+> If you want to use PostgreSQL instead of SQLite:
+>
+> 1) Install PostgreSQL for your OS.  
+> 2) Create a user and database:
+>    - `CREATE USER meshview WITH PASSWORD 'change_me';`
+>    - `CREATE DATABASE meshview OWNER meshview;`
+> 3) Update `config.ini`:
+>    - `connection_string = postgresql+asyncpg://meshview:change_me@localhost:5432/meshview`
+> 4) Initialize the schema:
+>    - `./env/bin/python startdb.py`
+
 
 # -------------------------
 # Database Cleanup Configuration
@@ -496,10 +508,22 @@ sleep 5
 echo "Run cleanup..."
 # Run cleanup queries
 sqlite3 "$DB_FILE" <<EOF 
-DELETE FROM packet WHERE import_time < datetime('now', '-14 day');
-DELETE FROM packet_seen WHERE import_time < datetime('now', '-14 day');
-DELETE FROM traceroute WHERE import_time < datetime('now', '-14 day');
-DELETE FROM node WHERE last_update < datetime('now', '-14 day') OR last_update IS NULL OR last_update = '';
+DELETE FROM packet
+WHERE import_time_us IS NOT NULL
+  AND import_time_us < (strftime('%s','now','-14 days') * 1000000);
+SELECT 'packet deleted: ' || changes();
+DELETE FROM packet_seen
+WHERE import_time_us IS NOT NULL
+  AND import_time_us < (strftime('%s','now','-14 days') * 1000000);
+SELECT 'packet_seen deleted: ' || changes();
+DELETE FROM traceroute
+WHERE import_time_us IS NOT NULL
+  AND import_time_us < (strftime('%s','now','-14 days') * 1000000);
+SELECT 'traceroute deleted: ' || changes();
+DELETE FROM node
+WHERE last_seen_us IS NULL
+   OR last_seen_us < (strftime('%s','now','-14 days') * 1000000);
+SELECT 'node deleted: ' || changes();
 VACUUM;
 EOF
 
