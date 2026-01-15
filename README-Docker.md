@@ -132,7 +132,7 @@ password =
 # Examples:
 #   sqlite+aiosqlite:///var/lib/meshview/packets.db
 #   postgresql+asyncpg://user:pass@host:5432/meshview
-connection_string = sqlite+aiosqlite:///var/lib/meshview/packets.db
+connection_string = sqlite+aiosqlite:////var/lib/meshview/packets.db
 ```
 
 ### Database Backups
