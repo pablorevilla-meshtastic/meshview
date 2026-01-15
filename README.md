@@ -4,6 +4,10 @@
 
 The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
 
+### Version 3.0.3 — February 2026
+- Added database support for MySQL and PostgreSQL (alongside SQLite) for larger or shared deployments.
+- Configuration updated to allow selecting the database backend via connection string.
+
 ### Version 3.0.2 — January 2026
 - Changes to the Database to will make it so that there is a need for space when updating to the latest. SQlite requires to rebuild the database when droping a column. ( we are droping some of the old columns) so make sure you have 1.2x the size of the db of space in your environment. Depending on how big your db is it would take a long time.
   
