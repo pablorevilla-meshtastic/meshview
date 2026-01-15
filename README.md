@@ -5,7 +5,7 @@
 The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
 
 ### Version 3.0.3 — February 2026
-- Added database support for MySQL and PostgreSQL (alongside SQLite) for larger or shared deployments.
+- Added database support for MySQL (not tested, would love to have someone test!) and PostgreSQL (alongside SQLite) for larger or shared deployments.
 - Configuration updated to allow selecting the database backend via connection string.
 
 ### Version 3.0.2 — January 2026
