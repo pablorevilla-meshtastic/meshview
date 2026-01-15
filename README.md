@@ -483,10 +483,9 @@ Once changes are done you need to restart the script for changes to load.
 - Name it cleanup.sh
 - Make it executable.
 ```bash
- #!/bin/bash
+#!/bin/bash
 
 DB_FILE="/path/to/file/packets.db"
-
 
 # Stop DB service
 sudo systemctl stop meshview-db.service
@@ -496,10 +495,22 @@ sleep 5
 echo "Run cleanup..."
 # Run cleanup queries
 sqlite3 "$DB_FILE" <<EOF 
-DELETE FROM packet WHERE import_time < datetime('now', '-14 day');
-DELETE FROM packet_seen WHERE import_time < datetime('now', '-14 day');
-DELETE FROM traceroute WHERE import_time < datetime('now', '-14 day');
-DELETE FROM node WHERE last_update < datetime('now', '-14 day') OR last_update IS NULL OR last_update = '';
+DELETE FROM packet
+WHERE import_time_us IS NOT NULL
+  AND import_time_us < (strftime('%s','now','-14 days') * 1000000);
+SELECT 'packet deleted: ' || changes();
+DELETE FROM packet_seen
+WHERE import_time_us IS NOT NULL
+  AND import_time_us < (strftime('%s','now','-14 days') * 1000000);
+SELECT 'packet_seen deleted: ' || changes();
+DELETE FROM traceroute
+WHERE import_time_us IS NOT NULL
+  AND import_time_us < (strftime('%s','now','-14 days') * 1000000);
+SELECT 'traceroute deleted: ' || changes();
+DELETE FROM node
+WHERE last_seen_us IS NULL
+   OR last_seen_us < (strftime('%s','now','-14 days') * 1000000);
+SELECT 'node deleted: ' || changes();
 VACUUM;
 EOF
 
