@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 
 from sqlalchemy import delete
+from sqlalchemy.engine.url import make_url
 
 from meshview import migrations, models, mqtt_database, mqtt_reader, mqtt_store
 from meshview.config import CONFIG
@@ -65,18 +66,16 @@ async def backup_database(database_url: str, backup_dir: str = ".") -> None:
         backup_dir: Directory to store backups (default: current directory)
     """
     try:
-        # Extract database file path from connection string
-        # Format: sqlite+aiosqlite:///path/to/db.db
-        if not database_url.startswith("sqlite"):
+        url = make_url(database_url)
+        if not url.drivername.startswith("sqlite"):
             cleanup_logger.warning("Backup only supported for SQLite databases")
             return
 
-        db_path = database_url.split("///", 1)[1] if "///" in database_url else None
-        if not db_path:
+        if not url.database or url.database == ":memory:":
             cleanup_logger.error("Could not extract database path from connection string")
             return
 
-        db_file = Path(db_path)
+        db_file = Path(url.database)
         if not db_file.exists():
             cleanup_logger.error(f"Database file not found: {db_file}")
             return
@@ -153,11 +152,11 @@ async def daily_cleanup_at(
             cleanup_logger.info("Waiting 60 seconds for backup to complete...")
             await asyncio.sleep(60)
 
-        # Local-time cutoff as string for SQLite DATETIME comparison
-        cutoff = (datetime.datetime.now() - datetime.timedelta(days=days_to_keep)).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
-        cleanup_logger.info(f"Running cleanup for records older than {cutoff}...")
+        cutoff_dt = (
+            datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=days_to_keep)
+        ).replace(tzinfo=None)
+        cutoff_us = int(cutoff_dt.timestamp() * 1_000_000)
+        cleanup_logger.info(f"Running cleanup for records older than {cutoff_dt.isoformat()}...")
 
         try:
             async with db_lock:  # Pause ingestion
@@ -168,7 +167,7 @@ async def daily_cleanup_at(
                     # Packet
                     # -------------------------
                     result = await session.execute(
-                        delete(models.Packet).where(models.Packet.import_time < cutoff)
+                        delete(models.Packet).where(models.Packet.import_time_us < cutoff_us)
                     )
                     cleanup_logger.info(f"Deleted {result.rowcount} rows from Packet")
 
@@ -176,7 +175,9 @@ async def daily_cleanup_at(
                     # PacketSeen
                     # -------------------------
                     result = await session.execute(
-                        delete(models.PacketSeen).where(models.PacketSeen.import_time < cutoff)
+                        delete(models.PacketSeen).where(
+                            models.PacketSeen.import_time_us < cutoff_us
+                        )
                     )
                     cleanup_logger.info(f"Deleted {result.rowcount} rows from PacketSeen")
 
@@ -184,7 +185,9 @@ async def daily_cleanup_at(
                     # Traceroute
                     # -------------------------
                     result = await session.execute(
-                        delete(models.Traceroute).where(models.Traceroute.import_time < cutoff)
+                        delete(models.Traceroute).where(
+                            models.Traceroute.import_time_us < cutoff_us
+                        )
                     )
                     cleanup_logger.info(f"Deleted {result.rowcount} rows from Traceroute")
 
@@ -192,17 +195,19 @@ async def daily_cleanup_at(
                     # Node
                     # -------------------------
                     result = await session.execute(
-                        delete(models.Node).where(models.Node.last_update < cutoff)
+                        delete(models.Node).where(models.Node.last_seen_us < cutoff_us)
                     )
                     cleanup_logger.info(f"Deleted {result.rowcount} rows from Node")
 
                     await session.commit()
 
-                if vacuum_db:
+                if vacuum_db and mqtt_database.engine.dialect.name == "sqlite":
                     cleanup_logger.info("Running VACUUM...")
                     async with mqtt_database.engine.begin() as conn:
                         await conn.exec_driver_sql("VACUUM;")
                     cleanup_logger.info("VACUUM completed.")
+                elif vacuum_db:
+                    cleanup_logger.info("VACUUM skipped (not supported for this database).")
 
                 cleanup_logger.info("Cleanup completed successfully.")
                 cleanup_logger.info("Ingestion resumed after cleanup.")

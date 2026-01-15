@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy import BigInteger, ForeignKey, Index, desc
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -22,7 +20,6 @@ class Node(Base):
     last_lat: Mapped[int] = mapped_column(BigInteger, nullable=True)
     last_long: Mapped[int] = mapped_column(BigInteger, nullable=True)
     channel: Mapped[str] = mapped_column(nullable=True)
-    last_update: Mapped[datetime] = mapped_column(nullable=True)
     first_seen_us: Mapped[int] = mapped_column(BigInteger, nullable=True)
     last_seen_us: Mapped[int] = mapped_column(BigInteger, nullable=True)
 
@@ -33,11 +30,7 @@ class Node(Base):
     )
 
     def to_dict(self):
-        return {
-            column.name: getattr(self, column.name)
-            for column in self.__table__.columns
-            if column.name != "last_update"
-        }
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 
 class Packet(Base):

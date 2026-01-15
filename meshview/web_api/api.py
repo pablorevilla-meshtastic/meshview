@@ -6,12 +6,15 @@ import logging
 import os
 
 from aiohttp import web
-from sqlalchemy import text
+from sqlalchemy import func, select, text
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import database, decode_payload, store
 from meshview.__version__ import __version__, _git_revision_short, get_version_info
 from meshview.config import CONFIG
+from meshview.models import Node
+from meshview.models import Packet as PacketModel
+from meshview.models import PacketSeen as PacketSeenModel
 
 logger = logging.getLogger(__name__)
 
@@ -805,73 +808,54 @@ async def api_stats_top(request):
     limit = min(int(request.query.get("limit", 20)), 100)
     offset = int(request.query.get("offset", 0))
 
-    params = {
-        "period_type": period_type,
-        "length": length,
-        "limit": limit,
-        "offset": offset,
-    }
+    multiplier = 3600 if period_type == "hour" else 86400
+    window_us = length * multiplier * 1_000_000
 
-    channel_filter = ""
-    if channel:
-        channel_filter = "AND n.channel = :channel"
-        params["channel"] = channel
+    max_packet_import = select(func.max(PacketModel.import_time_us)).scalar_subquery()
+    max_seen_import = select(func.max(PacketSeenModel.import_time_us)).scalar_subquery()
 
-    sql = f"""
-    WITH sent AS (
-        SELECT
-            p.from_node_id AS node_id,
-            COUNT(*) AS sent
-        FROM packet p
-        WHERE p.import_time_us >= (
-            SELECT MAX(import_time_us) FROM packet
-        ) - (
-            CASE
-                WHEN :period_type = 'hour' THEN :length * 3600 * 1000000
-                ELSE :length * 86400 * 1000000
-            END
-        )
-        GROUP BY p.from_node_id
-    ),
-    seen AS (
-        SELECT
-            p.from_node_id AS node_id,
-            COUNT(*) AS seen
-        FROM packet_seen ps
-        JOIN packet p ON p.id = ps.packet_id
-        WHERE ps.import_time_us >= (
-            SELECT MAX(import_time_us) FROM packet_seen
-        ) - (
-            CASE
-                WHEN :period_type = 'hour' THEN :length * 3600 * 1000000
-                ELSE :length * 86400 * 1000000
-            END
-        )
-        GROUP BY p.from_node_id
+    sent_cte = (
+        select(PacketModel.from_node_id.label("node_id"), func.count().label("sent"))
+        .where(PacketModel.import_time_us >= max_packet_import - window_us)
+        .group_by(PacketModel.from_node_id)
+        .cte("sent")
     )
-    SELECT
-        n.node_id,
-        n.long_name,
-        n.short_name,
-        n.channel,
-        COALESCE(s.sent, 0) AS sent,
-        COALESCE(se.seen, 0) AS seen
-    FROM node n
-    LEFT JOIN sent s ON s.node_id = n.node_id
-    LEFT JOIN seen se ON se.node_id = n.node_id
-    WHERE 1=1
-        {channel_filter}
-    ORDER BY seen DESC
-    LIMIT :limit OFFSET :offset
-    """
 
-    count_sql = f"""
-    SELECT COUNT(*) FROM node n WHERE 1=1 {channel_filter}
-    """
+    seen_cte = (
+        select(PacketModel.from_node_id.label("node_id"), func.count().label("seen"))
+        .select_from(PacketSeenModel)
+        .join(PacketModel, PacketModel.id == PacketSeenModel.packet_id)
+        .where(PacketSeenModel.import_time_us >= max_seen_import - window_us)
+        .group_by(PacketModel.from_node_id)
+        .cte("seen")
+    )
+
+    query = (
+        select(
+            Node.node_id,
+            Node.long_name,
+            Node.short_name,
+            Node.channel,
+            func.coalesce(sent_cte.c.sent, 0).label("sent"),
+            func.coalesce(seen_cte.c.seen, 0).label("seen"),
+        )
+        .select_from(Node)
+        .outerjoin(sent_cte, sent_cte.c.node_id == Node.node_id)
+        .outerjoin(seen_cte, seen_cte.c.node_id == Node.node_id)
+        .order_by(func.coalesce(seen_cte.c.seen, 0).desc())
+        .limit(limit)
+        .offset(offset)
+    )
+
+    count_query = select(func.count()).select_from(Node)
+
+    if channel:
+        query = query.where(Node.channel == channel)
+        count_query = count_query.where(Node.channel == channel)
 
     async with database.async_session() as session:
-        rows = (await session.execute(text(sql), params)).all()
-        total = (await session.execute(text(count_sql), params)).scalar() or 0
+        rows = (await session.execute(query)).all()
+        total = (await session.execute(count_query)).scalar() or 0
 
     nodes = []
     for r in rows:

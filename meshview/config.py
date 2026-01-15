@@ -6,7 +6,7 @@ parser = argparse.ArgumentParser(description="MeshView Configuration Loader")
 parser.add_argument(
     "--config", type=str, default="config.ini", help="Path to config.ini file (default: config.ini)"
 )
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 
 # Initialize config parser
 config_parser = configparser.ConfigParser()

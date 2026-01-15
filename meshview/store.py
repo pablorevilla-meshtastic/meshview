@@ -1,10 +1,13 @@
-from datetime import datetime, timedelta
+import logging
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import Text, and_, cast, func, or_, select, text
+from sqlalchemy import Text, and_, cast, func, or_, select
 from sqlalchemy.orm import lazyload
 
 from meshview import database, models
 from meshview.models import Node, Packet, PacketSeen, Traceroute
+
+logger = logging.getLogger(__name__)
 
 
 async def get_node(node_id):
@@ -176,9 +179,9 @@ async def get_mqtt_neighbors(since):
 async def get_total_node_count(channel: str = None) -> int:
     try:
         async with database.async_session() as session:
-            q = select(func.count(Node.id)).where(
-                Node.last_update > datetime.now() - timedelta(days=1)
-            )
+            now_us = int(datetime.now(timezone.utc).timestamp() * 1_000_000)
+            cutoff_us = now_us - 86400 * 1_000_000
+            q = select(func.count(Node.id)).where(Node.last_seen_us > cutoff_us)
 
             if channel:
                 q = q.where(Node.channel == channel)
@@ -193,26 +196,32 @@ async def get_total_node_count(channel: str = None) -> int:
 async def get_top_traffic_nodes():
     try:
         async with database.async_session() as session:
-            result = await session.execute(
-                text("""
-                SELECT 
-                    n.node_id,
-                    n.long_name,
-                    n.short_name,
-                    n.channel,
-                    COUNT(DISTINCT p.id) AS total_packets_sent,
-                    COUNT(ps.packet_id) AS total_times_seen
-                FROM node n
-                LEFT JOIN packet p ON n.node_id = p.from_node_id
-                    AND p.import_time_us >= (CAST(strftime('%s','now') AS INTEGER) - 86400) * 1000000
-                LEFT JOIN packet_seen ps ON p.id = ps.packet_id
-                GROUP BY n.node_id, n.long_name, n.short_name
-                HAVING total_packets_sent > 0
-                ORDER BY total_times_seen DESC;
-            """)
+            now_us = int(datetime.now(timezone.utc).timestamp() * 1_000_000)
+            cutoff_us = now_us - 86400 * 1_000_000
+            total_packets_sent = func.count(func.distinct(Packet.id)).label("total_packets_sent")
+            total_times_seen = func.count(PacketSeen.packet_id).label("total_times_seen")
+
+            stmt = (
+                select(
+                    Node.node_id,
+                    Node.long_name,
+                    Node.short_name,
+                    Node.channel,
+                    total_packets_sent,
+                    total_times_seen,
+                )
+                .select_from(Node)
+                .outerjoin(
+                    Packet,
+                    (Packet.from_node_id == Node.node_id) & (Packet.import_time_us >= cutoff_us),
+                )
+                .outerjoin(PacketSeen, PacketSeen.packet_id == Packet.id)
+                .group_by(Node.node_id, Node.long_name, Node.short_name, Node.channel)
+                .having(total_packets_sent > 0)
+                .order_by(total_times_seen.desc())
             )
 
-            rows = result.fetchall()
+            rows = (await session.execute(stmt)).all()
 
             nodes = [
                 {
@@ -235,32 +244,29 @@ async def get_top_traffic_nodes():
 async def get_node_traffic(node_id: int):
     try:
         async with database.async_session() as session:
-            result = await session.execute(
-                text("""
-                    SELECT 
-                        node.long_name, packet.portnum, 
-                        COUNT(*) AS packet_count
-                    FROM packet
-                    JOIN node ON packet.from_node_id = node.node_id
-                    WHERE node.node_id = :node_id 
-                    AND packet.import_time_us >= (CAST(strftime('%s','now') AS INTEGER) - 86400) * 1000000 
-                    GROUP BY packet.portnum
-                    ORDER BY packet_count DESC;
-                """),
-                {"node_id": node_id},
+            now_us = int(datetime.now(timezone.utc).timestamp() * 1_000_000)
+            cutoff_us = now_us - 86400 * 1_000_000
+            packet_count = func.count().label("packet_count")
+
+            stmt = (
+                select(Node.long_name, Packet.portnum, packet_count)
+                .select_from(Packet)
+                .join(Node, Packet.from_node_id == Node.node_id)
+                .where(Node.node_id == node_id)
+                .where(Packet.import_time_us >= cutoff_us)
+                .group_by(Node.long_name, Packet.portnum)
+                .order_by(packet_count.desc())
             )
 
-            # Map the result to include node.long_name and packet data
-            traffic_data = [
+            result = await session.execute(stmt)
+            return [
                 {
-                    "long_name": row[0],  # node.long_name
-                    "portnum": row[1],  # packet.portnum
-                    "packet_count": row[2],  # COUNT(*) as packet_count
+                    "long_name": row.long_name,
+                    "portnum": row.portnum,
+                    "packet_count": row.packet_count,
                 }
                 for row in result.all()
             ]
-
-            return traffic_data
 
     except Exception as e:
         # Log the error or handle it as needed
@@ -290,7 +296,11 @@ async def get_nodes(node_id=None, role=None, channel=None, hw_model=None, days_a
 
             # Apply filters based on provided parameters
             if node_id is not None:
-                query = query.where(Node.node_id == node_id)
+                try:
+                    node_id_int = int(node_id)
+                except (TypeError, ValueError):
+                    node_id_int = node_id
+                query = query.where(Node.node_id == node_id_int)
             if role is not None:
                 query = query.where(Node.role == role.upper())  # Ensure role is uppercase
             if channel is not None:
@@ -299,10 +309,12 @@ async def get_nodes(node_id=None, role=None, channel=None, hw_model=None, days_a
                 query = query.where(Node.hw_model == hw_model)
 
             if days_active is not None:
-                query = query.where(Node.last_update > datetime.now() - timedelta(days_active))
+                now_us = int(datetime.now(timezone.utc).timestamp() * 1_000_000)
+                cutoff_us = now_us - int(timedelta(days_active).total_seconds() * 1_000_000)
+                query = query.where(Node.last_seen_us > cutoff_us)
 
-            # Exclude nodes where last_update is an empty string
-            query = query.where(Node.last_update != "")
+            # Exclude nodes with missing last_seen_us
+            query = query.where(Node.last_seen_us.is_not(None))
 
             # Order results by long_name in ascending order
             query = query.order_by(Node.short_name.asc())
@@ -313,7 +325,7 @@ async def get_nodes(node_id=None, role=None, channel=None, hw_model=None, days_a
             return nodes  # Return the list of nodes
 
     except Exception:
-        print("error reading DB")  # Consider using logging instead of print
+        logger.exception("error reading DB")
         return []  # Return an empty list in case of failure
 
 
@@ -325,24 +337,35 @@ async def get_packet_stats(
     to_node: int | None = None,
     from_node: int | None = None,
 ):
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
 
     if period_type == "hour":
         start_time = now - timedelta(hours=length)
-        time_format = '%Y-%m-%d %H:00'
+        time_format_sqlite = "%Y-%m-%d %H:00"
+        time_format_pg = "YYYY-MM-DD HH24:00"
     elif period_type == "day":
         start_time = now - timedelta(days=length)
-        time_format = '%Y-%m-%d'
+        time_format_sqlite = "%Y-%m-%d"
+        time_format_pg = "YYYY-MM-DD"
     else:
         raise ValueError("period_type must be 'hour' or 'day'")
 
     async with database.async_session() as session:
-        q = select(
-            func.strftime(
-                time_format,
+        dialect = session.get_bind().dialect.name
+        if dialect == "postgresql":
+            period_expr = func.to_char(
+                func.to_timestamp(Packet.import_time_us / 1_000_000.0),
+                time_format_pg,
+            )
+        else:
+            period_expr = func.strftime(
+                time_format_sqlite,
                 func.datetime(Packet.import_time_us / 1_000_000, "unixepoch"),
-            ).label('period'),
-            func.count().label('count'),
+            )
+
+        q = select(
+            period_expr.label("period"),
+            func.count().label("count"),
         ).where(Packet.import_time_us >= int(start_time.timestamp() * 1_000_000))
 
         # Filters

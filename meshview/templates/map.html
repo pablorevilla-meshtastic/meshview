@@ -140,8 +140,8 @@ map.on("popupopen", function (e) {
     if (popupEl) applyTranslationsMap(popupEl);
 });
 
-function timeAgo(date){
-    const diff = Date.now() - new Date(date);
+function timeAgoFromUs(us){
+    const diff = Date.now() - (us / 1000);
     const s = Math.floor(diff/1000), m = Math.floor(s/60),
           h = Math.floor(m/60),       d = Math.floor(h/24);
     return d>0?d+"d":h>0?h+"h":m>0?m+"m":s+"s";
@@ -289,7 +289,7 @@ fetch('/api/nodes?days_active=3')
             hw_model: n.hw_model || "",
             role: n.role || "",
             firmware: n.firmware || "",
-            last_update: n.last_update || "",
+            last_seen_us: n.last_seen_us || null,
             isRouter: (n.role||"").toLowerCase().includes("router")
         }));
 
@@ -333,8 +333,8 @@ function renderNodesOnMap(){
             <b data-translate-lang="role_label"></b> ${node.role}<br>
 
             ${
-                node.last_update
-                    ? `<b data-translate-lang="last_seen"></b> ${timeAgo(node.last_update)}<br>`
+                node.last_seen_us
+                    ? `<b data-translate-lang="last_seen"></b> ${timeAgoFromUs(node.last_seen_us)}<br>`
                     : ""
             }
 

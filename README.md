@@ -275,8 +275,23 @@ password = large4cats
 # Database Configuration
 # -------------------------
 [database]
-# SQLAlchemy connection string. This one uses SQLite with asyncio support.
+# SQLAlchemy async connection string.
+# Examples:
+#   sqlite+aiosqlite:///packets.db
+#   postgresql+asyncpg://user:pass@host:5432/meshview
 connection_string = sqlite+aiosqlite:///packets.db
+
+> **NOTE (PostgreSQL setup)**  
+> If you want to use PostgreSQL instead of SQLite:
+>
+> 1) Install PostgreSQL for your OS.  
+> 2) Create a user and database:
+>    - `CREATE USER meshview WITH PASSWORD 'change_me';`
+>    - `CREATE DATABASE meshview OWNER meshview;`
+> 3) Update `config.ini`:
+>    - `connection_string = postgresql+asyncpg://meshview:change_me@localhost:5432/meshview`
+> 4) Initialize the schema:
+>    - `./env/bin/python startdb.py`
 
 
 # -------------------------

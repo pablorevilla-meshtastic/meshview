@@ -186,19 +186,24 @@ async def create_migration_status_table(engine: AsyncEngine) -> None:
             text("""
             CREATE TABLE IF NOT EXISTS migration_status (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
-                in_progress BOOLEAN NOT NULL DEFAULT 0,
+                in_progress BOOLEAN NOT NULL DEFAULT FALSE,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         )
 
-        # Insert initial row if not exists
-        await conn.execute(
+        result = await conn.execute(
             text("""
-            INSERT OR IGNORE INTO migration_status (id, in_progress)
-            VALUES (1, 0)
+            SELECT 1 FROM migration_status WHERE id = 1
         """)
         )
+        if result.first() is None:
+            await conn.execute(
+                text("""
+                INSERT INTO migration_status (id, in_progress)
+                VALUES (1, FALSE)
+            """)
+            )
 
 
 async def set_migration_in_progress(engine: AsyncEngine, in_progress: bool) -> None:
