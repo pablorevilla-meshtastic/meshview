@@ -321,11 +321,14 @@ If you want to use PostgreSQL instead of SQLite:
 
 Install PostgreSQL for your OS.  
 Create a user and database:
+```
 `CREATE USER meshview WITH PASSWORD 'change_me';`
 `CREATE DATABASE meshview OWNER meshview;`
+```
 Update `config.ini` example:
+```
 `connection_string = postgresql+asyncpg://meshview:change_me@localhost:5432/meshview`
-
+```
 
 ## Running Meshview
 
