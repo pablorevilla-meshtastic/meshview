@@ -499,7 +499,7 @@ db_cleanup_logfile = dbcleanup.log
 ```
 Once changes are done you need to restart the script for changes to load.
 
-### Alternatively we can do it via your OS 
+### Alternatively we can do it via your OS (This example is Ubuntu like OS)
 - Create and save bash script below. (Modify /path/to/file/ to the correct path)
 - Name it cleanup.sh
 - Make it executable.
@@ -541,6 +541,64 @@ sudo systemctl start meshview-web.service
 
 echo "Database cleanup completed on $(date)"
 
+```
+- If you are using PostgreSQL, use this version instead (adjust credentials/DB name):
+```bash
+#!/bin/bash
+
+DB_NAME="meshview"
+DB_USER="meshview"
+DB_HOST="localhost"
+DB_PORT="5432"
+
+# Stop DB service
+sudo systemctl stop meshview-db.service
+sudo systemctl stop meshview-web.service
+
+sleep 5
+echo "Run cleanup..."
+# Run cleanup queries
+psql "postgresql://${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}" <<'EOF'
+WITH deleted AS (
+  DELETE FROM packet
+  WHERE import_time_us IS NOT NULL
+    AND import_time_us < (EXTRACT(EPOCH FROM (NOW() - INTERVAL '14 days')) * 1000000)
+  RETURNING 1
+)
+SELECT 'packet deleted: ' || COUNT(*) FROM deleted;
+
+WITH deleted AS (
+  DELETE FROM packet_seen
+  WHERE import_time_us IS NOT NULL
+    AND import_time_us < (EXTRACT(EPOCH FROM (NOW() - INTERVAL '14 days')) * 1000000)
+  RETURNING 1
+)
+SELECT 'packet_seen deleted: ' || COUNT(*) FROM deleted;
+
+WITH deleted AS (
+  DELETE FROM traceroute
+  WHERE import_time_us IS NOT NULL
+    AND import_time_us < (EXTRACT(EPOCH FROM (NOW() - INTERVAL '14 days')) * 1000000)
+  RETURNING 1
+)
+SELECT 'traceroute deleted: ' || COUNT(*) FROM deleted;
+
+WITH deleted AS (
+  DELETE FROM node
+  WHERE last_seen_us IS NULL
+     OR last_seen_us < (EXTRACT(EPOCH FROM (NOW() - INTERVAL '14 days')) * 1000000)
+  RETURNING 1
+)
+SELECT 'node deleted: ' || COUNT(*) FROM deleted;
+
+VACUUM;
+EOF
+
+# Start DB service
+sudo systemctl start meshview-db.service
+sudo systemctl start meshview-web.service
+
+echo "Database cleanup completed on $(date)"
 ```
 - Schedule running the script on a regular basis. 
 - In this example it runs every night at 2:00am.
