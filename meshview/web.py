@@ -203,6 +203,12 @@ async def index(request):
     raise web.HTTPFound(location=starting_url)
 
 
+# redirect for backwards compatibility
+@routes.get("/packet_list/{packet_id}")
+async def redirect_packet_list(request):
+    packet_id = request.match_info["packet_id"]
+    raise web.HTTPFound(location=f"/node/{packet_id}")
+
 # Generic static HTML route
 @routes.get("/{page}")
 async def serve_page(request):
