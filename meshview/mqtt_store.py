@@ -237,7 +237,7 @@ async def process_envelope(topic, env):
                 session.add(
                     Traceroute(
                         packet_id=packet_id,
-                        route=env.packet.decoded.1payload,
+                        route=env.packet.decoded.payload,
                         done=not env.packet.decoded.want_response,
                         gateway_node_id=int(env.gateway_id[1:], 16),
                         import_time_us=now_us,
