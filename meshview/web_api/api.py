@@ -414,7 +414,7 @@ async def api_stats_count(request):
 
 @routes.get("/api/edges")
 async def api_edges(request):
-    since = datetime.datetime.now() - datetime.timedelta(hours=48)
+    since = datetime.datetime.now() - datetime.timedelta(hours=12)
     filter_type = request.query.get("type")
 
     # NEW → optional single-node filter
