@@ -180,13 +180,17 @@ async def api_packets(request):
                 logger.warning(f"Invalid node_id: {node_id_str}")
 
         # --- Fetch packets using explicit filters ---
+        contains_for_query = contains
+        if portnum == PortNum.TEXT_MESSAGE_APP and contains:
+            contains_for_query = None
+
         packets = await store.get_packets(
             from_node_id=from_node_id,
             to_node_id=to_node_id,
             node_id=node_id,
             portnum=portnum,
             after=since,
-            contains=contains,
+            contains=contains_for_query,
             limit=limit,
         )
 
