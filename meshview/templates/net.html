@@ -178,7 +178,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const sinceUs = Math.floor(sixDaysAgoMs * 1000);
 
             const url =
-                `/api/packets?portnum=1&contains=${encodeURIComponent(tag)}&since=${sinceUs}`;
+                `/api/packets?portnum=1&contains=${encodeURIComponent(tag)}&since=${sinceUs}&limit=1000`;
 
             const resp = await fetch(url);
             const data = await resp.json();
