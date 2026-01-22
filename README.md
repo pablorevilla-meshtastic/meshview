@@ -103,6 +103,7 @@ Samples of currently running instances:
 - https://www.swlamesh.com/map (Southwest Louisiana)
 - https://meshview.meshcolombia.co/ (Colombia)
 - https://meshview-salzburg.jmt.gr/ (Salzburg / Austria)
+- https://map.cromesh.eu/stats (Coatia)
 ---
 
 
