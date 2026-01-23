@@ -35,7 +35,7 @@ RUN uv pip install --no-cache-dir --upgrade pip \
 COPY --chown=${APP_USER}:${APP_USER} . .
 
 # Patch config
-RUN patch sample.config.ini < container/config.patch
+RUN patch -p1 < container/config.patch
 
 # Clean
 RUN rm -rf /app/.git* && \
@@ -77,4 +77,3 @@ CMD ["--pid_dir", "/tmp", "--py_exec", "/opt/venv/bin/python", "--config", "/etc
 
 EXPOSE 8081
 VOLUME [ "/etc/meshview", "/var/lib/meshview", "/var/log/meshview" ]
-

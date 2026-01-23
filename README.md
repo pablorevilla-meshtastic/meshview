@@ -89,22 +89,25 @@ Samples of currently running instances:
 
 - https://meshview.bayme.sh (SF Bay Area)
 - https://www.svme.sh (Sacramento Valley)
-- https://meshview.nyme.sh   (New York)
+- https://meshview.nyme.sh (New York)
 - https://meshview.socalmesh.org (LA Area)
 - https://map.wpamesh.net (Western Pennsylvania)
 - https://meshview.chicagolandmesh.org (Chicago)
-- https://meshview.mt.gt (Canadaverse)
-- https://canadaverse.org (Canadaverse)
+- https://meshview.mt.gt (Canada)
+- https://canadaverse.org (Canada)
 - https://meshview.meshtastic.es (Spain)
 - https://view.mtnme.sh (North Georgia / East Tennessee)
 - https://meshview.lsinfra.de (Hessen - Germany)
 - https://meshview.pvmesh.org (Pioneer Valley, Massachusetts)
 - https://meshview.louisianamesh.org (Louisiana)
-- https://www.swlamesh.com/map (Southwest Louisiana)
-- https://meshview.meshcolombia.co/ (Colombia)
-- https://meshview-salzburg.jmt.gr/ (Salzburg / Austria)
-- https://map.cromesh.eu/stats (Coatia)
+- https://www.swlamesh.com (Southwest Louisiana)
+- https://meshview.meshcolombia.co (Colombia)
+- https://meshview-salzburg.jmt.gr (Salzburg / Austria)
+- https://map.cromesh.eu (Coatia)
+- https://view.meshdresden.eu (Dresden / Germany)
+
 ---
+
 
 
 ### Updating from 2.x to 3.x
