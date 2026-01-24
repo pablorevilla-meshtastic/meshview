@@ -3,8 +3,8 @@
 import subprocess
 from pathlib import Path
 
-__version__ = "3.0.3"
-__release_date__ = "2026-1-15"
+__version__ = "3.0.4"
+__release_date__ = "2026-1-24"
 
 
 def get_git_revision():
