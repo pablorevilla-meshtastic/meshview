@@ -200,7 +200,7 @@ Response Example
 
 ### GET `/api/edges`
 Returns network edges (connections between nodes) based on traceroutes and neighbor info.
-Traceroute edges are collected over the last 48 hours. Neighbor edges are based on
+Traceroute edges are collected over the last 12 hours. Neighbor edges are based on
 port 71 packets.
 
 Query Parameters
@@ -366,7 +366,7 @@ Response Example
 {
   "status": "healthy",
   "timestamp": "2025-07-22T12:45:00+00:00",
-  "version": "3.0.0",
+  "version": "3.0.3",
   "git_revision": "abc1234",
   "database": "connected",
   "database_size": "12.34 MB",
@@ -384,8 +384,9 @@ Returns version metadata.
 Response Example
 ```json
 {
-  "version": "3.0.0",
+  "version": "3.0.3",
+  "release_date": "2026-1-15",
   "git_revision": "abc1234",
-  "build_time": "2025-11-01T12:00:00+00:00"
+  "git_revision_short": "abc1234"
 }
 ```

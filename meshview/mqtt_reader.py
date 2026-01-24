@@ -9,8 +9,9 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from google.protobuf.message import DecodeError
 
 from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
+from meshview.config import CONFIG
 
-KEY = base64.b64decode("1PG7OiApB1nwvP+rz05pAQ==")
+PRIMARY_KEY = base64.b64decode("1PG7OiApB1nwvP+rz05pAQ==")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,20 +22,79 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def decrypt(packet):
-    if packet.HasField("decoded"):
-        return
+def _parse_skip_node_ids():
+    mqtt_config = CONFIG.get("mqtt", {})
+    raw_value = mqtt_config.get("skip_node_ids", "")
+    if not raw_value:
+        return set()
+
+    if isinstance(raw_value, str):
+        raw_value = raw_value.strip()
+        if not raw_value:
+            return set()
+        values = [v.strip() for v in raw_value.split(",") if v.strip()]
+    else:
+        values = [raw_value]
+
+    skip_ids = set()
+    for value in values:
+        try:
+            skip_ids.add(int(value, 0))
+        except (TypeError, ValueError):
+            logger.warning("Invalid node id in mqtt.skip_node_ids: %s", value)
+    return skip_ids
+
+
+def _parse_secondary_keys():
+    mqtt_config = CONFIG.get("mqtt", {})
+    raw_value = mqtt_config.get("secondary_keys", "")
+    if not raw_value:
+        return []
+
+    if isinstance(raw_value, str):
+        raw_value = raw_value.strip()
+        if not raw_value:
+            return []
+        values = [v.strip() for v in raw_value.split(",") if v.strip()]
+    else:
+        values = [raw_value]
+
+    keys = []
+    for value in values:
+        try:
+            keys.append(base64.b64decode(value))
+        except (TypeError, ValueError):
+            logger.warning("Invalid base64 key in mqtt.secondary_keys: %s", value)
+    return keys
+
+
+SKIP_NODE_IDS = _parse_skip_node_ids()
+SECONDARY_KEYS = _parse_secondary_keys()
+
+
+def _try_decrypt(packet, key):
     packet_id = packet.id.to_bytes(8, "little")
     from_node_id = getattr(packet, "from").to_bytes(8, "little")
     nonce = packet_id + from_node_id
 
-    cipher = Cipher(algorithms.AES(KEY), modes.CTR(nonce))
+    cipher = Cipher(algorithms.AES(key), modes.CTR(nonce))
     decryptor = cipher.decryptor()
     raw_proto = decryptor.update(packet.encrypted) + decryptor.finalize()
     try:
         packet.decoded.ParseFromString(raw_proto)
     except DecodeError:
-        pass
+        return False
+    return True
+
+
+def decrypt(packet):
+    if packet.HasField("decoded"):
+        return
+    if _try_decrypt(packet, PRIMARY_KEY):
+        return
+    for key in SECONDARY_KEYS:
+        if _try_decrypt(packet, key):
+            return
 
 
 async def get_topic_envelopes(mqtt_server, mqtt_port, topics, mqtt_user, mqtt_passwd):
@@ -70,9 +130,8 @@ async def get_topic_envelopes(mqtt_server, mqtt_port, topics, mqtt_user, mqtt_pa
                     if not envelope.packet.decoded:
                         continue
 
-                    # Skip packets from specific node
-                    # FIXME: make this configurable as a list of node IDs to skip
-                    if getattr(envelope.packet, "from", None) == 2144342101:
+                    # Skip packets from configured node IDs
+                    if getattr(envelope.packet, "from", None) in SKIP_NODE_IDS:
                         continue
 
                     msg_count += 1
