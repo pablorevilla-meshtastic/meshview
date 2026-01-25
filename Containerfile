@@ -35,7 +35,7 @@ RUN uv pip install --no-cache-dir --upgrade pip \
 COPY --chown=${APP_USER}:${APP_USER} . .
 
 # Patch config
-RUN patch -p1 < container/config.patch
+COPY --chown=${APP_USER}:${APP_USER} container/config.ini /app/sample.config.ini
 
 # Clean
 RUN rm -rf /app/.git* && \

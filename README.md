@@ -90,24 +90,26 @@ See [README-Docker.md](README-Docker.md) for container deployment and [docs/](do
 
 Samples of currently running instances:
 
-- https://meshview.bayme.sh (SF Bay Area)
-- https://www.svme.sh (Sacramento Valley)
-- https://meshview.nyme.sh (New York)
-- https://meshview.socalmesh.org (LA Area)
-- https://map.wpamesh.net (Western Pennsylvania)
-- https://meshview.chicagolandmesh.org (Chicago)
+- https://meshview.bayme.sh (SF Bay Area - USA)
+- https://www.svme.sh (Sacramento Valley - USA)
+- https://meshview.nyme.sh (New York - USA)
+- https://meshview.socalmesh.org (Los Angenles - USA)
+- https://map.wpamesh.net (Western Pennsylvania - USA)
+- https://meshview.chicagolandmesh.org (Chicago - USA)
 - https://meshview.mt.gt (Canada)
 - https://canadaverse.org (Canada)
 - https://meshview.meshtastic.es (Spain)
-- https://view.mtnme.sh (North Georgia / East Tennessee)
+- https://view.mtnme.sh (North Georgia / East Tennessee - USA)
 - https://meshview.lsinfra.de (Hessen - Germany)
-- https://meshview.pvmesh.org (Pioneer Valley, Massachusetts)
-- https://meshview.louisianamesh.org (Louisiana)
-- https://www.swlamesh.com (Southwest Louisiana)
+- https://meshview.pvmesh.org (Pioneer Valley, Massachusetts - USA)
+- https://meshview.louisianamesh.org (Louisiana - USA)
+- https://www.swlamesh.com (Southwest Louisiana- USA)
 - https://meshview.meshcolombia.co (Colombia)
 - https://meshview-salzburg.jmt.gr (Salzburg / Austria)
 - https://map.cromesh.eu (Coatia)
 - https://view.meshdresden.eu (Dresden / Germany)
+- https://meshview.meshoregon.com (Oregon - USA)
+- https://meshview.gamesh.net (Georgia - USA)
 
 ---
 
