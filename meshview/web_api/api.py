@@ -129,7 +129,7 @@ async def api_packets(request):
                 "portnum": int(p.portnum) if p.portnum is not None else None,
                 "payload": (p.payload or "").strip(),
                 "import_time_us": p.import_time_us,
-                "channel": getattr(p.from_node, "channel", ""),
+                "channel": p.channel,
                 "long_name": getattr(p.from_node, "long_name", ""),
             }
             return web.json_response({"packets": [data]})
@@ -214,7 +214,7 @@ async def api_packets(request):
             packet_dict = {
                 "id": p.id,
                 "import_time_us": p.import_time_us,
-                "channel": getattr(p.from_node, "channel", ""),
+                "channel": p.channel,
                 "from_node_id": p.from_node_id,
                 "to_node_id": p.to_node_id,
                 "portnum": int(p.portnum),

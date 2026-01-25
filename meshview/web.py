@@ -55,6 +55,7 @@ class Packet:
     from_node: models.Node
     to_node_id: int
     to_node: models.Node
+    channel: str
     portnum: int
     data: str
     raw_mesh_packet: object
@@ -102,6 +103,7 @@ class Packet:
             from_node_id=packet.from_node_id,
             to_node=packet.to_node,
             to_node_id=packet.to_node_id,
+            channel=packet.channel,
             portnum=packet.portnum,
             data=text_mesh_packet,
             payload=text_payload,  # now always a string
@@ -193,7 +195,6 @@ routes = web.RouteTableDef()
 
 @routes.get("/")
 async def index(request):
-    """Redirect root URL to configured starting page."""
     """
     Redirect root URL '/' to the page specified in CONFIG['site']['starting'].
     Defaults to '/map' if not set.
@@ -208,6 +209,7 @@ async def index(request):
 async def redirect_packet_list(request):
     packet_id = request.match_info["packet_id"]
     raise web.HTTPFound(location=f"/node/{packet_id}")
+
 
 # Generic static HTML route
 @routes.get("/{page}")

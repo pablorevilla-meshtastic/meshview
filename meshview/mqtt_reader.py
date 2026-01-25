@@ -86,7 +86,8 @@ if SECONDARY_KEYS:
 else:
     logger.info("Secondary keys: []")
 
-
+# Thank you to "Robert Grizzell" for the decryption code!
+# https://github.com/rgrizzell
 def decrypt(packet, key):
     if packet.HasField("decoded"):
         return True
