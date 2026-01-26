@@ -67,10 +67,13 @@
   },
 
   "map": {
-    "filter_routers_only": "Mostrar solo enrutadores",
-    "share_view": "Compartir esta vista",
-    "reset_filters": "Restablecer filtros",
-    "channel_label": "Canal:",
+  "filter_routers_only": "Mostrar solo enrutadores",
+  "show_routers_only": "Mostrar solo enrutadores",
+  "share_view": "Compartir esta vista",
+  "reset_filters": "Restablecer filtros",
+  "unmapped_packets_title": "Paquetes sin mapa",
+  "unmapped_packets_empty": "No hay paquetes sin mapa recientes.",
+  "channel_label": "Canal:",
     "model_label": "Modelo:",
     "role_label": "Rol:",
     "last_seen": "Visto por última vez:",

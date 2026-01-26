@@ -70,10 +70,12 @@
     },
 
     "map": {
-      "show_routers_only": "Show Routers Only",
-      "share_view": "Share This View",
-      "reset_filters": "Reset Filters To Defaults",
-      "channel_label": "Channel:",
+  "show_routers_only": "Show Routers Only",
+  "share_view": "Share This View",
+  "reset_filters": "Reset Filters To Defaults",
+  "unmapped_packets_title": "Unmapped Packets",
+  "unmapped_packets_empty": "No recent unmapped packets.",
+  "channel_label": "Channel:",
       "model_label": "Model:",
       "role_label": "Role:",
       "last_seen": "Last seen:",
