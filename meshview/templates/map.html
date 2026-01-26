@@ -24,12 +24,70 @@
     #reset-filters-button:active { background-color:#c41e0d; }
 
     .blinking-tooltip { background:white;color:black;border:1px solid black;border-radius:4px;padding:2px 5px; }
+
+    #map-wrapper {
+        position: relative;
+        width: 100%;
+        height: calc(100vh - 270px);
+    }
+    #map {
+        width: 100%;
+        height: 100%;
+    }
+    #unmapped-packets {
+        position: absolute;
+        bottom: 30px;
+        right: 15px;
+        z-index: 600;
+        width: 220px;
+        padding: 6px 8px;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 12px;
+        text-align: left;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        pointer-events: auto;
+    }
+    #unmapped-packets h3 {
+        margin: 0 0 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #000;
+    }
+    #unmapped-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 120px;
+        overflow-y: auto;
+    }
+    #unmapped-list li {
+        display: flex;
+        gap: 6px;
+        padding: 3px 0;
+        border-bottom: 1px dotted #e0e0e0;
+    }
+    #unmapped-list li:last-child { border-bottom: none; }
+    .unmapped-node { font-weight: 400; color: #000; }
+    .unmapped-empty { color: #666; font-style: italic; }
 </style>
 {% endblock %}
 
 {% block body %}
 
-<div id="map" style="width:100%; height:calc(100vh - 270px)"></div>
+<div id="map-wrapper">
+    <div id="map"></div>
+
+    <div id="unmapped-packets">
+        <h3 data-translate-lang="unmapped_packets_title">Unmapped Packets</h3>
+        <ul id="unmapped-list">
+            <li class="unmapped-empty" data-translate-lang="unmapped_packets_empty">
+                No recent unmapped packets.
+            </li>
+        </ul>
+    </div>
+</div>
 
 <div id="map-legend"
      class="legend"
@@ -117,6 +175,9 @@ var nodes = [], markers = {}, markerById = {}, nodeMap = new Map();
 var edgeLayer = L.layerGroup().addTo(map), selectedNodeId = null;
 var activeBlinks = new Map(), lastImportTime = null;
 var mapInterval = 0;
+var unmappedPackets = [];
+const UNMAPPED_LIMIT = 50;
+const UNMAPPED_TTL_MS = 5000;
 
 const portMap = {
     1:"Text",
@@ -191,7 +252,11 @@ function fetchNewPackets(){
 
               const marker = markerById[pkt.from_node_id];
               const nodeData = nodeMap.get(pkt.from_node_id);
-              if(marker && nodeData) blinkNode(marker,nodeData.long_name,pkt.portnum);
+              if(marker && nodeData) {
+                  blinkNode(marker,nodeData.long_name,pkt.portnum);
+              } else {
+                  addUnmappedPacket(pkt, nodeData);
+              }
           });
 
           lastImportTime = latest;
@@ -352,6 +417,70 @@ function renderNodesOnMap(){
     });
 
     setTimeout(() => applyTranslationsMap(), 50);
+}
+
+/* ======================================================
+   UNMAPPED PACKETS LIST
+   ====================================================== */
+
+function addUnmappedPacket(pkt, nodeData){
+    if(nodeData && !isInvalidCoord(nodeData)) return;
+
+    const now = Date.now();
+    const entry = {
+        id: pkt.id,
+        key: `${pkt.id ?? "x"}-${pkt.import_time_us ?? now}-${Math.random().toString(16).slice(2)}`,
+        import_time_us: pkt.import_time_us || 0,
+        from_node_id: pkt.from_node_id,
+        long_name: pkt.long_name || (nodeData?.long_name || ""),
+        portnum: pkt.portnum,
+        payload: (pkt.payload || "").trim(),
+        expires_at: now + UNMAPPED_TTL_MS
+    };
+
+    unmappedPackets.unshift(entry);
+    pruneUnmappedPackets(now);
+    if(unmappedPackets.length > UNMAPPED_LIMIT){
+        unmappedPackets = unmappedPackets.slice(0, UNMAPPED_LIMIT);
+    }
+    renderUnmappedPackets();
+
+    setTimeout(() => {
+        pruneUnmappedPackets(Date.now());
+        renderUnmappedPackets();
+    }, UNMAPPED_TTL_MS + 50);
+}
+
+function pruneUnmappedPackets(now){
+    unmappedPackets = unmappedPackets.filter(p => p.expires_at > now);
+}
+
+function renderUnmappedPackets(){
+    pruneUnmappedPackets(Date.now());
+    const list = document.getElementById("unmapped-list");
+    list.innerHTML = "";
+
+    if(unmappedPackets.length === 0){
+        const empty = document.createElement("li");
+        empty.className = "unmapped-empty";
+        empty.dataset.translateLang = "unmapped_packets_empty";
+        empty.textContent = "No recent unmapped packets.";
+        list.appendChild(empty);
+        return;
+    }
+
+    unmappedPackets.forEach(p=>{
+        const li = document.createElement("li");
+
+        const node = document.createElement("span");
+        node.className = "unmapped-node";
+        const type = portMap[p.portnum] || `Port ${p.portnum ?? "?"}`;
+        const name = p.long_name || `Node ${p.from_node_id ?? "?"}`;
+        node.textContent = `${name} (${type})`;
+
+        li.appendChild(node);
+        list.appendChild(li);
+    });
 }
 
 /* ======================================================
