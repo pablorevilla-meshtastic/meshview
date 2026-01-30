@@ -131,6 +131,195 @@
     color: #9fd4ff;
 }
 .inline-link:hover { color: #c7e6ff; }
+
+/* --- QR Code & Import --- */
+.node-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.node-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.node-actions button {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    border: 1px solid #4a5568;
+    border-radius: 8px;
+    color: #e4e9ee;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.node-actions button:hover {
+    background: linear-gradient(135deg, #3d4758 0%, #2a303c 100%);
+    border-color: #6a7788;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.node-actions button.copied {
+    background: linear-gradient(135deg, #276749 0%, #22543d 100%);
+    border-color: #48bb78;
+    color: #fff;
+}
+.copy-success {
+    color: #4ade80 !important;
+    transition: opacity 0.3s;
+}
+
+/* --- QR Modal --- */
+#qrModal {
+    display:none;
+    position:fixed;
+    top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.95);
+    z-index:10000;
+    align-items:center;
+    justify-content:center;
+    backdrop-filter:blur(4px);
+}
+#qrModal > div {
+    background:linear-gradient(145deg, #1e2228, #16191d);
+    border:1px solid #3a4450;
+    border-radius:16px;
+    padding:28px;
+    max-width:380px;
+    text-align:center;
+    color:#e4e9ee;
+    box-shadow:0 25px 80px rgba(0,0,0,0.6);
+}
+#qrModal .qr-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:16px;
+}
+#qrModal .qr-title {
+    font-size:1.3rem;
+    font-weight:600;
+    margin:0;
+    color:#9fd4ff;
+}
+#qrModal .qr-close {
+    background:rgba(255,255,255,0.05);
+    border:1px solid #4a5568;
+    color:#9ca3af;
+    width:32px;
+    height:32px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:1.2rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:all 0.2s;
+}
+#qrModal .qr-close:hover {
+    background:rgba(255,255,255,0.1);
+    color:#fff;
+    border-color:#6a7788;
+}
+#qrModal .qr-node-name {
+    font-size:1.15rem;
+    color:#fff;
+    margin:12px 0 20px;
+    font-weight:500;
+}
+#qrModal .qr-image {
+    background:#fff;
+    padding:16px;
+    border-radius:12px;
+    display:inline-block;
+    margin-bottom:16px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.4);
+}
+#qrModal .qr-image img {
+    display:block;
+    border-radius:4px;
+}
+#qrModal .qr-url-container {
+    background:rgba(0,0,0,0.4);
+    border-radius:8px;
+    padding:12px;
+    margin-bottom:18px;
+}
+#qrModal .qr-url {
+    font-size:0.65rem;
+    color:#9ca3af;
+    word-break:break-all;
+    font-family:'Monaco', 'Menlo', monospace;
+    line-height:1.4;
+    max-height:48px;
+    overflow-y:auto;
+    display:block;
+}
+#qrModal .qr-actions {
+    display:flex;
+    gap:12px;
+    justify-content:center;
+}
+#qrModal .qr-btn {
+    background:linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    border:1px solid #4a5568;
+    color:#e4e9ee;
+    padding:12px 24px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:0.9rem;
+    font-weight:500;
+    transition:all 0.2s;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:140px;
+    justify-content:center;
+}
+#qrModal .qr-btn:hover {
+    background:linear-gradient(135deg, #3d4758 0%, #2a303c 100%);
+    border-color:#6a7788;
+    transform:translateY(-2px);
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+#qrModal .qr-btn.copied {
+    background:linear-gradient(135deg, #276749 0%, #22543d 100%);
+    border-color:#48bb78;
+    color:#fff;
+}
+
+/* --- Impersonation Warning --- */
+.impersonation-warning {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.impersonation-warning .warning-icon {
+    font-size: 1.2rem;
+}
+.impersonation-warning .warning-content {
+    flex: 1;
+}
+.impersonation-warning .warning-title {
+    color: #f87171;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+.impersonation-warning .warning-text {
+    font-size: 0.85rem;
+    color: #ccc;
+}
 {% endblock %}
 
 {% block body %}
@@ -140,6 +329,25 @@
         📡 <span data-translate-lang="specifications">Specifications:</span><strong>:</strong>
         <span id="nodeLabel"></span>
     </h5>
+
+    <!-- Node Actions -->
+    <div class="node-actions" id="nodeActions" style="display:none;">
+        <button onclick="copyImportUrl()" id="copyUrlBtn">
+            <span>📋</span> <span data-translate-lang="copy_import_url">Copy Import URL</span>
+        </button>
+        <button onclick="showQrCode()" id="showQrBtn">
+            <span>🔳</span> <span data-translate-lang="show_qr_code">Show QR Code</span>
+        </button>
+    </div>
+
+    <!-- Impersonation Warning -->
+    <div id="impersonationWarning" class="impersonation-warning" style="display:none;">
+        <span class="warning-icon">⚠️</span>
+        <div class="warning-content">
+            <div class="warning-title" data-translate-lang="potential_impersonation">Potential Impersonation Detected</div>
+            <div class="warning-text" id="impersonationText"></div>
+        </div>
+    </div>
 
     <!-- Node Info -->
     <div id="node-info" class="node-info">
@@ -284,7 +492,30 @@
     </div>
 </div>
 
+<!-- QR Code Modal -->
+<div id="qrModal">
+    <div>
+        <div class="qr-header">
+            <h3 class="qr-title" data-translate-lang="share_contact_qr">Share Contact QR</h3>
+            <button class="qr-close" onclick="closeQrModal()">✕</button>
+        </div>
+        <div class="qr-node-name" id="qrNodeName">Loading...</div>
+        <div class="qr-image">
+            <div id="qrCodeContainer"></div>
+        </div>
+        <div class="qr-url-container">
+            <span class="qr-url" id="qrUrl">Generating...</span>
+        </div>
+        <div class="qr-actions">
+            <button class="qr-btn" onclick="copyQrUrl()" id="copyQrBtn">
+                <span>📋</span> <span data-translate-lang="copy_url">Copy URL</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="/static/portmaps.js"></script>
 
 <script>
@@ -1309,6 +1540,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     requestAnimationFrame(async () => {
         await loadNodeInfo();
 
+        // Load QR code URL and impersonation check
+        await loadNodeQrAndImpersonation();
+
         // ✅ MAP MUST EXIST FIRST
         if (!map) initMap();
 
@@ -1430,11 +1664,125 @@ async function loadNodeStats(nodeId) {
     const csv = rows.map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
 
-    const link = document.createElement("a");
+     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = `packets_${fromNodeId}_${Date.now()}.csv`;
     link.click();
 }
+
+/* ======================================================
+    QR CODE & IMPORT URL
+    ====================================================== */
+
+let currentMeshtasticUrl = "";
+
+async function loadNodeQrAndImpersonation() {
+    const actionsDiv = document.getElementById("nodeActions");
+    const warningDiv = document.getElementById("impersonationWarning");
+
+    try {
+        const [qrRes, impRes] = await Promise.all([
+            fetch(`/api/node/${fromNodeId}/qr`),
+            fetch(`/api/node/${fromNodeId}/impersonation-check`)
+        ]);
+
+        const qrData = await qrRes.json();
+        if (qrRes.ok && qrData.meshtastic_url) {
+            currentMeshtasticUrl = qrData.meshtastic_url;
+            actionsDiv.style.display = "flex";
+        } else {
+            actionsDiv.style.display = "none";
+        }
+
+        const impData = await impRes.json();
+        if (impRes.ok && impData.potential_impersonation) {
+            warningDiv.style.display = "flex";
+            document.getElementById("impersonationText").textContent =
+                impData.warning || `This node has sent ${impData.unique_public_key_count} different public keys. This could indicate impersonation.`;
+        } else {
+            warningDiv.style.display = "none";
+        }
+    } catch (err) {
+        console.error("Failed to load QR/impersonation data:", err);
+        actionsDiv.style.display = "none";
+        warningDiv.style.display = "none";
+    }
+}
+
+function copyImportUrl() {
+    if (!currentMeshtasticUrl) return;
+
+    navigator.clipboard.writeText(currentMeshtasticUrl).then(() => {
+        const btn = document.getElementById("copyUrlBtn");
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span>✅</span> <span data-translate-lang="copied">Copied!</span>';
+        btn.classList.add("copy-success");
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove("copy-success");
+        }, 2000);
+    }).catch(err => {
+        console.error("Failed to copy:", err);
+        alert("Failed to copy URL to clipboard");
+    });
+}
+
+function showQrCode() {
+    if (!currentMeshtasticUrl) return;
+
+    const node = currentNode;
+    document.getElementById("qrNodeName").textContent =
+        node && node.long_name ? node.long_name : `Node ${fromNodeId}`;
+    document.getElementById("qrUrl").textContent = currentMeshtasticUrl;
+
+    generateQrCode(currentMeshtasticUrl);
+
+    document.getElementById("qrModal").style.display = "flex";
+}
+
+function closeQrModal() {
+    document.getElementById("qrModal").style.display = "none";
+}
+
+function copyQrUrl() {
+    navigator.clipboard.writeText(currentMeshtasticUrl).then(() => {
+        const btn = document.getElementById("copyQrBtn");
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<span>✅</span> <span data-translate-lang="copied">Copied!</span>';
+        btn.classList.add("copied");
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove("copied");
+        }, 2000);
+    }).catch(err => {
+        console.error("Failed to copy:", err);
+    });
+}
+
+function generateQrCode(text) {
+    const container = document.getElementById("qrCodeContainer");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    try {
+        new QRCode(container, {
+            text: text,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    } catch (e) {
+        console.error("QR Code generation error:", e);
+        container.innerHTML = '<div style="padding:20px;color:#f87171;">Failed to generate QR code</div>';
+    }
+}
+
+/* ======================================================
+    END QR CODE & IMPORT URL
+    ====================================================== */
 
 
 
