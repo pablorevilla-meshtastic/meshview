@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 Packet = None
 SEQ_REGEX = None
 LANG_DIR = None
+_LANG_CACHE = {}
 
 # Create dedicated route table for API endpoints
 routes = web.RouteTableDef()
@@ -593,9 +594,20 @@ async def api_lang(request):
     if not os.path.exists(lang_file):
         lang_file = os.path.join(LANG_DIR, "en.json")
 
-    # Load JSON translations
-    with open(lang_file, encoding="utf-8") as f:
-        translations = json.load(f)
+    # Cache by file + mtime to avoid re-reading on every request
+    try:
+        mtime = os.path.getmtime(lang_file)
+    except OSError:
+        mtime = None
+
+    cache_key = lang_file
+    cached = _LANG_CACHE.get(cache_key)
+    if cached and cached.get("mtime") == mtime:
+        translations = cached["translations"]
+    else:
+        with open(lang_file, encoding="utf-8") as f:
+            translations = json.load(f)
+        _LANG_CACHE[cache_key] = {"mtime": mtime, "translations": translations}
 
     if section:
         section = section.lower()
