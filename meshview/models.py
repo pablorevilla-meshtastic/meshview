@@ -100,7 +100,6 @@ class Traceroute(Base):
     import_time_us: Mapped[int] = mapped_column(BigInteger, nullable=True)
 
     __table_args__ = (
-    Index("idx_traceroute_packet_id", "packet_id"),
-    Index("idx_traceroute_import_time_us", "import_time_us"),
-)
-
+        Index("idx_traceroute_packet_id", "packet_id"),
+        Index("idx_traceroute_import_time_us", "import_time_us"),
+    )
