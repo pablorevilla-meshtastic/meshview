@@ -554,60 +554,76 @@ echo "Database cleanup completed on $(date)"
 - If you are using PostgreSQL, use this version instead (adjust credentials/DB name):
 ```bash
 #!/bin/bash
+set -euo pipefail
 
-DB_NAME="meshview"
-DB_USER="meshview"
-DB_HOST="localhost"
-DB_PORT="5432"
+DB="postgresql://meshview@localhost:5432/meshview"
+RETENTION_DAYS=14
+BATCH_SIZE=100
 
-# Stop DB service
-sudo systemctl stop meshview-db.service
-sudo systemctl stop meshview-web.service
+PSQL="/usr/bin/psql"
 
-sleep 5
-echo "Run cleanup..."
-# Run cleanup queries
-psql "postgresql://${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}" <<'EOF'
-WITH deleted AS (
-  DELETE FROM packet
+echo "[$(date)] Starting batched cleanup..."
+
+while true; do
+  DELETED=$(
+    $PSQL "$DB" -At -v ON_ERROR_STOP=1 <<EOF
+WITH cutoff AS (
+  SELECT (EXTRACT(EPOCH FROM (NOW() - INTERVAL '${RETENTION_DAYS} days')) * 1000000)::bigint AS ts
+),
+old_packets AS (
+  SELECT id
+  FROM packet, cutoff
   WHERE import_time_us IS NOT NULL
-    AND import_time_us < (EXTRACT(EPOCH FROM (NOW() - INTERVAL '14 days')) * 1000000)
-  RETURNING 1
-)
-SELECT 'packet deleted: ' || COUNT(*) FROM deleted;
-
-WITH deleted AS (
+    AND import_time_us < cutoff.ts
+  ORDER BY id
+  LIMIT ${BATCH_SIZE}
+),
+ps_del AS (
   DELETE FROM packet_seen
-  WHERE import_time_us IS NOT NULL
-    AND import_time_us < (EXTRACT(EPOCH FROM (NOW() - INTERVAL '14 days')) * 1000000)
+  WHERE packet_id IN (SELECT id FROM old_packets)
   RETURNING 1
-)
-SELECT 'packet_seen deleted: ' || COUNT(*) FROM deleted;
-
-WITH deleted AS (
+),
+tr_del AS (
   DELETE FROM traceroute
-  WHERE import_time_us IS NOT NULL
-    AND import_time_us < (EXTRACT(EPOCH FROM (NOW() - INTERVAL '14 days')) * 1000000)
+  WHERE packet_id IN (SELECT id FROM old_packets)
+  RETURNING 1
+),
+p_del AS (
+  DELETE FROM packet
+  WHERE id IN (SELECT id FROM old_packets)
   RETURNING 1
 )
-SELECT 'traceroute deleted: ' || COUNT(*) FROM deleted;
+SELECT COUNT(*) FROM p_del;
+EOF
+  )
 
-WITH deleted AS (
-  DELETE FROM node
-  WHERE last_seen_us IS NULL
-     OR last_seen_us < (EXTRACT(EPOCH FROM (NOW() - INTERVAL '14 days')) * 1000000)
-  RETURNING 1
-)
-SELECT 'node deleted: ' || COUNT(*) FROM deleted;
+  if [[ "$DELETED" -eq 0 ]]; then
+    break
+  fi
+  
+  sleep 0.1
+done
 
-VACUUM;
+echo "[$(date)] Packet cleanup complete"
+
+echo "[$(date)] Cleaning old nodes..."
+
+$PSQL "$DB" -v ON_ERROR_STOP=1 <<EOF
+DELETE FROM node
+WHERE last_seen_us IS NOT NULL
+  AND last_seen_us < (
+    EXTRACT(EPOCH FROM (NOW() - INTERVAL '${RETENTION_DAYS} days')) * 1000000
+  );
 EOF
 
-# Start DB service
-sudo systemctl start meshview-db.service
-sudo systemctl start meshview-web.service
+echo "[$(date)] Node cleanup complete"
 
-echo "Database cleanup completed on $(date)"
+$PSQL "$DB" -c "VACUUM (ANALYZE) packet_seen;"
+$PSQL "$DB" -c "VACUUM (ANALYZE) traceroute;"
+$PSQL "$DB" -c "VACUUM (ANALYZE) packet;"
+$PSQL "$DB" -c "VACUUM (ANALYZE) node;"
+
+echo "[$(date)] Cleanup finished"
 ```
 - Schedule running the script on a regular basis. 
 - In this example it runs every night at 2:00am.

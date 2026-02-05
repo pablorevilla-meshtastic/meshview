@@ -761,7 +761,8 @@ async def api_traceroute(request):
 
     forward_paths = []
     reverse_paths = []
-    winning_paths = []
+    winning_forward_paths = []
+    winning_reverse_paths = []
 
     for tr in tr_groups:
         f = tuple(tr["forward_hops"])
@@ -774,7 +775,10 @@ async def api_traceroute(request):
             reverse_paths.append(r)
 
         if tr["done"]:
-            winning_paths.append(f)
+            if tr["forward_hops"]:
+                winning_forward_paths.append(f)
+            if tr["reverse_hops"]:
+                winning_reverse_paths.append(r)
 
     # Deduplicate
     unique_forward_paths = sorted(set(forward_paths))
@@ -790,7 +794,30 @@ async def api_traceroute(request):
 
     unique_reverse_paths_json = [list(p) for p in unique_reverse_paths]
 
-    winning_paths_json = [list(p) for p in set(winning_paths)]
+    from_node_id = packet.from_node_id
+    to_node_id = packet.to_node_id
+    winning_forward_with_endpoints = []
+    for path in set(winning_forward_paths):
+        full_path = list(path)
+        if from_node_id is not None and (not full_path or full_path[0] != from_node_id):
+            full_path = [from_node_id, *full_path]
+        if to_node_id is not None and (not full_path or full_path[-1] != to_node_id):
+            full_path = [*full_path, to_node_id]
+        winning_forward_with_endpoints.append(full_path)
+
+    winning_reverse_with_endpoints = []
+    for path in set(winning_reverse_paths):
+        full_path = list(path)
+        if to_node_id is not None and (not full_path or full_path[0] != to_node_id):
+            full_path = [to_node_id, *full_path]
+        if from_node_id is not None and (not full_path or full_path[-1] != from_node_id):
+            full_path = [*full_path, from_node_id]
+        winning_reverse_with_endpoints.append(full_path)
+
+    winning_paths_json = {
+        "forward": winning_forward_with_endpoints,
+        "reverse": winning_reverse_with_endpoints,
+    }
 
     # --------------------------------------------
     # Final API output

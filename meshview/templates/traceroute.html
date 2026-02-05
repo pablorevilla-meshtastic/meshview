@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+{% endblock %}
+
+{% block css %}
+#traceroute-graph {
+    width: 100%;
+    height: 85vh;
+    border: 1px solid #2a2f36;
+    background: linear-gradient(135deg, #0f1216 0%, #171b22 100%);
+    border-radius: 10px;
+}
+
+#traceroute-meta {
+    padding: 12px 16px;
+    color: #c8d0da;
+}
+
+#traceroute-error {
+    color: #ff6b6b;
+}
+{% endblock %}
+
+{% block body %}
+<div id="traceroute-meta">
+    <div><b>Traceroute</b> <span id="traceroute-title"></span></div>
+    <div id="traceroute-error"></div>
+</div>
+<div id="traceroute-graph"></div>
+
+<script>
+const el = document.getElementById("traceroute-graph");
+const chart = echarts.init(el);
+
+function packetIdFromPath() {
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    return parts[parts.length - 1];
+}
+
+function addPathEdges(path, edges, style) {
+    for (let i = 0; i < path.length - 1; i++) {
+        edges.push({
+            source: String(path[i]),
+            target: String(path[i + 1]),
+            lineStyle: style
+        });
+    }
+}
+
+async function loadTraceroute() {
+    const packetId = packetIdFromPath();
+    document.getElementById("traceroute-title").textContent = `#${packetId}`;
+
+    const [res, nodesRes] = await Promise.all([
+        fetch(`/api/traceroute/${packetId}`),
+        fetch("/api/nodes"),
+    ]);
+    if (!res.ok) {
+        document.getElementById("traceroute-error").textContent = "Traceroute not found.";
+        return;
+    }
+
+    const data = await res.json();
+    const nodesData = nodesRes.ok ? await nodesRes.json() : { nodes: [] };
+    const nodeShortNameById = new Map(
+        (nodesData.nodes || []).map(n => [String(n.node_id), n.short_name || n.long_name || String(n.node_id)])
+    );
+    const nodeLongNameById = new Map(
+        (nodesData.nodes || []).map(n => [String(n.node_id), n.long_name || n.short_name || String(n.node_id)])
+    );
+    const nodes = new Map();
+    const edges = [];
+
+    const forwardPaths = data?.winning_paths?.forward || [];
+    const reversePaths = data?.winning_paths?.reverse || [];
+    const originId = data?.packet?.from != null ? String(data.packet.from) : null;
+    const targetId = data?.packet?.to != null ? String(data.packet.to) : null;
+
+    forwardPaths.forEach(path => {
+        path.forEach(id => nodes.set(String(id), { name: String(id) }));
+        addPathEdges(path, edges, { color: "#ff5733", width: 3 });
+    });
+
+    reversePaths.forEach(path => {
+        path.forEach(id => nodes.set(String(id), { name: String(id) }));
+        addPathEdges(path, edges, { color: "#00c3ff", width: 2, type: "dashed" });
+    });
+
+    const graphNodes = Array.from(nodes.values()).map(n => {
+        const isOrigin = originId && n.name === originId;
+        const isTarget = targetId && n.name === targetId;
+        const color = isOrigin ? "#ff3b30" : isTarget ? "#34c759" : "#8aa4c8";
+        const size = isOrigin || isTarget ? 44 : 36;
+        return {
+            id: n.name,
+            name: nodeShortNameById.get(n.name) || n.name,
+            symbolSize: size,
+            itemStyle: { color },
+            label: {
+                show: true,
+                color: "#e7eef7",
+                fontWeight: "bold"
+            },
+            tooltip: {
+                formatter: () => nodeLongNameById.get(n.name) || n.name
+            }
+        };
+    });
+
+    const option = {
+        backgroundColor: "transparent",
+        tooltip: { trigger: "item" },
+        series: [
+            {
+                type: "graph",
+                layout: "force",
+                roam: true,
+                zoom: 1.2,
+                draggable: true,
+                force: { repulsion: 200, edgeLength: 80 },
+                data: graphNodes,
+                edges: edges,
+                lineStyle: { opacity: 0.8, curveness: 0.1 },
+                edgeSymbol: ["none", "arrow"],
+                edgeSymbolSize: 10
+            }
+        ]
+    };
+
+    chart.setOption(option);
+}
+
+loadTraceroute();
+window.addEventListener("resize", () => chart.resize());
+</script>
+{% endblock %}
