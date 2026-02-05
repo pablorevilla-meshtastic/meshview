@@ -131,6 +131,141 @@
     color: #9fd4ff;
 }
 .inline-link:hover { color: #c7e6ff; }
+
+.coverage-mapper {
+    background-color: #1f2226;
+    border: 1px solid #3a3f44;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.coverage-mapper-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.coverage-mapper-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #9fd4ff;
+}
+
+.coverage-mapper button {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    border: 1px solid #4a5568;
+    border-radius: 6px;
+    color: #e4e9ee;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.coverage-mapper button:hover {
+    background: linear-gradient(135deg, #3d4758 0%, #2a303c 100%);
+    border-color: #6a7788;
+}
+
+.coverage-mapper button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.coverage-params {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.coverage-param {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.coverage-param label {
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+.coverage-param input, .coverage-param select {
+    background: #16191d;
+    border: 1px solid #3a3f44;
+    border-radius: 4px;
+    color: #e4e9ee;
+    padding: 6px 8px;
+    font-size: 0.9rem;
+}
+
+.coverage-lora-info {
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+}
+
+.coverage-lora-info .lora-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+}
+
+.coverage-lora-info .lora-label {
+    color: #9ca3af;
+}
+
+.coverage-lora-info .lora-value {
+    color: #4ade80;
+    font-weight: 500;
+}
+
+.coverage-progress {
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.coverage-progress-bar {
+    height: 4px;
+    background: #3a3f44;
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.coverage-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ade80, #22d3ee);
+    width: 0%;
+    transition: width 0.3s;
+}
+
+.coverage-error {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 12px;
+    display: none;
+}
+
+.coverage-error.visible {
+    display: block;
+}
+
+/* Match site.meshtastic.org: allow smooth resampling when scaled */
+.coverage-overlay-image {
+    image-rendering: auto;
+}
+
 {% endblock %}
 
 {% block body %}
@@ -153,6 +288,7 @@
         <div><strong data-translate-lang="role">Role</strong><strong>: </strong> <span id="info-role">—</span></div>
 
         <div><strong data-translate-lang="channel">Channel</strong><strong>: </strong> <span id="info-channel">—</span></div>
+        <div><strong>TX Power (max)</strong><strong>: </strong> <span id="info-tx-power">—</span></div>
         <div><strong data-translate-lang="latitude">Latitude</strong><strong>: </strong> <span id="info-lat">—</span></div>
         <div><strong data-translate-lang="longitude">Longitude</strong><strong>: </strong> <span id="info-lon">—</span></div>
 
@@ -170,6 +306,72 @@
 
     <!-- Map. -->
     <div id="map"></div>
+
+    <!-- Coverage Prediction Mapper -->
+    <div class="coverage-mapper" style="display:none;">
+        <div class="coverage-mapper-header">
+            <div class="coverage-mapper-title">📡 Coverage Prediction</div>
+            <button id="coverageRunBtn" onclick="runCoveragePrediction()">Get Coverage</button>
+        </div>
+        
+        <div id="coverageParams" class="coverage-params">
+            <div class="coverage-param">
+                <label>Radius (km)</label>
+                <input type="number" id="coverageRadius" value="30" min="1" max="150">
+            </div>
+            <div class="coverage-param">
+                <label>TX Power (dBm)</label>
+                <input type="number" id="coverageTxPower" value="20" min="0" max="30">
+            </div>
+            <div class="coverage-param">
+                <label>TX Gain (dB)</label>
+                <input type="number" id="coverageTxGain" value="2" min="0" max="10">
+            </div>
+            <div class="coverage-param">
+                <label>Frequency (MHz)</label>
+                <select id="coverageFrequency">
+                    <option value="906.4">906.4 MHz (EU868)</option>
+                    <option value="907.6">907.6 MHz</option>
+                    <option value="908.8">908.8 MHz</option>
+                    <option value="909.0">909.0 MHz</option>
+                    <option value="909.8">909.8 MHz</option>
+                    <option value="910.0">910.0 MHz</option>
+                    <option value="911.0">911.0 MHz</option>
+                    <option value="912.0">912.0 MHz</option>
+                    <option value="913.0">913.0 MHz</option>
+                    <option value="914.0">914.0 MHz</option>
+                    <option value="915.0" selected>915.0 MHz (US915)</option>
+                    <option value="916.0">916.0 MHz</option>
+                    <option value="917.0">917.0 MHz</option>
+                    <option value="918.0">918.0 MHz</option>
+                    <option value="919.0">919.0 MHz</option>
+                    <option value="920.0">920.0 MHz</option>
+                    <option value="921.0">921.0 MHz</option>
+                    <option value="922.0">922.0 MHz</option>
+                    <option value="923.0">923.0 MHz</option>
+                    <option value="924.0">924.0 MHz</option>
+                    <option value="925.0">925.0 MHz</option>
+                    <option value="927.0">927.0 MHz</option>
+                </select>
+            </div>
+        </div>
+        
+        <div id="coverageLoraInfo" class="coverage-lora-info">
+            <div class="lora-row">
+                <span class="lora-label">LoRa Config:</span>
+                <span class="lora-value" id="coverageLoraConfig">—</span>
+            </div>
+        </div>
+        
+        <div id="coverageProgress" class="coverage-progress" style="display: none;">
+            <div id="coverageProgressText">Submitting prediction...</div>
+            <div class="coverage-progress-bar">
+                <div id="coverageProgressFill" class="coverage-progress-fill"></div>
+            </div>
+        </div>
+        
+        <div id="coverageError" class="coverage-error"></div>
+    </div>
 
     <!-- Battery Chart -->
     <div id="battery_voltage_container" class="chart-container">
@@ -285,6 +487,10 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/georaster-layer-for-leaflet@3.10.0/georaster-layer-for-leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script src="/static/portmaps.js"></script>
 
 <script>
@@ -479,10 +685,94 @@ async function loadNodeInfo(){
         }
         document.getElementById("info-last-update").textContent = lastSeen;
         loadNodeStats(node.node_id);
+        updateCoverageVisibility(node);
+        updateCoverageFrequency(node);
+        updateCoverageLoraConfig(node);
+        updateCoverageTxPower(node);
     } catch (err) {
         console.error("Failed to load node info:", err);
         document.getElementById("node-info").style.display = "none";
     }
+}
+
+function updateCoverageVisibility(node) {
+    const panel = document.querySelector(".coverage-mapper");
+    if (!panel) return;
+
+    const hasPos =
+        Boolean(node) &&
+        typeof node.last_lat === "number" &&
+        typeof node.last_long === "number" &&
+        Number.isFinite(node.last_lat) &&
+        Number.isFinite(node.last_long);
+    panel.style.display = hasPos ? "block" : "none";
+}
+
+function updateCoverageFrequency(node) {
+    const freqSelect = document.getElementById("coverageFrequency");
+    if (!freqSelect) return;
+
+    const freqMhz = Number((node && (node.frequency_mhz ?? (node.lora && node.lora.frequency_mhz))) ?? NaN);
+    if (!Number.isFinite(freqMhz)) return;
+
+    // Try to match an existing option (values are MHz).
+    const eps = 1e-6;
+    for (const opt of freqSelect.options) {
+        const optVal = Number(opt.value);
+        if (Number.isFinite(optVal) && Math.abs(optVal - freqMhz) < eps) {
+            freqSelect.value = opt.value;
+            return;
+        }
+    }
+
+    // If it doesn't exist (e.g. 913.125), add an inferred option.
+    const inferredValue = String(freqMhz);
+    const opt = document.createElement("option");
+    opt.value = inferredValue;
+    opt.textContent = `${freqMhz.toFixed(3)} MHz (inferred)`;
+    freqSelect.appendChild(opt);
+    freqSelect.value = inferredValue;
+}
+
+function updateCoverageLoraConfig(node) {
+    const loraConfigEl = document.getElementById("coverageLoraConfig");
+    if (!loraConfigEl) return;
+    
+    // Try to get LoRa config from node data
+    let configStr = "Default";
+    
+    if (node.modem_config) {
+        configStr = node.modem_config;
+    } else if (node.lora && node.lora.modem_preset) {
+        const l = node.lora;
+        configStr = `${l.modem_preset} (bw=${l.bw_khz}kHz sf=${l.sf} cr=${l.cr})`;
+    } else if (node.region || (node.lora && node.lora.region)) {
+        configStr = node.region || node.lora.region;
+    }
+    
+    loraConfigEl.textContent = configStr;
+}
+
+function updateCoverageTxPower(node) {
+    const txInput = document.getElementById("coverageTxPower");
+    const infoEl = document.getElementById("info-tx-power");
+
+    const raw = Number((node && (node.tx_power_dbm ?? (node.lora && node.lora.tx_power_dbm))) ?? NaN);
+    const effective = Number.isFinite(raw) ? raw : 20.0;
+    if (infoEl) {
+        infoEl.textContent = `${effective.toFixed(1)} dBm`;
+    }
+
+    if (!txInput) return;
+
+    // Keep within the UI bounds.
+    const min = Number(txInput.min ?? 0);
+    const max = Number(txInput.max ?? 30);
+    const clamped = Math.max(
+        Number.isFinite(min) ? min : 0,
+        Math.min(effective, Number.isFinite(max) ? max : 30),
+    );
+    txInput.value = String(clamped);
 }
 
 /* ======================================================
@@ -1437,6 +1727,891 @@ async function loadNodeStats(nodeId) {
 }
 
 
+// Coverage Prediction Functions
+let coverageGeoTIFFLayer = null;
+let coverageGeoRasterLayer = null;
+
+async function maybeAwait(value) {
+    if (value && typeof value.then === "function") {
+        return await value;
+    }
+    return value;
+}
+
+function normalizeBounds(bounds) {
+    let { left, right, top, bottom } = bounds;
+    if (top < bottom) {
+        [top, bottom] = [bottom, top];
+    }
+    if (right < left) {
+        [right, left] = [left, right];
+    }
+    return { ...bounds, left, right, top, bottom };
+}
+
+function boundsLookLikeDegrees(bounds) {
+    const { left, right, top, bottom } = bounds;
+    return (
+        Math.abs(left) <= 180 &&
+        Math.abs(right) <= 180 &&
+        Math.abs(top) <= 90 &&
+        Math.abs(bottom) <= 90
+    );
+}
+
+function boundsContainPoint(bounds, lat, lon) {
+    const { left, right, top, bottom } = bounds;
+    return (
+        Number.isFinite(left) &&
+        Number.isFinite(right) &&
+        Number.isFinite(top) &&
+        Number.isFinite(bottom) &&
+        bottom <= lat &&
+        lat <= top &&
+        left <= lon &&
+        lon <= right
+    );
+}
+
+function pixelPositionForBounds(bounds, nodeLat, nodeLon, width, height) {
+    const dxDeg = (bounds.right - bounds.left) / width;
+    const dyDeg = (bounds.top - bounds.bottom) / height;
+    if (!Number.isFinite(dxDeg) || !Number.isFinite(dyDeg) || dxDeg <= 0 || dyDeg <= 0) {
+        return null;
+    }
+
+    // If yAxis is unknown, assume the common north-up/top-left convention.
+    const yAxis = (bounds && typeof bounds.yAxis === "string") ? bounds.yAxis : "top-left";
+    const xPx = (nodeLon - bounds.left) / dxDeg;
+    const yPx = yAxis === "bottom-left" ? (nodeLat - bounds.bottom) / dyDeg : (bounds.top - nodeLat) / dyDeg;
+    return { xPx, yPx, dxDeg, dyDeg, yAxis };
+}
+
+function scoreBounds(bounds, nodeLat, nodeLon, width, height) {
+    // Prefer bounds that map the node close to the image center in pixel-space.
+    // This catches subtle half-pixel / edge-vs-center convention mismatches that
+    // look like the overlay being shifted north/south.
+    const px = pixelPositionForBounds(bounds, nodeLat, nodeLon, width, height);
+
+    // Sanity: bounds must have positive span.
+    const spanLat = bounds.top - bounds.bottom;
+    const spanLon = bounds.right - bounds.left;
+    if (!(spanLat > 0 && spanLon > 0)) {
+        return 1e9;
+    }
+
+    // Hard preference: the transmitter/node should fall inside the image bounds.
+    if (!boundsContainPoint(bounds, nodeLat, nodeLon)) {
+        return 1e6;
+    }
+
+    if (!px || !Number.isFinite(px.xPx) || !Number.isFinite(px.yPx)) {
+        return 1e5;
+    }
+
+    const dX = px.xPx - width / 2;
+    const dY = px.yPx - height / 2;
+    return Math.hypot(dX, dY);
+}
+
+function computeBoundsFromTiepointScale({
+    originX,
+    originY,
+    scaleX,
+    scaleY,
+    width,
+    height,
+    rasterType,
+    yAxis,
+}) {
+    // rasterType: 1=PixelIsArea, 2=PixelIsPoint (GeoTIFF GTRasterTypeGeoKey)
+    // yAxis: "top-left" (north-up typical) or "bottom-left" (alternate)
+    const isPoint = rasterType === 2;
+    const scaleXAbs = Math.abs(scaleX);
+    const scaleYAbs = Math.abs(scaleY);
+    const halfX = isPoint ? scaleXAbs / 2 : 0;
+    const halfY = isPoint ? scaleYAbs / 2 : 0;
+
+    const left = originX - halfX;
+    const right = originX + scaleXAbs * width - halfX;
+
+    let top;
+    let bottom;
+    if (yAxis === "bottom-left") {
+        bottom = originY - halfY;
+        top = originY + scaleYAbs * height - halfY;
+    } else {
+        top = originY + halfY;
+        bottom = originY - scaleYAbs * height + halfY;
+    }
+
+    return { left, right, top, bottom };
+}
+
+async function pickBestGeoTIFFLatLonBounds(image, width, height, nodeLat, nodeLon) {
+    const fileDir = (image && typeof image.getFileDirectory === "function")
+        ? image.getFileDirectory()
+        : (image && image.fileDirectory) || {};
+
+    const modelPixelScale = fileDir.ModelPixelScale || fileDir.ModelPixelScaleTag;
+    const modelTiepoint = fileDir.ModelTiepoint || fileDir.ModelTiepointTag;
+
+    let tiepoints = null;
+    if (image && typeof image.getTiePoints === "function") {
+        tiepoints = await maybeAwait(image.getTiePoints());
+    }
+
+    let originX;
+    let originY;
+    if (Array.isArray(tiepoints) && tiepoints.length > 0 && tiepoints[0] && typeof tiepoints[0] === "object") {
+        originX = tiepoints[0].x;
+        originY = tiepoints[0].y;
+    } else if (Array.isArray(modelTiepoint) && modelTiepoint.length >= 6) {
+        originX = modelTiepoint[3];
+        originY = modelTiepoint[4];
+    }
+
+    const scaleX = Array.isArray(modelPixelScale) ? modelPixelScale[0] : undefined;
+    const scaleY = Array.isArray(modelPixelScale) ? modelPixelScale[1] : undefined;
+
+    let geoKeys = null;
+    if (image && typeof image.getGeoKeys === "function") {
+        geoKeys = await maybeAwait(image.getGeoKeys());
+    }
+
+    const candidates = [];
+
+    // Candidate 1: GeoTIFF.js bbox
+    if (image && typeof image.getBoundingBox === "function") {
+        const bbox = await maybeAwait(image.getBoundingBox());
+        if (Array.isArray(bbox) && bbox.length === 4) {
+            const [minX, minY, maxX, maxY] = bbox;
+            candidates.push(normalizeBounds({
+                left: minX,
+                bottom: minY,
+                right: maxX,
+                top: maxY,
+                source: "getBoundingBox",
+                yAxis: null,
+                rasterType: null,
+            }));
+        }
+    }
+
+    // Candidate 2: origin/resolution
+    if (image && typeof image.getOrigin === "function" && typeof image.getResolution === "function") {
+        const origin = await maybeAwait(image.getOrigin());
+        const res = await maybeAwait(image.getResolution());
+        if (Array.isArray(origin) && origin.length >= 2 && Array.isArray(res) && res.length >= 2) {
+            const left = origin[0];
+            const top = origin[1];
+            const dx = res[0];
+            const dy = res[1];
+            candidates.push(
+                normalizeBounds({
+                    left,
+                    top,
+                    right: left + dx * width,
+                    bottom: top - dy * height,
+                    source: "getOrigin/getResolution",
+                    yAxis: null,
+                    rasterType: null,
+                })
+            );
+        }
+    }
+
+    // Candidates 3+: tiepoint/pixelscale variants
+    if (
+        originX !== undefined &&
+        originY !== undefined &&
+        Number.isFinite(scaleX) &&
+        Number.isFinite(scaleY)
+    ) {
+        // site.meshtastic.org GeoTIFFs behave as PixelIsArea in practice.
+        const rasterTypesToTry = [1];
+        const yAxesToTry = ["top-left", "bottom-left"];
+
+        for (const rt of rasterTypesToTry) {
+            for (const yAxis of yAxesToTry) {
+                const b = computeBoundsFromTiepointScale({
+                    originX,
+                    originY,
+                    scaleX,
+                    scaleY,
+                    width,
+                    height,
+                    rasterType: rt,
+                    yAxis,
+                });
+                candidates.push(normalizeBounds({
+                    ...b,
+                    source: `ModelTiepoint/ModelPixelScale(rt=${rt},y=${yAxis})`,
+                    yAxis,
+                    rasterType: rt,
+                }));
+            }
+        }
+    }
+
+    const degreesCandidates = candidates.filter(boundsLookLikeDegrees);
+    const usable = degreesCandidates.length ? degreesCandidates : candidates;
+
+    if (!usable.length) {
+        console.log("GeoTIFF debug: image keys", image ? Object.keys(image) : null);
+        console.log("GeoTIFF debug: fileDirectory keys", fileDir ? Object.keys(fileDir) : null);
+        console.log("GeoTIFF debug: geoKeys", geoKeys);
+        throw new Error("Could not determine GeoTIFF bounds");
+    }
+
+    // Allow manual override from console.
+    // Example: window._coverageBoundsStrategy = "getBoundingBox"
+    const requested = window._coverageBoundsStrategy;
+    if (typeof requested === "string" && requested.length) {
+        const match = usable.find(c => c.source === requested);
+        if (match) {
+            return match;
+        }
+    }
+
+    // site.meshtastic.org GeoTIFFs appear to use the common north-up convention:
+    // tiepoint at the top-left corner, with a positive ModelPixelScale Y.
+    // Prefer this deterministic interpretation when available.
+    const preferredTiepointSource = "ModelTiepoint/ModelPixelScale(rt=1,y=top-left)";
+    const preferredTiepoint = usable.find(c => c.source === preferredTiepointSource);
+    if (preferredTiepoint && boundsContainPoint(preferredTiepoint, nodeLat, nodeLon)) {
+        return preferredTiepoint;
+    }
+
+    // Next best: GeoTIFF.js bbox if it exists and contains the node.
+    const bboxCandidate = usable.find(c => c.source === "getBoundingBox");
+    if (bboxCandidate && boundsContainPoint(bboxCandidate, nodeLat, nodeLon)) {
+        return bboxCandidate;
+    }
+
+    // Otherwise, fall back to scoring across all candidates (including getBoundingBox).
+
+    let best = usable[0];
+    let bestScore = scoreBounds(best, nodeLat, nodeLon, width, height);
+    for (const c of usable.slice(1)) {
+        const s = scoreBounds(c, nodeLat, nodeLon, width, height);
+        if (s < bestScore) {
+            best = c;
+            bestScore = s;
+        }
+    }
+
+    // Do not auto-adjust bounds by default. If you want to experiment with
+    // sub-pixel shifts, enable: window._coverageMicroRecenter = true
+    if (window._coverageMicroRecenter === true) {
+        const dx = (best.right - best.left) / width;
+        const dy = (best.top - best.bottom) / height;
+        const centerLat = (best.top + best.bottom) / 2;
+        const centerLon = (best.left + best.right) / 2;
+        const dLat = nodeLat - centerLat;
+        const dLon = nodeLon - centerLon;
+
+        // Micro-recenter if we're within ~1 pixel of the center; fixes half-pixel and rounding issues.
+        if (Number.isFinite(dx) && Number.isFinite(dy) && Math.abs(dLat) <= dy && Math.abs(dLon) <= dx) {
+            best = {
+                ...best,
+                left: best.left + dLon,
+                right: best.right + dLon,
+                top: best.top + dLat,
+                bottom: best.bottom + dLat,
+                source: best.source + "+recentre",
+            };
+        }
+    }
+
+    console.table(
+        usable.map(c => {
+            const s = scoreBounds(c, nodeLat, nodeLon, width, height);
+            const px = pixelPositionForBounds(c, nodeLat, nodeLon, width, height);
+            return {
+                source: c.source,
+                score: s,
+                centerLat: (c.top + c.bottom) / 2,
+                centerLon: (c.left + c.right) / 2,
+                nodeXPx: px ? px.xPx : null,
+                nodeYPx: px ? px.yPx : null,
+                left: c.left,
+                right: c.right,
+                top: c.top,
+                bottom: c.bottom,
+                degrees: boundsLookLikeDegrees(c),
+            };
+        })
+    );
+
+    return normalizeBounds(best);
+}
+
+function parseCssRgb(color) {
+    // Supports: "rgb(r,g,b)", "rgba(r,g,b,a)", "#rrggbb".
+    if (typeof color !== "string") return null;
+
+    const rgbMatch = color.match(/rgba?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)/i);
+    if (rgbMatch) {
+        return {
+            r: Math.max(0, Math.min(255, Math.round(Number(rgbMatch[1])))),
+            g: Math.max(0, Math.min(255, Math.round(Number(rgbMatch[2])))),
+            b: Math.max(0, Math.min(255, Math.round(Number(rgbMatch[3])))),
+        };
+    }
+
+    const hexMatch = color.match(/^#([0-9a-f]{6})$/i);
+    if (hexMatch) {
+        const hex = hexMatch[1];
+        return {
+            r: parseInt(hex.slice(0, 2), 16),
+            g: parseInt(hex.slice(2, 4), 16),
+            b: parseInt(hex.slice(4, 6), 16),
+        };
+    }
+
+    return null;
+}
+
+function plasmaColor(normalized) {
+    // Match site.meshtastic.org: d3.interpolatePlasma
+    const t0 = Math.max(0, Math.min(1, normalized));
+    const gamma = (typeof window._coverageColorGamma === "number" && Number.isFinite(window._coverageColorGamma))
+        ? window._coverageColorGamma
+        : 1.0;
+    const tLinear = gamma === 1.0 ? t0 : Math.pow(t0, gamma);
+    const t = window._coverageColorFlip ? 1.0 - tLinear : tLinear;
+
+    if (window.d3 && typeof window.d3.interpolatePlasma === "function") {
+        // Prefer d3.rgb if available.
+        if (typeof window.d3.rgb === "function") {
+            const c = window.d3.rgb(window.d3.interpolatePlasma(t));
+            return { r: c.r, g: c.g, b: c.b };
+        }
+
+        const s = window.d3.interpolatePlasma(t);
+        const parsed = parseCssRgb(s);
+        if (parsed) return parsed;
+    }
+
+    // Fallback (should only happen if CDN fails): basic gradient.
+    const u = t;
+    if (u < 0.25) {
+        const k = u / 0.25;
+        return { r: 0, g: Math.floor(255 * k), b: 255 };
+    }
+    if (u < 0.5) {
+        const k = (u - 0.25) / 0.25;
+        return { r: 0, g: 255, b: Math.floor(255 * (1 - k)) };
+    }
+    if (u < 0.75) {
+        const k = (u - 0.5) / 0.25;
+        return { r: Math.floor(255 * k), g: 255, b: 0 };
+    }
+    const k = (u - 0.75) / 0.25;
+    return { r: 255, g: Math.floor(255 * (1 - k)), b: 0 };
+}
+
+function buildPaletteFromColorMap(colorMap) {
+    // TIFF ColorMap is [R0..Rn, G0..Gn, B0..Bn] with 16-bit entries (0..65535).
+    if (!Array.isArray(colorMap) || colorMap.length % 3 !== 0) return null;
+    const n = colorMap.length / 3;
+    if (!Number.isInteger(n) || n <= 0) return null;
+
+    const r = new Uint8Array(n);
+    const g = new Uint8Array(n);
+    const b = new Uint8Array(n);
+
+    // Convert 16-bit to 8-bit.
+    for (let i = 0; i < n; i++) {
+        r[i] = Math.max(0, Math.min(255, Math.round((colorMap[i] * 255) / 65535)));
+        g[i] = Math.max(0, Math.min(255, Math.round((colorMap[i + n] * 255) / 65535)));
+        b[i] = Math.max(0, Math.min(255, Math.round((colorMap[i + 2 * n] * 255) / 65535)));
+    }
+    return { r, g, b, n };
+}
+
+async function runCoveragePrediction() {
+    const runBtn = document.getElementById("coverageRunBtn");
+    const progressDiv = document.getElementById("coverageProgress");
+    const progressText = document.getElementById("coverageProgressText");
+    const progressFill = document.getElementById("coverageProgressFill");
+    const errorDiv = document.getElementById("coverageError");
+    
+    // Get node location from map marker or info
+    let lat = parseFloat(document.getElementById("info-lat").textContent);
+    let lon = parseFloat(document.getElementById("info-lon").textContent);
+    
+    if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) {
+        showCoverageError("Node location unknown. Cannot run coverage prediction.");
+        return;
+    }
+    
+    // Get parameters
+    const radiusKm = parseInt(document.getElementById("coverageRadius").value) || 30;
+    const txPower = parseInt(document.getElementById("coverageTxPower").value) || 20;
+    const txGain = parseInt(document.getElementById("coverageTxGain").value) || 2;
+    const frequency = parseFloat(document.getElementById("coverageFrequency").value) || 915.0;
+    
+    // Build payload for site.meshtastic.org
+    const payload = {
+        lat: lat,
+        lon: lon,
+        tx_height: 2,
+        tx_power: txPower,
+        tx_gain: txGain,
+        frequency_mhz: frequency,
+        rx_height: 1,
+        rx_gain: 2,
+        signal_threshold: -130,
+        system_loss: 2,
+        clutter_height: 1,
+        ground_dielectric: 15,
+        ground_conductivity: 0.005,
+        atmosphere_bending: 301,
+        radio_climate: "continental_temperate",
+        polarization: "vertical",
+        radius: radiusKm * 1000,  // Convert km to meters
+        situation_fraction: 95,
+        time_fraction: 95,
+        high_resolution: false,
+        colormap: "plasma",
+        min_dbm: -130,
+        max_dbm: -80,
+    };
+    
+    // Clear previous overlay
+    if (coverageGeoTIFFLayer) {
+        map.removeLayer(coverageGeoTIFFLayer);
+        coverageGeoTIFFLayer = null;
+    }
+    if (coverageGeoRasterLayer) {
+        map.removeLayer(coverageGeoRasterLayer);
+        coverageGeoRasterLayer = null;
+    }
+    
+    // Show progress
+    runBtn.disabled = true;
+    progressDiv.style.display = "block";
+    progressText.textContent = "Submitting coverage prediction...";
+    progressFill.style.width = "10%";
+    errorDiv.classList.remove("visible");
+    errorDiv.textContent = "";
+
+    try {
+        const response = await fetch("/api/coverage/predict", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API error ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        const predictionId = data.id || data.task_id || data.prediction_id;
+
+        if (!predictionId) {
+            console.error("API response:", data);
+            throw new Error("No prediction ID returned from API");
+        }
+
+        progressText.textContent = "Coverage prediction submitted. Waiting for result...";
+        progressFill.style.width = "30%";
+
+        // Poll for result
+        const result = await pollForResult(predictionId, progressText, progressFill);
+
+        if (result && result.url && result.arrayBuffer) {
+            await displayCoverageOverlay(result.url, lat, lon, radiusKm, result.arrayBuffer);
+        } else {
+            throw new Error("No coverage map data returned");
+        }
+    } catch (err) {
+        console.error("Coverage prediction failed:", err);
+        showCoverageError(err.message);
+    } finally {
+        runBtn.disabled = false;
+        progressDiv.style.display = "none";
+    }
+}
+
+async function pollForResult(predictionId, progressText, progressFill) {
+    const maxAttempts = 90;  // 3 minutes max
+    const statusUrl = `/api/coverage/status/${predictionId}`;
+    const resultUrl = `/api/coverage/result/${predictionId}`;
+    
+    for (let i = 0; i < maxAttempts; i++) {
+        try {
+            const statusResponse = await fetch(statusUrl);
+            
+            if (!statusResponse.ok) {
+                throw new Error(`Status check failed: ${statusResponse.status}`);
+            }
+            
+            const statusData = await statusResponse.json();
+            const status = statusData.status;
+            
+            progressText.textContent = `Status: ${status}... (${i * 2}s elapsed)`;
+            progressFill.style.width = `${30 + (i / maxAttempts) * 60}%`;
+            
+            if (status === "completed") {
+                progressText.textContent = "Downloading coverage map...";
+                progressFill.style.width = "95%";
+                
+                const resultResponse = await fetch(resultUrl);
+                
+                if (!resultResponse.ok) {
+                    throw new Error(`Failed to fetch coverage map: ${resultResponse.status}`);
+                }
+                
+                const arrayBuffer = await resultResponse.arrayBuffer();
+                const blob = new Blob([arrayBuffer], { type: "image/tiff" });
+                const url = URL.createObjectURL(blob);
+                
+                return { url: url, arrayBuffer: arrayBuffer };
+            } else if (status === "404") {
+                throw new Error("Coverage map expired (results available for 1 hour). Please run the prediction again.");
+            } else if (status === "failed" || status === "error") {
+                const error = statusData.error || "Prediction failed on server";
+                throw new Error(error);
+            }
+            
+            // Wait 2 seconds between status checks
+            await new Promise(r => setTimeout(r, 2000));
+        } catch (err) {
+            if (i === maxAttempts - 1) {
+                throw err;
+            }
+            await new Promise(r => setTimeout(r, 2000));
+        }
+    }
+    throw new Error("Timeout waiting for prediction (3 minutes)");
+}
+
+async function displayCoverageOverlay(imageUrl, lat, lon, radiusKm, arrayBuffer) {
+    if (coverageGeoTIFFLayer) {
+        map.removeLayer(coverageGeoTIFFLayer);
+        coverageGeoTIFFLayer = null;
+    }
+    if (coverageGeoRasterLayer) {
+        map.removeLayer(coverageGeoRasterLayer);
+        coverageGeoRasterLayer = null;
+    }
+
+    console.log("=== Coverage Overlay Debug ===");
+    console.log("Node location:", lat, lon);
+    console.log("Radius:", radiusKm, "km");
+
+    if (!map) {
+        console.error("Map not initialized!");
+        showCoverageError("Map not ready. Please refresh the page.");
+        return;
+    }
+
+    // Wait for GeoTIFF library to load
+    let attempts = 0;
+    while (typeof GeoTIFF === 'undefined' && attempts < 50) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+    }
+
+    if (typeof GeoTIFF === 'undefined') {
+        throw new Error("GeoTIFF library not loaded. Please refresh the page.");
+    }
+
+    try {
+        if (typeof GeoTIFF === 'undefined') {
+            throw new Error("GeoTIFF library not loaded. Please refresh the page.");
+        }
+
+        const geotiffData = await GeoTIFF.fromArrayBuffer(arrayBuffer);
+        const image = await geotiffData.getImage();
+        const width = image.getWidth();
+        const height = image.getHeight();
+
+        console.log("TIFF dimensions:", width, "x", height);
+
+        const fileDir = (image && typeof image.getFileDirectory === "function")
+            ? image.getFileDirectory()
+            : image.fileDirectory || {};
+
+        // Prefer embedded palette if present (this matches the server-provided colormap exactly).
+        const photometric = fileDir.PhotometricInterpretation;
+        const palette = buildPaletteFromColorMap(fileDir.ColorMap);
+        const usePalette = photometric === 3 && palette;
+        if (usePalette) {
+            console.log("Using TIFF palette colormap", { entries: palette.n });
+        } else {
+            console.log("Using d3 plasma colormap", { photometric });
+        }
+
+        // Some server outputs use photometric=3 but omit the palette. In that case,
+        // values are often already indexed (0..254). Allow optional reversal to match UI.
+        if (!usePalette && photometric === 3) {
+            console.warn(
+                "TIFF indicates palette (photometric=3) but no ColorMap found; using d3 plasma. " +
+                "If colors look inverted, try: window._coverageColorFlip = true"
+            );
+        }
+
+        let nodata = 255;
+        if (typeof fileDir.GDAL_NODATA === "string") {
+            const parsed = Number(fileDir.GDAL_NODATA);
+            if (Number.isFinite(parsed)) {
+                nodata = parsed;
+            }
+        }
+
+        // Match site.meshtastic.org as closely as possible: use GeoRasterLayer when available.
+        const boundsStrategyRequested = typeof window._coverageBoundsStrategy === "string" &&
+            window._coverageBoundsStrategy.length;
+        let renderMode = (typeof window._coverageRenderMode === "string") ? window._coverageRenderMode : "";
+        if (!renderMode) {
+            renderMode = (typeof window.parseGeoraster === "function" && typeof window.GeoRasterLayer === "function")
+                ? "georaster"
+                : "imageOverlay";
+        }
+        if (boundsStrategyRequested) {
+            renderMode = "imageOverlay";
+        }
+        console.log("Coverage render mode:", renderMode);
+
+        if (renderMode === "georaster" && typeof window.parseGeoraster === "function" && typeof window.GeoRasterLayer === "function") {
+            const georaster = await window.parseGeoraster(arrayBuffer);
+            if (!georaster) {
+                throw new Error("parseGeoraster returned no georaster");
+            }
+
+            // Ensure nodata matches what we treat as transparent.
+            georaster.noDataValue = nodata;
+
+            const pixelValuesToColorFn = (values) => {
+                const v = Array.isArray(values) ? values[0] : values;
+                if (v === undefined || v === null || v === nodata) return null;
+
+                if (usePalette) {
+                    const vi = v | 0;
+                    if (vi >= 0 && vi < palette.n) {
+                        return `rgb(${palette.r[vi]},${palette.g[vi]},${palette.b[vi]})`;
+                    }
+                }
+
+                const normalized = (v | 0) / 254;
+                const c = plasmaColor(normalized);
+                return `rgb(${c.r},${c.g},${c.b})`;
+            };
+
+            coverageGeoRasterLayer = new window.GeoRasterLayer({
+                georaster,
+                opacity: 0.7,
+                resolution: 256,
+                debugLevel: 0,
+                pixelValuesToColorFn,
+            }).addTo(map);
+
+            if (map && typeof map.panInsideBounds === "function" && typeof coverageGeoRasterLayer.getBounds === "function") {
+                map.panInsideBounds(coverageGeoRasterLayer.getBounds(), { padding: [20, 20] });
+            }
+
+            document.getElementById("coverageProgressText").textContent = "Coverage map loaded!";
+            setTimeout(() => {
+                document.getElementById("coverageProgressText").textContent = "";
+            }, 3000);
+
+            return;
+        }
+
+        // Fallback renderer: manual bounds + imageOverlay.
+
+        const boundsInfo = await pickBestGeoTIFFLatLonBounds(image, width, height, lat, lon);
+        let { left, right, top, bottom } = boundsInfo;
+
+        const yAxis = boundsInfo && typeof boundsInfo.yAxis === "string" ? boundsInfo.yAxis : "top-left";
+
+        const tiffBounds = [
+            [bottom, left],
+            [top, right],
+        ];
+
+        console.log("GeoTIFF bounds:", tiffBounds, "(source:", boundsInfo.source + ")");
+        if (boundsInfo && boundsInfo.source !== "ModelTiepoint/ModelPixelScale(rt=1,y=top-left)") {
+            console.log(
+                "GeoTIFF note: expected top-left tiepoint bounds. If alignment looks off, force: " +
+                "window._coverageBoundsStrategy='ModelTiepoint/ModelPixelScale(rt=1,y=top-left)'"
+            );
+        }
+        if (boundsInfo && boundsInfo.source !== "getBoundingBox") {
+            console.log(
+                "GeoTIFF note: getBoundingBox existed but was not auto-selected; " +
+                "try window._coverageBoundsStrategy='getBoundingBox' to compare."
+            );
+        }
+
+        // Where does the node fall inside this image?
+        const dxDeg = (right - left) / width;
+        const dyDeg = (top - bottom) / height;
+        let xPx = null;
+        let yPx = null;
+        if (Number.isFinite(dxDeg) && Number.isFinite(dyDeg) && dyDeg > 0) {
+            xPx = (lon - left) / dxDeg;
+            yPx = yAxis === "bottom-left" ? (lat - bottom) / dyDeg : (top - lat) / dyDeg;
+            console.log("Node pixel position (x,y):", xPx, yPx, "(center:", width / 2, height / 2 + ")");
+
+            // Pixel-perfect centering (debug only). Site behavior is to trust the GeoTIFF georeferencing.
+            // Enable via: window._coveragePixelCentering = true
+            const wantPixelCentering = window._coveragePixelCentering === true;
+            if (wantPixelCentering) {
+                const shiftXPx = width / 2 - xPx;
+                const shiftYPx = height / 2 - yPx;
+                // Only apply if it actually moves the overlay by a visible amount.
+                if (Math.abs(shiftXPx) > 0.5 || Math.abs(shiftYPx) > 0.5) {
+                    const dLon = shiftXPx * dxDeg;
+                    const dLat = (yAxis === "bottom-left" ? shiftYPx : -shiftYPx) * dyDeg;
+                    left += dLon;
+                    right += dLon;
+                    top += dLat;
+                    bottom += dLat;
+                    console.log("Applied pixel-centering shift", { shiftXPx, shiftYPx, dLat, dLon });
+                }
+            }
+        }
+
+        // Recompute bounds after any adjustment.
+        const finalBounds = [
+            [bottom, left],
+            [top, right],
+        ];
+
+        // Debug helper: compare our manual bounds to GeoRaster's derived bounds.
+        // Enable via: window._coverageCompareWithGeoRaster = true
+        if (window._coverageCompareWithGeoRaster === true && typeof window.parseGeoraster === "function") {
+            try {
+                const gr = await window.parseGeoraster(arrayBuffer);
+                if (gr && Number.isFinite(gr.xmin) && Number.isFinite(gr.xmax) && Number.isFinite(gr.ymin) && Number.isFinite(gr.ymax)) {
+                    const grBounds = [[gr.ymin, gr.xmin], [gr.ymax, gr.xmax]];
+                    const dTop = top - gr.ymax;
+                    const dBottom = bottom - gr.ymin;
+                    const dLeft = left - gr.xmin;
+                    const dRight = right - gr.xmax;
+
+                    const dTopPx = Number.isFinite(dyDeg) && dyDeg > 0 ? (dTop / dyDeg) : null;
+                    const dBottomPx = Number.isFinite(dyDeg) && dyDeg > 0 ? (dBottom / dyDeg) : null;
+                    const dLeftPx = Number.isFinite(dxDeg) && dxDeg > 0 ? (dLeft / dxDeg) : null;
+                    const dRightPx = Number.isFinite(dxDeg) && dxDeg > 0 ? (dRight / dxDeg) : null;
+
+                    console.log("GeoRaster bounds:", grBounds);
+                    console.log("Manual vs GeoRaster delta (deg):", { dTop, dBottom, dLeft, dRight });
+                    console.log("Manual vs GeoRaster delta (px):", { dTopPx, dBottomPx, dLeftPx, dRightPx });
+                }
+            } catch (e) {
+                console.warn("GeoRaster compare failed:", e);
+            }
+        }
+
+        const raster = await geotiffData.readRasters();
+
+        const band = Array.isArray(raster) ? raster[0] : raster;
+        if (!band || typeof band.length !== "number") {
+            throw new Error("Unexpected GeoTIFF raster format");
+        }
+
+        // Create canvas to render TIFF
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        
+        const imageData = ctx.createImageData(width, height);
+        const data = imageData.data;
+        
+        // Render TIFF as an RGBA image
+        const flipY = yAxis === "bottom-left";
+        for (let y = 0; y < height; y++) {
+            const dstY = flipY ? (height - 1 - y) : y;
+            for (let x = 0; x < width; x++) {
+                const idx = y * width + x;
+                const dstIdx = dstY * width + x;
+                const value = band[idx];
+
+                if (value === nodata) {
+                    // Transparent - outside coverage area
+                    continue;
+                }
+
+                if (usePalette) {
+                    const vi = value | 0;
+                    if (vi >= 0 && vi < palette.n) {
+                        data[dstIdx * 4] = palette.r[vi];
+                        data[dstIdx * 4 + 1] = palette.g[vi];
+                        data[dstIdx * 4 + 2] = palette.b[vi];
+                    } else {
+                        // Out of palette range; fall back.
+                        const c = plasmaColor((value % 255) / 254);
+                        data[dstIdx * 4] = c.r;
+                        data[dstIdx * 4 + 1] = c.g;
+                        data[dstIdx * 4 + 2] = c.b;
+                    }
+                } else {
+                    // Normalize 0-254 to 0-1; 255 is nodata.
+                    const normalized = value / 254;
+                    const c = plasmaColor(normalized);
+                    data[dstIdx * 4] = c.r;
+                    data[dstIdx * 4 + 1] = c.g;
+                    data[dstIdx * 4 + 2] = c.b;
+                }
+                data[dstIdx * 4 + 3] = 220;
+            }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        
+        const canvasBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const imageBlobUrl = URL.createObjectURL(canvasBlob);
+        
+        console.log("Canvas created:", width, "x", height);
+        console.log("Image blob URL created, size:", canvasBlob.size, "bytes");
+
+        coverageGeoTIFFLayer = L.imageOverlay(imageBlobUrl, finalBounds, {
+            opacity: 0.7,
+            attribution: "Coverage Prediction",
+            className: "coverage-overlay-image",
+        }).addTo(map);
+
+        // Ensure we never keep showing a stale overlay if the object URL gets revoked later.
+        coverageGeoTIFFLayer.on("remove", () => {
+            try {
+                URL.revokeObjectURL(imageBlobUrl);
+            } catch (_) {
+                // ignore
+            }
+        });
+
+        // Match site.meshtastic.org behavior: do not change zoom.
+        // Just pan if needed to keep the overlay in view.
+        if (map && typeof map.panInsideBounds === "function" && window.L && typeof window.L.latLngBounds === "function") {
+            map.panInsideBounds(window.L.latLngBounds(finalBounds), { padding: [20, 20] });
+        }
+
+        document.getElementById("coverageProgressText").textContent = "Coverage map loaded!";
+        setTimeout(() => {
+            document.getElementById("coverageProgressText").textContent = "";
+        }, 3000);
+    } catch (err) {
+        console.error("Failed to display coverage overlay:", err);
+        showCoverageError(`Failed to display coverage map: ${err.message}`);
+    }
+}
+
+function showCoverageError(message) {
+    const errorDiv = document.getElementById("coverageError");
+    errorDiv.textContent = `Error: ${message}`;
+    errorDiv.classList.add("visible");
+}
 
 </script>
 {% endblock %}

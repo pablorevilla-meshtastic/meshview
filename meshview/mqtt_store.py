@@ -1,4 +1,3 @@
-import datetime
 import logging
 import re
 import time
@@ -97,10 +96,9 @@ async def process_envelope(topic, env):
                 "import_time_us": now_us,
                 "channel": env.channel_id,
             }
-            utc_time = datetime.datetime.fromtimestamp(now_us / 1_000_000, datetime.UTC)
             dialect = session.get_bind().dialect.name
             stmt = None
-            
+
             if dialect == "sqlite":
                 stmt = (
                     sqlite_insert(Packet)

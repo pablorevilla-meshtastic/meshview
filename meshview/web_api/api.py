@@ -5,16 +5,18 @@ import json
 import logging
 import os
 
-from aiohttp import web
+from aiohttp import ClientError, ClientSession, web
 from sqlalchemy import func, select, text
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import database, decode_payload, store
 from meshview.__version__ import __version__, _git_revision_short, get_version_info
 from meshview.config import CONFIG
+from meshview.lora import infer_lora_from_channel_name, parse_region_from_topic
 from meshview.models import Node
 from meshview.models import Packet as PacketModel
 from meshview.models import PacketSeen as PacketSeenModel
+from meshview.radio_hw import infer_max_tx_power_dbm
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +74,45 @@ async def api_nodes(request):
         # Prepare the JSON response
         nodes_data = []
         for n in nodes:
+            # Best-effort LoRa inference:
+            # - region: from subscribed topic(s) via CONFIG, or per-request override (not currently exposed)
+            # - channel name: prefer mqtt topic segment if present; fallback to env.channel_id stored in Node.channel
+            region_code = None
+            primary_channel_name = n.channel
+            try:
+                topics_raw = CONFIG.get("mqtt", {}).get("topics")
+                topics_list: list[str] = []
+                if isinstance(topics_raw, str):
+                    try:
+                        loaded = json.loads(topics_raw)
+                        if isinstance(loaded, list):
+                            topics_list = [str(t) for t in loaded]
+                        elif loaded:
+                            topics_list = [str(loaded)]
+                    except Exception:
+                        topics_list = [topics_raw]
+                elif isinstance(topics_raw, list):
+                    topics_list = [str(t) for t in topics_raw]
+
+                if topics_list:
+                    # Use the first configured topic to pick a region as default.
+                    region_code = parse_region_from_topic(topics_list[0])
+            except Exception:
+                region_code = None
+
+            lora_info = infer_lora_from_channel_name(
+                primary_channel_name or "", region_code=region_code
+            )
+
+            txp = infer_max_tx_power_dbm(getattr(n, "hw_model", None))
+            lora_info["tx_power_dbm_inferred"] = txp.max_dbm
+            lora_info["tx_power_dbm"] = txp.max_dbm_capped
+            lora_info["tx_power_source"] = txp.source
+
+            modem_config = None
+            if lora_info.get("modem_preset"):
+                modem_config = f"{lora_info['modem_preset']} (bw={lora_info['bw_khz']}kHz sf={lora_info['sf']} cr={lora_info['cr']})"
+
             nodes_data.append(
                 {
                     "id": getattr(n, "id", None),
@@ -84,6 +125,14 @@ async def api_nodes(request):
                     "last_lat": getattr(n, "last_lat", None),
                     "last_long": getattr(n, "last_long", None),
                     "channel": n.channel,
+                    "region": lora_info.get("region"),
+                    "modem_config": modem_config,
+                    "frequency_slot": lora_info.get("frequency_slot"),
+                    "frequency_mhz": lora_info.get("frequency_mhz"),
+                    "lora": lora_info,
+                    "tx_power_dbm_inferred": txp.max_dbm,
+                    "tx_power_dbm": txp.max_dbm_capped,
+                    "tx_power_source": txp.source,
                     # "last_update": n.last_update.isoformat(),
                     "last_seen_us": n.last_seen_us,
                 }
@@ -923,3 +972,96 @@ async def api_stats_top(request):
             "nodes": nodes,
         }
     )
+
+
+SPLAT_API_BASE = "https://site.meshtastic.org"
+
+
+async def proxy_to_splat(
+    request: web.Request, path: str, body: bytes | None = None
+) -> web.Response:
+    """
+    Proxy requests to site.meshtastic.org to bypass CORS issues.
+    """
+    method = request.method
+    url = f"{SPLAT_API_BASE}/{path}"
+
+    try:
+        req_body = (
+            body
+            if body is not None
+            else (await request.read() if method in ("POST", "PUT", "PATCH") else b"")
+        )
+
+        headers = {}
+        for key, value in request.headers.items():
+            if key.lower() not in ("host", "connection"):
+                headers[key] = value
+
+        # Override Origin and Referer to match site.meshtastic.org
+        headers["Origin"] = "https://site.meshtastic.org"
+        headers["Referer"] = "https://site.meshtastic.org/"
+
+        async with ClientSession() as session:
+            if method == "GET":
+                async with session.get(url, headers=headers) as resp:
+                    resp_body = await resp.read()
+                    return web.Response(
+                        body=resp_body,
+                        status=resp.status,
+                        content_type=resp.headers.get("Content-Type", "application/json"),
+                    )
+            elif method == "POST":
+                async with session.post(url, data=req_body, headers=headers) as resp:
+                    resp_body = await resp.read()
+                    return web.Response(
+                        body=resp_body,
+                        status=resp.status,
+                        content_type=resp.headers.get(
+                            "Content-Type",
+                            resp_body.startswith(b"{") and "application/json" or "image/tiff",
+                        ),
+                    )
+            elif method == "DELETE":
+                async with session.delete(url, headers=headers) as resp:
+                    resp_body = await resp.read()
+                    return web.Response(
+                        body=resp_body,
+                        status=resp.status,
+                        content_type=resp.headers.get("Content-Type", "application/json"),
+                    )
+            else:
+                return web.json_response({"error": f"Unsupported method: {method}"}, status=405)
+    except ClientError as e:
+        logger.error(f"Proxy error for {url}: {e}")
+        return web.json_response({"error": str(e)}, status=502)
+
+
+@routes.post("/api/coverage/predict")
+async def api_coverage_predict(request: web.Request):
+    """Proxy to https://site.meshtastic.org/predict"""
+    try:
+        req_body = await request.read()
+        logger.info(f"Coverage predict request body: {req_body[:500]}")
+        return await proxy_to_splat(request, "predict", req_body)
+    except Exception as e:
+        logger.error(f"Coverage predict error: {e}")
+        return web.json_response({"error": str(e)}, status=500)
+
+
+@routes.get("/api/coverage/status/{prediction_id}")
+async def api_coverage_status(request: web.Request):
+    """Proxy to https://site.meshtastic.org/status/{prediction_id}"""
+    prediction_id = request.match_info.get("prediction_id")
+    if not prediction_id:
+        return web.json_response({"error": "Missing prediction_id"}, status=400)
+    return await proxy_to_splat(request, f"status/{prediction_id}")
+
+
+@routes.get("/api/coverage/result/{prediction_id}")
+async def api_coverage_result(request: web.Request):
+    """Proxy to https://site.meshtastic.org/result/{prediction_id}"""
+    prediction_id = request.match_info.get("prediction_id")
+    if not prediction_id:
+        return web.json_response({"error": "Missing prediction_id"}, status=400)
+    return await proxy_to_splat(request, f"result/{prediction_id}")
