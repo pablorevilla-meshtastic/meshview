@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy import Text, and_, cast, func, or_, select
 from sqlalchemy.orm import lazyload
@@ -179,7 +179,7 @@ async def get_mqtt_neighbors(since):
 async def get_total_node_count(channel: str = None) -> int:
     try:
         async with database.async_session() as session:
-            now_us = int(datetime.now(timezone.utc).timestamp() * 1_000_000)
+            now_us = int(datetime.now(datetime.UTC).timestamp() * 1_000_000)
             cutoff_us = now_us - 86400 * 1_000_000
             q = select(func.count(Node.id)).where(Node.last_seen_us > cutoff_us)
 
@@ -196,7 +196,7 @@ async def get_total_node_count(channel: str = None) -> int:
 async def get_top_traffic_nodes():
     try:
         async with database.async_session() as session:
-            now_us = int(datetime.now(timezone.utc).timestamp() * 1_000_000)
+            now_us = int(datetime.now(datetime.UTC).timestamp() * 1_000_000)
             cutoff_us = now_us - 86400 * 1_000_000
             total_packets_sent = func.count(func.distinct(Packet.id)).label("total_packets_sent")
             total_times_seen = func.count(PacketSeen.packet_id).label("total_times_seen")
@@ -244,7 +244,7 @@ async def get_top_traffic_nodes():
 async def get_node_traffic(node_id: int):
     try:
         async with database.async_session() as session:
-            now_us = int(datetime.now(timezone.utc).timestamp() * 1_000_000)
+            now_us = int(datetime.now(datetime.UTC).timestamp() * 1_000_000)
             cutoff_us = now_us - 86400 * 1_000_000
             packet_count = func.count().label("packet_count")
 
@@ -309,7 +309,7 @@ async def get_nodes(node_id=None, role=None, channel=None, hw_model=None, days_a
                 query = query.where(Node.hw_model == hw_model)
 
             if days_active is not None:
-                now_us = int(datetime.now(timezone.utc).timestamp() * 1_000_000)
+                now_us = int(datetime.now(datetime.UTC).timestamp() * 1_000_000)
                 cutoff_us = now_us - int(timedelta(days_active).total_seconds() * 1_000_000)
                 query = query.where(Node.last_seen_us > cutoff_us)
 
@@ -337,7 +337,7 @@ async def get_packet_stats(
     to_node: int | None = None,
     from_node: int | None = None,
 ):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(datetime.UTC)
 
     if period_type == "hour":
         start_time = now - timedelta(hours=length)

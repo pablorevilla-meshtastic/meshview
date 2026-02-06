@@ -12,7 +12,7 @@ from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import database, decode_payload, store
 from meshview.__version__ import __version__, _git_revision_short, get_version_info
 from meshview.config import CONFIG
-from meshview.models import Node
+from meshview.models import Node, NodePublicKey
 from meshview.models import Packet as PacketModel
 from meshview.models import PacketSeen as PacketSeenModel
 
@@ -923,3 +923,106 @@ async def api_stats_top(request):
             "nodes": nodes,
         }
     )
+
+
+@routes.get("/api/node/{node_id}/qr")
+async def api_node_qr(request):
+    """
+    Generate a Meshtastic URL for importing the node as a contact.
+    Returns the URL that can be used to generate a QR code.
+    """
+    try:
+        node_id_str = request.match_info["node_id"]
+        node_id = int(node_id_str, 0)
+    except (KeyError, ValueError):
+        return web.json_response({"error": "Invalid node_id"}, status=400)
+
+    node = await store.get_node(node_id)
+    if not node:
+        return web.json_response({"error": "Node not found"}, status=404)
+
+    try:
+        from meshtastic.protobuf.admin_pb2 import SharedContact
+        from meshtastic.protobuf.mesh_pb2 import User
+
+        user = User()
+        user.id = f"!{node_id:08x}"
+        if node.long_name:
+            user.long_name = node.long_name
+        if node.short_name:
+            user.short_name = node.short_name
+        if node.hw_model:
+            try:
+                from meshtastic.protobuf.mesh_pb2 import HardwareModel
+
+                hw_model_value = getattr(HardwareModel, node.hw_model.upper(), None)
+                if hw_model_value is not None:
+                    user.hw_model = hw_model_value
+            except (AttributeError, TypeError):
+                pass
+
+        contact = SharedContact()
+        contact.node_num = node_id
+        contact.user.CopyFrom(user)
+        contact.manually_verified = False
+
+        contact_bytes = contact.SerializeToString()
+        import base64
+
+        contact_b64 = base64.b64encode(contact_bytes).decode("ascii")
+        contact_b64url = contact_b64.replace("+", "-").replace("/", "_").rstrip("=")
+
+        meshtastic_url = f"https://meshtastic.org/v/#{contact_b64url}"
+
+        return web.json_response(
+            {
+                "node_id": node_id,
+                "long_name": node.long_name,
+                "short_name": node.short_name,
+                "meshtastic_url": meshtastic_url,
+            }
+        )
+    except Exception as e:
+        import traceback
+
+        logger.error(f"Error generating QR URL for node {node_id}: {e}")
+        logger.error(traceback.format_exc())
+        return web.json_response({"error": f"Failed to generate URL: {str(e)}"}, status=500)
+
+
+@routes.get("/api/node/{node_id}/impersonation-check")
+async def api_node_impersonation_check(request):
+    """
+    Check if a node has multiple different public keys, which could indicate impersonation.
+    """
+    try:
+        node_id_str = request.match_info["node_id"]
+        node_id = int(node_id_str, 0)
+    except (KeyError, ValueError):
+        return web.json_response({"error": "Invalid node_id"}, status=400)
+
+    try:
+        async with database.async_session() as session:
+            result = await session.execute(
+                select(NodePublicKey.public_key).where(NodePublicKey.node_id == node_id).distinct()
+            )
+            public_keys = result.scalars().all()
+
+            unique_key_count = len(public_keys)
+
+            return web.json_response(
+                {
+                    "node_id": node_id,
+                    "unique_public_key_count": unique_key_count,
+                    "potential_impersonation": unique_key_count > 1,
+                    "public_keys": public_keys
+                    if unique_key_count <= 3
+                    else public_keys[:3] + ["..."],
+                    "warning": "Multiple different public keys detected. This node may be getting impersonated."
+                    if unique_key_count > 1
+                    else None,
+                }
+            )
+    except Exception as e:
+        logger.error(f"Error checking impersonation for node {node_id}: {e}")
+        return web.json_response({"error": "Failed to check impersonation"}, status=500)

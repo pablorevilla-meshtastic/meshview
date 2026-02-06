@@ -1,4 +1,3 @@
-import datetime
 import logging
 import re
 import time
@@ -12,7 +11,7 @@ from meshtastic.protobuf.config_pb2 import Config
 from meshtastic.protobuf.mesh_pb2 import HardwareModel
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import decode_payload, mqtt_database
-from meshview.models import Node, Packet, PacketSeen, Traceroute
+from meshview.models import Node, NodePublicKey, Packet, PacketSeen, Traceroute
 
 logger = logging.getLogger(__name__)
 
@@ -97,10 +96,9 @@ async def process_envelope(topic, env):
                 "import_time_us": now_us,
                 "channel": env.channel_id,
             }
-            utc_time = datetime.datetime.fromtimestamp(now_us / 1_000_000, datetime.UTC)
             dialect = session.get_bind().dialect.name
             stmt = None
-            
+
             if dialect == "sqlite":
                 stmt = (
                     sqlite_insert(Packet)
@@ -208,6 +206,28 @@ async def process_envelope(topic, env):
                             last_seen_us=now_us,
                         )
                         session.add(node)
+
+                    if user.public_key:
+                        public_key_hex = user.public_key.hex()
+                        existing_key = (
+                            await session.execute(
+                                select(NodePublicKey).where(
+                                    NodePublicKey.node_id == node_id,
+                                    NodePublicKey.public_key == public_key_hex,
+                                )
+                            )
+                        ).scalar_one_or_none()
+
+                        if existing_key:
+                            existing_key.last_seen_us = now_us
+                        else:
+                            new_key = NodePublicKey(
+                                node_id=node_id,
+                                public_key=public_key_hex,
+                                first_seen_us=now_us,
+                                last_seen_us=now_us,
+                            )
+                            session.add(new_key)
             except Exception as e:
                 print(f"Error processing NODEINFO_APP: {e}")
 

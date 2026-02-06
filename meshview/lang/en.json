@@ -185,7 +185,14 @@
         "statistics": "Statistics",
         "last_24h": "24h",
         "packets_sent": "Packets sent",
-        "times_seen": "Times seen"
+        "times_seen": "Times seen",
+        "copy_import_url": "Copy Import URL",
+        "show_qr_code": "Show QR Code",
+        "share_contact_qr": "Share Contact QR",
+        "copy_url": "Copy URL",
+        "copied": "Copied!",
+        "potential_impersonation": "Potential Impersonation Detected",
+        "scan_qr_to_add": "Scan this QR code to add this node as a contact on another device."
     },
     "packet": {
       "loading": "Loading packet information...",
