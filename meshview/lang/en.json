@@ -168,6 +168,7 @@
         "channel": "Channel",
         "latitude": "Latitude",
         "longitude": "Longitude",
+        "first_update": "First Update",
         "last_update": "Last Update",
         "battery_voltage": "Battery & Voltage",
         "air_channel": "Air & Channel Utilization",

@@ -85,6 +85,7 @@ async def api_nodes(request):
                     "last_long": getattr(n, "last_long", None),
                     "channel": n.channel,
                     # "last_update": n.last_update.isoformat(),
+                    "first_seen_us": n.first_seen_us,
                     "last_seen_us": n.last_seen_us,
                 }
             )

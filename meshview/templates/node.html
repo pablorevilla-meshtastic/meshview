@@ -364,6 +364,7 @@
         <div><strong data-translate-lang="latitude">Latitude</strong><strong>: </strong> <span id="info-lat">—</span></div>
         <div><strong data-translate-lang="longitude">Longitude</strong><strong>: </strong> <span id="info-lon">—</span></div>
 
+        <div><strong data-translate-lang="first_update">First Update</strong><strong>: </strong> <span id="info-first-update">—</span></div>
         <div><strong data-translate-lang="last_update">Last Update</strong><strong>: </strong> <span id="info-last-update">—</span></div>
         <div>
             <strong data-translate-lang="statistics">Statistics</strong><strong>: </strong>
@@ -595,6 +596,10 @@ function makeNodePopup(node) {
             <b><span data-translate-lang="last_update">
                 ${nodeTranslations.last_update || "Last Update"}:
             </span></b> ${formatLastSeen(node.last_seen_us)}
+            <br>
+            <b><span data-translate-lang="first_update">
+                ${nodeTranslations.first_update || "First Update"}:
+            </span></b> ${formatLastSeen(node.first_seen_us)}
         </div>
     `;
 }
@@ -708,6 +713,11 @@ async function loadNodeInfo(){
         if (node.last_seen_us) {
             lastSeen = formatLastSeen(node.last_seen_us);
         }
+        let firstSeen = "—";
+        if (node.first_seen_us) {
+            firstSeen = formatLastSeen(node.first_seen_us);
+        }
+        document.getElementById("info-first-update").textContent = firstSeen;
         document.getElementById("info-last-update").textContent = lastSeen;
         loadNodeStats(node.node_id);
     } catch (err) {
