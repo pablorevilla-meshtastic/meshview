@@ -636,8 +636,16 @@ async def health_check(request):
     # Check database connectivity
     try:
         async with database.async_session() as session:
-            await session.execute(text("SELECT 1"))
+            result = await session.execute(
+                select(func.max(PacketModel.import_time_us))
+            )
+            last_import_time_us = result.scalar()
         health_status["database"] = "connected"
+        if last_import_time_us is not None:
+            now_us = int(datetime.datetime.now(datetime.UTC).timestamp() * 1_000_000)
+            health_status["seconds_since_last_message"] = round(
+                (now_us - last_import_time_us) / 1_000_000, 1
+            )
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
         health_status["database"] = "disconnected"
