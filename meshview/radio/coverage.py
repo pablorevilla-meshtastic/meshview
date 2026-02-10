@@ -1,7 +1,13 @@
 import math
 from functools import lru_cache
 
-from pyitm import itm
+try:
+    from pyitm import itm
+
+    ITM_AVAILABLE = True
+except Exception:
+    itm = None
+    ITM_AVAILABLE = False
 
 DEFAULT_CLIMATE = 5  # Continental temperate
 DEFAULT_GROUND = 0.005  # Average ground conductivity
@@ -48,6 +54,8 @@ def compute_coverage(
     step_km: float,
     reliability: float,
 ) -> list[tuple[float, float, float]]:
+    if not ITM_AVAILABLE:
+        return []
     points = []
     distance = max(step_km, 1.0)
     while distance <= radius_km:
@@ -94,6 +102,8 @@ def compute_perimeter(
     reliability: float,
     threshold_dbm: float,
 ) -> list[tuple[float, float]]:
+    if not ITM_AVAILABLE:
+        return []
     perimeter = []
     distance = max(step_km, 1.0)
     for bearing in range(0, 360, BEARING_STEP_DEG):

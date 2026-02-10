@@ -20,6 +20,7 @@ from meshview.radio.coverage import (
     DEFAULT_MIN_DBM,
     DEFAULT_RELIABILITY,
     DEFAULT_THRESHOLD_DBM,
+    ITM_AVAILABLE,
     compute_coverage,
     compute_perimeter,
 )
@@ -1049,6 +1050,12 @@ async def api_coverage(request):
         node_id = int(request.match_info["node_id"], 0)
     except (KeyError, ValueError):
         return web.json_response({"error": "Invalid node_id"}, status=400)
+
+    if not ITM_AVAILABLE:
+        return web.json_response(
+            {"error": "Coverage requires pyitm. Run: pip install -r requirements.txt"},
+            status=503,
+        )
 
     def parse_float(name, default):
         value = request.query.get(name)
