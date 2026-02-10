@@ -24,6 +24,7 @@ MarkupSafe~=3.0.2
 
 # Graphs / diagrams
 pydot~=3.0.4
+pyitm~=0.3
 
 
 #############################

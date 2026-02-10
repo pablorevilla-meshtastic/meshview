@@ -6,7 +6,7 @@ import logging
 import os
 
 from aiohttp import web
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import database, decode_payload, store
@@ -15,6 +15,14 @@ from meshview.config import CONFIG
 from meshview.models import Node, NodePublicKey
 from meshview.models import Packet as PacketModel
 from meshview.models import PacketSeen as PacketSeenModel
+from meshview.radio.coverage import (
+    DEFAULT_MAX_DBM,
+    DEFAULT_MIN_DBM,
+    DEFAULT_RELIABILITY,
+    DEFAULT_THRESHOLD_DBM,
+    compute_coverage,
+    compute_perimeter,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -636,9 +644,7 @@ async def health_check(request):
     # Check database connectivity
     try:
         async with database.async_session() as session:
-            result = await session.execute(
-                select(func.max(PacketModel.import_time_us))
-            )
+            result = await session.execute(select(func.max(PacketModel.import_time_us)))
             last_import_time_us = result.scalar()
         health_status["database"] = "connected"
         if last_import_time_us is not None:
@@ -1035,3 +1041,83 @@ async def api_node_impersonation_check(request):
     except Exception as e:
         logger.error(f"Error checking impersonation for node {node_id}: {e}")
         return web.json_response({"error": "Failed to check impersonation"}, status=500)
+
+
+@routes.get("/api/coverage/{node_id}")
+async def api_coverage(request):
+    try:
+        node_id = int(request.match_info["node_id"], 0)
+    except (KeyError, ValueError):
+        return web.json_response({"error": "Invalid node_id"}, status=400)
+
+    def parse_float(name, default):
+        value = request.query.get(name)
+        if value is None:
+            return default
+        try:
+            return float(value)
+        except ValueError as exc:
+            raise web.HTTPBadRequest(
+                text=json.dumps({"error": f"{name} must be a number"}),
+                content_type="application/json",
+            ) from exc
+
+    try:
+        freq_mhz = parse_float("freq_mhz", 907.0)
+        tx_dbm = parse_float("tx_dbm", 20.0)
+        tx_height_m = parse_float("tx_height_m", 5.0)
+        rx_height_m = parse_float("rx_height_m", 1.5)
+        radius_km = parse_float("radius_km", 40.0)
+        step_km = parse_float("step_km", 0.25)
+        reliability = parse_float("reliability", DEFAULT_RELIABILITY)
+        threshold_dbm = parse_float("threshold_dbm", DEFAULT_THRESHOLD_DBM)
+    except web.HTTPBadRequest as exc:
+        raise exc
+
+    node = await store.get_node(node_id)
+    if not node or not node.last_lat or not node.last_long:
+        return web.json_response({"error": "Node not found or missing location"}, status=404)
+
+    lat = node.last_lat * 1e-7
+    lon = node.last_long * 1e-7
+
+    mode = request.query.get("mode", "perimeter")
+    if mode == "perimeter":
+        perimeter = compute_perimeter(
+            lat=round(lat, 7),
+            lon=round(lon, 7),
+            freq_mhz=round(freq_mhz, 3),
+            tx_dbm=round(tx_dbm, 2),
+            tx_height_m=round(tx_height_m, 2),
+            rx_height_m=round(rx_height_m, 2),
+            radius_km=round(radius_km, 2),
+            step_km=round(step_km, 3),
+            reliability=round(reliability, 3),
+            threshold_dbm=round(threshold_dbm, 1),
+        )
+        return web.json_response(
+            {"mode": "perimeter", "threshold_dbm": threshold_dbm, "perimeter": perimeter}
+        )
+
+    points = compute_coverage(
+        lat=round(lat, 7),
+        lon=round(lon, 7),
+        freq_mhz=round(freq_mhz, 3),
+        tx_dbm=round(tx_dbm, 2),
+        tx_height_m=round(tx_height_m, 2),
+        rx_height_m=round(rx_height_m, 2),
+        radius_km=round(radius_km, 2),
+        step_km=round(step_km, 3),
+        reliability=round(reliability, 3),
+    )
+
+    min_dbm = DEFAULT_MIN_DBM
+    max_dbm = DEFAULT_MAX_DBM
+    if points:
+        vals = [p[2] for p in points]
+        min_dbm = min(min_dbm, min(vals))
+        max_dbm = max(max_dbm, max(vals))
+
+    return web.json_response(
+        {"mode": "heatmap", "min_dbm": min_dbm, "max_dbm": max_dbm, "points": points}
+    )

@@ -229,6 +229,20 @@ async def serve_page(request):
     return web.Response(text=content, content_type="text/html")
 
 
+@routes.get("/docs/{doc}")
+async def serve_doc(request):
+    """Serve documentation files from docs/ (markdown)."""
+    doc = request.match_info["doc"]
+    docs_root = pathlib.Path(__file__).parent.parent / "docs"
+    doc_path = (docs_root / doc).resolve()
+
+    if not doc_path.is_file() or docs_root not in doc_path.parents:
+        raise web.HTTPNotFound(text="Document not found")
+
+    content = doc_path.read_text(encoding="utf-8")
+    return web.Response(text=content, content_type="text/markdown")
+
+
 @routes.get("/net")
 async def net(request):
     return web.Response(

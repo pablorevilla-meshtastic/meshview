@@ -338,6 +338,12 @@
         <button onclick="showQrCode()" id="showQrBtn">
             <span>🔳</span> <span data-translate-lang="show_qr_code">Show QR Code</span>
         </button>
+        <button onclick="toggleCoverage()" id="toggleCoverageBtn" disabled title="Location required for coverage">
+            <span>📡</span> <span data-translate-lang="toggle_coverage">Toggle Coverage</span>
+        </button>
+        <a class="inline-link" id="coverageHelpLink" href="/docs/COVERAGE.md" target="_blank" rel="noopener" data-translate-lang="coverage_help">
+            Coverage Help
+        </a>
     </div>
 
     <!-- Impersonation Warning -->
@@ -517,6 +523,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 <script src="/static/portmaps.js"></script>
 
 <script>
@@ -635,6 +642,7 @@ let currentNode = null;
 let currentPacketRows = [];
 
 let map, markers = {};
+let coverageLayer = null;
 let chartData = {}, neighborData = { ids:[], names:[], snrs:[] };
 
 let fromNodeId = new URLSearchParams(window.location.search).get("from_node_id");
@@ -708,6 +716,20 @@ async function loadNodeInfo(){
             node.last_lat ? (node.last_lat / 1e7).toFixed(6) : "—";
         document.getElementById("info-lon").textContent =
             node.last_long ? (node.last_long / 1e7).toFixed(6) : "—";
+        const coverageBtn = document.getElementById("toggleCoverageBtn");
+        const coverageHelp = document.getElementById("coverageHelpLink");
+        if (coverageBtn) {
+            const hasLocation = Boolean(node.last_lat && node.last_long);
+            coverageBtn.disabled = !hasLocation;
+            coverageBtn.title = hasLocation
+                ? ""
+                : (nodeTranslations.location_required || "Location required for coverage");
+            coverageBtn.style.display = hasLocation ? "" : "none";
+        }
+        if (coverageHelp) {
+            const hasLocation = Boolean(node.last_lat && node.last_long);
+            coverageHelp.style.display = hasLocation ? "" : "none";
+        }
 
         let lastSeen = "—";
         if (node.last_seen_us) {
@@ -797,6 +819,43 @@ function initMap(){
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution:'&copy; OpenStreetMap'
     }).addTo(map);
+}
+
+async function toggleCoverage() {
+    if (!map) initMap();
+
+    if (coverageLayer) {
+        map.removeLayer(coverageLayer);
+        coverageLayer = null;
+        return;
+    }
+
+    const nodeId = currentNode?.node_id || fromNodeId;
+    if (!nodeId) return;
+
+    try {
+        const res = await fetch(`/api/coverage/${encodeURIComponent(nodeId)}?mode=perimeter`);
+        if (!res.ok) {
+            console.error("Coverage request failed", res.status);
+            return;
+        }
+        const data = await res.json();
+        if (!data.perimeter || data.perimeter.length < 3) {
+            console.warn("Coverage perimeter missing or too small");
+            return;
+        }
+        coverageLayer = L.polygon(data.perimeter, {
+            color: "#6f42c1",
+            weight: 2,
+            opacity: 0.7,
+            fillColor: "#000000",
+            fillOpacity: 0.10
+        }).addTo(map);
+        map.fitBounds(coverageLayer.getBounds(), { padding: [20, 20] });
+        map.invalidateSize();
+    } catch (err) {
+        console.error("Coverage request failed", err);
+    }
 }
 
 function hideMap(){
