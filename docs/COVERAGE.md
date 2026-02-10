@@ -1,23 +1,25 @@
-# Coverage Prediction
+# Coverage 
+
+## Predicted coverage
 
 Meshview can display a predicted coverage boundary for a node. This is a **model**
 estimate, not a guarantee of real-world performance.
 
-## How it works
+### How it works
 
 The coverage boundary is computed using the Longley-Rice / ITM **area mode**
 propagation model. Area mode estimates average path loss over generic terrain
 and does not use a terrain profile. This means it captures general distance
 effects, but **does not** account for terrain shadows, buildings, or foliage.
 
-## What you are seeing
+### What you are seeing
 
 The UI draws a **perimeter** (not a heatmap) that represents the furthest
 distance where predicted signal strength is above a threshold (default
 `-120 dBm`). The model is run radially from the node in multiple directions,
 and the last point above the threshold forms the outline.
 
-## Key parameters
+### Key parameters
 
 - **Frequency**: default `907 MHz`
 - **Transmit power**: default `20 dBm`
@@ -25,9 +27,32 @@ and the last point above the threshold forms the outline.
 - **Reliability**: default `0.5` (median)
 - **Terrain irregularity**: default `90 m` (average terrain)
 
-## Limitations
+### Limitations
 
 - No terrain or building data is used (area mode only).
 - Results are sensitive to power, height, and threshold.
 - Environmental factors can cause large real-world deviations.
+ - Observed coverage depends on gateway locations and recent traffic volume.
+
+
+
+## Observed coverage (real data)
+
+Meshview can also draw an **observed coverage** perimeter based on real packet
+sightings. This uses packets **from the node** and the gateways that heard them.
+We filter to **direct/1-hop** sightings (`hop_start - hop_limit <= 1`) and then:
+
+1. Compute distance + bearing from the sender to each gateway with location.
+2. Bucket by bearing (default 5°).
+3. Keep the **farthest** gateway in each bearing bucket.
+4. Connect those points into a perimeter polygon.
+
+This gives a **real-world envelope** that reflects terrain, antenna placement,
+and environment. It improves over time as more packets are observed.
+
+Tuning knobs:
+- `max_hops` (default 1)
+- `bearing_step` (default 10°)
+- `packets_limit` (default 50 most recent packets)
+
 

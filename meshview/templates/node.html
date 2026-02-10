@@ -339,7 +339,10 @@
             <span>🔳</span> <span data-translate-lang="show_qr_code">Show QR Code</span>
         </button>
         <button onclick="toggleCoverage()" id="toggleCoverageBtn" disabled title="Location required for coverage">
-            <span>📡</span> <span data-translate-lang="toggle_coverage">Toggle Coverage</span>
+            <span>📡</span> <span data-translate-lang="toggle_coverage">Predicted Coverage</span>
+        </button>
+        <button onclick="toggleObservedCoverage()" id="toggleObservedCoverageBtn" disabled title="Location required for coverage">
+            <span>🛰</span> <span data-translate-lang="toggle_observed_coverage">Observed Coverage</span>
         </button>
         <a class="inline-link" id="coverageHelpLink" href="/docs/COVERAGE.md" target="_blank" rel="noopener" data-translate-lang="coverage_help">
             Coverage Help
@@ -643,6 +646,7 @@ let currentPacketRows = [];
 
 let map, markers = {};
 let coverageLayer = null;
+let observedCoverageLayer = null;
 let chartData = {}, neighborData = { ids:[], names:[], snrs:[] };
 
 let fromNodeId = new URLSearchParams(window.location.search).get("from_node_id");
@@ -718,6 +722,7 @@ async function loadNodeInfo(){
             node.last_long ? (node.last_long / 1e7).toFixed(6) : "—";
         const coverageBtn = document.getElementById("toggleCoverageBtn");
         const coverageHelp = document.getElementById("coverageHelpLink");
+        const observedCoverageBtn = document.getElementById("toggleObservedCoverageBtn");
         if (coverageBtn) {
             const hasLocation = Boolean(node.last_lat && node.last_long);
             coverageBtn.disabled = !hasLocation;
@@ -725,6 +730,14 @@ async function loadNodeInfo(){
                 ? ""
                 : (nodeTranslations.location_required || "Location required for coverage");
             coverageBtn.style.display = hasLocation ? "" : "none";
+        }
+        if (observedCoverageBtn) {
+            const hasLocation = Boolean(node.last_lat && node.last_long);
+            observedCoverageBtn.disabled = !hasLocation;
+            observedCoverageBtn.title = hasLocation
+                ? ""
+                : (nodeTranslations.location_required || "Location required for coverage");
+            observedCoverageBtn.style.display = hasLocation ? "" : "none";
         }
         if (coverageHelp) {
             const hasLocation = Boolean(node.last_lat && node.last_long);
@@ -829,6 +842,10 @@ async function toggleCoverage() {
         coverageLayer = null;
         return;
     }
+    if (observedCoverageLayer) {
+        map.removeLayer(observedCoverageLayer);
+        observedCoverageLayer = null;
+    }
 
     const nodeId = currentNode?.node_id || fromNodeId;
     if (!nodeId) return;
@@ -855,6 +872,49 @@ async function toggleCoverage() {
         map.invalidateSize();
     } catch (err) {
         console.error("Coverage request failed", err);
+    }
+}
+
+async function toggleObservedCoverage() {
+    if (!map) initMap();
+
+    if (observedCoverageLayer) {
+        map.removeLayer(observedCoverageLayer);
+        observedCoverageLayer = null;
+        return;
+    }
+    if (coverageLayer) {
+        map.removeLayer(coverageLayer);
+        coverageLayer = null;
+    }
+
+    const nodeId = currentNode?.node_id || fromNodeId;
+    if (!nodeId) return;
+
+    try {
+        const res = await fetch(
+            `/api/coverage_observed/${encodeURIComponent(nodeId)}?max_hops=1&bearing_step=10&packets_limit=10`
+        );
+        if (!res.ok) {
+            console.error("Observed coverage request failed", res.status);
+            return;
+        }
+        const data = await res.json();
+        if (!data.perimeter || data.perimeter.length < 3) {
+            console.warn("Observed coverage perimeter missing or too small");
+            return;
+        }
+        observedCoverageLayer = L.polygon(data.perimeter, {
+            color: "#17a2b8",
+            weight: 3,
+            opacity: 1.0,
+            fillColor: "#000000",
+            fillOpacity: 0.1
+        }).addTo(map);
+        map.fitBounds(observedCoverageLayer.getBounds(), { padding: [20, 20] });
+        map.invalidateSize();
+    } catch (err) {
+        console.error("Observed coverage request failed", err);
     }
 }
 
