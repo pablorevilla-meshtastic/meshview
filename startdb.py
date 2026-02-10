@@ -11,6 +11,7 @@ from sqlalchemy.engine.url import make_url
 
 from meshview import migrations, models, mqtt_database, mqtt_reader, mqtt_store
 from meshview.config import CONFIG
+from meshview.deps import check_optional_deps
 
 # -------------------------
 # Basic logging configuration
@@ -237,6 +238,7 @@ async def load_database_from_mqtt(
 # Main function
 # -------------------------
 async def main():
+    check_optional_deps()
     logger = logging.getLogger(__name__)
 
     # Initialize database

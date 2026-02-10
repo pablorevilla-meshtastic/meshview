@@ -21,6 +21,7 @@ from meshview import config, database, decode_payload, migrations, models, store
 from meshview.__version__ import (
     __version_string__,
 )
+from meshview.deps import check_optional_deps
 from meshview.web_api import api
 
 logging.basicConfig(
@@ -38,6 +39,7 @@ env = Environment(loader=PackageLoader("meshview"), autoescape=select_autoescape
 
 # Start Database
 database.init_database(CONFIG["database"]["connection_string"])
+check_optional_deps()
 
 BASE_DIR = os.path.dirname(__file__)
 LANG_DIR = os.path.join(BASE_DIR, "lang")
