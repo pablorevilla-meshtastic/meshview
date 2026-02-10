@@ -96,6 +96,7 @@ Samples of currently running instances:
 - https://meshview.socalmesh.org (Los Angenles - USA)
 - https://map.wpamesh.net (Western Pennsylvania - USA)
 - https://meshview.chicagolandmesh.org (Chicago - USA)
+- https://meshview.freq51.net/ (Salt Lake City - USA)
 - https://meshview.mt.gt (Canada)
 - https://canadaverse.org (Canada)
 - https://meshview.meshtastic.es (Spain)
