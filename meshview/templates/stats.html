@@ -89,6 +89,7 @@
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="/static/portmaps.js"></script>
 {% endblock %}
 
 {% block body %}
@@ -205,14 +206,7 @@
 </div>
 
 <script>
-const PORTNUM_LABELS = {
-    1: "Text Messages",
-    3: "Position",
-    4: "Node Info",
-    67: "Telemetry",
-    70: "Traceroute",
-    71: "Neighbor Info"
-};
+const PORTNUM_LABELS = window.PORT_LABEL_MAP;
 
 // --- Fetch & Processing ---
 async function fetchStats(period_type,length,portnum=null,channel=null){

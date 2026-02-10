@@ -128,6 +128,7 @@
 <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylinedecorator.js"
         integrity="sha384-FhPn/2P/fJGhQLeNWDn9B/2Gml2bPOrKJwFqJXgR3xOPYxWg5mYQ5XZdhUSugZT0"
         crossorigin></script>
+<script src="/static/portmaps.js"></script>
 
 <script>
 /* ======================================================
@@ -179,15 +180,7 @@ var unmappedPackets = [];
 const UNMAPPED_LIMIT = 50;
 const UNMAPPED_TTL_MS = 5000;
 
-const portMap = {
-    1:"Text",
-    67:"Telemetry",
-    3:"Position",
-    70:"Traceroute",
-    4:"Node Info",
-    71:"Neighbour Info",
-    73:"Map Report"
-};
+const portMap = window.PORT_LABEL_MAP;
 
 const palette = ["#e6194b","#4363d8","#f58231","#911eb4","#46f0f0","#f032e6","#bcf60c","#fabebe",
                  "#008080","#e6beff","#9a6324","#fffac8","#800000","#aaffc3","#808000","#ffd8b1",

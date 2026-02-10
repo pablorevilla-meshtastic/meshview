@@ -2,6 +2,10 @@
 
 {% block title %}Packet Details{% endblock %}
 
+{% block head %}
+<script src="/static/portmaps.js"></script>
+{% endblock %}
+
 {% block css %}
 {{ super() }}
 <style>
@@ -178,17 +182,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const packetId = match[1];
 
     /* PORT LABELS (NOT TRANSLATED) */
-    const PORT_NAMES = {
-        0:"UNKNOWN APP",
-        1:"Text",
-        3:"Position",
-        4:"Node Info",
-        5:"Routing",
-        6:"Admin",
-        67:"Telemetry",
-        70:"Traceroute",
-        71:"Neighbor"
-    };
+    const PORT_NAMES = window.PORT_LABEL_MAP;
 
     /* ---------------------------------------------
        Fetch packet
