@@ -38,13 +38,13 @@ window.PORT_LABEL_MAP = {
 
 window.PORT_COLOR_MAP = {
     0: "#6c757d",   // gray - Unknown
-    1: "#007bff",   // blue - Text
+    1: "#1f77b4",   // blue - Text
     2: "#795548",   // brown - Remote Hardware
-    3: "#28a745",   // green - Position
-    4: "#ffc107",   // yellow - Node Info
-    5: "#dc3545",   // red - Routing
+    3: "#2ca02c",   // green - Position
+    4: "#ffbf00",   // yellow - Node Info
+    5: "#ff7f0e",   // orange - Routing
     6: "#20c997",   // teal - Admin
-    7: "#0056b3",   // dark blue - Text (Compressed)
+    7: "#6a51a3",   // purple - Text (Compressed)
     8: "#fd7e14",   // orange - Waypoint
     9: "#e91e63",   // pink - Audio
     10: "#ff9800",  // amber - Detection Sensor
@@ -61,8 +61,8 @@ window.PORT_COLOR_MAP = {
     67: "#17a2b8",  // info blue - Telemetry
     68: "#3f51b5",  // indigo - ZPS
     69: "#673ab7",  // deep purple - Simulator
-    70: "#ff4444",  // red - Traceroute
-    71: "#ff66cc",  // pink - Neighbor
+    70: "#f44336",  // bright red - Traceroute
+    71: "#e377c2",  // pink - Neighbor
     72: "#2196f3",  // blue - ATAK
     73: "#9999ff",  // light purple - Map Report
     74: "#ff5722",  // deep orange - Power Stress
