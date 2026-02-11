@@ -348,6 +348,24 @@
             Coverage Help
         </a>
     </div>
+    <div id="observedCoverageControls" class="node-actions" style="display:none;">
+        <span data-translate-lang="observed_settings">Observed Settings</span>
+        <label>
+            <span data-translate-lang="max_hops">Max Hops</span>
+            <input id="observedMaxHops" type="number" min="0" max="10" value="1" style="width:60px;">
+        </label>
+        <label>
+            <span data-translate-lang="bearing_step">Bearing Step</span>
+            <input id="observedBearingStep" type="number" min="1" max="90" value="5" style="width:60px;">
+        </label>
+        <label>
+            <span data-translate-lang="packets_limit">Packets</span>
+            <input id="observedPacketsLimit" type="number" min="1" max="1000" value="50" style="width:80px;">
+        </label>
+        <button onclick="refreshObservedCoverage()" id="refreshObservedCoverageBtn">
+            <span data-translate-lang="refresh">Refresh</span>
+        </button>
+    </div>
 
     <!-- Impersonation Warning -->
     <div id="impersonationWarning" class="impersonation-warning" style="display:none;">
@@ -647,6 +665,7 @@ let currentPacketRows = [];
 let map, markers = {};
 let coverageLayer = null;
 let observedCoverageLayer = null;
+let observedControlsVisible = false;
 let chartData = {}, neighborData = { ids:[], names:[], snrs:[] };
 
 let fromNodeId = new URLSearchParams(window.location.search).get("from_node_id");
@@ -742,6 +761,9 @@ async function loadNodeInfo(){
         if (coverageHelp) {
             const hasLocation = Boolean(node.last_lat && node.last_long);
             coverageHelp.style.display = hasLocation ? "" : "none";
+        }
+        if (!(node.last_lat && node.last_long)) {
+            setObservedControlsVisible(false);
         }
 
         let lastSeen = "—";
@@ -881,6 +903,7 @@ async function toggleObservedCoverage() {
     if (observedCoverageLayer) {
         map.removeLayer(observedCoverageLayer);
         observedCoverageLayer = null;
+        setObservedControlsVisible(false);
         return;
     }
     if (coverageLayer) {
@@ -892,8 +915,12 @@ async function toggleObservedCoverage() {
     if (!nodeId) return;
 
     try {
+        setObservedControlsVisible(true);
+        const maxHops = getObservedNumber("observedMaxHops", 1, 0, 10);
+        const bearingStep = getObservedNumber("observedBearingStep", 5, 1, 90);
+        const packetsLimit = getObservedNumber("observedPacketsLimit", 50, 1, 1000);
         const res = await fetch(
-            `/api/coverage_observed/${encodeURIComponent(nodeId)}?max_hops=1&bearing_step=10&packets_limit=10`
+            `/api/coverage_observed/${encodeURIComponent(nodeId)}?max_hops=${maxHops}&bearing_step=${bearingStep}&packets_limit=${packetsLimit}`
         );
         if (!res.ok) {
             console.error("Observed coverage request failed", res.status);
@@ -916,6 +943,30 @@ async function toggleObservedCoverage() {
     } catch (err) {
         console.error("Observed coverage request failed", err);
     }
+}
+
+function setObservedControlsVisible(show) {
+    const controls = document.getElementById("observedCoverageControls");
+    if (!controls) return;
+    observedControlsVisible = show;
+    controls.style.display = show ? "" : "none";
+}
+
+function getObservedNumber(id, fallback, min, max) {
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    const num = Number(el.value);
+    if (Number.isNaN(num)) return fallback;
+    return Math.max(min, Math.min(max, num));
+}
+
+async function refreshObservedCoverage() {
+    if (!observedCoverageLayer) {
+        await toggleObservedCoverage();
+        return;
+    }
+    await toggleObservedCoverage();
+    await toggleObservedCoverage();
 }
 
 function hideMap(){

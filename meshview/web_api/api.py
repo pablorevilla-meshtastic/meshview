@@ -58,6 +58,9 @@ def _bearing_deg(lat1, lon1, lat2, lon2):
     return (bearing + 360.0) % 360.0
 
 
+OBSERVED_MAX_DISTANCE_KM = 50.0
+
+
 def init_api_module(packet_class, seq_regex, lang_dir):
     """Initialize API module with dependencies from main web module."""
     global Packet, SEQ_REGEX, LANG_DIR
@@ -1240,6 +1243,8 @@ async def api_coverage_observed(request):
             gw_lat = gw.last_lat * 1e-7
             gw_lon = gw.last_long * 1e-7
             dist_km = _haversine_km(src_lat, src_lon, gw_lat, gw_lon)
+            if dist_km > OBSERVED_MAX_DISTANCE_KM:
+                continue
             bearing = _bearing_deg(src_lat, src_lon, gw_lat, gw_lon)
             bucket = int(bearing // bearing_step) * bearing_step
 
