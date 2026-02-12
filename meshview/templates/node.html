@@ -341,30 +341,9 @@
         <button onclick="toggleCoverage()" id="toggleCoverageBtn" disabled title="Location required for coverage">
             <span>📡</span> <span data-translate-lang="toggle_coverage">Predicted Coverage</span>
         </button>
-        <button onclick="toggleObservedCoverage()" id="toggleObservedCoverageBtn" disabled title="Location required for coverage">
-            <span>🛰</span> <span data-translate-lang="toggle_observed_coverage">Observed Coverage</span>
-        </button>
         <a class="inline-link" id="coverageHelpLink" href="/docs/COVERAGE.md" target="_blank" rel="noopener" data-translate-lang="coverage_help">
             Coverage Help
         </a>
-    </div>
-    <div id="observedCoverageControls" class="node-actions" style="display:none;">
-        <span data-translate-lang="observed_settings">Observed Settings</span>
-        <label>
-            <span data-translate-lang="max_hops">Max Hops</span>
-            <input id="observedMaxHops" type="number" min="0" max="10" value="1" style="width:60px;">
-        </label>
-        <label>
-            <span data-translate-lang="bearing_step">Bearing Step</span>
-            <input id="observedBearingStep" type="number" min="1" max="90" value="5" style="width:60px;">
-        </label>
-        <label>
-            <span data-translate-lang="packets_limit">Packets</span>
-            <input id="observedPacketsLimit" type="number" min="1" max="1000" value="50" style="width:80px;">
-        </label>
-        <button onclick="refreshObservedCoverage()" id="refreshObservedCoverageBtn">
-            <span data-translate-lang="refresh">Refresh</span>
-        </button>
     </div>
 
     <!-- Impersonation Warning -->
@@ -664,8 +643,6 @@ let currentPacketRows = [];
 
 let map, markers = {};
 let coverageLayer = null;
-let observedCoverageLayer = null;
-let observedControlsVisible = false;
 let chartData = {}, neighborData = { ids:[], names:[], snrs:[] };
 
 let fromNodeId = new URLSearchParams(window.location.search).get("from_node_id");
@@ -741,7 +718,6 @@ async function loadNodeInfo(){
             node.last_long ? (node.last_long / 1e7).toFixed(6) : "—";
         const coverageBtn = document.getElementById("toggleCoverageBtn");
         const coverageHelp = document.getElementById("coverageHelpLink");
-        const observedCoverageBtn = document.getElementById("toggleObservedCoverageBtn");
         if (coverageBtn) {
             const hasLocation = Boolean(node.last_lat && node.last_long);
             coverageBtn.disabled = !hasLocation;
@@ -750,20 +726,9 @@ async function loadNodeInfo(){
                 : (nodeTranslations.location_required || "Location required for coverage");
             coverageBtn.style.display = hasLocation ? "" : "none";
         }
-        if (observedCoverageBtn) {
-            const hasLocation = Boolean(node.last_lat && node.last_long);
-            observedCoverageBtn.disabled = !hasLocation;
-            observedCoverageBtn.title = hasLocation
-                ? ""
-                : (nodeTranslations.location_required || "Location required for coverage");
-            observedCoverageBtn.style.display = hasLocation ? "" : "none";
-        }
         if (coverageHelp) {
             const hasLocation = Boolean(node.last_lat && node.last_long);
             coverageHelp.style.display = hasLocation ? "" : "none";
-        }
-        if (!(node.last_lat && node.last_long)) {
-            setObservedControlsVisible(false);
         }
 
         let lastSeen = "—";
@@ -864,10 +829,6 @@ async function toggleCoverage() {
         coverageLayer = null;
         return;
     }
-    if (observedCoverageLayer) {
-        map.removeLayer(observedCoverageLayer);
-        observedCoverageLayer = null;
-    }
 
     const nodeId = currentNode?.node_id || fromNodeId;
     if (!nodeId) return;
@@ -897,77 +858,6 @@ async function toggleCoverage() {
     }
 }
 
-async function toggleObservedCoverage() {
-    if (!map) initMap();
-
-    if (observedCoverageLayer) {
-        map.removeLayer(observedCoverageLayer);
-        observedCoverageLayer = null;
-        setObservedControlsVisible(false);
-        return;
-    }
-    if (coverageLayer) {
-        map.removeLayer(coverageLayer);
-        coverageLayer = null;
-    }
-
-    const nodeId = currentNode?.node_id || fromNodeId;
-    if (!nodeId) return;
-
-    try {
-        setObservedControlsVisible(true);
-        const maxHops = getObservedNumber("observedMaxHops", 1, 0, 10);
-        const bearingStep = getObservedNumber("observedBearingStep", 5, 1, 90);
-        const packetsLimit = getObservedNumber("observedPacketsLimit", 50, 1, 1000);
-        const res = await fetch(
-            `/api/coverage_observed/${encodeURIComponent(nodeId)}?max_hops=${maxHops}&bearing_step=${bearingStep}&packets_limit=${packetsLimit}`
-        );
-        if (!res.ok) {
-            console.error("Observed coverage request failed", res.status);
-            return;
-        }
-        const data = await res.json();
-        if (!data.perimeter || data.perimeter.length < 3) {
-            console.warn("Observed coverage perimeter missing or too small");
-            return;
-        }
-        observedCoverageLayer = L.polygon(data.perimeter, {
-            color: "#17a2b8",
-            weight: 3,
-            opacity: 1.0,
-            fillColor: "#000000",
-            fillOpacity: 0.1
-        }).addTo(map);
-        map.fitBounds(observedCoverageLayer.getBounds(), { padding: [20, 20] });
-        map.invalidateSize();
-    } catch (err) {
-        console.error("Observed coverage request failed", err);
-    }
-}
-
-function setObservedControlsVisible(show) {
-    const controls = document.getElementById("observedCoverageControls");
-    if (!controls) return;
-    observedControlsVisible = show;
-    controls.style.display = show ? "" : "none";
-}
-
-function getObservedNumber(id, fallback, min, max) {
-    const el = document.getElementById(id);
-    if (!el) return fallback;
-    const num = Number(el.value);
-    if (Number.isNaN(num)) return fallback;
-    return Math.max(min, Math.min(max, num));
-}
-
-async function refreshObservedCoverage() {
-    if (!observedCoverageLayer) {
-        await toggleObservedCoverage();
-        return;
-    }
-    await toggleObservedCoverage();
-    await toggleObservedCoverage();
-}
 
 function hideMap(){
     const mapDiv = document.getElementById("map");

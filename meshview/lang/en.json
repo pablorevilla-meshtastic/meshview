@@ -109,7 +109,9 @@
       "firmware": "Firmware:",
       "link_copied": "Link Copied!",
       "legend_traceroute": "Traceroute (with arrows)",
-      "legend_neighbor": "Neighbor"
+      "legend_neighbor": "Neighbor",
+      "nearby_nodes_title": "Multiple nodes here",
+      "nearby_nodes_hint": "Select a node:"
 
     },
 
@@ -217,12 +219,6 @@
         "copy_import_url": "Copy Import URL",
         "show_qr_code": "Show QR Code",
         "toggle_coverage": "Predicted Coverage",
-        "toggle_observed_coverage": "Observed Coverage",
-        "observed_settings": "Observed Settings",
-        "max_hops": "Max Hops",
-        "bearing_step": "Bearing Step",
-        "packets_limit": "Packets",
-        "refresh": "Refresh",
         "location_required": "Location required for coverage",
         "coverage_help": "Coverage Help",
         "share_contact_qr": "Share Contact QR",

@@ -107,7 +107,9 @@
     "firmware": "Firmware:",
     "link_copied": "¡Enlace copiado!",
     "legend_traceroute": "Ruta de traceroute (flechas de dirección)",
-    "legend_neighbor": "Vínculo de vecinos"
+    "legend_neighbor": "Vínculo de vecinos",
+    "nearby_nodes_title": "Varios nodos aquí",
+    "nearby_nodes_hint": "Selecciona un nodo:"
   },
 
   "stats": {
@@ -203,12 +205,6 @@
     "copy_import_url": "Copiar URL de importación",
     "show_qr_code": "Mostrar código QR",
     "toggle_coverage": "Cobertura predicha",
-    "toggle_observed_coverage": "Cobertura observada",
-    "observed_settings": "Ajustes observados",
-    "max_hops": "Máx. saltos",
-    "bearing_step": "Paso de rumbo",
-    "packets_limit": "Paquetes",
-    "refresh": "Actualizar",
     "location_required": "Se requiere ubicación para la cobertura",
     "coverage_help": "Ayuda de cobertura",
     "share_contact_qr": "Compartir contacto QR",

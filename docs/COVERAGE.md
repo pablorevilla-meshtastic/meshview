@@ -32,27 +32,5 @@ and the last point above the threshold forms the outline.
 - No terrain or building data is used (area mode only).
 - Results are sensitive to power, height, and threshold.
 - Environmental factors can cause large real-world deviations.
- - Observed coverage depends on gateway locations and recent traffic volume.
-
-
-
-## Observed coverage (real data)
-
-Meshview can also draw an **observed coverage** perimeter based on real packet
-sightings. This uses packets **from the node** and the gateways that heard them.
-We filter to **direct/1-hop** sightings (`hop_start - hop_limit <= 1`) and then:
-
-1. Compute distance + bearing from the sender to each gateway with location.
-2. Bucket by bearing (default 5°).
-3. Keep the **farthest** gateway in each bearing bucket.
-4. Connect those points into a perimeter polygon.
-
-This gives a **real-world envelope** that reflects terrain, antenna placement,
-and environment. It improves over time as more packets are observed.
-
-Tuning knobs:
-- `max_hops` (default 1)
-- `bearing_step` (default 10°)
-- `packets_limit` (default 50 most recent packets)
 
 
