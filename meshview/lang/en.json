@@ -109,9 +109,7 @@
       "firmware": "Firmware:",
       "link_copied": "Link Copied!",
       "legend_traceroute": "Traceroute (with arrows)",
-      "legend_neighbor": "Neighbor",
-      "nearby_nodes_title": "Multiple nodes here",
-      "nearby_nodes_hint": "Select a node:"
+      "legend_neighbor": "Neighbor"
 
     },
 

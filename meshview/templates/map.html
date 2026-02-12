@@ -71,10 +71,6 @@
     #unmapped-list li:last-child { border-bottom: none; }
     .unmapped-node { font-weight: 400; color: #000; }
     .unmapped-empty { color: #666; font-style: italic; }
-    .nearby-popup { font-size: 13px; }
-    .nearby-popup .nearby-list { margin: 6px 0 0; padding-left: 16px; }
-    .nearby-popup .nearby-list li { margin: 3px 0; }
-    .nearby-popup .nearby-distance { color: #666; font-size: 12px; }
 </style>
 {% endblock %}
 
@@ -205,63 +201,29 @@ function timeAgoFromUs(us){
     return d>0?d+"d":h>0?h+"h":m>0?m+"m":s+"s";
 }
 
-const NEARBY_METERS = 20;
-
-function escapeHtml(text){
-    return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-}
-
-function getNearbyNodes(latlng){
-    const nearby = [];
-    nodes.forEach(n=>{
-        const marker = markerById[n.key];
-        if(!marker) return;
-        const dist = map.distance(latlng, marker.getLatLng());
-        if(dist <= NEARBY_METERS){
-            nearby.push({ node: n, marker, dist });
-        }
-    });
-    nearby.sort((a,b)=>a.dist - b.dist);
-    return nearby;
-}
-
-function openNearbyPopup(latlng, nearby){
-    const items = nearby.map(item => {
-        const label = item.node.long_name || item.node.short_name || item.node.node_id;
-        return `
-            <li>
-                <a href="#" onclick="focusNode(${item.node.key}); return false;">
-                    ${escapeHtml(label)}
-                </a>
-                <span class="nearby-distance">(${Math.round(item.dist)} m)</span>
-            </li>`;
-    }).join("");
-
-    const html = `
-        <div class="nearby-popup">
-            <div data-translate-lang="nearby_nodes_title">Multiple nodes here</div>
-            <div data-translate-lang="nearby_nodes_hint">Select a node:</div>
-            <ul class="nearby-list">${items}</ul>
-        </div>`;
-    L.popup().setLatLng(latlng).setContent(html).openOn(map);
-}
-
-function focusNode(nodeId){
-    const marker = markerById[nodeId];
-    const node = nodeMap.get(nodeId);
-    if(!marker || !node) return;
-    window.location.href = `/node/${node.node_id ?? node.id}`;
-}
-
 function hashToColor(str){
     if(colorMap.has(str)) return colorMap.get(str);
     const c = palette[nextColorIndex++ % palette.length];
     colorMap.set(str,c);
     return c;
+}
+
+function hashToUnit(str){
+    let h = 2166136261;
+    for(let i=0;i<str.length;i++){
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0) / 0xffffffff;
+}
+
+function jitterLatLng(lat, lon, key){
+    const meters = 15; // small, visually separates overlaps
+    const angle = hashToUnit(String(key)) * Math.PI * 2;
+    const r = meters * (0.3 + 0.7 * hashToUnit(`r:${key}`));
+    const dLat = (r * Math.cos(angle)) / 111320;
+    const dLon = (r * Math.sin(angle)) / (111320 * Math.cos(lat * Math.PI / 180));
+    return [lat + dLat, lon + dLon];
 }
 
 function isInvalidCoord(n){
@@ -427,7 +389,8 @@ function renderNodesOnMap(){
 
         const color = hashToColor(node.channel);
 
-        const marker = L.circleMarker([node.lat,node.long], {
+        const [jLat, jLon] = jitterLatLng(node.lat, node.long, node.key);
+        const marker = L.circleMarker([jLat,jLon], {
             radius: node.isRouter ? 9 : 7,
             color: "white",
             fillColor: color,
@@ -460,15 +423,9 @@ function renderNodesOnMap(){
         `;
 
         marker.on('click', () => {
-            const nearby = getNearbyNodes(marker.getLatLng());
-            if(nearby.length > 1){
-                openNearbyPopup(marker.getLatLng(), nearby);
-                return;
-            }
             onNodeClick(node);
             marker.bindPopup(popup).openPopup();
         });
-        marker.popupHtml = popup;
     });
 
     setTimeout(() => applyTranslationsMap(), 50);

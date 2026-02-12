@@ -107,9 +107,7 @@
     "firmware": "Firmware:",
     "link_copied": "¡Enlace copiado!",
     "legend_traceroute": "Ruta de traceroute (flechas de dirección)",
-    "legend_neighbor": "Vínculo de vecinos",
-    "nearby_nodes_title": "Varios nodos aquí",
-    "nearby_nodes_hint": "Selecciona un nodo:"
+    "legend_neighbor": "Vínculo de vecinos"
   },
 
   "stats": {
