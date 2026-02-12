@@ -231,6 +231,14 @@ function isInvalidCoord(n){
            Number.isNaN(n.lat) || Number.isNaN(n.long);
 }
 
+function getNodeLatLng(n){
+    const marker = markerById[n.key];
+    if(marker){
+        return marker.getLatLng();
+    }
+    return { lat: n.lat, lng: n.long };
+}
+
 /* ======================================================
    PACKET FETCHING (unchanged)
    ====================================================== */
@@ -515,7 +523,9 @@ async function onNodeClick(node){
             if(!f || !t || isInvalidCoord(f) || isInvalidCoord(t)) return;
 
             const color = edge.type === "neighbor" ? "gray" : "orange";
-            const line  = L.polyline([[f.lat, f.long], [t.lat, t.long]], {
+            const fLatLng = getNodeLatLng(f);
+            const tLatLng = getNodeLatLng(t);
+            const line  = L.polyline([[fLatLng.lat, fLatLng.lng], [tLatLng.lat, tLatLng.lng]], {
                 color, weight: 3
             }).addTo(edgeLayer);
 
