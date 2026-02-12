@@ -48,7 +48,7 @@ dev = [
 # Linting
 target-version = "py313"
 line-length = 100
-extend-exclude = ["build", "dist", ".venv"]
+extend-exclude = ["build", "dist", ".venv", "meshtastic/protobuf", "nanopb_pb2.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]     # pick your rulesets

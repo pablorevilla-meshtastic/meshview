@@ -2,7 +2,6 @@ env/*
 __pycache__/*
 meshview/__pycache__/*
 alembic/__pycache__/*
-meshtastic/protobuf/*
 
 # Database files
 packets.db
