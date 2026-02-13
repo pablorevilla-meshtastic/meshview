@@ -110,6 +110,8 @@
 <div id="filter-container">
     <input type="checkbox" class="filter-checkbox" id="filter-routers-only">
     <span data-translate-lang="show_routers_only">Show Routers Only</span>
+    <input type="checkbox" class="filter-checkbox" id="filter-mqtt-only">
+    <span data-translate-lang="show_mqtt_only">Show MQTT Gateways Only</span>
 </div>
 
 <div style="text-align:center;margin-top:5px;">
@@ -374,6 +376,7 @@ fetch('/api/nodes?days_active=3')
             role: n.role || "",
             firmware: n.firmware || "",
             last_seen_us: n.last_seen_us || null,
+            is_mqtt_gateway: n.is_mqtt_gateway === true,
             isRouter: (n.role||"").toLowerCase().includes("router")
         }));
 
@@ -416,6 +419,9 @@ function renderNodesOnMap(){
             <b data-translate-lang="channel_label"></b> ${node.channel}<br>
             <b data-translate-lang="model_label"></b> ${node.hw_model}<br>
             <b data-translate-lang="role_label"></b> ${node.role}<br>
+            <b data-translate-lang="mqtt_gateway"></b> ${
+                node.is_mqtt_gateway ? (mapTranslations.yes || "Yes") : (mapTranslations.no || "No")
+            }<br>
 
             ${
                 node.last_seen_us
@@ -633,10 +639,14 @@ function createChannelFilters(){
     });
 
     const routerOnly=document.getElementById("filter-routers-only");
+    const mqttOnly=document.getElementById("filter-mqtt-only");
     routerOnly.checked = saved["routersOnly"] || false;
+    mqttOnly.checked = saved["mqttOnly"] || false;
 
     routerOnly.addEventListener("change", saveFiltersToLocalStorage);
     routerOnly.addEventListener("change", updateNodeVisibility);
+    mqttOnly.addEventListener("change", saveFiltersToLocalStorage);
+    mqttOnly.addEventListener("change", updateNodeVisibility);
 
     updateNodeVisibility();
 }
@@ -647,12 +657,14 @@ function saveFiltersToLocalStorage(){
         state[ch] = document.getElementById(`filter-channel-${ch}`).checked;
     });
     state["routersOnly"] = document.getElementById("filter-routers-only").checked;
+    state["mqttOnly"] = document.getElementById("filter-mqtt-only").checked;
 
     localStorage.setItem("mapFilters", JSON.stringify(state));
 }
 
 function updateNodeVisibility(){
     const routerOnly = document.getElementById("filter-routers-only").checked;
+    const mqttOnly = document.getElementById("filter-mqtt-only").checked;
     const activeChannels = [...channelSet].filter(ch =>
         document.getElementById(`filter-channel-${ch}`).checked
     );
@@ -662,6 +674,7 @@ function updateNodeVisibility(){
         if(marker){
             const visible =
                 (!routerOnly || n.isRouter) &&
+                (!mqttOnly || n.is_mqtt_gateway) &&
                 activeChannels.includes(n.channel);
 
             visible ? map.addLayer(marker) : map.removeLayer(marker);
@@ -692,6 +705,7 @@ function shareCurrentView() {
 
 function resetFiltersToDefaults(){
     document.getElementById("filter-routers-only").checked = false;
+    document.getElementById("filter-mqtt-only").checked = false;
     channelSet.forEach(ch => {
         document.getElementById(`filter-channel-${ch}`).checked = true;
     });

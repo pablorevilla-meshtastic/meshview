@@ -117,6 +117,7 @@ async def api_nodes(request):
                     "last_lat": getattr(n, "last_lat", None),
                     "last_long": getattr(n, "last_long", None),
                     "channel": n.channel,
+                    "is_mqtt_gateway": getattr(n, "is_mqtt_gateway", None),
                     # "last_update": n.last_update.isoformat(),
                     "first_seen_us": n.first_seen_us,
                     "last_seen_us": n.last_seen_us,

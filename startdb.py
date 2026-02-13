@@ -239,6 +239,7 @@ async def load_database_from_mqtt(
 # -------------------------
 async def main():
     check_optional_deps()
+    await mqtt_store.load_gateway_cache()
     logger = logging.getLogger(__name__)
 
     # Initialize database

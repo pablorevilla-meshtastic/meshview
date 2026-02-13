@@ -266,13 +266,14 @@ select, .export-btn, .search-box, .clear-btn {
                 <th data-translate-lang="last_lat">Last Latitude <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_long">Last Longitude <span class="sort-icon"></span></th>
                 <th data-translate-lang="channel">Channel <span class="sort-icon"></span></th>
+                <th data-translate-lang="mqtt_gateway">MQTT</th>
                 <th data-translate-lang="last_seen">Last Seen <span class="sort-icon"></span></th>
                 <th data-translate-lang="favorite"></th>
             </tr>
         </thead>
         <tbody id="node-table-body">
             <tr>
-                <td colspan="10" style="text-align:center; color:white;" data-translate-lang="loading_nodes">
+                <td colspan="11" style="text-align:center; color:white;" data-translate-lang="loading_nodes">
                     Loading nodes...
                 </td>
             </tr>
@@ -448,7 +449,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         setStatus("");
     } catch (err) {
         tbody.innerHTML = `<tr>
-            <td colspan="10" style="text-align:center; color:red;">
+            <td colspan="11" style="text-align:center; color:red;">
                 ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
             </td></tr>`;
         setStatus("");
@@ -583,7 +584,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (!nodes.length) {
             if (shouldRenderTable) {
                 tbody.innerHTML = `<tr>
-                    <td colspan="10" style="text-align:center; color:white;">
+                    <td colspan="11" style="text-align:center; color:white;">
                         ${nodelistTranslations.no_nodes_found || "No nodes found"}
                     </td>
                 </tr>`;
@@ -613,6 +614,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                     <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
                     <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
                     <td>${node.channel || "N/A"}</td>
+                    <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || "Yes") : (nodelistTranslations.no || "No")}</td>
                     <td>${timeAgoFromMs(node.last_seen_ms)}</td>
                     <td style="text-align:center;">
                         <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">

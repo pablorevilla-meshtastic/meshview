@@ -80,8 +80,11 @@
         "last_lat": "Last Latitude",
         "last_long": "Last Longitude",
         "channel": "Channel",
+        "mqtt_gateway": "MQTT",
         "last_seen": "Last Seen",
         "favorite": "Favorite",
+        "yes": "Yes",
+        "no": "No",
 
         "time_just_now": "just now",
         "time_min_ago": "min ago",
@@ -96,8 +99,9 @@
     "view_packet_details": "More details"
     },
 
-    "map": {
+  "map": {
   "show_routers_only": "Show Routers Only",
+  "show_mqtt_only": "Show MQTT Gateways Only",
   "share_view": "Share This View",
   "reset_filters": "Reset Filters To Defaults",
   "unmapped_packets_title": "Unmapped Packets",
@@ -105,8 +109,11 @@
   "channel_label": "Channel:",
       "model_label": "Model:",
       "role_label": "Role:",
+      "mqtt_gateway": "MQTT Gateway:",
       "last_seen": "Last seen:",
       "firmware": "Firmware:",
+      "yes": "Yes",
+      "no": "No",
       "link_copied": "Link Copied!",
       "legend_traceroute": "Traceroute (with arrows)",
       "legend_neighbor": "Neighbor"
@@ -192,6 +199,7 @@
         "hw_model": "Hardware Model",
         "firmware": "Firmware",
         "role": "Role",
+        "mqtt_gateway": "MQTT Gateway",
         "channel": "Channel",
         "latitude": "Latitude",
         "longitude": "Longitude",
@@ -214,6 +222,8 @@
         "last_24h": "24h",
         "packets_sent": "Packets sent",
         "times_seen": "Times seen",
+        "yes": "Yes",
+        "no": "No",
         "copy_import_url": "Copy Import URL",
         "show_qr_code": "Show QR Code",
         "toggle_coverage": "Predicted Coverage",

@@ -2,7 +2,7 @@ import logging
 import re
 import time
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import IntegrityError
@@ -14,6 +14,8 @@ from meshview import decode_payload, mqtt_database
 from meshview.models import Node, NodePublicKey, Packet, PacketSeen, Traceroute
 
 logger = logging.getLogger(__name__)
+
+MQTT_GATEWAY_CACHE: set[int] = set()
 
 
 async def process_envelope(topic, env):
@@ -130,6 +132,12 @@ async def process_envelope(topic, env):
             return
         else:
             node_id = int(env.gateway_id[1:], 16)
+
+        if node_id not in MQTT_GATEWAY_CACHE:
+            MQTT_GATEWAY_CACHE.add(node_id)
+            await session.execute(
+                update(Node).where(Node.node_id == node_id).values(is_mqtt_gateway=True)
+            )
 
         result = await session.execute(
             select(PacketSeen).where(
@@ -266,3 +274,11 @@ async def process_envelope(topic, env):
                 )
 
         await session.commit()
+
+
+async def load_gateway_cache():
+    async with mqtt_database.async_session() as session:
+        result = await session.execute(
+            select(Node.node_id).where(Node.is_mqtt_gateway == True)  # noqa: E712
+        )
+        MQTT_GATEWAY_CACHE.update(result.scalars().all())

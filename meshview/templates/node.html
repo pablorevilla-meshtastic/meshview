@@ -366,6 +366,7 @@
         <div><strong data-translate-lang="firmware">Firmware</strong><strong>: </strong> <span id="info-firmware">—</span></div>
         <div><strong data-translate-lang="role">Role</strong><strong>: </strong> <span id="info-role">—</span></div>
 
+        <div><strong data-translate-lang="mqtt_gateway">MQTT Gateway</strong><strong>: </strong> <span id="info-mqtt-gateway">—</span></div>
         <div><strong data-translate-lang="channel">Channel</strong><strong>: </strong> <span id="info-channel">—</span></div>
         <div><strong data-translate-lang="latitude">Latitude</strong><strong>: </strong> <span id="info-lat">—</span></div>
         <div><strong data-translate-lang="longitude">Longitude</strong><strong>: </strong> <span id="info-lon">—</span></div>
@@ -710,6 +711,8 @@ async function loadNodeInfo(){
         document.getElementById("info-hw-model").textContent   = node.hw_model ?? "—";
         document.getElementById("info-firmware").textContent   = node.firmware ?? "—";
         document.getElementById("info-role").textContent       = node.role ?? "—";
+        document.getElementById("info-mqtt-gateway").textContent =
+            node.is_mqtt_gateway ? (nodeTranslations.yes || "Yes") : (nodeTranslations.no || "No");
         document.getElementById("info-channel").textContent    = node.channel ?? "—";
 
         document.getElementById("info-lat").textContent =
