@@ -112,6 +112,10 @@
             <p data-translate-lang="total_packets_seen">Total Packets Seen</p>
             <div class="summary-count" id="summary_seen">0</div>
         </div>
+        <div class="summary-card" style="flex:1;">
+            <p data-translate-lang="total_gateways">Total Gateways</p>
+            <div class="summary-count" id="summary_gateways">0</div>
+        </div>
     </div>
 
     <!-- Daily Charts -->
@@ -189,6 +193,28 @@
         <button class="expand-btn" data-chart="chart_channel" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_channel" data-translate-lang="export_csv">Export CSV</button>
         <div id="chart_channel" class="chart"></div>
+    </div>
+
+    <!-- Gateway breakdown charts -->
+    <div class="card-section">
+        <p class="section-header" data-translate-lang="gateway_channel_breakdown">Gateway Channel Breakdown</p>
+        <button class="expand-btn" data-chart="chart_gateway_channel" data-translate-lang="expand_chart">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_gateway_channel" data-translate-lang="export_csv">Export CSV</button>
+        <div id="chart_gateway_channel" class="chart"></div>
+    </div>
+
+    <div class="card-section">
+        <p class="section-header" data-translate-lang="gateway_role_breakdown">Gateway Role Breakdown</p>
+        <button class="expand-btn" data-chart="chart_gateway_role" data-translate-lang="expand_chart">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_gateway_role" data-translate-lang="export_csv">Export CSV</button>
+        <div id="chart_gateway_role" class="chart"></div>
+    </div>
+
+    <div class="card-section">
+        <p class="section-header" data-translate-lang="gateway_firmware_breakdown">Gateway Firmware Breakdown</p>
+        <button class="expand-btn" data-chart="chart_gateway_firmware" data-translate-lang="expand_chart">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_gateway_firmware" data-translate-lang="export_csv">Export CSV</button>
+        <div id="chart_gateway_firmware" class="chart"></div>
     </div>
 </div>
 
@@ -339,6 +365,7 @@ function renderPieChart(elId,data,name){
     return chart;
 }
 
+
 // --- Packet Type Pie Chart ---
 async function fetchPacketTypeBreakdown(channel=null) {
     const portnums = [1,3,4,67,70,71];
@@ -362,6 +389,7 @@ async function fetchPacketTypeBreakdown(channel=null) {
 let chartHourlyAll, chartPortnum1, chartPortnum3, chartPortnum4, chartPortnum67, chartPortnum70, chartPortnum71;
 let chartDailyAll, chartDailyPortnum1;
 let chartHwModel, chartRole, chartChannel;
+let chartGatewayChannel, chartGatewayRole, chartGatewayFirmware;
 let chartPacketTypes;
 
 async function init(){
@@ -408,9 +436,30 @@ async function init(){
     chartRole=renderPieChart("chart_role",processCountField(nodes,"role"),"Role");
     chartChannel=renderPieChart("chart_channel",processCountField(nodes,"channel"),"Channel");
 
+    const gateways = nodes.filter(n => n.is_mqtt_gateway);
+    chartGatewayChannel = renderPieChart(
+        "chart_gateway_channel",
+        processCountField(gateways, "channel"),
+        "Gateway Channel"
+    );
+    chartGatewayRole = renderPieChart(
+        "chart_gateway_role",
+        processCountField(gateways, "role"),
+        "Gateway Role"
+    );
+    chartGatewayFirmware = renderPieChart(
+        "chart_gateway_firmware",
+        processCountField(gateways, "firmware"),
+        "Gateway Firmware"
+    );
+
     const summaryNodesEl = document.getElementById("summary_nodes");
     if (summaryNodesEl) {
         summaryNodesEl.textContent = nodes.length.toLocaleString();
+    }
+    const summaryGatewaysEl = document.getElementById("summary_gateways");
+    if (summaryGatewaysEl) {
+        summaryGatewaysEl.textContent = gateways.length.toLocaleString();
     }
 
     // Packet types pie
@@ -458,6 +507,9 @@ window.addEventListener('resize',()=>{
         chartHwModel,
         chartRole,
         chartChannel,
+        chartGatewayChannel,
+        chartGatewayRole,
+        chartGatewayFirmware,
         chartPacketTypes
     ].forEach(c=>c?.resize());
 });

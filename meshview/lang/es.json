@@ -120,6 +120,7 @@
   "stats": {
     "mesh_stats_summary": "Estadísticas de la Malla - Resumen (completas en la base de datos)",
     "total_nodes": "Nodos Totales",
+    "total_gateways": "Gateways Totales",
     "total_packets": "Paquetes Totales",
     "total_packets_seen": "Paquetes Totales Vistos",
     "packets_per_day_all": "Paquetes por Día - Todos los Puertos (Últimos 14 Días)",
@@ -130,6 +131,10 @@
     "hardware_breakdown": "Distribución de Hardware",
     "role_breakdown": "Distribución de Roles",
     "channel_breakdown": "Distribución de Canales",
+    "gateway_channel_breakdown": "Desglose de canales de gateways",
+    "gateway_role_breakdown": "Desglose de roles de gateways",
+    "gateway_firmware_breakdown": "Desglose de firmware de gateways",
+    "no_gateways": "No se encontraron gateways",
     "expand_chart": "Ampliar Gráfico",
     "export_csv": "Exportar CSV",
     "all_channels": "Todos los Canales"

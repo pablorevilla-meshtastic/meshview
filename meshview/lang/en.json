@@ -124,6 +124,7 @@
     {
       "mesh_stats_summary": "Mesh Statistics - Summary (all available in Database)",
       "total_nodes": "Total Nodes",
+      "total_gateways": "Total Gateways",
       "total_packets": "Total Packets",
       "total_packets_seen": "Total Packets Seen",
       "packets_per_day_all": "Packets per Day - All Ports (Last 14 Days)",
@@ -134,6 +135,10 @@
       "hardware_breakdown": "Hardware Breakdown",
       "role_breakdown": "Role Breakdown",
       "channel_breakdown": "Channel Breakdown",
+      "gateway_channel_breakdown": "Gateway Channel Breakdown",
+      "gateway_role_breakdown": "Gateway Role Breakdown",
+      "gateway_firmware_breakdown": "Gateway Firmware Breakdown",
+      "no_gateways": "No gateways found",
       "expand_chart": "Expand Chart",
       "export_csv": "Export CSV",
       "all_channels": "All Channels",
