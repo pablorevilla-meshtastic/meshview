@@ -239,7 +239,6 @@ async def load_database_from_mqtt(
 # -------------------------
 async def main():
     check_optional_deps()
-    await mqtt_store.load_gateway_cache()
     logger = logging.getLogger(__name__)
 
     # Initialize database
@@ -267,6 +266,9 @@ async def main():
         logger.info("Creating database tables...")
         await mqtt_database.create_tables()
         logger.info("Database tables created")
+
+        # Load MQTT gateway cache after DB init/migrations
+        await mqtt_store.load_gateway_cache()
 
     finally:
         # Clear migration in progress flag
