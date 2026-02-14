@@ -408,6 +408,11 @@ seenSorted.forEach(s => {
     hopGroups[hopValue].push(s);
 });
 
+function formatHopDisplay(hopKey, hopStart){
+    const startVal = hopStart ?? "—";
+    return `${hopKey}/${startVal}`;
+}
+
 /* ---------------------------------------------
    Render grouped gateway table + map markers
 ----------------------------------------------*/
@@ -424,6 +429,7 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
             const node = nodeLookup[s.node_id];
             const label = node?.long_name || s.node_id;
 
+            const hopDisplay = formatHopDisplay(hopKey, s.hop_start);
             const timeStr = s.import_time_us
                 ? new Date(s.import_time_us/1000).toLocaleTimeString()
                 : "—";
@@ -482,7 +488,7 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                     RSSI: ${s.rx_rssi ?? "—"}<br>
                     SNR: ${s.rx_snr ?? "—"}<br><br>
 
-                    <b data-translate-lang="hops">Hops</b>: ${hopKey}
+                    <b data-translate-lang="hops">Hops</b>: ${hopDisplay}
                 </div>
             `);
 
@@ -493,7 +499,7 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                     <td><a href="/node/${s.node_id}">${label}</a></td>
                     <td>${s.rx_rssi ?? "—"}</td>
                     <td>${s.rx_snr ?? "—"}</td>
-                    <td>${hopKey}</td>
+                    <td>${hopDisplay}</td>
                     <td>${s.channel ?? "—"}</td>
                     <td>${timeStr}</td>
                 </tr>
