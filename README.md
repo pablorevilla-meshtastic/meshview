@@ -8,6 +8,7 @@ The project serves as a real-time monitoring and diagnostic tool for the Meshtas
 - **IMPORTANT:** the predicted coverage feature requires the extra `pyitm` dependency. If it is not installed, the coverage API will return 503.
   - Ubuntu install (inside the venv): `./env/bin/pip install pyitm`
 - Coverage: predicted coverage overlay (Longley‑Rice area mode) with perimeter rendering and documentation.
+- UI: added QR code display for quick node/app access.
 - Gateways: persistent gateway tracking (`is_mqtt_gateway`) and UI indicators in nodes, map popups, and stats.
 - Map UX: deterministic jitter for overlapping nodes; edges follow jittered positions.
 - Tooling: Meshtastic protobuf updater script with `--check` and `UPSTREAM_REV.txt` tracking.
