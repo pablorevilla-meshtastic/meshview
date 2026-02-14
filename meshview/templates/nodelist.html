@@ -266,7 +266,7 @@ select, .export-btn, .search-box, .clear-btn {
                 <th data-translate-lang="last_lat">Last Latitude <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_long">Last Longitude <span class="sort-icon"></span></th>
                 <th data-translate-lang="channel">Channel <span class="sort-icon"></span></th>
-                <th data-translate-lang="mqtt_gateway">MQTT</th>
+                <th data-translate-lang="mqtt_gateway">MQTT <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_seen">Last Seen <span class="sort-icon"></span></th>
                 <th data-translate-lang="favorite"></th>
             </tr>
@@ -331,7 +331,7 @@ const minStatusMs = 300;
 const headers = document.querySelectorAll("thead th");
 const keyMap = [
     "short_name","long_name","hw_model","firmware","role",
-    "last_lat","last_long","channel","last_seen_us"
+    "last_lat","last_long","channel","is_mqtt_gateway","last_seen_us"
 ];
 
 function debounce(fn, delay = 250) {
@@ -715,6 +715,11 @@ document.addEventListener("DOMContentLoaded", async function() {
             if (key === "last_seen_us") {
                 A = A || 0;
                 B = B || 0;
+            }
+
+            if (key === "is_mqtt_gateway") {
+                A = A ? 1 : 0;
+                B = B ? 1 : 0;
             }
 
             // Normalize strings for stable sorting
