@@ -4,6 +4,15 @@
 
 The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
 
+### Version 3.0.5 — February 2026
+- **IMPORTANT:** the predicted coverage feature requires the extra `pyitm` dependency. If it is not installed, the coverage API will return 503.
+  - Ubuntu install (inside the venv): `./env/bin/pip install pyitm`
+- Coverage: predicted coverage overlay (Longley‑Rice area mode) with perimeter rendering and documentation.
+- Gateways: persistent gateway tracking (`is_mqtt_gateway`) and UI indicators in nodes, map popups, and stats.
+- Map UX: deterministic jitter for overlapping nodes; edges follow jittered positions.
+- Tooling: Meshtastic protobuf updater script with `--check` and `UPSTREAM_REV.txt` tracking.
+
+
 ### Version 3.0.4 — Late January 2026
 - Database: multi‑DB support, PostgreSQL scripts, WAL config for SQLite, cleanup query timing fixes, removal of import time columns, and various time‑handling fixes.
 - UI/UX: extensive updates to node.html, nodelist.html, top.html, and packet.html (paging, stats, distance, status/favorites), plus net view changes to 12‑hour window.
