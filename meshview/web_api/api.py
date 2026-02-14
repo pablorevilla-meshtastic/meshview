@@ -614,7 +614,7 @@ async def api_config(request):
             "cleanup": safe_cleanup,
         }
 
-        return web.json_response(safe_config)
+        return web.json_response(safe_config, headers={'Cache-Control': 'public, max-age=300'})
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
@@ -647,14 +647,14 @@ async def api_lang(request):
     if section:
         section = section.lower()
         if section in translations:
-            return web.json_response(translations[section])
+            return web.json_response(translations[section], headers={'Cache-Control': 'public, max-age=3600'})
         else:
             return web.json_response(
                 {"error": f"Section '{section}' not found in {lang_code}"}, status=404
             )
 
     # if no section requested → return full translation file
-    return web.json_response(translations)
+    return web.json_response(translations, headers={'Cache-Control': 'public, max-age=3600'})
 
 
 @routes.get("/health")
