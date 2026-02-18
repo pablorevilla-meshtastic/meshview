@@ -23,7 +23,25 @@
     #reset-filters-button:hover { background-color:#da190b; }
     #reset-filters-button:active { background-color:#c41e0d; }
 
-    .blinking-tooltip { background:white;color:black;border:1px solid black;border-radius:4px;padding:2px 5px; }
+    .blinking-tooltip {
+        background: white;
+        color: black;
+        border: 2px solid #111;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .blinking-tooltip.text-packet {
+        animation: textPulse 1.1s ease-in-out 6;
+        border-color: #ff8c00;
+    }
+    @keyframes textPulse {
+        0% { box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+        50% { box-shadow: 0 4px 14px rgba(255,140,0,0.45); }
+        100% { box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    }
 
     #map-wrapper {
         position: relative;
@@ -274,7 +292,7 @@ function fetchNewPackets(){
               const marker = markerById[pkt.from_node_id];
               const nodeData = nodeMap.get(pkt.from_node_id);
               if(marker && nodeData) {
-                  blinkNode(marker,nodeData.long_name,pkt.portnum);
+                  blinkNode(marker, nodeData.long_name, pkt.portnum, pkt.payload);
               } else {
                   addUnmappedPacket(pkt, nodeData);
               }
@@ -568,7 +586,20 @@ map.on('click', e=>{
    BLINKING
    ====================================================== */
 
-function blinkNode(marker,longName,portnum){
+function escapeHtml(value){
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function isTextPort(portnum){
+    return portnum === 1 || portnum === 7;
+}
+
+function blinkNode(marker,longName,portnum,payload){
     if(!map.hasLayer(marker)) return;
 
     if(activeBlinks.has(marker)){
@@ -578,13 +609,24 @@ function blinkNode(marker,longName,portnum){
     }
 
     let blinkCount = 0;
+    const blinkStart = Date.now();
+    const blinkDurationMs = 7000;
+    const safeName = escapeHtml(longName);
+    const portLabel = portMap[portnum] || `Port ${portnum ?? "?"}`;
+    const payloadText = (payload || "").trim();
+    const showPayload = isTextPort(portnum) && payloadText && payloadText !== "Did not decode";
+    const shortPayload = showPayload && payloadText.length > 80
+        ? `${payloadText.slice(0, 77)}...`
+        : payloadText;
+    const payloadLine = showPayload ? `<br><span>${escapeHtml(shortPayload)}</span>` : "";
+
     const tooltip = L.tooltip({
         permanent:true,
         direction:'top',
         offset:[0,-marker.options.radius-5],
-        className:'blinking-tooltip'
+        className: isTextPort(portnum) ? 'blinking-tooltip text-packet' : 'blinking-tooltip'
     })
-    .setContent(`${longName} (${portMap[portnum] || "Port "+portnum})`)
+    .setContent(`${safeName} (${escapeHtml(portLabel)})${payloadLine}`)
     .setLatLng(marker.getLatLng())
     .addTo(map);
 
@@ -599,7 +641,7 @@ function blinkNode(marker,longName,portnum){
         }
         blinkCount++;
 
-        if(blinkCount>7){
+        if(Date.now() - blinkStart > blinkDurationMs){
             clearInterval(interval);
             marker.setStyle({ fillColor: marker.originalColor });
             map.removeLayer(tooltip);

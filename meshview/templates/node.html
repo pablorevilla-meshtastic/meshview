@@ -18,21 +18,23 @@
 
 /* --- Node Info --- */
 .node-info {
-    background-color: #1f2226;
-    border: 1px solid #3a3f44;
     color: #ddd;
     font-size: 0.88rem;
-    padding: 12px 14px;
     margin-bottom: 14px;
-    border-radius: 8px;
-
     display: grid;
     grid-template-columns: repeat(3, minmax(120px, 1fr));
-    grid-column-gap: 14px;
-    grid-row-gap: 6px;
+    grid-column-gap: 12px;
+    grid-row-gap: 12px;
 }
 
-.node-info div { padding: 2px 0; }
+.node-info-col {
+    background-color: #1f2226;
+    border: 1px solid #3a3f44;
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.node-info-col div { padding: 2px 0; }
 .node-info strong {
     color: #9fd4ff;
     font-weight: 600;
@@ -357,31 +359,32 @@
 
     <!-- Node Info -->
     <div id="node-info" class="node-info">
-        <div><strong data-translate-lang="node_id">Node ID</strong><strong>: </strong><span id="info-node-id">—</span></div>
-        <div><strong data-translate-lang="id">Hex ID</strong><strong>: </strong><span id="info-id">—</span></div>
-        <div><strong data-translate-lang="long_name">Long Name</strong><strong>: </strong> <span id="info-long-name">—</span></div>
-        <div><strong data-translate-lang="short_name">Short Name</strong><strong>: </strong> <span id="info-short-name">—</span></div>
-
-        <div><strong data-translate-lang="hw_model">Hardware Model</strong><strong>: </strong> <span id="info-hw-model">—</span></div>
-        <div><strong data-translate-lang="firmware">Firmware</strong><strong>: </strong> <span id="info-firmware">—</span></div>
-        <div><strong data-translate-lang="role">Role</strong><strong>: </strong> <span id="info-role">—</span></div>
-
-        <div><strong data-translate-lang="mqtt_gateway">MQTT Gateway</strong><strong>: </strong> <span id="info-mqtt-gateway">—</span></div>
-        <div><strong data-translate-lang="channel">Channel</strong><strong>: </strong> <span id="info-channel">—</span></div>
-        <div><strong data-translate-lang="latitude">Latitude</strong><strong>: </strong> <span id="info-lat">—</span></div>
-        <div><strong data-translate-lang="longitude">Longitude</strong><strong>: </strong> <span id="info-lon">—</span></div>
-
-        <div><strong data-translate-lang="first_update">First Update</strong><strong>: </strong> <span id="info-first-update">—</span></div>
-        <div><strong data-translate-lang="last_update">Last Update</strong><strong>: </strong> <span id="info-last-update">—</span></div>
-        <div>
-            <strong data-translate-lang="statistics">Statistics</strong><strong>: </strong>
-            <span id="info-stats"
-                  data-label-24h="24h"
-                  data-label-sent="Packets sent"
-                  data-label-seen="Times seen">—</span>
+        <div class="node-info-col">
+            <div><strong data-translate-lang="node_id">Node ID</strong><strong>: </strong><span id="info-node-id">—</span></div>
+            <div><strong data-translate-lang="id">Hex ID</strong><strong>: </strong><span id="info-id">—</span></div>
+            <div><strong data-translate-lang="short_name">Short Name</strong><strong>: </strong> <span id="info-short-name">—</span></div>
+            <div><strong data-translate-lang="long_name">Long Name</strong><strong>: </strong> <span id="info-long-name">—</span></div>
+            <div><strong data-translate-lang="channel">Channel</strong><strong>: </strong> <span id="info-channel">—</span></div>
         </div>
-
-
+        <div class="node-info-col">
+            <div><strong data-translate-lang="latitude">Latitude</strong><strong>: </strong> <span id="info-lat">—</span></div>
+            <div><strong data-translate-lang="longitude">Longitude</strong><strong>: </strong> <span id="info-lon">—</span></div>
+            <div><strong data-translate-lang="role">Role</strong><strong>: </strong> <span id="info-role">—</span></div>
+            <div><strong data-translate-lang="hw_model">Hardware Model</strong><strong>: </strong> <span id="info-hw-model">—</span></div>
+            <div><strong data-translate-lang="mqtt_gateway">MQTT Gateway</strong><strong>: </strong> <span id="info-mqtt-gateway">—</span></div>
+        </div>
+        <div class="node-info-col">
+            <div><strong data-translate-lang="first_update">First Update</strong><strong>: </strong> <span id="info-first-update">—</span></div>
+            <div><strong data-translate-lang="last_update">Last Update</strong><strong>: </strong> <span id="info-last-update">—</span></div>
+            <div><strong data-translate-lang="firmware">Firmware</strong><strong>: </strong> <span id="info-firmware">—</span></div>
+            <div>
+                <strong data-translate-lang="statistics">Statistics</strong><strong>: </strong>
+                <span id="info-stats"
+                      data-label-24h="24h"
+                      data-label-sent="Packets sent"
+                      data-label-seen="Times seen">—</span>
+            </div>
+        </div>
     </div>
 
     <!-- Map. -->
@@ -1439,13 +1442,20 @@ async function loadPacketHistogram() {
     const DAYS = 7;
     const now = new Date();
 
+    const dayKeyFromDate = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+    };
+
     const dayKeys = [];
     const dayLabels = [];
 
     for (let i = DAYS - 1; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(d.getDate() - i);
-        dayKeys.push(d.toISOString().slice(0, 10));
+        dayKeys.push(dayKeyFromDate(d));
         dayLabels.push(
             d.toLocaleDateString([], { month: "short", day: "numeric" })
         );
@@ -1473,9 +1483,7 @@ async function loadPacketHistogram() {
     for (const pkt of packets) {
         if (!pkt.import_time_us) continue;
 
-        const day = new Date(pkt.import_time_us / 1000)
-            .toISOString()
-            .slice(0, 10);
+        const day = dayKeyFromDate(new Date(pkt.import_time_us / 1000));
 
         if (!dayKeys.includes(day)) continue;
 
