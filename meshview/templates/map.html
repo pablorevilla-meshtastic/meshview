@@ -26,11 +26,11 @@
     .blinking-tooltip {
         background: white;
         color: black;
-        border: 2px solid #111;
+        border: 1px solid #111;
         border-radius: 6px;
         padding: 6px 10px;
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 400;
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     }
     .blinking-tooltip.text-packet {
@@ -432,24 +432,24 @@ function renderNodesOnMap(){
         markerById[node.key] = marker;
 
         const popup = `
-            <b><a href="/node/${node.node_id}">${node.long_name}</a> (${node.short_name})</b><br>
+            <a href="/node/${node.node_id}">${node.long_name}</a> (${node.short_name})<br>
 
-            <b data-translate-lang="channel_label"></b> ${node.channel}<br>
-            <b data-translate-lang="model_label"></b> ${node.hw_model}<br>
-            <b data-translate-lang="role_label"></b> ${node.role}<br>
-            <b data-translate-lang="mqtt_gateway"></b> ${
+            <span data-translate-lang="channel_label"></span> ${node.channel}<br>
+            <span data-translate-lang="model_label"></span> ${node.hw_model}<br>
+            <span data-translate-lang="role_label"></span> ${node.role}<br>
+            <span data-translate-lang="mqtt_gateway"></span> ${
                 node.is_mqtt_gateway ? (mapTranslations.yes || "Yes") : (mapTranslations.no || "No")
             }<br>
 
             ${
                 node.last_seen_us
-                    ? `<b data-translate-lang="last_seen"></b> ${timeAgoFromUs(node.last_seen_us)}<br>`
+                    ? `<span data-translate-lang="last_seen"></span> ${timeAgoFromUs(node.last_seen_us)}<br>`
                     : ""
             }
 
             ${
                 node.firmware
-                    ? `<b data-translate-lang="firmware"></b> ${node.firmware}<br>`
+                    ? `<span data-translate-lang="firmware"></span> ${node.firmware}<br>`
                     : ""
             }
         `;
