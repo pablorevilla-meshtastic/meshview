@@ -2,8 +2,11 @@
 Migration script to add relay_node column to packet_seen table.
 Run this once to update your database schema.
 """
+
 import asyncio
+
 from meshview import database
+
 
 async def add_relay_node_column():
     """Add relay_node column to packet_seen table"""
@@ -15,6 +18,7 @@ async def add_relay_node_column():
         """)
         await session.commit()
         print("Successfully added relay_node column to packet_seen table")
+
 
 if __name__ == "__main__":
     asyncio.run(add_relay_node_column())

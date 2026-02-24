@@ -469,6 +469,7 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                     <a href="/node/${s.node_id}">${s.node_id}</a><br>
                     HW: ${node?.hw_model ?? "—"}<br>
                     <span data-translate-lang="channel">Channel</span>: ${s.channel ?? "—"}<br>
+                    Relay Node: ${s.relay_node ?? "—"}<br>
                     ${
                         distanceKm !== null
                             ? `<span data-translate-lang="distance">Distance</span>:
