@@ -895,13 +895,21 @@ function addMarker(id, lat, lon, color = "red", node = null) {
 async function drawNeighbors(src, nids) {
     if (!map) return;
 
-    // Ensure source node position exists
-    const srcNode = await fetchNodeFromApi(src);
-    if (!srcNode || !srcNode.last_lat || !srcNode.last_long) return;
+    // Prefer the currently displayed source position (e.g. latest track point),
+    // then fall back to the node API location.
+    let srcLat;
+    let srcLon;
+    let srcNode = currentNode || nodeCache[src] || null;
 
-    const srcLat = srcNode.last_lat / 1e7;
-    const srcLon = srcNode.last_long / 1e7;
-    nodePositions[src] = [srcLat, srcLon];
+    if (nodePositions[src]) {
+        [srcLat, srcLon] = nodePositions[src];
+    } else {
+        srcNode = srcNode || await fetchNodeFromApi(src);
+        if (!srcNode || !srcNode.last_lat || !srcNode.last_long) return;
+        srcLat = srcNode.last_lat / 1e7;
+        srcLon = srcNode.last_long / 1e7;
+        nodePositions[src] = [srcLat, srcLon];
+    }
 
     for (const nid of nids) {
         const neighbor = await fetchNodeFromApi(nid);
@@ -1619,14 +1627,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         // ✅ MAP MUST EXIST FIRST
         if (!map) initMap();
 
+        // Load the track first so neighbor links anchor to the same
+        // visible current-node position shown on this page.
+        await loadTrack();
+
         // ✅ DRAW LATEST NEIGHBORS ONCE
         const neighborIds = await loadLatestNeighborIds();
         if (neighborIds.length) {
             await drawNeighbors(fromNodeId, neighborIds);
         }
-
-        // ⚠️ Track may add to map, but must not hide it
-        await loadTrack();
 
         await loadPackets();
         initPacketPortFilter();
