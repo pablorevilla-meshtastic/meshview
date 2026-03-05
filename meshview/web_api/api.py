@@ -454,30 +454,41 @@ async def api_stats_count(request):
 
 @routes.get("/api/snapshots/daily")
 async def api_daily_snapshots(request):
-    length_raw = request.query.get("length", "30")
-    try:
-        length = int(length_raw)
-    except ValueError:
-        return web.json_response({"error": "length must be an integer"}, status=400)
-
-    # Keep query bounded.
-    length = max(1, min(length, 3650))
+    length_raw = request.query.get("length")
+    length = None
+    if length_raw is not None:
+        try:
+            length = int(length_raw)
+        except ValueError:
+            return web.json_response({"error": "length must be an integer"}, status=400)
+        length = max(1, min(length, 3650))
 
     try:
         async with database.async_session() as session:
-            rows = (
-                (
-                    await session.execute(
-                        select(DailySnapshot)
-                        .order_by(DailySnapshot.snapshot_date.desc())
-                        .limit(length)
+            if length is not None:
+                rows = (
+                    (
+                        await session.execute(
+                            select(DailySnapshot)
+                            .order_by(DailySnapshot.snapshot_date.desc())
+                            .limit(length)
+                        )
                     )
+                    .scalars()
+                    .all()
                 )
-                .scalars()
-                .all()
-            )
+                rows = list(reversed(rows))
+            else:
+                rows = (
+                    (
+                        await session.execute(
+                            select(DailySnapshot).order_by(DailySnapshot.snapshot_date.asc())
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
 
-        rows = list(reversed(rows))
         data = [
             {
                 "date": row.snapshot_date.isoformat(),

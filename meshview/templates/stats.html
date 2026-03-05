@@ -119,12 +119,21 @@
     </div>
 
     <div class="card-section">
-        <p class="section-header" data-translate-lang="daily_snapshot_histogram">
-            Daily Network Snapshot Histogram (Last 30 Days)
+        <p class="section-header" data-translate-lang="daily_snapshot_packets_history">
+            Daily Packet Snapshot History (All Available Days)
         </p>
-        <button class="expand-btn" data-chart="chart_daily_snapshot" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_daily_snapshot" data-translate-lang="export_csv">Export CSV</button>
-        <div id="chart_daily_snapshot" class="chart"></div>
+        <button class="expand-btn" data-chart="chart_daily_snapshot_packets" data-translate-lang="expand_chart">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_daily_snapshot_packets" data-translate-lang="export_csv">Export CSV</button>
+        <div id="chart_daily_snapshot_packets" class="chart"></div>
+    </div>
+
+    <div class="card-section">
+        <p class="section-header" data-translate-lang="daily_snapshot_nodes_gateways_history">
+            Daily Node/Gateway Snapshot History (All Available Days)
+        </p>
+        <button class="expand-btn" data-chart="chart_daily_snapshot_nodes_gateways" data-translate-lang="expand_chart">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_daily_snapshot_nodes_gateways" data-translate-lang="export_csv">Export CSV</button>
+        <div id="chart_daily_snapshot_nodes_gateways" class="chart"></div>
     </div>
 
     <!-- Daily Charts -->
@@ -256,9 +265,9 @@ async function fetchStats(period_type,length,portnum=null,channel=null){
     }catch{return [];}
 }
 
-async function fetchDailySnapshots(length=30){
+async function fetchDailySnapshots(){
     try{
-        const res=await fetch(`/api/snapshots/daily?length=${length}`);
+        const res=await fetch("/api/snapshots/daily");
         if(!res.ok) return [];
         const json=await res.json();
         return json.data||[];
@@ -283,6 +292,18 @@ async function fetchChannels(){
     }catch{
         return [];
     }
+}
+
+function buildPacketTypeBreakdownFromSeries(allData, perPortSeries){
+    const totalAll = (allData || []).reduce((sum,d)=>sum+(d.count??d.packet_count??0),0);
+    const results = perPortSeries.map(({portnum, data}) => ({
+        portnum,
+        count: (data || []).reduce((sum,d)=>sum+(d.count??d.packet_count??0),0),
+    }));
+    const trackedTotal = results.reduce((sum,d)=>sum+d.count,0);
+    const other = Math.max(totalAll - trackedTotal,0);
+    if(other>0) results.push({portnum:"other", count:other});
+    return results;
 }
 
 function processCountField(nodes,field){
@@ -383,19 +404,50 @@ function renderPieChart(elId,data,name){
     return chart;
 }
 
-function renderDailySnapshotChart(domId,data){
+function makeTelemetryLine(name, color, seriesData) {
+    return {
+        name,
+        type: "line",
+        smooth: true,
+        connectNulls: true,
+        showSymbol: true,
+        symbol: "circle",
+        symbolSize: 7,
+        lineStyle: {
+            width: 2,
+            color,
+            shadowColor: color.replace("1)", "0.35)"),
+            shadowBlur: 8,
+            shadowOffsetY: 3
+        },
+        itemStyle: {
+            color,
+            borderColor: "#000",
+            borderWidth: 1
+        },
+        areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: color.replace("1)", "0.5)") },
+                { offset: 0.6, color: color.replace("1)", "0.2)") },
+                { offset: 1, color: "rgba(0,0,0,0)" }
+            ])
+        },
+        data: seriesData
+    };
+}
+
+function renderDailySnapshotPacketsChart(domId,data){
     const el=document.getElementById(domId);
     if(!el) return;
     const chart=echarts.init(el);
     const labels=data.map(d=>d.date||"");
-    const nodeCounts=data.map(d=>d.node_count??0);
     const packetCounts=data.map(d=>d.packet_count??0);
-    const gatewayCounts=data.map(d=>d.gateway_count??0);
+
     chart.setOption({
         backgroundColor:'#272b2f',
         tooltip:{trigger:'axis'},
         legend:{
-            data:['Nodes','Packets','Gateways'],
+            data:['Packets'],
             textStyle:{color:'#ccc'}
         },
         grid:{left:'6%', right:'6%', bottom:'18%'},
@@ -411,9 +463,42 @@ function renderDailySnapshotChart(domId,data){
             axisLabel:{color:'#ccc'}
         },
         series:[
-            {name:'Nodes', type:'bar', data:nodeCounts, itemStyle:{color:'#5e81ac'}},
-            {name:'Packets', type:'bar', data:packetCounts, itemStyle:{color:'#88c0d0'}},
-            {name:'Gateways', type:'bar', data:gatewayCounts, itemStyle:{color:'#a3be8c'}}
+            makeTelemetryLine("Packets", "rgba(255,214,82,1)", packetCounts)
+        ]
+    });
+    return chart;
+}
+
+function renderDailySnapshotNodesGatewaysChart(domId,data){
+    const el=document.getElementById(domId);
+    if(!el) return;
+    const chart=echarts.init(el);
+    const labels=data.map(d=>d.date||"");
+    const nodeCounts=data.map(d=>d.node_count??0);
+    const gatewayCounts=data.map(d=>d.gateway_count??0);
+
+    chart.setOption({
+        backgroundColor:'#272b2f',
+        tooltip:{trigger:'axis'},
+        legend:{
+            data:['Nodes','Gateways'],
+            textStyle:{color:'#ccc'}
+        },
+        grid:{left:'6%', right:'6%', bottom:'18%'},
+        xAxis:{
+            type:'category',
+            data:labels,
+            axisLine:{lineStyle:{color:'#aaa'}},
+            axisLabel:{rotate:45,color:'#ccc'}
+        },
+        yAxis:{
+            type:'value',
+            axisLine:{lineStyle:{color:'#aaa'}},
+            axisLabel:{color:'#ccc'}
+        },
+        series:[
+            makeTelemetryLine("Nodes", "rgba(79,155,255,1)", nodeCounts),
+            makeTelemetryLine("Gateways", "rgba(138,255,108,1)", gatewayCounts)
         ]
     });
     return chart;
@@ -442,10 +527,11 @@ async function fetchPacketTypeBreakdown(channel=null) {
 // --- Init ---
 let chartHourlyAll, chartPortnum1, chartPortnum3, chartPortnum4, chartPortnum67, chartPortnum70, chartPortnum71;
 let chartDailyAll, chartDailyPortnum1;
-let chartDailySnapshot;
+let chartDailySnapshotPackets, chartDailySnapshotNodesGateways;
 let chartHwModel, chartRole, chartChannel;
 let chartGatewayChannel, chartGatewayRole, chartGatewayFirmware;
 let chartPacketTypes;
+let defaultPacketTypesData = [];
 
 async function init(){
     // Channel selector
@@ -459,8 +545,12 @@ async function init(){
     });
 
     // Daily snapshot histogram
-    const snapshots = await fetchDailySnapshots(30);
-    chartDailySnapshot = renderDailySnapshotChart("chart_daily_snapshot", snapshots);
+    const snapshots = await fetchDailySnapshots();
+    chartDailySnapshotPackets = renderDailySnapshotPacketsChart("chart_daily_snapshot_packets", snapshots);
+    chartDailySnapshotNodesGateways = renderDailySnapshotNodesGatewaysChart(
+        "chart_daily_snapshot_nodes_gateways",
+        snapshots
+    );
 
     // Daily all ports
     const dailyAllData=await fetchStats('day',14);
@@ -522,7 +612,9 @@ async function init(){
     }
 
     // Packet types pie
-    const packetTypesData = await fetchPacketTypeBreakdown();
+    const packetSeries = portnums.map((pn, i) => ({ portnum: pn, data: allData[i] }));
+    const packetTypesData = buildPacketTypeBreakdownFromSeries(hourlyAllData, packetSeries);
+    defaultPacketTypesData = packetTypesData;
     const formatted = packetTypesData
         .filter(d=>d.count>0)
         .map(d=>({
@@ -561,7 +653,8 @@ window.addEventListener('resize',()=>{
         chartPortnum67,
         chartPortnum70,
         chartPortnum71,
-        chartDailySnapshot,
+        chartDailySnapshotPackets,
+        chartDailySnapshotNodesGateways,
         chartDailyAll,
         chartDailyPortnum1,
         chartHwModel,
@@ -646,7 +739,7 @@ document.querySelectorAll(".export-btn").forEach(btn=>{
 
 document.getElementById("channelSelect").addEventListener("change", async (e)=>{
     const channel = e.target.value;
-    const packetTypesData = await fetchPacketTypeBreakdown(channel);
+    const packetTypesData = channel ? await fetchPacketTypeBreakdown(channel) : defaultPacketTypesData;
     const formatted = packetTypesData
         .filter(d=>d.count>0)
         .map(d=>({
@@ -666,10 +759,14 @@ init();
 async function loadConfigAndTranslations() {
     let langCode = "en";
     try {
-        const resConfig = await fetch("/api/config");
-        const cfg = await resConfig.json();
-        window.site_config = cfg;
-        langCode = cfg?.site?.language || "en";
+        if (window.site_config?.site) {
+            langCode = window.site_config.site.language || "en";
+        } else {
+            const resConfig = await fetch("/api/config");
+            const cfg = await resConfig.json();
+            window.site_config = cfg;
+            langCode = cfg?.site?.language || "en";
+        }
     } catch(err) {
         console.error("Failed to load /api/config:", err);
         window.site_config = { site: { language: "en" } };
