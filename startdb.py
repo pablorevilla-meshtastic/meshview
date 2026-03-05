@@ -130,6 +130,27 @@ async def daily_backup_at(hour: int = 2, minute: int = 0, backup_dir: str = ".")
 
 
 # -------------------------
+# Daily snapshot scheduler
+# -------------------------
+async def daily_snapshot_at(hour: int = 1, minute: int = 0):
+    while True:
+        now = datetime.datetime.now()
+        next_run = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if next_run <= now:
+            next_run += datetime.timedelta(days=1)
+        delay = (next_run - now).total_seconds()
+        cleanup_logger.info(f"Next daily snapshot scheduled at {next_run}")
+        await asyncio.sleep(delay)
+
+        try:
+            async with db_lock:
+                await mqtt_store.capture_daily_snapshot()
+            cleanup_logger.info("Daily snapshot captured successfully.")
+        except Exception as e:
+            cleanup_logger.error(f"Error capturing daily snapshot: {e}")
+
+
+# -------------------------
 # Database cleanup using ORM
 # -------------------------
 async def daily_cleanup_at(
@@ -290,6 +311,8 @@ async def main():
     backup_dir = CONFIG.get("cleanup", {}).get("backup_dir", "./backups")
     backup_hour = get_int(CONFIG, "cleanup", "backup_hour", cleanup_hour)
     backup_minute = get_int(CONFIG, "cleanup", "backup_minute", cleanup_minute)
+    snapshot_hour = get_int(CONFIG, "snapshot", "hour", 1)
+    snapshot_minute = get_int(CONFIG, "snapshot", "minute", 0)
 
     logger.info(f"Starting MQTT ingestion from {CONFIG['mqtt']['server']}:{CONFIG['mqtt']['port']}")
     if cleanup_enabled:
@@ -300,6 +323,7 @@ async def main():
         logger.info(
             f"Daily backups enabled: storing in {backup_dir} at {backup_hour:02d}:{backup_minute:02d}"
         )
+    logger.info(f"Daily snapshots enabled: capturing at {snapshot_hour:02d}:{snapshot_minute:02d}")
 
     async with asyncio.TaskGroup() as tg:
         tg.create_task(
@@ -329,8 +353,11 @@ async def main():
                 )
             )
 
+        tg.create_task(daily_snapshot_at(snapshot_hour, snapshot_minute))
+
         if not cleanup_enabled and not backup_enabled:
             cleanup_logger.info("Daily cleanup and backups are both disabled by configuration.")
+            cleanup_logger.info("Daily snapshots remain enabled by schedule configuration.")
 
 
 # -------------------------

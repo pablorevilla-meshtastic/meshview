@@ -1,4 +1,6 @@
-from sqlalchemy import BigInteger, ForeignKey, Index, desc
+from datetime import date
+
+from sqlalchemy import BigInteger, Date, ForeignKey, Index, desc
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -120,3 +122,13 @@ class NodePublicKey(Base):
         Index("idx_node_public_key_node_id", "node_id"),
         Index("idx_node_public_key_public_key", "public_key"),
     )
+
+
+class DailySnapshot(Base):
+    __tablename__ = "daily_snapshot"
+
+    snapshot_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    node_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    packet_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    gateway_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    captured_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)

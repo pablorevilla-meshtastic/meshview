@@ -118,6 +118,15 @@
         </div>
     </div>
 
+    <div class="card-section">
+        <p class="section-header" data-translate-lang="daily_snapshot_histogram">
+            Daily Network Snapshot Histogram (Last 30 Days)
+        </p>
+        <button class="expand-btn" data-chart="chart_daily_snapshot" data-translate-lang="expand_chart">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_daily_snapshot" data-translate-lang="export_csv">Export CSV</button>
+        <div id="chart_daily_snapshot" class="chart"></div>
+    </div>
+
     <!-- Daily Charts -->
     <div class="card-section">
         <p class="section-header" data-translate-lang="packets_per_day_all">
@@ -247,6 +256,15 @@ async function fetchStats(period_type,length,portnum=null,channel=null){
     }catch{return [];}
 }
 
+async function fetchDailySnapshots(length=30){
+    try{
+        const res=await fetch(`/api/snapshots/daily?length=${length}`);
+        if(!res.ok) return [];
+        const json=await res.json();
+        return json.data||[];
+    }catch{return [];}
+}
+
 async function fetchNodes(){
     try{
         const res=await fetch("/api/nodes");
@@ -365,6 +383,42 @@ function renderPieChart(elId,data,name){
     return chart;
 }
 
+function renderDailySnapshotChart(domId,data){
+    const el=document.getElementById(domId);
+    if(!el) return;
+    const chart=echarts.init(el);
+    const labels=data.map(d=>d.date||"");
+    const nodeCounts=data.map(d=>d.node_count??0);
+    const packetCounts=data.map(d=>d.packet_count??0);
+    const gatewayCounts=data.map(d=>d.gateway_count??0);
+    chart.setOption({
+        backgroundColor:'#272b2f',
+        tooltip:{trigger:'axis'},
+        legend:{
+            data:['Nodes','Packets','Gateways'],
+            textStyle:{color:'#ccc'}
+        },
+        grid:{left:'6%', right:'6%', bottom:'18%'},
+        xAxis:{
+            type:'category',
+            data:labels,
+            axisLine:{lineStyle:{color:'#aaa'}},
+            axisLabel:{rotate:45,color:'#ccc'}
+        },
+        yAxis:{
+            type:'value',
+            axisLine:{lineStyle:{color:'#aaa'}},
+            axisLabel:{color:'#ccc'}
+        },
+        series:[
+            {name:'Nodes', type:'bar', data:nodeCounts, itemStyle:{color:'#5e81ac'}},
+            {name:'Packets', type:'bar', data:packetCounts, itemStyle:{color:'#88c0d0'}},
+            {name:'Gateways', type:'bar', data:gatewayCounts, itemStyle:{color:'#a3be8c'}}
+        ]
+    });
+    return chart;
+}
+
 
 // --- Packet Type Pie Chart ---
 async function fetchPacketTypeBreakdown(channel=null) {
@@ -388,6 +442,7 @@ async function fetchPacketTypeBreakdown(channel=null) {
 // --- Init ---
 let chartHourlyAll, chartPortnum1, chartPortnum3, chartPortnum4, chartPortnum67, chartPortnum70, chartPortnum71;
 let chartDailyAll, chartDailyPortnum1;
+let chartDailySnapshot;
 let chartHwModel, chartRole, chartChannel;
 let chartGatewayChannel, chartGatewayRole, chartGatewayFirmware;
 let chartPacketTypes;
@@ -402,6 +457,10 @@ async function init(){
         opt.textContent = ch;
         select.appendChild(opt);
     });
+
+    // Daily snapshot histogram
+    const snapshots = await fetchDailySnapshots(30);
+    chartDailySnapshot = renderDailySnapshotChart("chart_daily_snapshot", snapshots);
 
     // Daily all ports
     const dailyAllData=await fetchStats('day',14);
@@ -502,6 +561,7 @@ window.addEventListener('resize',()=>{
         chartPortnum67,
         chartPortnum70,
         chartPortnum71,
+        chartDailySnapshot,
         chartDailyAll,
         chartDailyPortnum1,
         chartHwModel,
@@ -554,10 +614,23 @@ document.querySelectorAll(".export-btn").forEach(btn=>{
         const option=chart.getOption();
         let rows=[];
         if(option.series[0].type==="bar"||option.series[0].type==="line"){
-            rows.push(["Period","Count"]);
             const xData=option.xAxis[0].data;
-            const yData=option.series[0].data;
-            for(let i=0;i<xData.length;i++) rows.push([xData[i],yData[i]]);
+            const series = option.series || [];
+            if(series.length > 1){
+                const headers = ["Period", ...series.map(s => s.name || "Series")];
+                rows.push(headers);
+                for(let i=0;i<xData.length;i++){
+                    const row=[xData[i]];
+                    series.forEach(s=>{
+                        row.push((s.data && s.data[i]!==undefined) ? s.data[i] : "");
+                    });
+                    rows.push(row);
+                }
+            }else{
+                rows.push(["Period","Count"]);
+                const yData=series[0].data;
+                for(let i=0;i<xData.length;i++) rows.push([xData[i],yData[i]]);
+            }
         }
         if(option.series[0].type==="pie"){
             rows.push(["Name","Value","Percentage"]);

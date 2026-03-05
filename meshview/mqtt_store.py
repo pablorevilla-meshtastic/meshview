@@ -1,8 +1,9 @@
 import logging
 import re
 import time
+from datetime import UTC, datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.exc import IntegrityError
@@ -11,11 +12,67 @@ from meshtastic.protobuf.config_pb2 import Config
 from meshtastic.protobuf.mesh_pb2 import HardwareModel
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import decode_payload, mqtt_database
-from meshview.models import Node, NodePublicKey, Packet, PacketSeen, Traceroute
+from meshview.models import DailySnapshot, Node, NodePublicKey, Packet, PacketSeen, Traceroute
 
 logger = logging.getLogger(__name__)
 
 MQTT_GATEWAY_CACHE: set[int] = set()
+
+
+async def capture_daily_snapshot() -> None:
+    today = datetime.now(UTC).date()
+
+    async with mqtt_database.async_session() as session:
+        node_count = (await session.execute(select(func.count()).select_from(Node))).scalar_one()
+        packet_count = (
+            await session.execute(select(func.count()).select_from(Packet))
+        ).scalar_one()
+        gateway_count = (
+            await session.execute(
+                select(func.count()).select_from(Node).where(Node.is_mqtt_gateway.is_(True))
+            )
+        ).scalar_one()
+        captured_at_us = int(time.time() * 1_000_000)
+        values = {
+            "snapshot_date": today,
+            "node_count": node_count,
+            "packet_count": packet_count,
+            "gateway_count": gateway_count,
+            "captured_at_us": captured_at_us,
+        }
+
+        dialect = session.get_bind().dialect.name
+        stmt = None
+        if dialect == "sqlite":
+            stmt = (
+                sqlite_insert(DailySnapshot)
+                .values(**values)
+                .on_conflict_do_update(index_elements=["snapshot_date"], set_=values)
+            )
+        elif dialect == "postgresql":
+            stmt = (
+                pg_insert(DailySnapshot)
+                .values(**values)
+                .on_conflict_do_update(index_elements=["snapshot_date"], set_=values)
+            )
+
+        if stmt is not None:
+            await session.execute(stmt)
+        else:
+            snapshot = (
+                await session.execute(
+                    select(DailySnapshot).where(DailySnapshot.snapshot_date == today)
+                )
+            ).scalar_one_or_none()
+            if snapshot is None:
+                session.add(DailySnapshot(**values))
+            else:
+                snapshot.node_count = node_count
+                snapshot.packet_count = packet_count
+                snapshot.gateway_count = gateway_count
+                snapshot.captured_at_us = captured_at_us
+
+        await session.commit()
 
 
 async def process_envelope(topic, env):

@@ -13,7 +13,7 @@ from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import database, decode_payload, store
 from meshview.__version__ import __version__, _git_revision_short, get_version_info
 from meshview.config import CONFIG
-from meshview.models import Node, NodePublicKey
+from meshview.models import DailySnapshot, Node, NodePublicKey
 from meshview.models import Packet as PacketModel
 from meshview.models import PacketSeen as PacketSeenModel
 from meshview.radio.coverage import (
@@ -450,6 +450,48 @@ async def api_stats_count(request):
     )
 
     return web.json_response({"total_packets": total_packets, "total_seen": total_seen})
+
+
+@routes.get("/api/snapshots/daily")
+async def api_daily_snapshots(request):
+    length_raw = request.query.get("length", "30")
+    try:
+        length = int(length_raw)
+    except ValueError:
+        return web.json_response({"error": "length must be an integer"}, status=400)
+
+    # Keep query bounded.
+    length = max(1, min(length, 3650))
+
+    try:
+        async with database.async_session() as session:
+            rows = (
+                (
+                    await session.execute(
+                        select(DailySnapshot)
+                        .order_by(DailySnapshot.snapshot_date.desc())
+                        .limit(length)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+
+        rows = list(reversed(rows))
+        data = [
+            {
+                "date": row.snapshot_date.isoformat(),
+                "node_count": row.node_count,
+                "packet_count": row.packet_count,
+                "gateway_count": row.gateway_count,
+                "captured_at_us": row.captured_at_us,
+            }
+            for row in rows
+        ]
+        return web.json_response({"data": data})
+    except Exception as e:
+        logger.error(f"Error in /api/snapshots/daily: {e}")
+        return web.json_response({"error": "Failed to fetch daily snapshots"}, status=500)
 
 
 @routes.get("/api/edges")
