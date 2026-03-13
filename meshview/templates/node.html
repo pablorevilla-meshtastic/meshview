@@ -1137,7 +1137,8 @@ async function loadTelemetryCharts(){
         times: [],
         battery: [], voltage: [],
         airUtil: [], chanUtil: [],
-        temperature: [], humidity: [], pressure: []
+        temperature: [], humidity: [], pressure: [],
+        wind_speed: [], wind_direction: [], wind_gust: []
     };
 
     for (const pkt of packets.reverse()) {
@@ -1169,6 +1170,15 @@ async function loadTelemetryCharts(){
         chartData.pressure.push(
             parseFloat(pl.match(/barometric_pressure:\s*([\d.]+)/)?.[1] || NaN)
         );
+        chartData.wind_speed.push(
+            parseFloat(pl.match(/wind_speed:\s*([\d.]+)/)?.[1] || NaN)
+        );
+        chartData.wind_direction.push(
+            parseFloat(pl.match(/wind_direction:\s*([\d.]+)/)?.[1] || NaN) / 10
+        );
+        chartData.wind_gust.push(
+            parseFloat(pl.match(/wind_gust:\s*([\d.]+)/)?.[1] || NaN)
+        );
     }
 
     const hasBattery = chartData.battery.some(v => !isNaN(v));
@@ -1178,7 +1188,16 @@ async function loadTelemetryCharts(){
     const hasEnv     =
         chartData.temperature.some(v => !isNaN(v)) ||
         chartData.humidity.some(v => !isNaN(v))   ||
-        chartData.pressure.some(v => !isNaN(v));
+        chartData.pressure.some(v => !isNaN(v))   ||
+        chartData.wind_speed.some(v => !isNaN(v)) ||
+        chartData.wind_direction.some(v => !isNaN(v));
+
+    const hasTemp = chartData.temperature.some(v => !isNaN(v));
+    const hasHumid = chartData.humidity.some(v => !isNaN(v));
+    const hasPress = chartData.pressure.some(v => !isNaN(v));
+    const hasWindSpeed = chartData.wind_speed.some(v => !isNaN(v));
+    const hasWindGust = chartData.wind_gust.some(v => !isNaN(v));
+    const hasWindDir = chartData.wind_direction.some(v => !isNaN(v));
 
     const batteryContainer = document.getElementById("battery_voltage_container");
     const airContainer     = document.getElementById("air_channel_container");
@@ -1260,19 +1279,38 @@ async function loadTelemetryCharts(){
     if (hasEnv) {
         envContainer.style.display = "block";
         chart3 = echarts.init(document.getElementById('chart_environment'));
+
+        const envLegend = [];
+        const envSeries = [];
+        const envYAxes = [];
+
+        if (hasTemp || hasHumid) {
+            envYAxes.push({ type:'value', name:'°C / %', axisLabel:{ color:'#ccc' } });
+        }
+        if (hasPress) {
+            envYAxes.push({ type:'value', name:'hPa', axisLabel:{ color:'#ccc' } });
+        }
+        if (hasWindSpeed || hasWindGust || hasWindLull) {
+            envYAxes.push({ type:'value', name:'m/s', axisLabel:{ color:'#ccc' } });
+        }
+        if (hasWindDir) {
+            envYAxes.push({ type:'value', name:'x10°', axisLabel:{ color:'#ccc' } });
+        }
+
+        let yIdx = 0;
+        if (hasTemp) { envLegend.push('Temperature (°C)'); envSeries.push(makeLine('Temperature (°C)', 'rgba(255,138,82,1)', chartData.temperature, yIdx)); }
+        if (hasHumid) { envLegend.push('Humidity (%)'); envSeries.push(makeLine('Humidity (%)', 'rgba(138,255,108,1)', chartData.humidity, yIdx)); }
+        if (hasPress) { envLegend.push('Pressure (hPa)'); yIdx = envYAxes.length > 1 ? 1 : 0; envSeries.push(makeLine('Pressure (hPa)', 'rgba(79,155,255,1)', chartData.pressure, yIdx)); }
+        if (hasWindSpeed) { envLegend.push('Wind Speed (m/s)'); yIdx = envYAxes.length > 2 ? 2 : 1; envSeries.push(makeLine('Wind Speed (m/s)', 'rgba(0,255,255,1)', chartData.wind_speed, yIdx)); }
+        if (hasWindGust) { envLegend.push('Wind Gust (m/s)'); yIdx = envYAxes.length > 2 ? 2 : 1; envSeries.push(makeLine('Wind Gust (m/s)', 'rgba(255,0,255,1)', chartData.wind_gust, yIdx)); }
+        if (hasWindDir) { envLegend.push('Wind Direction (x10°)'); yIdx = envYAxes.length - 1; envSeries.push(makeLine('Wind Direction (x10°)', 'rgba(255,165,0,1)', chartData.wind_direction, yIdx)); }
+
         chart3.setOption({
             tooltip: { trigger:'axis' },
-            legend: { data:['Temperature (°C)','Humidity (%)','Pressure (hPa)'], textStyle:{ color:'#ccc' } },
+            legend: { data:envLegend, textStyle:{ color:'#ccc' } },
             xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#ccc' } },
-            yAxis: [
-                { type:'value', name:'°C / %', axisLabel:{ color:'#ccc' } },
-                { type:'value', name:'hPa', axisLabel:{ color:'#ccc' } }
-            ],
-            series: [
-                makeLine('Temperature (°C)', 'rgba(255,138,82,1)', chartData.temperature),
-                makeLine('Humidity (%)', 'rgba(138,255,108,1)', chartData.humidity),
-                makeLine('Pressure (hPa)', 'rgba(79,155,255,1)', chartData.pressure, 1)
-            ]
+            yAxis: envYAxes,
+            series: envSeries
         });
     } else {
         envContainer.style.display = "none";
@@ -1571,14 +1609,30 @@ function exportCSV(type){
             rows.push([chartData.times[i], chartData.airUtil[i], chartData.chanUtil[i]]);
     }
     else if (type === "environment") {
-        rows[0].push("Temperature", "Humidity", "Pressure");
-        for (let i = 0; i < chartData.times.length; i++)
-            rows.push([
-                chartData.times[i],
-                chartData.temperature[i],
-                chartData.humidity[i],
-                chartData.pressure[i]
-            ]);
+        const csvHasTemp = chartData.temperature.some(v => !isNaN(v));
+        const csvHasHumid = chartData.humidity.some(v => !isNaN(v));
+        const csvHasPress = chartData.pressure.some(v => !isNaN(v));
+        const csvHasWindSpeed = chartData.wind_speed.some(v => !isNaN(v));
+        const csvHasWindGust = chartData.wind_gust.some(v => !isNaN(v));
+        const csvHasWindDir = chartData.wind_direction.some(v => !isNaN(v));
+
+        if (csvHasTemp) rows[0].push("Temperature");
+        if (csvHasHumid) rows[0].push("Humidity");
+        if (csvHasPress) rows[0].push("Pressure");
+        if (csvHasWindSpeed) rows[0].push("Wind Speed");
+        if (csvHasWindGust) rows[0].push("Wind Gust");
+        if (csvHasWindDir) rows[0].push("Wind Direction");
+
+        for (let i = 0; i < chartData.times.length; i++) {
+            const row = [chartData.times[i]];
+            if (csvHasTemp) row.push(chartData.temperature[i]);
+            if (csvHasHumid) row.push(chartData.humidity[i]);
+            if (csvHasPress) row.push(chartData.pressure[i]);
+            if (csvHasWindSpeed) row.push(chartData.wind_speed[i]);
+            if (csvHasWindGust) row.push(chartData.wind_gust[i]);
+            if (csvHasWindDir) row.push(chartData.wind_direction[i] * 10);
+            rows.push(row);
+        }
     }
     else if (type === "neighbors") {
         rows[0] = ["Neighbor Node ID", "Neighbor Name", "SNR (dB)"];
