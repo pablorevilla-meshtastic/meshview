@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>ESP32 Collector</h1>
+<p>Recent sensor uploads rendered with Jinja.</p>
+
+<div class="stats">
+  <div class="stat">
+    <strong>{{ reading_count }}</strong>
+    <span>stored readings</span>
+  </div>
+  <div class="stat">
+    <strong>{{ latest.device_id if latest else "n/a" }}</strong>
+    <span>latest device</span>
+  </div>
+  <div class="stat">
+    <strong>{{ "%.1f"|format(latest.temperature_c) if latest else "n/a" }}</strong>
+    <span>latest temp C</span>
+  </div>
+  <div class="stat">
+    <strong>{{ "%.1f"|format(latest.humidity) if latest else "n/a" }}</strong>
+    <span>latest humidity %</span>
+  </div>
+</div>
+
+{% if readings %}
+<div class="chart-wrap">
+  <canvas id="readingChart"></canvas>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Time</th>
+      <th>Device</th>
+      <th>Sensor</th>
+      <th>Temp C</th>
+      <th>Humidity %</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for reading in readings|reverse %}
+    <tr>
+      <td>{{ reading.received_at }}</td>
+      <td>{{ reading.device_id }}</td>
+      <td>{{ reading.sensor_type }}</td>
+      <td>{{ "%.1f"|format(reading.temperature_c) }}</td>
+      <td>{{ "%.1f"|format(reading.humidity) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const readings = {{ readings | tojson }};
+  const labels = readings.map((reading) => new Date(reading.received_at).toLocaleString());
+  const temperatures = readings.map((reading) => reading.temperature_c);
+  const humidity = readings.map((reading) => reading.humidity);
+
+  new Chart(document.getElementById("readingChart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Temperature (C)",
+          data: temperatures,
+          borderColor: "#c2410c",
+          backgroundColor: "rgba(194, 65, 12, 0.14)",
+          borderWidth: 3,
+          fill: true,
+          tension: 0.25,
+          pointRadius: 2
+        },
+        {
+          label: "Humidity (%)",
+          data: humidity,
+          borderColor: "#0f766e",
+          backgroundColor: "rgba(15, 118, 110, 0.12)",
+          borderWidth: 3,
+          fill: true,
+          tension: 0.25,
+          pointRadius: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+</script>
+{% else %}
+<div class="empty">
+  No readings yet. Your ESP32 should post JSON to <code>/metrics</code>.
+</div>
+{% endif %}
+{% endblock %}
