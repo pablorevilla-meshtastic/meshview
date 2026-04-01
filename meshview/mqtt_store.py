@@ -244,7 +244,12 @@ async def process_envelope(topic, env):
                     if user.id[0] == "!" and re.fullmatch(r"[0-9a-fA-F]+", user.id[1:]):
                         node_id = int(user.id[1:], 16)
                     else:
-                        node_id = None
+                        logger.warning(
+                            "Skipping NODEINFO_APP packet %s: unable to determine node_id",
+                            env.packet.id,
+                        )
+                        await session.commit()
+                        return
 
                     hw_model = (
                         HardwareModel.Name(user.hw_model)
