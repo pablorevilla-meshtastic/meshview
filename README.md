@@ -99,27 +99,38 @@ See [README-Docker.md](README-Docker.md) for container deployment and [docs/](do
 
 Samples of currently running instances:
 
-- https://meshview.bayme.sh (SF Bay Area - USA)
-- https://www.svme.sh (Sacramento Valley - USA)
-- https://meshview.nyme.sh (New York - USA)
-- https://meshview.socalmesh.org (Los Angenles - USA)
-- https://map.wpamesh.net (Western Pennsylvania - USA)
-- https://meshview.chicagolandmesh.org (Chicago - USA)
-- https://meshview.freq51.net/ (Salt Lake City - USA)
-- https://meshview.mt.gt (Canada)
-- https://canadaverse.org (Canada)
-- https://meshview.meshtastic.es (Spain)
-- https://view.mtnme.sh (North Georgia / East Tennessee - USA)
-- https://meshview.lsinfra.de (Hessen - Germany)
-- https://meshview.pvmesh.org (Pioneer Valley, Massachusetts - USA)
-- https://meshview.louisianamesh.org (Louisiana - USA)
-- https://www.swlamesh.com (Southwest Louisiana- USA)
-- https://meshview.meshcolombia.co (Colombia)
-- https://meshview-salzburg.jmt.gr (Salzburg / Austria)
-- https://map.cromesh.eu (Coatia)
-- https://view.meshdresden.eu (Dresden / Germany)
-- https://meshview.meshoregon.com (Oregon - USA)
-- https://meshview.gamesh.net (Georgia - USA)
+| Area | URL | Version | Nodes | Last Updated |
+| --- | --- | --- | ---: | --- |
+| Polski Mesh | https://meshview.format.ovh | 3.0.6 (65386be) | 4,827 | 4/1/2026, 12:12:25 PM |
+| Poland | https://meshview.szastan.pl | 3.0.5 (unknown) | 4,194 | 4/1/2026, 12:12:39 PM |
+| Spain | https://meshview.meshtastic.es | 3.0.5 (unknown) | 2,466 | 4/1/2026, 12:11:17 PM |
+| San Francisco Bay Area | https://meshview.bayme.sh | 3.0.5 (bdf70da) | 1,983 | 4/1/2026, 12:11:08 PM |
+| Southern California | https://meshview.socalmesh.org | 3.0.5 (unknown) | 1,205 | 4/1/2026, 12:11:50 PM |
+| Oregon (USA) | https://meshview.meshoregon.com | 3.0.5 (bdf70da) | 1,167 | 4/1/2026, 12:11:41 PM |
+| Australia/ New Zeland | https://my.meshview.world/anz | plus 1.0.0 | 1,165 | 4/1/2026, 12:11:59 PM |
+| Hessen - Germany | https://meshview.lsinfra.de | 3.0.5 (unknown) | 1,082 | 4/1/2026, 12:11:30 PM |
+| New York City | https://meshview.nyme.sh | 3.0.5 (bdf70da) | 984 | 4/1/2026, 12:11:26 PM |
+| Salt Lake City (USA) | https://meshview.freq51.net | — | 801 | 4/1/2026, 12:11:36 PM |
+| Salzburg / Austria | https://meshview-salzburg.jmt.gr | — | 748 | 4/1/2026, 12:11:21 PM |
+| North Georgia / East Tennessee - USA | https://view.mtnme.sh | 3.0.3 (ff30623) | 730 | 4/1/2026, 12:11:33 PM |
+| Canada | https://mv.canadaverse.org | 3.0.1 (unknown) | 674 | 4/1/2026, 12:12:06 PM |
+| Pioneer Valley, Massachusetts (USA) | https://meshview.pvmesh.org | 3.0.4 (018e16e) | 560 | 4/1/2026, 12:11:44 PM |
+| Western Pennsylvania (USA) | https://map.wpamesh.net | 3.0.5 (unknown) | 447 | 4/1/2026, 12:11:38 PM |
+| Great Britan | https://my.meshview.world/gb | plus 1.0.0 | 421 | 4/1/2026, 12:12:03 PM |
+| Chicago (USA) | https://meshview.chicagolandmesh.org | 3.0.5 (unknown) | 420 | 4/1/2026, 12:12:41 PM |
+| Georgia (USA) | https://meshview.gamesh.net | 3.0.1 (unknown) | 384 | 4/1/2026, 12:11:45 PM |
+| Brazil | https://my.meshview.world/brazil | plus 1.0.0 | 364 | 4/1/2026, 12:12:01 PM |
+| Mexico | https://my.meshview.world/mexico | plus 1.0.0 | 268 | 4/1/2026, 12:11:59 PM |
+| Northeast Ohio | https://meshview.neomesh.org | 3.0.5 (unknown) | 264 | 4/1/2026, 12:11:52 PM |
+| South Africa | https://my.meshview.world/za | plus 1.0.0 | 263 | 4/1/2026, 12:12:07 PM |
+| Argentina | https://my.meshview.world/argentina | plus 1.0.0 | 258 | 4/1/2026, 12:12:00 PM |
+| Northwest Indiana (USA) | https://meshview.nwimesh.net | 3.0.5 (2cc53dc) | 219 | 4/1/2026, 12:12:08 PM |
+| Louisiana (USA) | https://meshview.louisianamesh.org | — | 78 | 4/1/2026, 12:11:51 PM |
+| Chile | https://my.meshview.world/chile | plus 1.0.0 | 58 | 4/1/2026, 12:12:06 PM |
+| Colombia | https://meshview.meshcolombia.co | 3.0.5 (2cc53dc) | 55 | 4/1/2026, 12:11:46 PM |
+| Croatia | https://map.cromesh.eu | — | 0 | 4/1/2026, 12:11:45 PM |
+| Saint Louis (USA) | https://meshview.meshstl.org | 3.0.5 (2cc53dc) | 0 | 4/1/2026, 12:11:51 PM |
+| Southwest Louisiana (USA) | https://www.swlamesh.com | — | 0 | 4/1/2026, 12:11:46 PM |
 
 ---
 
