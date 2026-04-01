@@ -85,6 +85,15 @@
     border:none;
     border-radius:4px;
 }
+
+.chart-filter {
+    margin-bottom: 8px;
+    padding: 4px 6px;
+    background: #444;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+}
 {% endblock %}
 
 {% block head %}
@@ -120,8 +129,16 @@
 
     <div class="card-section">
         <p class="section-header" data-translate-lang="daily_snapshot_packets_history">
-            Daily Packet Snapshot History (All Available Days)
+            Daily Packet Snapshot History
         </p>
+        <select id="snapshotPacketsRange" class="chart-filter" aria-label="Snapshot packet timeframe">
+            <option value="7">7 days</option>
+            <option value="14">14 days</option>
+            <option value="30">1 month</option>
+            <option value="183">6 months</option>
+            <option value="365">1 year</option>
+            <option value="all" selected>All</option>
+        </select>
         <button class="expand-btn" data-chart="chart_daily_snapshot_packets" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_daily_snapshot_packets" data-translate-lang="export_csv">Export CSV</button>
         <div id="chart_daily_snapshot_packets" class="chart"></div>
@@ -129,22 +146,19 @@
 
     <div class="card-section">
         <p class="section-header" data-translate-lang="daily_snapshot_nodes_gateways_history">
-            Daily Node/Gateway Snapshot History (All Available Days)
+            Daily Node/Gateway Snapshot History
         </p>
+        <select id="snapshotNodesGatewaysRange" class="chart-filter" aria-label="Snapshot node and gateway timeframe">
+            <option value="7">7 days</option>
+            <option value="14">14 days</option>
+            <option value="30">1 month</option>
+            <option value="183">6 months</option>
+            <option value="365">1 year</option>
+            <option value="all" selected>All</option>
+        </select>
         <button class="expand-btn" data-chart="chart_daily_snapshot_nodes_gateways" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_daily_snapshot_nodes_gateways" data-translate-lang="export_csv">Export CSV</button>
         <div id="chart_daily_snapshot_nodes_gateways" class="chart"></div>
-    </div>
-
-    <!-- Daily Charts -->
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="packets_per_day_all">
-            Packets per Day - All Ports (Last 14 Days)
-        </p>
-        <div id="total_daily_all" class="total-count">Total: 0</div>
-        <button class="expand-btn" data-chart="chart_daily_all" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_daily_all" data-translate-lang="export_csv">Export CSV</button>
-        <div id="chart_daily_all" class="chart"></div>
     </div>
 
     <!-- Packet Types Pie Chart with Channel Selector -->
@@ -332,6 +346,22 @@ function prepareTopN(data,n=20){
     return top;
 }
 
+function filterSnapshotsByRange(data, rangeValue){
+    if(rangeValue === "all") return data;
+    const days = Number.parseInt(rangeValue, 10);
+    if(Number.isNaN(days) || days <= 0 || !data.length) return data;
+
+    const latest = data.reduce((maxDate, item) => {
+        const itemDate = new Date(`${item.date}T00:00:00Z`);
+        return itemDate > maxDate ? itemDate : maxDate;
+    }, new Date(`${data[0].date}T00:00:00Z`));
+
+    const cutoff = new Date(latest);
+    cutoff.setUTCDate(cutoff.getUTCDate() - (days - 1));
+
+    return data.filter(item => new Date(`${item.date}T00:00:00Z`) >= cutoff);
+}
+
 // --- Chart Rendering ---
 function renderChart(domId,data,type,color){
     const el=document.getElementById(domId);
@@ -439,7 +469,7 @@ function makeTelemetryLine(name, color, seriesData) {
 function renderDailySnapshotPacketsChart(domId,data){
     const el=document.getElementById(domId);
     if(!el) return;
-    const chart=echarts.init(el);
+    const chart=echarts.getInstanceByDom(el) || echarts.init(el);
     const labels=data.map(d=>d.date||"");
     const packetCounts=data.map(d=>d.packet_count??0);
 
@@ -472,7 +502,7 @@ function renderDailySnapshotPacketsChart(domId,data){
 function renderDailySnapshotNodesGatewaysChart(domId,data){
     const el=document.getElementById(domId);
     if(!el) return;
-    const chart=echarts.init(el);
+    const chart=echarts.getInstanceByDom(el) || echarts.init(el);
     const labels=data.map(d=>d.date||"");
     const nodeCounts=data.map(d=>d.node_count??0);
     const gatewayCounts=data.map(d=>d.gateway_count??0);
@@ -532,6 +562,20 @@ let chartHwModel, chartRole, chartChannel;
 let chartGatewayChannel, chartGatewayRole, chartGatewayFirmware;
 let chartPacketTypes;
 let defaultPacketTypesData = [];
+let dailySnapshots = [];
+
+function renderSnapshotCharts(){
+    const packetsRange = document.getElementById("snapshotPacketsRange")?.value || "all";
+    const nodesGatewaysRange = document.getElementById("snapshotNodesGatewaysRange")?.value || "all";
+    chartDailySnapshotPackets = renderDailySnapshotPacketsChart(
+        "chart_daily_snapshot_packets",
+        filterSnapshotsByRange(dailySnapshots, packetsRange)
+    );
+    chartDailySnapshotNodesGateways = renderDailySnapshotNodesGatewaysChart(
+        "chart_daily_snapshot_nodes_gateways",
+        filterSnapshotsByRange(dailySnapshots, nodesGatewaysRange)
+    );
+}
 
 async function init(){
     // Channel selector
@@ -545,17 +589,8 @@ async function init(){
     });
 
     // Daily snapshot histogram
-    const snapshots = await fetchDailySnapshots();
-    chartDailySnapshotPackets = renderDailySnapshotPacketsChart("chart_daily_snapshot_packets", snapshots);
-    chartDailySnapshotNodesGateways = renderDailySnapshotNodesGatewaysChart(
-        "chart_daily_snapshot_nodes_gateways",
-        snapshots
-    );
-
-    // Daily all ports
-    const dailyAllData=await fetchStats('day',14);
-    updateTotalCount('total_daily_all',dailyAllData);
-    chartDailyAll=renderChart('chart_daily_all',dailyAllData,'line','#66bb6a');
+    dailySnapshots = await fetchDailySnapshots();
+    renderSnapshotCharts();
 
     // Daily port 1
     const dailyPort1Data=await fetchStats('day',14,1);
@@ -751,6 +786,9 @@ document.getElementById("channelSelect").addEventListener("change", async (e)=>{
     chartPacketTypes?.dispose();
     chartPacketTypes = renderPieChart("chart_packet_types",formatted,"Packet Types (Last 24h)");
 });
+
+document.getElementById("snapshotPacketsRange")?.addEventListener("change", renderSnapshotCharts);
+document.getElementById("snapshotNodesGatewaysRange")?.addEventListener("change", renderSnapshotCharts);
 
 // Kick everything off
 init();
