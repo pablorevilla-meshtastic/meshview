@@ -65,6 +65,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const renderedPacketIds = new Set();
+    const renderedNodeIds = new Set();
     let netTranslations = {};
     let netTag = "";
 
@@ -95,7 +96,7 @@ document.addEventListener("DOMContentLoaded", async () => {
        Update count
     ----------------------------------- */
     function updateTotalCount() {
-        totalCountValueEl.textContent = renderedPacketIds.size;
+        totalCountValueEl.textContent = renderedNodeIds.size;
     }
 
     /* -----------------------------------
@@ -104,6 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     function renderPacket(packet) {
         if (renderedPacketIds.has(packet.id)) return;
         renderedPacketIds.add(packet.id);
+        renderedNodeIds.add(packet.from_node_id);
 
         const date = new Date(packet.import_time_us / 1000);
 
@@ -161,7 +163,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     ----------------------------------- */
     function renderPacketsEnsureDescending(packets) {
         if (!packets || !packets.length) return;
-        const sorted = packets.slice().sort((a, b) => b.import_time_us - a.import_time_us);
+        const earliestByNode = new Map();
+
+        for (const packet of packets) {
+            const existing = earliestByNode.get(packet.from_node_id);
+            if (!existing || packet.import_time_us < existing.import_time_us) {
+                earliestByNode.set(packet.from_node_id, packet);
+            }
+        }
+
+        const sorted = Array.from(earliestByNode.values()).sort(
+            (a, b) => b.import_time_us - a.import_time_us
+        );
         for (let i = sorted.length - 1; i >= 0; i--) {
             renderPacket(sorted[i]);
         }
