@@ -180,6 +180,7 @@
         "packet_id": "Packet ID",
         "from": "From",
         "to": "To",
+        "channel": "Channel",
         "port": "Port",
         "links": "Links",
         "unknown_app": "UNKNOWN APP",

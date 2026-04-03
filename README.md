@@ -662,17 +662,6 @@ Check the log file to see it the script run at the specific time.
 
 ---
 
-## Testing
-
-MeshView includes a test suite using pytest. For detailed testing documentation, see [README-testing.md](README-testing.md).
-
-Quick start:
-```bash
-./env/bin/pytest tests/test_api_simple.py -v
-```
-
----
-
 ## Technical Documentation
 
 For more detailed technical documentation including database migrations, architecture details, and advanced topics, see the [docs/](docs/) directory.

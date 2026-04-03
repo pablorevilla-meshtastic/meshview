@@ -107,6 +107,7 @@
                 <th data-translate-lang="packet_id">Packet ID</th>
                 <th data-translate-lang="from">From</th>
                 <th data-translate-lang="to">To</th>
+                <th data-translate-lang="channel">Channel</th>
                 <th data-translate-lang="port">Port</th>
             </tr>
         </thead>
@@ -343,12 +344,13 @@ async function fetchUpdates() {
 
     <td>${from}</td>
     <td>${to}</td>
+    <td>${pkt.channel || "—"}</td>
     <td>${portLabel(pkt.portnum, pkt.payload, inlineLinks)}</td>
 
 </tr>
 
 <tr class="payload-row">
-    <td colspan="5" class="payload-cell">${safePayload}</td>
+    <td colspan="6" class="payload-cell">${safePayload}</td>
 </tr>
 `;
 

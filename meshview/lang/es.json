@@ -179,6 +179,7 @@
     "packet_id": "ID de paquete",
     "from": "De",
     "to": "A",
+    "channel": "Canal",
     "port": "Puerto",
     "direct_to_mqtt": "Directo a MQTT",
     "all_broadcast": "Todos"
