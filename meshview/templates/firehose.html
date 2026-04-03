@@ -11,6 +11,12 @@
     font-size: 0.9rem;
     border-radius: 6px;
 }
+.firehose-controls {
+    gap: 12px;
+}
+.firehose-filter {
+    min-width: 220px;
+}
 
 .port-tag {
     display: inline-block;
@@ -89,15 +95,22 @@
 {% block body %}
 <div class="container">
 
-    <form class="d-flex align-items-center justify-content-between mb-3">
+    <form class="d-flex align-items-center justify-content-between mb-3 firehose-controls">
         <h2 class="mb-0" data-translate-lang="live_feed">📡 Live Feed</h2>
 
-        <button type="button"
-                id="pause-button"
-                class="btn btn-sm btn-outline-secondary"
-                data-translate-lang="pause">
-            Pause
-        </button>
+        <div class="d-flex align-items-center gap-2">
+            <label for="channel-filter" class="mb-0" data-translate-lang="channel">Channel</label>
+            <select id="channel-filter" class="form-select form-select-sm firehose-filter">
+                <option value="" data-translate-lang="all_channels">All Channels</option>
+            </select>
+
+            <button type="button"
+                    id="pause-button"
+                    class="btn btn-sm btn-outline-secondary"
+                    data-translate-lang="pause">
+                Pause
+            </button>
+        </div>
     </form>
 
     <table class="packet-table">
@@ -241,6 +254,7 @@ function logPacketTimes(packet) {
 let lastImportTimeUs = null;
 let updatesPaused = false;
 let updateInterval = 3000;
+let selectedChannel = "";
 
 async function configureFirehose() {
     try {
@@ -248,6 +262,36 @@ async function configureFirehose() {
         const sec = cfg?.site?.firehose_interval;
         if (sec && !isNaN(sec)) updateInterval = sec * 1000;
     } catch {}
+}
+
+async function loadChannels() {
+    try {
+        const res = await fetch("/api/channels");
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const select = document.getElementById("channel-filter");
+        const channels = data.channels || [];
+
+        for (const channel of channels) {
+            const option = document.createElement("option");
+            option.value = channel;
+            option.textContent = channel;
+            select.appendChild(option);
+        }
+    } catch (err) {
+        console.error("Failed loading channels:", err);
+    }
+}
+
+function resetFirehose() {
+    lastImportTimeUs = null;
+    document.getElementById("packet_list").innerHTML = "";
+}
+
+function matchesSelectedChannel(packet) {
+    if (!selectedChannel) return true;
+    return (packet.channel || "").toLowerCase() === selectedChannel.toLowerCase();
 }
 
 async function fetchUpdates() {
@@ -270,6 +314,8 @@ async function fetchUpdates() {
         const list = document.getElementById("packet_list");
 
         for (const pkt of packets.reverse()) {
+            if (!matchesSelectedChannel(pkt)) continue;
+
             logPacketTimes(pkt);
 
             /* FROM — includes translation */
@@ -373,6 +419,7 @@ async function fetchUpdates() {
 document.addEventListener("DOMContentLoaded", async () => {
 
     const pauseBtn = document.getElementById("pause-button");
+    const channelFilter = document.getElementById("channel-filter");
 
     pauseBtn.addEventListener("click", () => {
         updatesPaused = !updatesPaused;
@@ -381,6 +428,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             updatesPaused
                 ? (firehoseTranslations.resume || "Resume")
                 : (firehoseTranslations.pause || "Pause");
+    });
+
+    channelFilter.addEventListener("change", async (e) => {
+        selectedChannel = e.target.value;
+        resetFirehose();
+        await fetchUpdates();
     });
 
     document.addEventListener("click", e => {
@@ -397,6 +450,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadTranslationsFirehose();
     await configureFirehose();
     await loadNodes();
+    await loadChannels();
 
     fetchUpdates();
     setInterval(fetchUpdates, updateInterval);

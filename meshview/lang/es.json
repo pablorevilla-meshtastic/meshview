@@ -180,6 +180,7 @@
     "from": "De",
     "to": "A",
     "channel": "Canal",
+    "all_channels": "Todos los canales",
     "port": "Puerto",
     "direct_to_mqtt": "Directo a MQTT",
     "all_broadcast": "Todos"

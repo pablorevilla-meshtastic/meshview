@@ -181,6 +181,7 @@
         "from": "From",
         "to": "To",
         "channel": "Channel",
+        "all_channels": "All Channels",
         "port": "Port",
         "links": "Links",
         "unknown_app": "UNKNOWN APP",
