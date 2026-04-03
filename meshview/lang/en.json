@@ -51,7 +51,9 @@
    "chat": {
      "chat_title": "Chats:",
         "replying_to": "Replying to:",
-        "view_packet_details": "View packet details"
+        "view_packet_details": "View packet details",
+        "channel": "Channel",
+        "all_channels": "All Channels"
    },
     "nodelist": {
         "search_placeholder": "Search by name or ID...",

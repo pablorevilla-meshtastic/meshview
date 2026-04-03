@@ -46,6 +46,13 @@
     padding-left: 10px;
 }
 .replying-to .reply-preview { color: #aaa; }
+.chat-controls {
+    gap: 12px;
+    margin-bottom: 10px;
+}
+.chat-filter {
+    min-width: 220px;
+}
 {% endblock %}
 
 {% block body %}
@@ -53,10 +60,19 @@
 
     <!-- ⭐ CHAT TITLE WITH ICON, aligned to container ⭐ -->
     <div class="container px-2">
-        <h2 style="color:white; margin:0 0 10px 0;">
-            <span class="icon">💬</span>
-            <span data-translate="chat_title"></span>
-        </h2>
+        <div class="d-flex align-items-center justify-content-between chat-controls">
+            <h2 style="color:white; margin:0;">
+                <span class="icon">💬</span>
+                <span data-translate="chat_title"></span>
+            </h2>
+
+            <div class="d-flex align-items-center gap-2">
+                <label for="channel-filter" class="mb-0" data-translate="channel">Channel</label>
+                <select id="channel-filter" class="form-select form-select-sm chat-filter">
+                    <option value="" data-translate="all_channels">All Channels</option>
+                </select>
+            </div>
+        </div>
     </div>
 
     <div class="container" id="chat-log"></div>
@@ -68,6 +84,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!chatContainer) return console.error("#chat-log not found");
 
     let lastTime = null;
+    let selectedChannel = "";
     const renderedPacketIds = new Set();
     const packetMap = new Map();
     let chatLang = {};
@@ -96,6 +113,26 @@ document.addEventListener("DOMContentLoaded", async () => {
             applyTranslations(chatLang);
         } catch (err) {
             console.error("Chat translation load failed:", err);
+        }
+    }
+
+    async function loadChannels() {
+        try {
+            const res = await fetch("/api/channels");
+            if (!res.ok) return;
+
+            const data = await res.json();
+            const select = document.getElementById("channel-filter");
+            const channels = data.channels || [];
+
+            for (const channel of channels) {
+                const option = document.createElement("option");
+                option.value = channel;
+                option.textContent = channel;
+                select.appendChild(option);
+            }
+        } catch (err) {
+            console.error("Failed loading channels:", err);
         }
     }
 
@@ -191,6 +228,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (highlight) setTimeout(() => div.classList.remove("flash"), 2500);
     }
 
+    function matchesSelectedChannel(packet) {
+        if (!selectedChannel) return true;
+        return (packet.channel || "").toLowerCase() === selectedChannel.toLowerCase();
+    }
+
+    function resetChat() {
+        lastTime = null;
+        renderedPacketIds.clear();
+        packetMap.clear();
+        chatContainer.innerHTML = "";
+    }
+
     function renderPacketsEnsureDescending(packets, highlight=false) {
         if (!Array.isArray(packets) || packets.length===0) return;
         const sortedDesc = packets.slice().sort((a,b)=>{
@@ -199,6 +248,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             return bTime - aTime;
         });
         for (let i=sortedDesc.length-1; i>=0; i--) {
+            if (!matchesSelectedChannel(sortedDesc[i])) continue;
             renderPacket(sortedDesc[i], highlight);
         }
     }
@@ -235,6 +285,14 @@ document.addEventListener("DOMContentLoaded", async () => {
        INIT
        ========================================================== */
     await loadChatLang();     // load translations FIRST
+    await loadChannels();
+
+    document.getElementById("channel-filter").addEventListener("change", async (e) => {
+        selectedChannel = e.target.value;
+        resetChat();
+        await fetchInitial();
+    });
+
     await fetchInitial();     // then fetch initial packets
 
     setInterval(fetchUpdates, 5000);

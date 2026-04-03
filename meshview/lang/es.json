@@ -52,7 +52,9 @@
   "chat": {
     "chat_title": "Conversaciones:",
     "replying_to": "Respondiendo a:",
-    "view_packet_details": "Ver detalles del paquete"
+    "view_packet_details": "Ver detalles del paquete",
+    "channel": "Canal",
+    "all_channels": "Todos los canales"
   },
 
   "nodelist": {
