@@ -533,6 +533,8 @@ async def api_edges(request):
                 route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
             except Exception:
                 continue
+            if route is None or tr.packet is None:
+                continue
 
             path = [tr.packet.from_node_id] + list(route.route)
             path.append(tr.packet.to_node_id if tr.done else tr.gateway_node_id)
@@ -834,6 +836,8 @@ async def api_traceroute(request):
     # --------------------------------------------
     for idx, tr in enumerate(traceroutes):
         route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
+        if route is None:
+            continue
 
         forward_list = list(route.route)
         reverse_list = list(route.route_back)

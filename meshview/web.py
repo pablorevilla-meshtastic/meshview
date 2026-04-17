@@ -354,6 +354,8 @@ async def graph_traceroute(request):
     node_ids = set()
     for tr in traceroutes:
         route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
+        if route is None:
+            continue
         node_ids.add(tr.gateway_node_id)
         for node_id in route.route:
             node_ids.add(node_id)
@@ -379,6 +381,8 @@ async def graph_traceroute(request):
         if tr.done and dest:
             continue
         route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
+        if route is None:
+            continue
         path = [packet.from_node_id]
         path.extend(route.route)
         if tr.done:
