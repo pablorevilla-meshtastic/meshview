@@ -228,6 +228,44 @@ function hashToColor(str){
     return c;
 }
 
+function labelFor(key, fallback){
+    return mapTranslations[key] || fallback;
+}
+
+function buildNodePopup(node){
+    const labels = {
+        channel: labelFor("channel_label", "Channel"),
+        model: labelFor("model_label", "Model"),
+        role: labelFor("role_label", "Role"),
+        mqtt: labelFor("mqtt_gateway", "MQTT Gateway"),
+        lastSeen: labelFor("last_seen", "Last Seen"),
+        firmware: labelFor("firmware", "Firmware"),
+        yes: mapTranslations.yes || "Yes",
+        no: mapTranslations.no || "No"
+    };
+
+    return `
+        <b><a href="/node/${node.node_id}">${node.long_name}</a> (${node.short_name})</b><br>
+
+        <b>${labels.channel}</b> ${node.channel}<br>
+        <b>${labels.model}</b> ${node.hw_model}<br>
+        <b>${labels.role}</b> ${node.role}<br>
+        <b>${labels.mqtt}</b> ${node.is_mqtt_gateway ? labels.yes : labels.no}<br>
+
+        ${
+            node.last_seen_us
+                ? `<b>${labels.lastSeen}</b> ${timeAgoFromUs(node.last_seen_us)}<br>`
+                : ""
+        }
+
+        ${
+            node.firmware
+                ? `<b>${labels.firmware}</b> ${node.firmware}<br>`
+                : ""
+        }
+    `;
+}
+
 function hashToUnit(str){
     let h = 2166136261;
     for(let i=0;i<str.length;i++){
@@ -456,7 +494,8 @@ function renderNodesOnMap(){
 
         marker.on('click', () => {
             onNodeClick(node);
-            marker.bindPopup(popup).openPopup();
+            marker.setPopupContent(buildNodePopup(node));
+            marker.openPopup();
         });
     });
 
