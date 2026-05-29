@@ -3,7 +3,7 @@
 import subprocess
 from pathlib import Path
 
-__version__ = "3.0.7"
+__version__ = "3.0.8"
 __release_date__ = "2026-5-12"
 
 
