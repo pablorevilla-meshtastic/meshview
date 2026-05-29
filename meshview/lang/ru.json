@@ -145,6 +145,7 @@
         "times_seen": "Принято (24ч)",
         "avg_gateways": "Среднее количество шлюзов",
         "showing_nodes": "Показать",
+        "all_channels": "Все каналы",
         "nodes_suffix": "ноды"
     },
     "nodegraph": {

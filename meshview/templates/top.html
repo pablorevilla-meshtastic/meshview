@@ -151,6 +151,11 @@ async function loadChannels() {
     const sel = document.getElementById("channelFilter");
 
     sel.innerHTML = "";
+    const allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = topTranslations.all_channels || "All channels";
+    sel.appendChild(allOpt);
+
     for (const ch of data.channels || []) {
         const opt = document.createElement("option");
         opt.value = ch;
@@ -158,7 +163,7 @@ async function loadChannels() {
         sel.appendChild(opt);
     }
 
-    sel.value = "MediumFast";
+    sel.value = "";
 }
 
 /* ======================================================

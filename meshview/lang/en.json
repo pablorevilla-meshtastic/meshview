@@ -159,6 +159,7 @@
       "times_seen": "Seen (24h)",
       "avg_gateways": "Avg Gateways",
       "showing_nodes": "Showing",
+      "all_channels": "All Channels",
       "nodes_suffix": "nodes"
     },
 
