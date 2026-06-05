@@ -52,7 +52,7 @@ Unacceptable behavior includes harassment, insults, hate speech, personal attack
 
 ---
 
-## I Want to Contribute
+## I Want to Contribute!
 
 ### Legal Notice
 By contributing to Meshview, you agree that:
