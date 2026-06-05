@@ -33,6 +33,8 @@ file_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
 file_handler.setFormatter(formatter)
 cleanup_logger.addHandler(file_handler)
+cleanup_status_file = str(Path(cleanup_logfile).with_suffix(".status.json"))
+backup_status_file = str(Path(cleanup_logfile).with_name("dbbackup.status.json"))
 
 
 # -------------------------
@@ -47,6 +49,32 @@ def get_int(config, section, key, default=0):
         return int(config.get(section, {}).get(key, default))
     except ValueError:
         return default
+
+
+def _rowcount(value):
+    return value if value is not None and value >= 0 else None
+
+
+def write_cleanup_status(status: dict) -> None:
+    status_path = Path(cleanup_status_file)
+    tmp_path = status_path.with_suffix(f"{status_path.suffix}.tmp")
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(status, f, indent=2, sort_keys=True)
+        tmp_path.replace(status_path)
+    except Exception as e:
+        cleanup_logger.warning(f"Failed to write cleanup status file: {e}")
+
+
+def write_backup_status(status: dict) -> None:
+    status_path = Path(backup_status_file)
+    tmp_path = status_path.with_suffix(f"{status_path.suffix}.tmp")
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(status, f, indent=2, sort_keys=True)
+        tmp_path.replace(status_path)
+    except Exception as e:
+        cleanup_logger.warning(f"Failed to write backup status file: {e}")
 
 
 # -------------------------
@@ -66,19 +94,40 @@ async def backup_database(database_url: str, backup_dir: str = ".") -> None:
         database_url: SQLAlchemy connection string
         backup_dir: Directory to store backups (default: current directory)
     """
+    backup_status = {
+        "status": "running",
+        "started_at": datetime.datetime.now(datetime.UTC).isoformat(),
+        "completed_at": None,
+        "backup_dir": backup_dir,
+        "database_path": None,
+        "backup_file": None,
+        "original_size_bytes": None,
+        "compressed_size_bytes": None,
+        "compression_percent": None,
+        "error": None,
+    }
+    write_backup_status(backup_status)
+
     try:
         url = make_url(database_url)
         if not url.drivername.startswith("sqlite"):
             cleanup_logger.warning("Backup only supported for SQLite databases")
+            backup_status["status"] = "unsupported"
+            backup_status["error"] = "Backup only supported for SQLite databases"
             return
 
         if not url.database or url.database == ":memory:":
             cleanup_logger.error("Could not extract database path from connection string")
+            backup_status["status"] = "error"
+            backup_status["error"] = "Could not extract database path from connection string"
             return
 
         db_file = Path(url.database)
+        backup_status["database_path"] = str(db_file)
         if not db_file.exists():
             cleanup_logger.error(f"Database file not found: {db_file}")
+            backup_status["status"] = "error"
+            backup_status["error"] = f"Database file not found: {db_file}"
             return
 
         # Create backup directory if it doesn't exist
@@ -89,6 +138,7 @@ async def backup_database(database_url: str, backup_dir: str = ".") -> None:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_filename = f"{db_file.stem}_backup_{timestamp}.db.gz"
         backup_file = backup_path / backup_filename
+        backup_status["backup_file"] = str(backup_file)
 
         cleanup_logger.info(f"Creating backup: {backup_file}")
 
@@ -98,9 +148,15 @@ async def backup_database(database_url: str, backup_dir: str = ".") -> None:
                 shutil.copyfileobj(f_in, f_out)
 
         # Get file sizes for logging
-        original_size = db_file.stat().st_size / (1024 * 1024)  # MB
-        compressed_size = backup_file.stat().st_size / (1024 * 1024)  # MB
+        original_size_bytes = db_file.stat().st_size
+        compressed_size_bytes = backup_file.stat().st_size
+        original_size = original_size_bytes / (1024 * 1024)  # MB
+        compressed_size = compressed_size_bytes / (1024 * 1024)  # MB
         compression_ratio = (1 - compressed_size / original_size) * 100 if original_size > 0 else 0
+        backup_status["original_size_bytes"] = original_size_bytes
+        backup_status["compressed_size_bytes"] = compressed_size_bytes
+        backup_status["compression_percent"] = round(compression_ratio, 1)
+        backup_status["status"] = "ok"
 
         cleanup_logger.info(
             f"Backup created successfully: {backup_file.name} "
@@ -110,6 +166,11 @@ async def backup_database(database_url: str, backup_dir: str = ".") -> None:
 
     except Exception as e:
         cleanup_logger.error(f"Error creating database backup: {e}")
+        backup_status["status"] = "error"
+        backup_status["error"] = str(e)
+    finally:
+        backup_status["completed_at"] = datetime.datetime.now(datetime.UTC).isoformat()
+        write_backup_status(backup_status)
 
 
 # -------------------------
@@ -179,6 +240,24 @@ async def daily_cleanup_at(
         ).replace(tzinfo=None)
         cutoff_us = int(cutoff_dt.timestamp() * 1_000_000)
         cleanup_logger.info(f"Running cleanup for records older than {cutoff_dt.isoformat()}...")
+        rows_deleted = {
+            "packet": None,
+            "packet_seen": None,
+            "traceroute": None,
+            "node": None,
+        }
+        cleanup_status = {
+            "status": "running",
+            "started_at": datetime.datetime.now(datetime.UTC).isoformat(),
+            "completed_at": None,
+            "cutoff_at": cutoff_dt.replace(tzinfo=datetime.UTC).isoformat(),
+            "days_to_keep": days_to_keep,
+            "vacuum_requested": vacuum_db,
+            "vacuum_completed": False,
+            "rows_deleted": rows_deleted,
+            "error": None,
+        }
+        write_cleanup_status(cleanup_status)
 
         try:
             async with db_lock:  # Pause ingestion
@@ -191,6 +270,7 @@ async def daily_cleanup_at(
                     result = await session.execute(
                         delete(models.Packet).where(models.Packet.import_time_us < cutoff_us)
                     )
+                    rows_deleted["packet"] = _rowcount(result.rowcount)
                     cleanup_logger.info(f"Deleted {result.rowcount} rows from Packet")
 
                     # -------------------------
@@ -201,6 +281,7 @@ async def daily_cleanup_at(
                             models.PacketSeen.import_time_us < cutoff_us
                         )
                     )
+                    rows_deleted["packet_seen"] = _rowcount(result.rowcount)
                     cleanup_logger.info(f"Deleted {result.rowcount} rows from PacketSeen")
 
                     # -------------------------
@@ -211,6 +292,7 @@ async def daily_cleanup_at(
                             models.Traceroute.import_time_us < cutoff_us
                         )
                     )
+                    rows_deleted["traceroute"] = _rowcount(result.rowcount)
                     cleanup_logger.info(f"Deleted {result.rowcount} rows from Traceroute")
 
                     # -------------------------
@@ -219,6 +301,7 @@ async def daily_cleanup_at(
                     result = await session.execute(
                         delete(models.Node).where(models.Node.last_seen_us < cutoff_us)
                     )
+                    rows_deleted["node"] = _rowcount(result.rowcount)
                     cleanup_logger.info(f"Deleted {result.rowcount} rows from Node")
 
                     await session.commit()
@@ -228,14 +311,21 @@ async def daily_cleanup_at(
                     async with mqtt_database.engine.begin() as conn:
                         await conn.exec_driver_sql("VACUUM;")
                     cleanup_logger.info("VACUUM completed.")
+                    cleanup_status["vacuum_completed"] = True
                 elif vacuum_db:
                     cleanup_logger.info("VACUUM skipped (not supported for this database).")
 
                 cleanup_logger.info("Cleanup completed successfully.")
                 cleanup_logger.info("Ingestion resumed after cleanup.")
+                cleanup_status["status"] = "ok"
 
         except Exception as e:
             cleanup_logger.error(f"Error during cleanup: {e}")
+            cleanup_status["status"] = "error"
+            cleanup_status["error"] = str(e)
+        finally:
+            cleanup_status["completed_at"] = datetime.datetime.now(datetime.UTC).isoformat()
+            write_cleanup_status(cleanup_status)
 
 
 # -------------------------

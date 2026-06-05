@@ -38,6 +38,96 @@ _LANG_CACHE = {}
 routes = web.RouteTableDef()
 
 
+def _config_bool(section: str, key: str, default: bool = False) -> bool:
+    return str(CONFIG.get(section, {}).get(key, default)).lower() in ("1", "true", "yes", "on")
+
+
+def _config_int(section: str, key: str, default: int = 0) -> int:
+    try:
+        return int(CONFIG.get(section, {}).get(key, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _config_str(section: str, key: str, default: str = "") -> str:
+    value = CONFIG.get(section, {}).get(key, default)
+    return str(value) if value is not None else default
+
+
+def _cleanup_status_file() -> str:
+    cleanup_logfile = CONFIG.get("logging", {}).get("db_cleanup_logfile", "dbcleanup.log")
+    path_without_extension, _ = os.path.splitext(cleanup_logfile)
+    return f"{path_without_extension}.status.json"
+
+
+def _backup_status_file() -> str:
+    cleanup_logfile = CONFIG.get("logging", {}).get("db_cleanup_logfile", "dbcleanup.log")
+    return os.path.join(os.path.dirname(cleanup_logfile), "dbbackup.status.json")
+
+
+def _get_cleanup_health() -> dict:
+    cleanup_health = {
+        "enabled": _config_bool("cleanup", "enabled", False),
+        "days_to_keep": _config_int("cleanup", "days_to_keep", 14),
+        "scheduled_time": (
+            f"{_config_int('cleanup', 'hour', 2):02d}:{_config_int('cleanup', 'minute', 0):02d}"
+        ),
+        "vacuum": _config_bool("cleanup", "vacuum", False),
+        "status": "disabled",
+    }
+
+    if cleanup_health["enabled"]:
+        cleanup_health["status"] = "unknown"
+
+    status_file = _cleanup_status_file()
+    cleanup_health["status_file"] = status_file
+    if not os.path.exists(status_file):
+        return cleanup_health
+
+    try:
+        with open(status_file, encoding="utf-8") as f:
+            last_run = json.load(f)
+    except Exception as e:
+        cleanup_health["status"] = "error"
+        cleanup_health["error"] = f"Unable to read cleanup status: {e}"
+        return cleanup_health
+
+    cleanup_health["status"] = last_run.get("status", cleanup_health["status"])
+    cleanup_health["last_run"] = last_run
+    return cleanup_health
+
+
+def _get_backup_health() -> dict:
+    backup_hour = _config_int("cleanup", "backup_hour", _config_int("cleanup", "hour", 2))
+    backup_minute = _config_int("cleanup", "backup_minute", _config_int("cleanup", "minute", 0))
+    backup_health = {
+        "enabled": _config_bool("cleanup", "backup_enabled", False),
+        "backup_dir": _config_str("cleanup", "backup_dir", "./backups"),
+        "scheduled_time": f"{backup_hour:02d}:{backup_minute:02d}",
+        "status": "disabled",
+    }
+
+    if backup_health["enabled"]:
+        backup_health["status"] = "unknown"
+
+    status_file = _backup_status_file()
+    backup_health["status_file"] = status_file
+    if not os.path.exists(status_file):
+        return backup_health
+
+    try:
+        with open(status_file, encoding="utf-8") as f:
+            last_run = json.load(f)
+    except Exception as e:
+        backup_health["status"] = "error"
+        backup_health["error"] = f"Unable to read backup status: {e}"
+        return backup_health
+
+    backup_health["status"] = last_run.get("status", backup_health["status"])
+    backup_health["last_run"] = last_run
+    return backup_health
+
+
 def _haversine_km(lat1, lon1, lat2, lon2):
     r = 6371.0
     phi1 = math.radians(lat1)
@@ -720,6 +810,8 @@ async def health_check(request):
         "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
         "version": __version__,
         "git_revision": _git_revision_short,
+        "cleanup": _get_cleanup_health(),
+        "backup": _get_backup_health(),
     }
 
     # Check database connectivity

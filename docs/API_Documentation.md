@@ -368,6 +368,49 @@ Response Example
   "timestamp": "2025-07-22T12:45:00+00:00",
   "version": "3.0.3",
   "git_revision": "abc1234",
+  "cleanup": {
+    "enabled": true,
+    "days_to_keep": 14,
+    "scheduled_time": "02:00",
+    "vacuum": false,
+    "status": "ok",
+    "status_file": "dbcleanup.status.json",
+    "last_run": {
+      "status": "ok",
+      "started_at": "2026-06-04T09:00:00+00:00",
+      "completed_at": "2026-06-04T09:00:03+00:00",
+      "cutoff_at": "2026-05-21T09:00:00+00:00",
+      "days_to_keep": 14,
+      "vacuum_requested": false,
+      "vacuum_completed": false,
+      "rows_deleted": {
+        "packet": 1200,
+        "packet_seen": 3400,
+        "traceroute": 42,
+        "node": 3
+      },
+      "error": null
+    }
+  },
+  "backup": {
+    "enabled": true,
+    "backup_dir": "./backups",
+    "scheduled_time": "02:00",
+    "status": "ok",
+    "status_file": "dbbackup.status.json",
+    "last_run": {
+      "status": "ok",
+      "started_at": "2026-06-04T09:00:00+00:00",
+      "completed_at": "2026-06-04T09:00:02+00:00",
+      "backup_dir": "./backups",
+      "database_path": "packets.db",
+      "backup_file": "backups/packets_backup_20260604_090000.db.gz",
+      "original_size_bytes": 12939444,
+      "compressed_size_bytes": 4211560,
+      "compression_percent": 67.5,
+      "error": null
+    }
+  },
   "database": "connected",
   "database_size": "12.34 MB",
   "database_size_bytes": 12939444

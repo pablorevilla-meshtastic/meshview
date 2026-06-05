@@ -17,6 +17,15 @@ from meshview.models import DailySnapshot, Node, Packet, PacketSeen, Traceroute
 logger = logging.getLogger(__name__)
 
 MQTT_GATEWAY_CACHE: set[int] = set()
+UNKNOWN_NODE_NAME = "unknown name"
+NODE_NAME_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def normalize_node_name(name: str) -> str:
+    name = name.strip()
+    if not name or NODE_NAME_CONTROL_CHARS.search(name):
+        return UNKNOWN_NODE_NAME
+    return name
 
 
 async def capture_daily_snapshot() -> None:
@@ -268,11 +277,13 @@ async def process_envelope(topic, env):
                     ).scalar_one_or_none()
 
                     now_us = int(time.time() * 1_000_000)
+                    long_name = normalize_node_name(user.long_name)
+                    short_name = normalize_node_name(user.short_name)
 
                     if node:
                         node.node_id = node_id
-                        node.long_name = user.long_name
-                        node.short_name = user.short_name
+                        node.long_name = long_name
+                        node.short_name = short_name
                         node.hw_model = hw_model
                         node.role = role
                         node.channel = env.channel_id
@@ -283,8 +294,8 @@ async def process_envelope(topic, env):
                         node = Node(
                             id=user.id,
                             node_id=node_id,
-                            long_name=user.long_name,
-                            short_name=user.short_name,
+                            long_name=long_name,
+                            short_name=short_name,
                             hw_model=hw_model,
                             role=role,
                             channel=env.channel_id,
