@@ -372,6 +372,9 @@ Response Example
     "enabled": true,
     "days_to_keep": 14,
     "scheduled_time": "02:00",
+    "scheduled_timezone": "local",
+    "scheduled_timezone_name": "PDT",
+    "scheduled_utc_offset": "-07:00",
     "vacuum": false,
     "status": "ok",
     "status_file": "dbcleanup.status.json",
@@ -390,12 +393,20 @@ Response Example
         "node": 3
       },
       "error": null
+    },
+    "last_run_local": {
+      "started_at": "2026-06-04T02:00:00-07:00",
+      "completed_at": "2026-06-04T02:00:03-07:00",
+      "cutoff_at": "2026-05-21T02:00:00-07:00"
     }
   },
   "backup": {
     "enabled": true,
     "backup_dir": "./backups",
     "scheduled_time": "02:00",
+    "scheduled_timezone": "local",
+    "scheduled_timezone_name": "PDT",
+    "scheduled_utc_offset": "-07:00",
     "status": "ok",
     "status_file": "dbbackup.status.json",
     "last_run": {
@@ -409,6 +420,10 @@ Response Example
       "compressed_size_bytes": 4211560,
       "compression_percent": 67.5,
       "error": null
+    },
+    "last_run_local": {
+      "started_at": "2026-06-04T02:00:00-07:00",
+      "completed_at": "2026-06-04T02:00:02-07:00"
     }
   },
   "database": "connected",

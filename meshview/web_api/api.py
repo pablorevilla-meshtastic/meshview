@@ -65,6 +65,40 @@ def _backup_status_file() -> str:
     return os.path.join(os.path.dirname(cleanup_logfile), "dbbackup.status.json")
 
 
+def _local_timezone_metadata() -> dict:
+    now = datetime.datetime.now().astimezone()
+    offset = now.strftime("%z")
+    offset = f"{offset[:3]}:{offset[3:]}" if offset else ""
+    return {
+        "scheduled_timezone": "local",
+        "scheduled_timezone_name": now.tzname(),
+        "scheduled_utc_offset": offset,
+    }
+
+
+def _local_iso_timestamp(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    try:
+        dt = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.UTC)
+
+    return dt.astimezone().isoformat()
+
+
+def _local_run_timestamps(last_run: dict, keys: tuple[str, ...]) -> dict:
+    return {
+        key: local_value
+        for key in keys
+        if (local_value := _local_iso_timestamp(last_run.get(key))) is not None
+    }
+
+
 def _get_cleanup_health() -> dict:
     cleanup_health = {
         "enabled": _config_bool("cleanup", "enabled", False),
@@ -72,6 +106,7 @@ def _get_cleanup_health() -> dict:
         "scheduled_time": (
             f"{_config_int('cleanup', 'hour', 2):02d}:{_config_int('cleanup', 'minute', 0):02d}"
         ),
+        **_local_timezone_metadata(),
         "vacuum": _config_bool("cleanup", "vacuum", False),
         "status": "disabled",
     }
@@ -94,6 +129,9 @@ def _get_cleanup_health() -> dict:
 
     cleanup_health["status"] = last_run.get("status", cleanup_health["status"])
     cleanup_health["last_run"] = last_run
+    cleanup_health["last_run_local"] = _local_run_timestamps(
+        last_run, ("started_at", "completed_at", "cutoff_at")
+    )
     return cleanup_health
 
 
@@ -104,6 +142,7 @@ def _get_backup_health() -> dict:
         "enabled": _config_bool("cleanup", "backup_enabled", False),
         "backup_dir": _config_str("cleanup", "backup_dir", "./backups"),
         "scheduled_time": f"{backup_hour:02d}:{backup_minute:02d}",
+        **_local_timezone_metadata(),
         "status": "disabled",
     }
 
@@ -125,6 +164,9 @@ def _get_backup_health() -> dict:
 
     backup_health["status"] = last_run.get("status", backup_health["status"])
     backup_health["last_run"] = last_run
+    backup_health["last_run_local"] = _local_run_timestamps(
+        last_run, ("started_at", "completed_at")
+    )
     return backup_health
 
 
