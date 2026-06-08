@@ -76,29 +76,6 @@ def _local_timezone_metadata() -> dict:
     }
 
 
-def _local_iso_timestamp(value: str | None) -> str | None:
-    if not value:
-        return None
-
-    try:
-        dt = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=datetime.UTC)
-
-    return dt.astimezone().isoformat()
-
-
-def _local_run_timestamps(last_run: dict, keys: tuple[str, ...]) -> dict:
-    return {
-        key: local_value
-        for key in keys
-        if (local_value := _local_iso_timestamp(last_run.get(key))) is not None
-    }
-
-
 def _get_cleanup_health() -> dict:
     cleanup_health = {
         "enabled": _config_bool("cleanup", "enabled", False),
@@ -129,9 +106,6 @@ def _get_cleanup_health() -> dict:
 
     cleanup_health["status"] = last_run.get("status", cleanup_health["status"])
     cleanup_health["last_run"] = last_run
-    cleanup_health["last_run_local"] = _local_run_timestamps(
-        last_run, ("started_at", "completed_at", "cutoff_at")
-    )
     return cleanup_health
 
 
@@ -164,9 +138,6 @@ def _get_backup_health() -> dict:
 
     backup_health["status"] = last_run.get("status", backup_health["status"])
     backup_health["last_run"] = last_run
-    backup_health["last_run_local"] = _local_run_timestamps(
-        last_run, ("started_at", "completed_at")
-    )
     return backup_health
 
 

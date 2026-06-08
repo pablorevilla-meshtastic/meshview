@@ -393,11 +393,6 @@ Response Example
         "node": 3
       },
       "error": null
-    },
-    "last_run_local": {
-      "started_at": "2026-06-04T02:00:00-07:00",
-      "completed_at": "2026-06-04T02:00:03-07:00",
-      "cutoff_at": "2026-05-21T02:00:00-07:00"
     }
   },
   "backup": {
@@ -420,10 +415,6 @@ Response Example
       "compressed_size_bytes": 4211560,
       "compression_percent": 67.5,
       "error": null
-    },
-    "last_run_local": {
-      "started_at": "2026-06-04T02:00:00-07:00",
-      "completed_at": "2026-06-04T02:00:02-07:00"
     }
   },
   "database": "connected",
