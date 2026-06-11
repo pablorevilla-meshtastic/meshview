@@ -60,7 +60,7 @@ def write_cleanup_status(status: dict) -> None:
     tmp_path = status_path.with_suffix(f"{status_path.suffix}.tmp")
     try:
         with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(status, f, indent=2, sort_keys=True)
+            json.dump(status, f, indent=2)
         tmp_path.replace(status_path)
     except Exception as e:
         cleanup_logger.warning(f"Failed to write cleanup status file: {e}")
@@ -71,7 +71,7 @@ def write_backup_status(status: dict) -> None:
     tmp_path = status_path.with_suffix(f"{status_path.suffix}.tmp")
     try:
         with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(status, f, indent=2, sort_keys=True)
+            json.dump(status, f, indent=2)
         tmp_path.replace(status_path)
     except Exception as e:
         cleanup_logger.warning(f"Failed to write backup status file: {e}")
