@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 MQTT_GATEWAY_CACHE: set[int] = set()
 UNKNOWN_NODE_NAME = "unknown name"
 NODE_NAME_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+MQTT_DIRECT_NODE_ID = 1
 
 
 def normalize_node_name(name: str) -> str:
@@ -26,6 +27,24 @@ def normalize_node_name(name: str) -> str:
     if not name or NODE_NAME_CONTROL_CHARS.search(name):
         return UNKNOWN_NODE_NAME
     return name
+
+
+def storage_packet_id(packet) -> int | None:
+    if packet.id:
+        return packet.id
+
+    if packet.decoded.portnum != PortNum.MAP_REPORT_APP:
+        return None
+
+    from_node_id = getattr(packet, "from", 0) or 0
+    now_us = int(time.time() * 1_000_000)
+    return -(now_us * 2048 + (from_node_id & 0x7FF))
+
+
+def storage_to_node_id(packet) -> int:
+    if packet.decoded.portnum == PortNum.MAP_REPORT_APP:
+        return MQTT_DIRECT_NODE_ID
+    return packet.to
 
 
 async def capture_daily_snapshot() -> None:
@@ -147,20 +166,21 @@ async def process_envelope(topic, env):
 
             await session.commit()
 
-    if not env.packet.id:
+    packet_id = storage_packet_id(env.packet)
+    if packet_id is None:
         return
 
     async with mqtt_database.async_session() as session:
         # --- Packet insert with ON CONFLICT DO NOTHING
-        result = await session.execute(select(Packet).where(Packet.id == env.packet.id))
+        result = await session.execute(select(Packet).where(Packet.id == packet_id))
         packet = result.scalar_one_or_none()
         if not packet:
             now_us = int(time.time() * 1_000_000)
             packet_values = {
-                "id": env.packet.id,
+                "id": packet_id,
                 "portnum": env.packet.decoded.portnum,
                 "from_node_id": getattr(env.packet, "from"),
-                "to_node_id": env.packet.to,
+                "to_node_id": storage_to_node_id(env.packet),
                 "payload": env.packet.SerializeToString(),
                 "import_time_us": now_us,
                 "channel": env.channel_id,
@@ -208,7 +228,7 @@ async def process_envelope(topic, env):
 
         now_us = int(time.time() * 1_000_000)
         seen_values = {
-            "packet_id": env.packet.id,
+            "packet_id": packet_id,
             "node_id": int(env.gateway_id[1:], 16),
             "channel": env.channel_id,
             "rx_time": env.packet.rx_time,

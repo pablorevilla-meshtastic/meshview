@@ -1075,14 +1075,20 @@ async function loadPackets(filters = {}) {
         }
 
         const sizeBytes = packetSizeBytes(pkt);
+        const packetIdCell = pkt.packet_id
+            ? `<a href="/packet/${pkt.storage_id || pkt.id}"
+                  style="text-decoration:underline; color:inherit;">
+                   ${pkt.packet_id}
+               </a>`
+            : pkt.portnum === 73
+            ? `<span class="text-secondary" title="MQTT map report">Not a Packet</span>`
+            : `<span class="text-secondary" title="No Meshtastic packet ID">—</span>`;
 
         list.insertAdjacentHTML("afterbegin", `
         <tr class="packet-row">
             <td>${localTime}</td>
             <td><span class="toggle-btn">▶</span>
-                <a href="/packet/${pkt.id}" style="text-decoration:underline; color:inherit;">
-                    ${pkt.id}
-                </a>
+                ${packetIdCell}
             </td>
             <td>${fromCell}</td>
             <td>${toCell}</td>
@@ -1706,6 +1712,7 @@ async function loadNodeStats(nodeId) {
             : "";
 
         const portName = PORT_LABEL_MAP[pkt.portnum] || `Port ${pkt.portnum}`;
+        const displayPacketId = pkt.packet_id || (pkt.portnum === 73 ? "Not a Packet" : "");
 
         // Escape quotes + line breaks for CSV safety
         const payload = (pkt.payload || "")
@@ -1714,7 +1721,7 @@ async function loadNodeStats(nodeId) {
 
         rows.push([
             time,
-            pkt.id,
+            displayPacketId,
             pkt.from_node_id,
             pkt.to_node_id,
             pkt.portnum,

@@ -241,7 +241,7 @@ function logPacketTimes(packet) {
     const times = formatTimes(packet.import_time_us);
     console.log(
         "[firehose] packet time",
-        "id=" + packet.id,
+        "id=" + (packet.packet_id ?? packet.id),
         "epoch_us=" + times.epoch,
         "local=" + times.local,
         "utc=" + times.utc
@@ -372,6 +372,14 @@ async function fetchUpdates() {
             const safePayload = (pkt.payload || "")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;");
+            const packetIdCell = pkt.packet_id
+                ? `<a href="/packet/${pkt.storage_id || pkt.id}"
+                      style="text-decoration:underline; color:inherit;">
+                       ${pkt.packet_id}
+                   </a>`
+                : pkt.portnum === 73
+                ? `<span class="text-secondary" title="MQTT map report">Not at Packet</span>`
+                : `<span class="text-secondary" title="No Meshtastic packet ID">—</span>`;
 
             const html = `
 <tr class="packet-row">
@@ -382,10 +390,7 @@ async function fetchUpdates() {
 
     <td>
         <span class="toggle-btn">▶</span>
-        <a href="/packet/${pkt.id}"
-           style="text-decoration:underline; color:inherit;">
-            ${pkt.id}
-        </a>
+        ${packetIdCell}
     </td>
 
     <td>${from}</td>

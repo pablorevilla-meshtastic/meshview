@@ -148,6 +148,7 @@
 <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylinedecorator.js"
         integrity="sha384-FhPn/2P/fJGhQLeNWDn9B/2Gml2bPOrKJwFqJXgR3xOPYxWg5mYQ5XZdhUSugZT0"
         crossorigin></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 <script src="/static/portmaps.js"></script>
 
 <script>
@@ -188,20 +189,50 @@ function applyTranslationsMap(root = document) {
    ====================================================== */
 
 var map = L.map('map');
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    { maxZoom:19, attribution:'&copy; OpenStreetMap' }).addTo(map);
+var baseLayers = {
+    "OpenStreetMap": L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }),
+    "OpenTopoMap": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        maxZoom: 17,
+        attribution: 'Map data: &copy; OpenStreetMap, SRTM | Map style: &copy; OpenTopoMap'
+    })
+};
+baseLayers["OpenStreetMap"].addTo(map);
 L.control.scale({
     position: 'bottomleft',
     metric: true,
     imperial: true
 }).addTo(map);
+var nodeLayer = L.layerGroup().addTo(map);
+var edgeLayer = L.layerGroup().addTo(map);
+var trafficHeatLayer = L.heatLayer([], {
+    radius: 34,
+    blur: 18,
+    maxZoom: 12,
+    minOpacity: 0.3,
+    gradient: {
+        0.2: "#0b1f4d",
+        0.45: "#12436b",
+        0.7: "#7f2704",
+        1.0: "#4d0000"
+    }
+});
+var overlayLayers = {
+    "Nodes": nodeLayer,
+    "Traffic HeatMap": trafficHeatLayer
+};
+L.control.layers(baseLayers, overlayLayers, { collapsed: false }).addTo(map);
 
 // Data structures
 var nodes = [], markers = {}, markerById = {}, nodeMap = new Map();
-var edgeLayer = L.layerGroup().addTo(map), selectedNodeId = null;
+var selectedNodeId = null;
 var activeBlinks = new Map(), lastImportTime = null;
 var mapInterval = 0;
 var unmappedPackets = [];
+var trafficHeatLoaded = false;
+var trafficHeatLoading = false;
 const UNMAPPED_LIMIT = 50;
 const UNMAPPED_TTL_MS = 5000;
 
@@ -389,6 +420,15 @@ document.addEventListener("visibilitychange",()=>{
     document.hidden?stopPacketFetcher():startPacketFetcher();
 });
 
+map.on("overlayadd", e => {
+    if(e.layer === nodeLayer) updateNodeVisibility();
+    if(e.layer === trafficHeatLayer) loadTrafficHeat();
+});
+
+map.on("overlayremove", e => {
+    if(e.layer === nodeLayer) clearActiveBlinks();
+});
+
 async function waitForConfig() {
     while (typeof window._siteConfigPromise === "undefined") {
         await new Promise(r => setTimeout(r, 100));
@@ -470,6 +510,9 @@ fetch('/api/nodes?days_active=3')
 
         renderNodesOnMap();
         createChannelFilters();
+        if(map.hasLayer(trafficHeatLayer)){
+            loadTrafficHeat();
+        }
     })
     .catch(console.error);
 
@@ -490,7 +533,7 @@ function renderNodesOnMap(){
             fillColor: color,
             fillOpacity: 1,
             weight: 0.7
-        }).addTo(map);
+        }).addTo(nodeLayer);
 
         marker.nodeId = node.key;
         marker.originalColor = color;
@@ -511,6 +554,56 @@ function renderNodesOnMap(){
     });
 
     setTimeout(() => applyTranslationsMap(), 50);
+}
+
+/* ======================================================
+   TRAFFIC HEAT LAYER
+   ====================================================== */
+
+async function loadTrafficHeat(){
+    if(trafficHeatLoaded || trafficHeatLoading) return;
+    if(nodeMap.size === 0) return;
+
+    trafficHeatLoading = true;
+
+    try {
+        const url = new URL("/api/packets", window.location.origin);
+        url.searchParams.set("limit", 1000);
+
+        const res = await fetch(url);
+        if(!res.ok) return;
+
+        const data = await res.json();
+        const counts = new Map();
+
+        (data.packets || []).forEach(pkt => {
+            const nodeId = pkt.from_node_id;
+            if(nodeId == null) return;
+            counts.set(nodeId, (counts.get(nodeId) || 0) + 1);
+        });
+
+        const maxCount = Math.max(...counts.values(), 0);
+        const heatPoints = [];
+
+        counts.forEach((count, nodeId) => {
+            const node = nodeMap.get(nodeId);
+            if(!node || isInvalidCoord(node)) return;
+
+            const markerLatLng = markerById[nodeId]?.getLatLng();
+            const lat = markerLatLng?.lat ?? node.lat;
+            const lng = markerLatLng?.lng ?? node.long;
+            const intensity = maxCount > 0 ? count / maxCount : 0;
+
+            heatPoints.push([lat, lng, Math.max(0.15, intensity)]);
+        });
+
+        trafficHeatLayer.setLatLngs(heatPoints);
+        trafficHeatLoaded = true;
+    } catch(err) {
+        console.error("Failed to load traffic heat layer:", err);
+    } finally {
+        trafficHeatLoading = false;
+    }
 }
 
 /* ======================================================
@@ -651,13 +744,33 @@ function isTextPort(portnum){
     return portnum === 1 || portnum === 7;
 }
 
+function isNodeVisibleForPackets(marker){
+    return map.hasLayer(nodeLayer) && nodeLayer.hasLayer(marker);
+}
+
+function clearBlinkForMarker(marker){
+    if(activeBlinks.has(marker)){
+        const interval = activeBlinks.get(marker);
+        clearInterval(interval);
+        activeBlinks.delete(marker);
+    }
+    marker.setStyle({ fillColor: marker.originalColor });
+    if(marker.tooltip){
+        map.removeLayer(marker.tooltip);
+        marker.tooltip = null;
+    }
+}
+
+function clearActiveBlinks(){
+    activeBlinks.forEach((interval, marker) => clearBlinkForMarker(marker));
+    activeBlinks.clear();
+}
+
 function blinkNode(marker,longName,portnum,payload){
-    if(!map.hasLayer(marker)) return;
+    if(!isNodeVisibleForPackets(marker)) return;
 
     if(activeBlinks.has(marker)){
-        clearInterval(activeBlinks.get(marker));
-        marker.setStyle({ fillColor: marker.originalColor });
-        if(marker.tooltip) map.removeLayer(marker.tooltip);
+        clearBlinkForMarker(marker);
     }
 
     let blinkCount = 0;
@@ -685,19 +798,19 @@ function blinkNode(marker,longName,portnum,payload){
     marker.tooltip = tooltip;
 
     const interval = setInterval(()=>{
-        if(map.hasLayer(marker)){
+        if(isNodeVisibleForPackets(marker)){
             marker.setStyle({
                 fillColor: blinkCount%2===0 ? 'yellow' : marker.originalColor
             });
             marker.bringToFront();
+        } else {
+            clearBlinkForMarker(marker);
+            return;
         }
         blinkCount++;
 
         if(Date.now() - blinkStart > blinkDurationMs){
-            clearInterval(interval);
-            marker.setStyle({ fillColor: marker.originalColor });
-            map.removeLayer(tooltip);
-            activeBlinks.delete(marker);
+            clearBlinkForMarker(marker);
         }
 
     },500);
@@ -757,6 +870,8 @@ function saveFiltersToLocalStorage(){
 }
 
 function updateNodeVisibility(){
+    if(!map.hasLayer(nodeLayer)) return;
+
     const routerOnly = document.getElementById("filter-routers-only").checked;
     const mqttOnly = document.getElementById("filter-mqtt-only").checked;
     const activeChannels = [...channelSet].filter(ch =>
@@ -771,7 +886,12 @@ function updateNodeVisibility(){
                 (!mqttOnly || n.is_mqtt_gateway) &&
                 activeChannels.includes(n.channel);
 
-            visible ? map.addLayer(marker) : map.removeLayer(marker);
+            if(visible){
+                nodeLayer.addLayer(marker);
+            } else {
+                clearBlinkForMarker(marker);
+                nodeLayer.removeLayer(marker);
+            }
         }
     });
 }

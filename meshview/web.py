@@ -53,6 +53,7 @@ class Packet:
     """UI-friendly packet wrapper for templates and API payloads."""
 
     id: int
+    packet_id: int | None
     from_node_id: int
     from_node: models.Node
     to_node_id: int
@@ -99,8 +100,13 @@ class Packet:
                     f'<a href="https://www.google.com/maps/search/?api=1&query={payload.latitude_i * 1e-7},{payload.longitude_i * 1e-7}" target="_blank">map</a>'
                 )
 
+        packet_id = None
+        if mesh_packet and mesh_packet.id:
+            packet_id = mesh_packet.id
+
         return cls(
             id=packet.id,
+            packet_id=packet_id,
             from_node=packet.from_node,
             from_node_id=packet.from_node_id,
             to_node=packet.to_node,
