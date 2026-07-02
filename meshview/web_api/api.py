@@ -968,11 +968,10 @@ async def api_traceroute(request):
         if tr["reverse_hops"]:
             reverse_paths.append(r)
 
-        if tr["done"]:
+        if tr["reverse_hops"]:
             if tr["forward_hops"]:
                 winning_forward_paths.append(f)
-            if tr["reverse_hops"]:
-                winning_reverse_paths.append(r)
+            winning_reverse_paths.append(r)
 
     # Deduplicate
     unique_forward_paths = sorted(set(forward_paths))
@@ -993,10 +992,10 @@ async def api_traceroute(request):
     winning_forward_with_endpoints = []
     for path in set(winning_forward_paths):
         full_path = list(path)
-        if from_node_id is not None and (not full_path or full_path[0] != from_node_id):
-            full_path = [from_node_id, *full_path]
         if to_node_id is not None and (not full_path or full_path[-1] != to_node_id):
-            full_path = [*full_path, to_node_id]
+            full_path = [to_node_id, *full_path]
+        if from_node_id is not None and (not full_path or full_path[-1] != from_node_id):
+            full_path = [*full_path, from_node_id]
         winning_forward_with_endpoints.append(full_path)
 
     winning_reverse_with_endpoints = []
@@ -1004,8 +1003,6 @@ async def api_traceroute(request):
         full_path = list(path)
         if to_node_id is not None and (not full_path or full_path[0] != to_node_id):
             full_path = [to_node_id, *full_path]
-        if from_node_id is not None and (not full_path or full_path[-1] != from_node_id):
-            full_path = [*full_path, from_node_id]
         winning_reverse_with_endpoints.append(full_path)
 
     winning_paths_json = {

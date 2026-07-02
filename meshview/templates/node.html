@@ -1071,7 +1071,7 @@ async function loadPackets(filters = {}) {
             const match = pkt.payload?.match(/ID:\s*(\d+)/i);
             if (match) traceId = match[1];
             inlineLinks +=
-                ` <a class="inline-link" href="/graph/traceroute/${traceId}" target="_blank">⮕</a>`;
+                ` <a class="inline-link" href="/traceroute/${traceId}" target="_blank">⮕</a>`;
         }
 
         const sizeBytes = packetSizeBytes(pkt);

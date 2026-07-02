@@ -7,10 +7,51 @@
 {% block css %}
 #traceroute-graph {
     width: 100%;
-    height: 85vh;
+    height: calc(100vh - 270px);
     border: 1px solid #2a2f36;
     background: linear-gradient(135deg, #0f1216 0%, #171b22 100%);
     border-radius: 10px;
+}
+
+#traceroute-graph-wrap {
+    position: relative;
+}
+
+#traceroute-legend {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2;
+    display: grid;
+    gap: 8px;
+    padding: 10px 12px;
+    color: #d6dde6;
+    background: rgba(15, 18, 22, 0.88);
+    border: 1px solid #303743;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.traceroute-legend-row {
+    display: grid;
+    grid-template-columns: 34px auto;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.traceroute-legend-line {
+    height: 0;
+    border-top: 3px solid var(--line-color);
+}
+
+.traceroute-legend-line.muted {
+    border-top-width: 2px;
+    opacity: 0.55;
+}
+
+.traceroute-legend-line.dashed {
+    border-top-style: dashed;
 }
 
 #traceroute-meta {
@@ -28,7 +69,23 @@
     <div><b>Traceroute</b> <span id="traceroute-title"></span></div>
     <div id="traceroute-error"></div>
 </div>
-<div id="traceroute-graph"></div>
+<div id="traceroute-graph-wrap">
+    <div id="traceroute-graph"></div>
+    <div id="traceroute-legend" aria-label="Traceroute edge legend">
+        <div class="traceroute-legend-row">
+            <span class="traceroute-legend-line" style="--line-color: #34c759"></span>
+            <span>Winning forward</span>
+        </div>
+        <div class="traceroute-legend-row">
+            <span class="traceroute-legend-line dashed" style="--line-color: #ff3b30"></span>
+            <span>Reported reverse</span>
+        </div>
+        <div class="traceroute-legend-row">
+            <span class="traceroute-legend-line muted" style="--line-color: #7c858f"></span>
+            <span>Reported route</span>
+        </div>
+    </div>
+</div>
 
 <script>
 const el = document.getElementById("traceroute-graph");
@@ -47,6 +104,33 @@ function addPathEdges(path, edges, style) {
             lineStyle: style
         });
     }
+}
+
+function pathKey(path) {
+    return path.map(id => String(id)).join(">");
+}
+
+function addMissingEndpoints(path, startId, endId) {
+    const fullPath = path.map(id => String(id));
+    if (startId && (!fullPath.length || fullPath[0] !== startId)) {
+        fullPath.unshift(startId);
+    }
+    if (endId && (!fullPath.length || fullPath[fullPath.length - 1] !== endId)) {
+        fullPath.push(endId);
+    }
+    return fullPath;
+}
+
+function uniqueForwardPaths(data, originId, targetId) {
+    return (data?.unique_forward_paths || [])
+        .map(item => addMissingEndpoints(item.path || [], originId, targetId))
+        .filter(path => path.length > 1);
+}
+
+function uniqueReversePaths(data, originId, targetId) {
+    return (data?.unique_reverse_paths || [])
+        .map(path => addMissingEndpoints(path || [], targetId, null))
+        .filter(path => path.length > 1);
 }
 
 async function loadTraceroute() {
@@ -73,26 +157,61 @@ async function loadTraceroute() {
     const nodes = new Map();
     const edges = [];
 
-    const forwardPaths = data?.winning_paths?.forward || [];
-    const reversePaths = data?.winning_paths?.reverse || [];
     const originId = data?.packet?.from != null ? String(data.packet.from) : null;
     const targetId = data?.packet?.to != null ? String(data.packet.to) : null;
+    const forwardPaths = (data?.winning_paths?.forward || []).map(path => path.map(id => String(id)));
+    const reversePaths = (data?.winning_paths?.reverse || []).map(path => path.map(id => String(id)));
+    const winningPathKeys = new Set([
+        ...forwardPaths.map(pathKey),
+        ...reversePaths.map(pathKey)
+    ]);
+    const winningForwardNodeIds = new Set(forwardPaths.flat());
+    const hasWinningReversePath = reversePaths.some(path => path.length > 1);
+    const winningForwardPath = forwardPaths.find(path => path.length > 1);
+    const colorStartId = winningForwardPath ? winningForwardPath[0] : originId;
+    const colorEndId = winningForwardPath ? winningForwardPath[winningForwardPath.length - 1] : targetId;
+    const startNodeColor = hasWinningReversePath ? "#ff3b30" : "#34c759";
+    const endNodeColor = hasWinningReversePath ? "#34c759" : "#ff3b30";
+
+    uniqueForwardPaths(data, originId, targetId).forEach(path => {
+        if (winningPathKeys.has(pathKey(path))) {
+            return;
+        }
+        path.forEach(id => nodes.set(String(id), { name: String(id) }));
+        addPathEdges(path, edges, { color: "#7c858f", width: 1.5, opacity: 0.45 });
+    });
+
+    uniqueReversePaths(data, originId, targetId).forEach(path => {
+        if (winningPathKeys.has(pathKey(path))) {
+            return;
+        }
+        path.forEach(id => nodes.set(String(id), { name: String(id) }));
+        addPathEdges(path, edges, { color: "#7c858f", width: 1.5, opacity: 0.45, type: "dashed" });
+    });
 
     forwardPaths.forEach(path => {
         path.forEach(id => nodes.set(String(id), { name: String(id) }));
-        addPathEdges(path, edges, { color: "#ff5733", width: 3 });
+        addPathEdges(path, edges, { color: "#34c759", width: 3 });
     });
 
     reversePaths.forEach(path => {
         path.forEach(id => nodes.set(String(id), { name: String(id) }));
-        addPathEdges(path, edges, { color: "#00c3ff", width: 2, type: "dashed" });
+        addPathEdges(path, edges, { color: "#ff3b30", width: 2, type: "dashed" });
     });
 
     const graphNodes = Array.from(nodes.values()).map(n => {
-        const isOrigin = originId && n.name === originId;
-        const isTarget = targetId && n.name === targetId;
-        const color = isOrigin ? "#ff3b30" : isTarget ? "#34c759" : "#8aa4c8";
-        const size = isOrigin || isTarget ? 44 : 36;
+        const isColorStart = colorStartId && n.name === colorStartId;
+        const isColorEnd = colorEndId && n.name === colorEndId;
+        const isWinningForwardNode = winningForwardNodeIds.has(n.name);
+        let color = "#3f454d";
+        if (isColorStart) {
+            color = startNodeColor;
+        } else if (isColorEnd) {
+            color = endNodeColor;
+        } else if (isWinningForwardNode) {
+            color = "#b88a2a";
+        }
+        const size = isColorStart || isColorEnd ? 44 : 36;
         return {
             id: n.name,
             name: nodeShortNameById.get(n.name) || n.name,
@@ -104,7 +223,10 @@ async function loadTraceroute() {
                 fontWeight: "bold"
             },
             tooltip: {
-                formatter: () => nodeLongNameById.get(n.name) || n.name
+                formatter: () => {
+                    const longName = nodeLongNameById.get(n.name) || n.name;
+                    return longName === n.name ? n.name : `${longName} (${n.name})`;
+                }
             }
         };
     });
