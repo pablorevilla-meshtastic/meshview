@@ -12,7 +12,10 @@ from meshtastic.protobuf.mesh_pb2 import Data
 from meshtastic.protobuf.mqtt_pb2 import ServiceEnvelope
 from meshview.config import CONFIG
 
-PRIMARY_KEY = base64.b64decode("1PG7OiApB1nwvP+rz05pAQ==")
+# Meshtastic's well-known default PSK, i.e. the expansion of the single byte PSK index 1.
+DEFAULT_PSK = base64.b64decode("1PG7OiApB1nwvP+rz05pAQ==")
+PRIMARY_KEY = DEFAULT_PSK
+VALID_KEY_LENGTHS = (16, 32)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,6 +55,10 @@ def _strip_quotes(value):
     return value
 
 
+def _expand_short_psk(index):
+    return DEFAULT_PSK[:-1] + bytes([(DEFAULT_PSK[-1] + index - 1) % 256])
+
+
 def _parse_secondary_keys():
     mqtt_config = CONFIG.get("mqtt", {})
     raw_value = mqtt_config.get("secondary_keys", "")
@@ -68,12 +75,33 @@ def _parse_secondary_keys():
 
     keys = []
     for value in values:
+        cleaned = _strip_quotes(str(value).strip())
+        if not cleaned:
+            continue
+
         try:
-            cleaned = _strip_quotes(str(value).strip())
-            if cleaned:
-                keys.append(base64.b64decode(cleaned))
+            key = base64.b64decode(cleaned)
         except (TypeError, ValueError):
             logger.warning("Invalid base64 key in mqtt.secondary_keys: %s", value)
+            continue
+
+        if len(key) == 1:
+            if key[0] == 0:
+                logger.warning(
+                    "Skipping PSK %s in mqtt.secondary_keys: index 0 means no encryption", value
+                )
+                continue
+            key = _expand_short_psk(key[0])
+
+        if len(key) not in VALID_KEY_LENGTHS:
+            logger.error(
+                "Skipping key %s in mqtt.secondary_keys: decoded to %d bytes, expected 16 or 32",
+                value,
+                len(key),
+            )
+            continue
+
+        keys.append(key)
     return keys
 
 
