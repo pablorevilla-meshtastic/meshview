@@ -17,7 +17,7 @@ from jinja2 import Environment, PackageLoader, Undefined, select_autoescape
 from markupsafe import Markup
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
-from meshview import config, database, decode_payload, migrations, models, store
+from meshview import config, database, decode_payload, migrations, models, store, traceroute
 from meshview.__version__ import (
     __version_string__,
 )
@@ -395,14 +395,17 @@ async def graph_traceroute(request):
         route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
         if route is None:
             continue
-        path = [packet.from_node_id]
-        path.extend(route.route)
+        path = traceroute.forward_path(
+            packet.from_node_id,
+            packet.to_node_id,
+            route.route,
+            tr.done,
+            tr.gateway_node_id,
+        )
+        if not path:
+            continue
         if tr.done:
-            dest = packet.to_node_id
-            path.append(packet.to_node_id)
-        elif path[-1] != tr.gateway_node_id:
-            # It seems some nodes add them self to the list before uplinking
-            path.append(tr.gateway_node_id)
+            dest = path[-1]
 
         if not tr.done and tr.gateway_node_id not in node_seen_time and tr.import_time_us:
             node_seen_time[path[-1]] = tr.import_time_us

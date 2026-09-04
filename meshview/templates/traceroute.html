@@ -129,7 +129,7 @@ function uniqueForwardPaths(data, originId, targetId) {
 
 function uniqueReversePaths(data, originId, targetId) {
     return (data?.unique_reverse_paths || [])
-        .map(path => addMissingEndpoints(path || [], targetId, null))
+        .map(path => addMissingEndpoints(path || [], targetId, originId))
         .filter(path => path.length > 1);
 }
 
@@ -157,8 +157,9 @@ async function loadTraceroute() {
     const nodes = new Map();
     const edges = [];
 
-    const originId = data?.packet?.from != null ? String(data.packet.from) : null;
-    const targetId = data?.packet?.to != null ? String(data.packet.to) : null;
+    // A response packet carries from/to reversed, so use the endpoints the API resolved.
+    const originId = data?.packet?.initiator != null ? String(data.packet.initiator) : null;
+    const targetId = data?.packet?.target != null ? String(data.packet.target) : null;
     const forwardPaths = (data?.winning_paths?.forward || []).map(path => path.map(id => String(id)));
     const reversePaths = (data?.winning_paths?.reverse || []).map(path => path.map(id => String(id)));
     const winningPathKeys = new Set([

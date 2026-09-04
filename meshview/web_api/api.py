@@ -10,7 +10,7 @@ from aiohttp import web
 from sqlalchemy import func, select
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
-from meshview import database, decode_payload, store
+from meshview import database, decode_payload, store, traceroute
 from meshview.__version__ import __version__, _git_revision_short, get_version_info
 from meshview.config import CONFIG
 from meshview.models import DailySnapshot, Node
@@ -630,8 +630,13 @@ async def api_edges(request):
             if route is None or tr.packet is None:
                 continue
 
-            path = [tr.packet.from_node_id] + list(route.route)
-            path.append(tr.packet.to_node_id if tr.done else tr.gateway_node_id)
+            path = traceroute.forward_path(
+                tr.packet.from_node_id,
+                tr.packet.to_node_id,
+                traceroute.strip_unknown_hops(route.route),
+                tr.done,
+                tr.gateway_node_id,
+            )
 
             for a, b in zip(path, path[1:], strict=False):
                 if (a, b) not in edges:
@@ -989,21 +994,16 @@ async def api_traceroute(request):
 
     from_node_id = packet.from_node_id
     to_node_id = packet.to_node_id
-    winning_forward_with_endpoints = []
-    for path in set(winning_forward_paths):
-        full_path = list(path)
-        if to_node_id is not None and (not full_path or full_path[-1] != to_node_id):
-            full_path = [to_node_id, *full_path]
-        if from_node_id is not None and (not full_path or full_path[-1] != from_node_id):
-            full_path = [*full_path, from_node_id]
-        winning_forward_with_endpoints.append(full_path)
+    # Winning paths are only built from responses, which carry the endpoints reversed.
+    winning_forward_with_endpoints = [
+        traceroute.forward_path(from_node_id, to_node_id, path, done=True)
+        for path in set(winning_forward_paths)
+    ]
 
-    winning_reverse_with_endpoints = []
-    for path in set(winning_reverse_paths):
-        full_path = list(path)
-        if to_node_id is not None and (not full_path or full_path[0] != to_node_id):
-            full_path = [to_node_id, *full_path]
-        winning_reverse_with_endpoints.append(full_path)
+    winning_reverse_with_endpoints = [
+        traceroute.return_path(from_node_id, to_node_id, path)
+        for path in set(winning_reverse_paths)
+    ]
 
     winning_paths_json = {
         "forward": winning_forward_with_endpoints,
@@ -1013,12 +1013,17 @@ async def api_traceroute(request):
     # --------------------------------------------
     # Final API output
     # --------------------------------------------
+    initiator, target = traceroute.endpoints(
+        from_node_id, to_node_id, any(tr["done"] for tr in tr_groups)
+    )
     return web.json_response(
         {
             "packet": {
                 "id": packet.id,
                 "from": packet.from_node_id,
                 "to": packet.to_node_id,
+                "initiator": initiator,
+                "target": target,
                 "channel": packet.channel,
             },
             "traceroute_packets": tr_groups,

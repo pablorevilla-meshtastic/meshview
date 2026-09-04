@@ -203,6 +203,10 @@ Returns network edges (connections between nodes) based on traceroutes and neigh
 Traceroute edges are collected over the last 12 hours. Neighbor edges are based on
 port 71 packets.
 
+A completed traceroute is observed as a response packet, whose `from`/`to` are reversed
+with respect to the traced path, so edges are built as `to -> route[] -> from`. Unknown
+hop placeholders (`0xFFFFFFFF`) are skipped.
+
 Query Parameters
 - `type` (optional, string): `traceroute` or `neighbor`. If omitted, returns both.
 - `node_id` (optional, int): Filter edges to only those touching a node.
@@ -324,13 +328,21 @@ Returns traceroute details and derived paths for a packet.
 Path Parameters
 - `packet_id` (required, int): Packet ID.
 
+A completed traceroute is observed as a response packet, whose `from`/`to` are reversed
+with respect to the traced path. `initiator` and `target` resolve this: the forward path
+runs `initiator -> forward_hops -> target` and the return path runs
+`target -> reverse_hops -> initiator`, in both directions of travel. `forward_hops` and
+`reverse_hops` contain only the intermediate hops, never the endpoints.
+
 Response Example
 ```json
 {
   "packet": {
     "id": 123,
-    "from": 111,
-    "to": 222,
+    "from": 222,
+    "to": 111,
+    "initiator": 111,
+    "target": 222,
     "channel": "main"
   },
   "traceroute_packets": [
@@ -338,19 +350,20 @@ Response Example
       "index": 0,
       "gateway_node_id": 333,
       "done": true,
-      "forward_hops": [111, 444, 222],
-      "reverse_hops": [222, 444, 111]
+      "forward_hops": [444, 555],
+      "reverse_hops": [555, 444]
     }
   ],
   "unique_forward_paths": [
-    { "path": [111, 444, 222], "count": 2 }
+    { "path": [444, 555], "count": 2 }
   ],
   "unique_reverse_paths": [
-    [222, 444, 111]
+    [555, 444]
   ],
-  "winning_paths": [
-    [111, 444, 222]
-  ]
+  "winning_paths": {
+    "forward": [[111, 444, 555, 222]],
+    "reverse": [[222, 555, 444, 111]]
+  }
 }
 ```
 
