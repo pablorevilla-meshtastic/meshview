@@ -204,8 +204,10 @@ Traceroute edges are collected over the last 12 hours. Neighbor edges are based 
 port 71 packets.
 
 A completed traceroute is observed as a response packet, whose `from`/`to` are reversed
-with respect to the traced path, so edges are built as `to -> route[] -> from`. Unknown
-hop placeholders (`0xFFFFFFFF`) are skipped.
+with respect to the traced path, so edges are built as `to -> route[] -> from`. `route[]`
+may contain `0xFFFFFFFF` placeholders for hops the mesh could not identify; the edges on
+either side of such a placeholder are omitted, because the nodes around an unknown hop
+are not neighbours.
 
 Query Parameters
 - `type` (optional, string): `traceroute` or `neighbor`. If omitted, returns both.
@@ -334,6 +336,11 @@ runs `initiator -> forward_hops -> target` and the return path runs
 `target -> reverse_hops -> initiator`, in both directions of travel. `forward_hops` and
 `reverse_hops` contain only the intermediate hops, never the endpoints.
 
+A gateway usually reports a response that is still travelling home, so `reverse_hops` is
+often incomplete. `reverse_complete` says whether that observation had reached the
+initiator; only then does the corresponding `winning_paths.reverse` entry end at the
+initiator.
+
 Response Example
 ```json
 {
@@ -351,7 +358,8 @@ Response Example
       "gateway_node_id": 333,
       "done": true,
       "forward_hops": [444, 555],
-      "reverse_hops": [555, 444]
+      "reverse_hops": [555, 444],
+      "reverse_complete": true
     }
   ],
   "unique_forward_paths": [

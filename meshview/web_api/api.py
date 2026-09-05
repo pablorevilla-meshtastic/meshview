@@ -633,12 +633,12 @@ async def api_edges(request):
             path = traceroute.forward_path(
                 tr.packet.from_node_id,
                 tr.packet.to_node_id,
-                traceroute.strip_unknown_hops(route.route),
+                route.route,
                 tr.done,
                 tr.gateway_node_id,
             )
 
-            for a, b in zip(path, path[1:], strict=False):
+            for a, b in traceroute.edges(path):
                 if (a, b) not in edges:
                     edges[(a, b)] = "traceroute"
                     edges_added_tr += 1
@@ -950,6 +950,7 @@ async def api_traceroute(request):
                 "done": tr.done,
                 "forward_hops": forward_list,
                 "reverse_hops": reverse_list,
+                "reverse_complete": traceroute.return_is_complete(route),
             }
         )
 
@@ -976,7 +977,7 @@ async def api_traceroute(request):
         if tr["reverse_hops"]:
             if tr["forward_hops"]:
                 winning_forward_paths.append(f)
-            winning_reverse_paths.append(r)
+            winning_reverse_paths.append((r, tr["reverse_complete"]))
 
     # Deduplicate
     unique_forward_paths = sorted(set(forward_paths))
@@ -1000,10 +1001,11 @@ async def api_traceroute(request):
         for path in set(winning_forward_paths)
     ]
 
-    winning_reverse_with_endpoints = [
-        traceroute.return_path(from_node_id, to_node_id, path)
-        for path in set(winning_reverse_paths)
-    ]
+    winning_reverse_with_endpoints = []
+    for hops, complete in winning_reverse_paths:
+        path = traceroute.return_path(from_node_id, to_node_id, hops, complete)
+        if path not in winning_reverse_with_endpoints:
+            winning_reverse_with_endpoints.append(path)
 
     winning_paths_json = {
         "forward": winning_forward_with_endpoints,

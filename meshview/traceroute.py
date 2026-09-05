@@ -10,8 +10,14 @@ handled here rather than at each call site.
 NODENUM_BROADCAST = 0xFFFFFFFF
 
 
-def strip_unknown_hops(hops):
-    return [hop for hop in hops if hop != NODENUM_BROADCAST]
+def return_is_complete(route):
+    """True when the response was seen after it reached the node that started it.
+
+    Relays append both their ID and their SNR, but the final recipient appends only its
+    SNR, so one spare SNR entry means the return trip finished. Gateways usually report
+    a response that is still in flight, where the remaining hops are not known yet.
+    """
+    return len(route.snr_back) == len(route.route_back) + 1
 
 
 def forward_path(from_node_id, to_node_id, hops, done, gateway_node_id=None):
@@ -26,9 +32,20 @@ def forward_path(from_node_id, to_node_id, hops, done, gateway_node_id=None):
     return path
 
 
-def return_path(from_node_id, to_node_id, hops):
+def return_path(from_node_id, to_node_id, hops, complete):
     """Path back from the traced node, starting at the node that answered."""
-    return [node for node in (from_node_id, *hops, to_node_id) if node is not None]
+    path = [node for node in (from_node_id, *hops) if node is not None]
+    if complete and to_node_id is not None:
+        path.append(to_node_id)
+    return path
+
+
+def edges(path):
+    """Consecutive pairs of a path, skipping links that run through an unknown hop."""
+    for a, b in zip(path, path[1:], strict=False):
+        if NODENUM_BROADCAST in (a, b):
+            continue
+        yield a, b
 
 
 def endpoints(from_node_id, to_node_id, done):
