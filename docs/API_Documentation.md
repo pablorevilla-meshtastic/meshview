@@ -341,6 +341,10 @@ often incomplete. `reverse_complete` says whether that observation had reached t
 initiator; only then does the corresponding `winning_paths.reverse` entry end at the
 initiator.
 
+`winning_paths` is built from response observations, since a response proves the request
+reached the target. `complete` on a `unique_forward_paths` entry says whether some
+response reported that hop list, and so whether it is known to end at the target.
+
 Response Example
 ```json
 {
@@ -363,7 +367,7 @@ Response Example
     }
   ],
   "unique_forward_paths": [
-    { "path": [444, 555], "count": 2 }
+    { "path": [444, 555], "count": 2, "complete": true }
   ],
   "unique_reverse_paths": [
     [555, 444]

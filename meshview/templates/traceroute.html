@@ -121,11 +121,11 @@ function addMissingEndpoints(path, startId, endId) {
     return fullPath;
 }
 
-// These lists are deduplicated across observations, so we cannot tell which of them
-// reached the far endpoint. Only the adjacent endpoint is safe to add.
+// These lists are deduplicated across observations. A forward path is only known to
+// reach the target if some response reported it; a reverse path carries no such marker.
 function uniqueForwardPaths(data, originId, targetId) {
     return (data?.unique_forward_paths || [])
-        .map(item => addMissingEndpoints(item.path || [], originId, null))
+        .map(item => addMissingEndpoints(item.path || [], originId, item.complete ? targetId : null))
         .filter(path => path.length > 1);
 }
 

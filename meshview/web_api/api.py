@@ -961,6 +961,7 @@ async def api_traceroute(request):
 
     forward_paths = []
     reverse_paths = []
+    forward_complete = set()
     winning_forward_paths = []
     winning_reverse_paths = []
 
@@ -974,9 +975,10 @@ async def api_traceroute(request):
         if tr["reverse_hops"]:
             reverse_paths.append(r)
 
-        if tr["reverse_hops"]:
-            if tr["forward_hops"]:
-                winning_forward_paths.append(f)
+        # A response proves the request reached the target, whatever its return trip did.
+        if tr["done"]:
+            forward_complete.add(f)
+            winning_forward_paths.append(f)
             winning_reverse_paths.append((r, tr["reverse_complete"]))
 
     # Deduplicate
@@ -988,7 +990,8 @@ async def api_traceroute(request):
 
     # Convert for JSON output
     unique_forward_paths_json = [
-        {"path": list(p), "count": forward_counts[p]} for p in unique_forward_paths
+        {"path": list(p), "count": forward_counts[p], "complete": p in forward_complete}
+        for p in unique_forward_paths
     ]
 
     unique_reverse_paths_json = [list(p) for p in unique_reverse_paths]
@@ -996,15 +999,16 @@ async def api_traceroute(request):
     from_node_id = packet.from_node_id
     to_node_id = packet.to_node_id
     # Winning paths are only built from responses, which carry the endpoints reversed.
-    winning_forward_with_endpoints = [
-        traceroute.forward_path(from_node_id, to_node_id, path, done=True)
-        for path in set(winning_forward_paths)
-    ]
+    winning_forward_with_endpoints = []
+    for hops in dict.fromkeys(winning_forward_paths):
+        path = traceroute.forward_path(from_node_id, to_node_id, hops, done=True)
+        if len(path) > 1:
+            winning_forward_with_endpoints.append(path)
 
     winning_reverse_with_endpoints = []
     for hops, complete in winning_reverse_paths:
         path = traceroute.return_path(from_node_id, to_node_id, hops, complete)
-        if path not in winning_reverse_with_endpoints:
+        if len(path) > 1 and path not in winning_reverse_with_endpoints:
             winning_reverse_with_endpoints.append(path)
 
     winning_paths_json = {
