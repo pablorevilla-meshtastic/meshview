@@ -10,7 +10,7 @@ from aiohttp import web
 from sqlalchemy import func, select
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
-from meshview import database, decode_payload, store
+from meshview import database, decode_payload, store, traceroute
 from meshview.__version__ import __version__, _git_revision_short, get_version_info
 from meshview.config import CONFIG
 from meshview.models import DailySnapshot, Node
@@ -630,10 +630,15 @@ async def api_edges(request):
             if route is None or tr.packet is None:
                 continue
 
-            path = [tr.packet.from_node_id] + list(route.route)
-            path.append(tr.packet.to_node_id if tr.done else tr.gateway_node_id)
+            path = traceroute.forward_path(
+                tr.packet.from_node_id,
+                tr.packet.to_node_id,
+                route.route,
+                tr.done,
+                tr.gateway_node_id,
+            )
 
-            for a, b in zip(path, path[1:], strict=False):
+            for a, b in traceroute.edges(path):
                 if (a, b) not in edges:
                     edges[(a, b)] = "traceroute"
                     edges_added_tr += 1
@@ -945,6 +950,7 @@ async def api_traceroute(request):
                 "done": tr.done,
                 "forward_hops": forward_list,
                 "reverse_hops": reverse_list,
+                "reverse_complete": traceroute.return_is_complete(route),
             }
         )
 
@@ -955,6 +961,7 @@ async def api_traceroute(request):
 
     forward_paths = []
     reverse_paths = []
+    forward_complete = set()
     winning_forward_paths = []
     winning_reverse_paths = []
 
@@ -968,10 +975,11 @@ async def api_traceroute(request):
         if tr["reverse_hops"]:
             reverse_paths.append(r)
 
-        if tr["reverse_hops"]:
-            if tr["forward_hops"]:
-                winning_forward_paths.append(f)
-            winning_reverse_paths.append(r)
+        # A response proves the request reached the target, whatever its return trip did.
+        if tr["done"]:
+            forward_complete.add(f)
+            winning_forward_paths.append(f)
+            winning_reverse_paths.append((r, tr["reverse_complete"]))
 
     # Deduplicate
     unique_forward_paths = sorted(set(forward_paths))
@@ -982,28 +990,26 @@ async def api_traceroute(request):
 
     # Convert for JSON output
     unique_forward_paths_json = [
-        {"path": list(p), "count": forward_counts[p]} for p in unique_forward_paths
+        {"path": list(p), "count": forward_counts[p], "complete": p in forward_complete}
+        for p in unique_forward_paths
     ]
 
     unique_reverse_paths_json = [list(p) for p in unique_reverse_paths]
 
     from_node_id = packet.from_node_id
     to_node_id = packet.to_node_id
+    # Winning paths are only built from responses, which carry the endpoints reversed.
     winning_forward_with_endpoints = []
-    for path in set(winning_forward_paths):
-        full_path = list(path)
-        if to_node_id is not None and (not full_path or full_path[-1] != to_node_id):
-            full_path = [to_node_id, *full_path]
-        if from_node_id is not None and (not full_path or full_path[-1] != from_node_id):
-            full_path = [*full_path, from_node_id]
-        winning_forward_with_endpoints.append(full_path)
+    for hops in dict.fromkeys(winning_forward_paths):
+        path = traceroute.forward_path(from_node_id, to_node_id, hops, done=True)
+        if len(path) > 1:
+            winning_forward_with_endpoints.append(path)
 
     winning_reverse_with_endpoints = []
-    for path in set(winning_reverse_paths):
-        full_path = list(path)
-        if to_node_id is not None and (not full_path or full_path[0] != to_node_id):
-            full_path = [to_node_id, *full_path]
-        winning_reverse_with_endpoints.append(full_path)
+    for hops, complete in winning_reverse_paths:
+        path = traceroute.return_path(from_node_id, to_node_id, hops, complete)
+        if len(path) > 1 and path not in winning_reverse_with_endpoints:
+            winning_reverse_with_endpoints.append(path)
 
     winning_paths_json = {
         "forward": winning_forward_with_endpoints,
@@ -1013,12 +1019,17 @@ async def api_traceroute(request):
     # --------------------------------------------
     # Final API output
     # --------------------------------------------
+    initiator, target = traceroute.endpoints(
+        from_node_id, to_node_id, any(tr["done"] for tr in tr_groups)
+    )
     return web.json_response(
         {
             "packet": {
                 "id": packet.id,
                 "from": packet.from_node_id,
                 "to": packet.to_node_id,
+                "initiator": initiator,
+                "target": target,
                 "channel": packet.channel,
             },
             "traceroute_packets": tr_groups,
