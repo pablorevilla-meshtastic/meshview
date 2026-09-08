@@ -16,6 +16,7 @@ from google.protobuf.message import Message
 from jinja2 import Environment, PackageLoader, Undefined, select_autoescape
 from markupsafe import Markup
 
+from meshtastic.protobuf.mesh_pb2 import Routing
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import config, database, decode_payload, migrations, models, store
 from meshview.__version__ import (
@@ -81,6 +82,17 @@ class Packet:
 
         if payload is None:
             text_payload = "Did not decode"
+        elif (
+            packet.portnum == PortNum.ROUTING_APP
+            and isinstance(payload, Routing)
+            and payload.WhichOneof("variant") == "error_reason"
+        ):
+            # error_reason NONE is the implicit ACK, not a failure.
+            text_payload = (
+                "ACK"
+                if payload.error_reason == Routing.Error.NONE
+                else f"NAK: {Routing.Error.Name(payload.error_reason)}"
+            )
         elif isinstance(payload, Message):
             text_payload = text_format.MessageToString(payload)
         elif packet.portnum == PortNum.TEXT_MESSAGE_APP and packet.to_node_id != 0xFFFFFFFF:
