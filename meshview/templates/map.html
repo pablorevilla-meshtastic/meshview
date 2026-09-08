@@ -207,8 +207,11 @@ const UNMAPPED_TTL_MS = 5000;
 
 const portMap = window.PORT_LABEL_MAP;
 
-const palette = ["#bcf60c","#fabebe","#e6beff","#9a6324","#fffac8","#800000","#aaffc3","#ffd8b1",
-                 "#808080"];
+// Fallback colors for channels that are not Meshtastic presets.
+// Every entry clears 3:1 contrast against both the light map tiles and the dark
+// filter panel, and stays perceptually far from every channelColorOverrides value.
+const palette = ["#18aa18","#976049","#a5508c","#1898dc","#3a8846","#dc1884",
+                 "#b8813d","#b64f35","#408b18","#4c719e","#be379c","#18aa52"];
 
 const channelColorOverrides = {
     longfast: "#4363d8",
