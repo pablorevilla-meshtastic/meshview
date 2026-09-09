@@ -4,6 +4,14 @@
 
 The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
 
+### Version 3.0.8 — May 2026
+- Map updates: added OpenTopoMap as a selectable base map, improved map controls, and fixed several map/node display edge cases.
+- Traceroute: added a dedicated traceroute page, corrected route path orientation in graph edges, and improved traceroute API/documentation support.
+- Routing display: show ROUTING ACK/NAK packets clearly instead of reporting misleading `error_reason: NONE` values.
+- MQTT/decryption: expanded Meshtastic one-byte PSK shorthand support in `mqtt.secondary_keys`.
+- Health/maintenance: added cleanup status reporting to the health page and fixed timezone handling in health reporting.
+- UI/API fixes: improved Firehose, Node, and Top channel handling, including showing all channels where expected.
+
 ### Version 3.0.7 — May 2026
 - Reliability report: added a dedicated reliability page for checking how well a selected node is heard across the mesh, including heard/missed status, packet counts, hop counts, gateway tables, and a map view.
 - Node list/map UX: added node list filtering for wider active-node ranges, included all database nodes where appropriate, and made map node colors persistent across reboots.
