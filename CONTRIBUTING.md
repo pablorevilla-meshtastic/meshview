@@ -79,8 +79,6 @@ How to report:
 - Use a **clear and descriptive title**.  
 - Include reproduction steps and expected vs. actual behavior.  
 
-⚠️ Security issues should **not** be reported in public issues. Instead, email us at **meshview-maintainers@proton.me**.  
-
 ---
 
 ### Suggesting Enhancements
@@ -107,8 +105,8 @@ If you’d like to start coding:
 2. Fork the repository and clone it locally.  
 3. Set up the development environment:  
 4. Run the app locally
-5. Create a new branch, make your changes, commit, and push.  
-6. Open a pull request!  
+5. Create a new branch from `develop`, make your changes, commit, and push.  
+6. Open a pull request against the `develop` branch.  
 
 ---
 
