@@ -22,6 +22,7 @@ meshview-web.pid
 /table_details.py
 config.ini
 *.log
+*.status.json
 
 # Screenshots
 screenshots/*

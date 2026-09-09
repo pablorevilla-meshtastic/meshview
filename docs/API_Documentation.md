@@ -203,6 +203,12 @@ Returns network edges (connections between nodes) based on traceroutes and neigh
 Traceroute edges are collected over the last 12 hours. Neighbor edges are based on
 port 71 packets.
 
+A completed traceroute is observed as a response packet, whose `from`/`to` are reversed
+with respect to the traced path, so edges are built as `to -> route[] -> from`. `route[]`
+may contain `0xFFFFFFFF` placeholders for hops the mesh could not identify; the edges on
+either side of such a placeholder are omitted, because the nodes around an unknown hop
+are not neighbours.
+
 Query Parameters
 - `type` (optional, string): `traceroute` or `neighbor`. If omitted, returns both.
 - `node_id` (optional, int): Filter edges to only those touching a node.
@@ -324,13 +330,30 @@ Returns traceroute details and derived paths for a packet.
 Path Parameters
 - `packet_id` (required, int): Packet ID.
 
+A completed traceroute is observed as a response packet, whose `from`/`to` are reversed
+with respect to the traced path. `initiator` and `target` resolve this: the forward path
+runs `initiator -> forward_hops -> target` and the return path runs
+`target -> reverse_hops -> initiator`, in both directions of travel. `forward_hops` and
+`reverse_hops` contain only the intermediate hops, never the endpoints.
+
+A gateway usually reports a response that is still travelling home, so `reverse_hops` is
+often incomplete. `reverse_complete` says whether that observation had reached the
+initiator; only then does the corresponding `winning_paths.reverse` entry end at the
+initiator.
+
+`winning_paths` is built from response observations, since a response proves the request
+reached the target. `complete` on a `unique_forward_paths` entry says whether some
+response reported that hop list, and so whether it is known to end at the target.
+
 Response Example
 ```json
 {
   "packet": {
     "id": 123,
-    "from": 111,
-    "to": 222,
+    "from": 222,
+    "to": 111,
+    "initiator": 111,
+    "target": 222,
     "channel": "main"
   },
   "traceroute_packets": [
@@ -338,19 +361,21 @@ Response Example
       "index": 0,
       "gateway_node_id": 333,
       "done": true,
-      "forward_hops": [111, 444, 222],
-      "reverse_hops": [222, 444, 111]
+      "forward_hops": [444, 555],
+      "reverse_hops": [555, 444],
+      "reverse_complete": true
     }
   ],
   "unique_forward_paths": [
-    { "path": [111, 444, 222], "count": 2 }
+    { "path": [444, 555], "count": 2, "complete": true }
   ],
   "unique_reverse_paths": [
-    [222, 444, 111]
+    [555, 444]
   ],
-  "winning_paths": [
-    [111, 444, 222]
-  ]
+  "winning_paths": {
+    "forward": [[111, 444, 555, 222]],
+    "reverse": [[222, 555, 444, 111]]
+  }
 }
 ```
 
@@ -368,6 +393,49 @@ Response Example
   "timestamp": "2025-07-22T12:45:00+00:00",
   "version": "3.0.3",
   "git_revision": "abc1234",
+  "cleanup": {
+    "enabled": true,
+    "days_to_keep": 14,
+    "scheduled_time": "02:00",
+    "vacuum": false,
+    "status": "ok",
+    "status_file": "dbcleanup.status.json",
+    "last_run": {
+      "status": "ok",
+      "started_at": "2026-06-04T09:00:00+00:00",
+      "completed_at": "2026-06-04T09:00:03+00:00",
+      "cutoff_at": "2026-05-21T09:00:00+00:00",
+      "days_to_keep": 14,
+      "vacuum_requested": false,
+      "vacuum_completed": false,
+      "rows_deleted": {
+        "packet": 1200,
+        "packet_seen": 3400,
+        "traceroute": 42,
+        "node": 3
+      },
+      "error": null
+    }
+  },
+  "backup": {
+    "enabled": true,
+    "backup_dir": "./backups",
+    "scheduled_time": "02:00",
+    "status": "ok",
+    "status_file": "dbbackup.status.json",
+    "last_run": {
+      "status": "ok",
+      "started_at": "2026-06-04T09:00:00+00:00",
+      "completed_at": "2026-06-04T09:00:02+00:00",
+      "backup_dir": "./backups",
+      "database_path": "packets.db",
+      "backup_file": "backups/packets_backup_20260604_090000.db.gz",
+      "original_size_bytes": 12939444,
+      "compressed_size_bytes": 4211560,
+      "compression_percent": 67.5,
+      "error": null
+    }
+  },
   "database": "connected",
   "database_size": "12.34 MB",
   "database_size_bytes": 12939444

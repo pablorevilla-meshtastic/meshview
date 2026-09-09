@@ -9,7 +9,7 @@ The project serves as a real-time monitoring and diagnostic tool for the Meshtas
 - Node list/map UX: added node list filtering for wider active-node ranges, included all database nodes where appropriate, and made map node colors persistent across reboots.
 - QR/API fixes: corrected QR code generation when a node role is missing or unavailable.
 - Database cleanup: removed stored node public key data and added the Alembic migration to drop `node.public_key`.
-- Protobufs: refreshed vendored Meshtastic protobuf Python modules to upstream commit `9ab4a1d08cb833d897aee2367013318718391f2f`, including new hardware models such as `RAK6421`.
+- Protobufs: refreshed  Meshtastic protobuf Python modules to upstream commit 
 - Tooling: improved the protobuf updater so it supports raw commit SHAs, the newer upstream `meshtastic/*.proto` layout, generated `.pyi` stubs, and the vendored `nanopb`/`serial_hal` outputs.
 
 ### Version 3.0.6 — March 2026

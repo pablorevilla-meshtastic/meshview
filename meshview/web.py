@@ -16,8 +16,9 @@ from google.protobuf.message import Message
 from jinja2 import Environment, PackageLoader, Undefined, select_autoescape
 from markupsafe import Markup
 
+from meshtastic.protobuf.mesh_pb2 import Routing
 from meshtastic.protobuf.portnums_pb2 import PortNum
-from meshview import config, database, decode_payload, migrations, models, store
+from meshview import config, database, decode_payload, migrations, models, store, traceroute
 from meshview.__version__ import (
     __version_string__,
 )
@@ -53,6 +54,7 @@ class Packet:
     """UI-friendly packet wrapper for templates and API payloads."""
 
     id: int
+    packet_id: int | None
     from_node_id: int
     from_node: models.Node
     to_node_id: int
@@ -80,6 +82,17 @@ class Packet:
 
         if payload is None:
             text_payload = "Did not decode"
+        elif (
+            packet.portnum == PortNum.ROUTING_APP
+            and isinstance(payload, Routing)
+            and payload.WhichOneof("variant") == "error_reason"
+        ):
+            # error_reason NONE is the implicit ACK, not a failure.
+            text_payload = (
+                "ACK"
+                if payload.error_reason == Routing.Error.NONE
+                else f"NAK: {Routing.Error.Name(payload.error_reason)}"
+            )
         elif isinstance(payload, Message):
             text_payload = text_format.MessageToString(payload)
         elif packet.portnum == PortNum.TEXT_MESSAGE_APP and packet.to_node_id != 0xFFFFFFFF:
@@ -99,8 +112,13 @@ class Packet:
                     f'<a href="https://www.google.com/maps/search/?api=1&query={payload.latitude_i * 1e-7},{payload.longitude_i * 1e-7}" target="_blank">map</a>'
                 )
 
+        packet_id = None
+        if mesh_packet and mesh_packet.id:
+            packet_id = mesh_packet.id
+
         return cls(
             id=packet.id,
+            packet_id=packet_id,
             from_node=packet.from_node,
             from_node_id=packet.from_node_id,
             to_node=packet.to_node,
@@ -389,14 +407,17 @@ async def graph_traceroute(request):
         route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
         if route is None:
             continue
-        path = [packet.from_node_id]
-        path.extend(route.route)
+        path = traceroute.forward_path(
+            packet.from_node_id,
+            packet.to_node_id,
+            route.route,
+            tr.done,
+            tr.gateway_node_id,
+        )
+        if not path:
+            continue
         if tr.done:
-            dest = packet.to_node_id
-            path.append(packet.to_node_id)
-        elif path[-1] != tr.gateway_node_id:
-            # It seems some nodes add them self to the list before uplinking
-            path.append(tr.gateway_node_id)
+            dest = path[-1]
 
         if not tr.done and tr.gateway_node_id not in node_seen_time and tr.import_time_us:
             node_seen_time[path[-1]] = tr.import_time_us
