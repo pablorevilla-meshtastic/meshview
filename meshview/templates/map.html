@@ -37,6 +37,16 @@
         animation: textPulse 1.1s ease-in-out 6;
         border-color: #ff8c00;
     }
+    .packet-seen-trace {
+        stroke-dasharray: 34 999;
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 4px rgba(0, 183, 255, 0.85));
+        animation: packetTrace 6.5s cubic-bezier(0.25, 0.05, 0.15, 1) 1 forwards;
+    }
+    @keyframes packetTrace {
+        from { stroke-dashoffset: 0; }
+        to { stroke-dashoffset: -1000; }
+    }
     @keyframes textPulse {
         0% { box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
         50% { box-shadow: 0 4px 14px rgba(255,140,0,0.45); }
@@ -207,6 +217,7 @@ L.control.scale({
 }).addTo(map);
 var nodeLayer = L.layerGroup().addTo(map);
 var edgeLayer = L.layerGroup().addTo(map);
+var packetSeenLayer = L.layerGroup().addTo(map);
 var trafficHeatLayer = L.heatLayer([], {
     radius: 34,
     blur: 18,
@@ -221,6 +232,7 @@ var trafficHeatLayer = L.heatLayer([], {
 });
 var overlayLayers = {
     "Nodes": nodeLayer,
+    "Packet Heard By": packetSeenLayer,
     "Traffic HeatMap": trafficHeatLayer
 };
 L.control.layers(baseLayers, overlayLayers, { collapsed: false }).addTo(map);
@@ -229,6 +241,7 @@ L.control.layers(baseLayers, overlayLayers, { collapsed: false }).addTo(map);
 var nodes = [], markers = {}, markerById = {}, nodeMap = new Map();
 var selectedNodeId = null;
 var activeBlinks = new Map(), lastImportTime = null;
+var activePacketSeenHighlights = [];
 var mapInterval = 0;
 var unmappedPackets = [];
 var trafficHeatLoaded = false;
@@ -395,6 +408,7 @@ function fetchNewPackets(){
               } else {
                   addUnmappedPacket(pkt, nodeData);
               }
+              showPacketSeenNodes(pkt);
           });
 
           lastImportTime = latest;
@@ -430,6 +444,7 @@ map.on("overlayadd", e => {
 
 map.on("overlayremove", e => {
     if(e.layer === nodeLayer) clearActiveBlinks();
+    if(e.layer === packetSeenLayer) clearPacketSeenHighlights();
 });
 
 async function waitForConfig() {
@@ -767,6 +782,55 @@ function clearBlinkForMarker(marker){
 function clearActiveBlinks(){
     activeBlinks.forEach((interval, marker) => clearBlinkForMarker(marker));
     activeBlinks.clear();
+}
+
+function clearPacketSeenHighlights(){
+    activePacketSeenHighlights.forEach(timeout => clearTimeout(timeout));
+    activePacketSeenHighlights = [];
+    packetSeenLayer.clearLayers();
+}
+
+async function showPacketSeenNodes(pkt){
+    if(!map.hasLayer(packetSeenLayer) || pkt.id == null) return;
+
+    try {
+        const res = await fetch(`/api/packets_seen/${pkt.id}`);
+        if(!res.ok) return;
+
+        const data = await res.json();
+        const seen = data.seen || [];
+        const sourceId = pkt.from_node_id;
+        const sourceNode = nodeMap.get(sourceId);
+        const sourceLatLng = sourceNode && !isInvalidCoord(sourceNode)
+            ? getNodeLatLng(sourceNode)
+            : null;
+
+        seen.forEach(row => {
+            const node = nodeMap.get(row.node_id);
+            if(!node || isInvalidCoord(node)) return;
+
+            const isSource = row.node_id === sourceId;
+            if(!sourceLatLng || isSource) return;
+
+            const markerLatLng = markerById[row.node_id]?.getLatLng();
+            const lat = markerLatLng?.lat ?? node.lat;
+            const lng = markerLatLng?.lng ?? node.long;
+            const trace = L.polyline([[sourceLatLng.lat, sourceLatLng.lng], [lat, lng]], {
+                color: "#26d9ff",
+                weight: 6,
+                opacity: 0.9,
+                className: "packet-seen-trace",
+                interactive: false
+            }).addTo(packetSeenLayer);
+
+            const timeout = setTimeout(() => {
+                packetSeenLayer.removeLayer(trace);
+            }, 6700);
+            activePacketSeenHighlights.push(timeout);
+        });
+    } catch(err) {
+        console.error("Failed to load packet seen nodes", pkt.id, err);
+    }
 }
 
 function blinkNode(marker,longName,portnum,payload){

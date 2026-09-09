@@ -22,6 +22,18 @@ NODE_NAME_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 MQTT_DIRECT_NODE_ID = 1
 
 
+def has_valid_location(lat: int | None, lon: int | None) -> bool:
+    return lat not in (None, 0) and lon not in (None, 0)
+
+
+def node_user_id(node_id: int) -> str:
+    return f"!{node_id:0{8}x}"
+
+
+def placeholder_short_name(node_id: int) -> str:
+    return node_user_id(node_id)[-4:]
+
+
 def normalize_node_name(name: str) -> str:
     name = name.strip()
     if not name or NODE_NAME_CONTROL_CHARS.search(name):
@@ -45,6 +57,35 @@ def storage_to_node_id(packet) -> int:
     if packet.decoded.portnum == PortNum.MAP_REPORT_APP:
         return MQTT_DIRECT_NODE_ID
     return packet.to
+
+
+async def ensure_node_exists(session, node_id: int | None, channel: str | None) -> Node | None:
+    if node_id is None:
+        return None
+
+    node = (await session.execute(select(Node).where(Node.node_id == node_id))).scalar_one_or_none()
+    now_us = int(time.time() * 1_000_000)
+
+    if node:
+        node.last_seen_us = now_us
+        if node.first_seen_us is None:
+            node.first_seen_us = now_us
+        if channel and not node.channel:
+            node.channel = channel
+        return node
+
+    display_name = str(node_id)
+    node = Node(
+        id=node_user_id(node_id),
+        node_id=node_id,
+        long_name=display_name,
+        short_name=placeholder_short_name(node_id),
+        channel=channel,
+        first_seen_us=now_us,
+        last_seen_us=now_us,
+    )
+    session.add(node)
+    return node
 
 
 async def capture_daily_snapshot() -> None:
@@ -130,6 +171,7 @@ async def process_envelope(topic, env):
                 ).scalar_one_or_none()
 
                 now_us = int(time.time() * 1_000_000)
+                has_location = has_valid_location(map_report.latitude_i, map_report.longitude_i)
 
                 if node:
                     node.node_id = node_id
@@ -139,8 +181,9 @@ async def process_envelope(topic, env):
                     node.role = role
                     if not node.channel:
                         node.channel = env.channel_id
-                    node.last_lat = map_report.latitude_i
-                    node.last_long = map_report.longitude_i
+                    if has_location:
+                        node.last_lat = map_report.latitude_i
+                        node.last_long = map_report.longitude_i
                     node.firmware = map_report.firmware_version
                     node.last_seen_us = now_us
                     if node.first_seen_us is None:
@@ -155,11 +198,12 @@ async def process_envelope(topic, env):
                         role=role,
                         channel=env.channel_id,
                         firmware=map_report.firmware_version,
-                        last_lat=map_report.latitude_i,
-                        last_long=map_report.longitude_i,
                         first_seen_us=now_us,
                         last_seen_us=now_us,
                     )
+                    if has_location:
+                        node.last_lat = map_report.latitude_i
+                        node.last_long = map_report.longitude_i
                     session.add(node)
             except Exception as e:
                 print(f"Error processing MAP_REPORT_APP: {e}")
@@ -172,6 +216,9 @@ async def process_envelope(topic, env):
 
     async with mqtt_database.async_session() as session:
         # --- Packet insert with ON CONFLICT DO NOTHING
+        from_node_id = getattr(env.packet, "from", None)
+        await ensure_node_exists(session, from_node_id, env.channel_id)
+
         result = await session.execute(select(Packet).where(Packet.id == packet_id))
         packet = result.scalar_one_or_none()
         if not packet:
@@ -179,7 +226,7 @@ async def process_envelope(topic, env):
             packet_values = {
                 "id": packet_id,
                 "portnum": env.packet.decoded.portnum,
-                "from_node_id": getattr(env.packet, "from"),
+                "from_node_id": from_node_id,
                 "to_node_id": storage_to_node_id(env.packet),
                 "payload": env.packet.SerializeToString(),
                 "import_time_us": now_us,
@@ -332,11 +379,10 @@ async def process_envelope(topic, env):
             position = decode_payload.decode_payload(
                 PortNum.POSITION_APP, env.packet.decoded.payload
             )
-            if position and position.latitude_i and position.longitude_i:
-                from_node_id = getattr(env.packet, "from")
-                node = (
-                    await session.execute(select(Node).where(Node.node_id == from_node_id))
-                ).scalar_one_or_none()
+            if position and has_valid_location(position.latitude_i, position.longitude_i):
+                node = await ensure_node_exists(
+                    session, getattr(env.packet, "from", None), env.channel_id
+                )
                 if node:
                     now_us = int(time.time() * 1_000_000)
                     node.last_lat = position.latitude_i
