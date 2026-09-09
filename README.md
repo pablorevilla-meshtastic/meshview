@@ -4,7 +4,7 @@
 
 The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
 
-### Version 3.0.8 — May 2026
+### Version 3.0.8 — September 2026
 - Map updates: added OpenTopoMap as a selectable base map, improved map controls, and fixed several map/node display edge cases.
 - Traceroute: added a dedicated traceroute page, corrected route path orientation in graph edges, and improved traceroute API/documentation support.
 - Routing display: show ROUTING ACK/NAK packets clearly instead of reporting misleading `error_reason: NONE` values.
