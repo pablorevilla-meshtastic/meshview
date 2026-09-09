@@ -248,6 +248,7 @@ var trafficHeatLoaded = false;
 var trafficHeatLoading = false;
 const UNMAPPED_LIMIT = 50;
 const UNMAPPED_TTL_MS = 5000;
+const PACKET_SEEN_DELAY_MS = 3000;
 
 const portMap = window.PORT_LABEL_MAP;
 
@@ -408,7 +409,7 @@ function fetchNewPackets(){
               } else {
                   addUnmappedPacket(pkt, nodeData);
               }
-              showPacketSeenNodes(pkt);
+              schedulePacketSeenNodes(pkt);
           });
 
           lastImportTime = latest;
@@ -788,6 +789,13 @@ function clearPacketSeenHighlights(){
     activePacketSeenHighlights.forEach(timeout => clearTimeout(timeout));
     activePacketSeenHighlights = [];
     packetSeenLayer.clearLayers();
+}
+
+function schedulePacketSeenNodes(pkt){
+    if(!map.hasLayer(packetSeenLayer) || pkt.id == null) return;
+
+    const timeout = setTimeout(() => showPacketSeenNodes(pkt), PACKET_SEEN_DELAY_MS);
+    activePacketSeenHighlights.push(timeout);
 }
 
 async function showPacketSeenNodes(pkt){
