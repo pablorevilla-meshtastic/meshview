@@ -11,7 +11,7 @@ The project serves as a real-time monitoring and diagnostic tool for the Meshtas
 - MQTT/decryption: expanded Meshtastic one-byte PSK shorthand support in `mqtt.secondary_keys`.
 - Health/maintenance: added cleanup status reporting to the health page and fixed timezone handling in health reporting.
 - UI/API fixes: improved Firehose, Node, and Top channel handling, including showing all channels where expected.
-- Contributors: thanks to giannoug for fixes to ROUTING ACK/NAK display, `mqtt.secondary_keys` PSK shorthand handling, and traceroute path orientation, plus jschrempp and the Meshview community for testing and feedback included in this release.
+- Contributors: thanks to [giannoug](https://github.com/giannoug) for fixes to ROUTING ACK/NAK display, `mqtt.secondary_keys` PSK shorthand handling, and traceroute path orientation, plus jschrempp and the Meshview community for testing and feedback included in this release.
 
 ### Version 3.0.7 — May 2026
 - Reliability report: added a dedicated reliability page for checking how well a selected node is heard across the mesh, including heard/missed status, packet counts, hop counts, gateway tables, and a map view.
