@@ -101,12 +101,11 @@ When submitting:
 We love first-time contributors! 🚀
 
 If you’d like to start coding:  
-1. Look for issues tagged with [good first issue](../../issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).  
-2. Fork the repository and clone it locally.  
-3. Set up the development environment:  
-4. Run the app locally
-5. Create a new branch from `develop`, make your changes, commit, and push.  
-6. Open a pull request against the `develop` branch.  
+1. Fork the repository and clone it locally.  
+2. Set up the development environment:  
+3. Run the app locally
+4. Create a new branch from `develop`, make your changes, commit, and push.  
+5. Open a pull request against the `develop` branch.  
 
 ---
 
