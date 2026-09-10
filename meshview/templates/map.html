@@ -38,10 +38,10 @@
         border-color: #ff8c00;
     }
     .packet-seen-trace {
-        stroke-dasharray: 1 999;
+        stroke-dasharray: 1 var(--packet-trace-gap, 999);
         stroke-linecap: round;
         filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.65));
-        animation: packetTrace 6.5s cubic-bezier(0.25, 0.05, 0.15, 1) 1 forwards;
+        animation: packetTrace var(--packet-trace-duration, 6.5s) linear 1 forwards;
     }
     .packet-seen-landing {
         transform-box: fill-box;
@@ -50,7 +50,7 @@
     }
     @keyframes packetTrace {
         from { stroke-dashoffset: 0; }
-        to { stroke-dashoffset: -1000; }
+        to { stroke-dashoffset: calc(-1 * var(--packet-trace-distance, 1000)); }
     }
     @keyframes packetSeenLanding {
         from {
@@ -266,8 +266,9 @@ var trafficHeatLoading = false;
 const UNMAPPED_LIMIT = 50;
 const UNMAPPED_TTL_MS = 5000;
 const PACKET_SEEN_DELAY_MS = 5000;
-const PACKET_TRACE_DURATION_MS = 6500;
-const PACKET_LANDING_START_MS = 1500;
+const PACKET_TRACE_MIN_DURATION_MS = 1500;
+const PACKET_TRACE_MAX_DURATION_MS = 6500;
+const PACKET_TRACE_MS_PER_PIXEL = 18;
 const PACKET_LANDING_DURATION_MS = 1000;
 
 const portMap = window.PORT_LABEL_MAP;
@@ -850,6 +851,18 @@ async function showPacketSeenNodes(pkt){
                 className: "packet-seen-trace",
                 interactive: false
             }).addTo(packetSeenLayer);
+            const traceEl = trace.getElement();
+            let traceDurationMs = PACKET_TRACE_MAX_DURATION_MS;
+            if(traceEl){
+                const traceLength = traceEl.getTotalLength();
+                traceDurationMs = Math.min(
+                    PACKET_TRACE_MAX_DURATION_MS,
+                    Math.max(PACKET_TRACE_MIN_DURATION_MS, traceLength * PACKET_TRACE_MS_PER_PIXEL)
+                );
+                traceEl.style.setProperty("--packet-trace-gap", `${traceLength + 20}`);
+                traceEl.style.setProperty("--packet-trace-distance", `${traceLength + 20}`);
+                traceEl.style.setProperty("--packet-trace-duration", `${traceDurationMs}ms`);
+            }
 
             const landingTimeout = setTimeout(() => {
                 const landing = L.circleMarker([lat, lng], {
@@ -867,12 +880,12 @@ async function showPacketSeenNodes(pkt){
                     packetSeenLayer.removeLayer(landing);
                 }, PACKET_LANDING_DURATION_MS);
                 activePacketSeenHighlights.push(clearLandingTimeout);
-            }, PACKET_LANDING_START_MS);
+            }, traceDurationMs);
             activePacketSeenHighlights.push(landingTimeout);
 
             const timeout = setTimeout(() => {
                 packetSeenLayer.removeLayer(trace);
-            }, PACKET_TRACE_DURATION_MS + PACKET_LANDING_DURATION_MS);
+            }, traceDurationMs + PACKET_LANDING_DURATION_MS);
             activePacketSeenHighlights.push(timeout);
         });
     } catch(err) {
