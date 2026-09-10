@@ -265,7 +265,7 @@ var trafficHeatLoaded = false;
 var trafficHeatLoading = false;
 const UNMAPPED_LIMIT = 50;
 const UNMAPPED_TTL_MS = 5000;
-const PACKET_SEEN_DELAY_MS = 5000;
+const PACKET_SEEN_DELAY_MS = 10000;
 const PACKET_TRACE_MIN_DURATION_MS = 1500;
 const PACKET_TRACE_MAX_DURATION_MS = 6500;
 const PACKET_TRACE_MS_PER_PIXEL = 18;
@@ -790,8 +790,9 @@ function isNodeVisibleForPackets(marker){
 
 function clearBlinkForMarker(marker){
     if(activeBlinks.has(marker)){
-        const interval = activeBlinks.get(marker);
-        clearInterval(interval);
+        const blink = activeBlinks.get(marker);
+        clearInterval(blink.interval);
+        if(blink.tooltipTimeout) clearTimeout(blink.tooltipTimeout);
         activeBlinks.delete(marker);
     }
     marker.setStyle({ fillColor: marker.originalColor });
@@ -814,6 +815,9 @@ function clearPacketSeenHighlights(){
 
 function schedulePacketSeenNodes(pkt){
     if(!map.hasLayer(packetSeenLayer) || pkt.id == null) return;
+
+    const sourceNode = nodeMap.get(pkt.from_node_id);
+    if(!sourceNode || isInvalidCoord(sourceNode)) return;
 
     const timeout = setTimeout(() => showPacketSeenNodes(pkt), PACKET_SEEN_DELAY_MS);
     activePacketSeenHighlights.push(timeout);
@@ -902,7 +906,10 @@ function blinkNode(marker,longName,portnum,payload){
 
     let blinkCount = 0;
     const blinkStart = Date.now();
-    const blinkDurationMs = 7000;
+    const tooltipDurationMs = 5000;
+    const blinkDurationMs = 10000;
+    const earlyBlinkColor = "yellow";
+    const lateBlinkColor = "#ff7a00";
     const safeName = escapeHtml(longName);
     const portLabel = portMap[portnum] || `Port ${portnum ?? "?"}`;
     const payloadText = (payload || "").trim();
@@ -923,11 +930,20 @@ function blinkNode(marker,longName,portnum,payload){
     .addTo(map);
 
     marker.tooltip = tooltip;
+    const tooltipTimeout = setTimeout(() => {
+        if(marker.tooltip){
+            map.removeLayer(marker.tooltip);
+            marker.tooltip = null;
+        }
+    }, tooltipDurationMs);
 
     const interval = setInterval(()=>{
         if(isNodeVisibleForPackets(marker)){
+            const blinkColor = Date.now() - blinkStart < tooltipDurationMs
+                ? earlyBlinkColor
+                : lateBlinkColor;
             marker.setStyle({
-                fillColor: blinkCount%2===0 ? 'yellow' : marker.originalColor
+                fillColor: blinkCount%2===0 ? blinkColor : marker.originalColor
             });
             marker.bringToFront();
         } else {
@@ -942,7 +958,7 @@ function blinkNode(marker,longName,portnum,payload){
 
     },500);
 
-    activeBlinks.set(marker, interval);
+    activeBlinks.set(marker, { interval, tooltipTimeout });
 }
 
 /* ======================================================
