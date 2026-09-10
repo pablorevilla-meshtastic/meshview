@@ -38,14 +38,31 @@
         border-color: #ff8c00;
     }
     .packet-seen-trace {
-        stroke-dasharray: 34 999;
+        stroke-dasharray: 1 999;
         stroke-linecap: round;
         filter: drop-shadow(0 0 4px rgba(0, 183, 255, 0.85));
         animation: packetTrace 6.5s cubic-bezier(0.25, 0.05, 0.15, 1) 1 forwards;
     }
+    .packet-seen-landing {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: packetSeenLanding 1s ease-out 1 forwards;
+    }
     @keyframes packetTrace {
         from { stroke-dashoffset: 0; }
         to { stroke-dashoffset: -1000; }
+    }
+    @keyframes packetSeenLanding {
+        from {
+            stroke-opacity: 0.95;
+            fill-opacity: 0.35;
+            transform: scale(0.2);
+        }
+        to {
+            stroke-opacity: 0;
+            fill-opacity: 0;
+            transform: scale(1.8);
+        }
     }
     @keyframes textPulse {
         0% { box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
@@ -248,7 +265,9 @@ var trafficHeatLoaded = false;
 var trafficHeatLoading = false;
 const UNMAPPED_LIMIT = 50;
 const UNMAPPED_TTL_MS = 5000;
-const PACKET_SEEN_DELAY_MS = 3000;
+const PACKET_SEEN_DELAY_MS = 5000;
+const PACKET_TRACE_DURATION_MS = 6500;
+const PACKET_LANDING_DURATION_MS = 1000;
 
 const portMap = window.PORT_LABEL_MAP;
 
@@ -831,9 +850,28 @@ async function showPacketSeenNodes(pkt){
                 interactive: false
             }).addTo(packetSeenLayer);
 
+            const landingTimeout = setTimeout(() => {
+                const landing = L.circleMarker([lat, lng], {
+                    radius: 14,
+                    color: "#26d9ff",
+                    fillColor: "#26d9ff",
+                    fillOpacity: 0.35,
+                    opacity: 0.95,
+                    weight: 2,
+                    className: "packet-seen-landing",
+                    interactive: false
+                }).addTo(packetSeenLayer);
+
+                const clearLandingTimeout = setTimeout(() => {
+                    packetSeenLayer.removeLayer(landing);
+                }, PACKET_LANDING_DURATION_MS);
+                activePacketSeenHighlights.push(clearLandingTimeout);
+            }, PACKET_TRACE_DURATION_MS);
+            activePacketSeenHighlights.push(landingTimeout);
+
             const timeout = setTimeout(() => {
                 packetSeenLayer.removeLayer(trace);
-            }, 6700);
+            }, PACKET_TRACE_DURATION_MS + PACKET_LANDING_DURATION_MS);
             activePacketSeenHighlights.push(timeout);
         });
     } catch(err) {
