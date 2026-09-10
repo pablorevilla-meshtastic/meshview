@@ -38,7 +38,7 @@
         border-color: #ff8c00;
     }
     .packet-seen-trace {
-        stroke-dasharray: 1 var(--packet-trace-gap, 999);
+        stroke-dasharray: 8px var(--packet-trace-gap, 999px);
         stroke-linecap: round;
         filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.65));
         animation: packetTrace var(--packet-trace-duration, 6.5s) linear 1 forwards;
@@ -50,7 +50,7 @@
     }
     @keyframes packetTrace {
         from { stroke-dashoffset: 0; }
-        to { stroke-dashoffset: calc(-1 * var(--packet-trace-distance, 1000)); }
+        to { stroke-dashoffset: calc(-1 * var(--packet-trace-distance, 1000px)); }
     }
     @keyframes packetSeenLanding {
         from {
@@ -859,8 +859,8 @@ async function showPacketSeenNodes(pkt){
                     PACKET_TRACE_MAX_DURATION_MS,
                     Math.max(PACKET_TRACE_MIN_DURATION_MS, traceLength * PACKET_TRACE_MS_PER_PIXEL)
                 );
-                traceEl.style.setProperty("--packet-trace-gap", `${traceLength + 20}`);
-                traceEl.style.setProperty("--packet-trace-distance", `${traceLength + 20}`);
+                traceEl.style.setProperty("--packet-trace-gap", `${traceLength + 20}px`);
+                traceEl.style.setProperty("--packet-trace-distance", `${traceLength + 20}px`);
                 traceEl.style.setProperty("--packet-trace-duration", `${traceDurationMs}ms`);
             }
 
