@@ -23,7 +23,7 @@ MQTT_DIRECT_NODE_ID = 1
 
 
 def has_valid_location(lat: int | None, lon: int | None) -> bool:
-    return lat not in (None, 0) and lon not in (None, 0)
+    return lat is not None and lon is not None and abs(lat) > 1 and abs(lon) > 1
 
 
 def node_user_id(node_id: int) -> str:
@@ -217,7 +217,6 @@ async def process_envelope(topic, env):
     async with mqtt_database.async_session() as session:
         # --- Packet insert with ON CONFLICT DO NOTHING
         from_node_id = getattr(env.packet, "from", None)
-        await ensure_node_exists(session, from_node_id, env.channel_id)
 
         result = await session.execute(select(Packet).where(Packet.id == packet_id))
         packet = result.scalar_one_or_none()
