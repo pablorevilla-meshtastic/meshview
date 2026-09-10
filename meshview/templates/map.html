@@ -907,7 +907,7 @@ function blinkNode(marker,longName,portnum,payload){
     let blinkCount = 0;
     const blinkStart = Date.now();
     const tooltipDurationMs = 5000;
-    const blinkDurationMs = 10000;
+    const blinkDurationMs = 15000;
     const blinkColor = "yellow";
     const safeName = escapeHtml(longName);
     const portLabel = portMap[portnum] || `Port ${portnum ?? "?"}`;
