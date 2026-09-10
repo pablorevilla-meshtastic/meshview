@@ -54,14 +54,14 @@
     }
     @keyframes packetSeenLanding {
         from {
-            stroke-opacity: 0.95;
-            fill-opacity: 0.35;
-            transform: scale(0.2);
+            stroke-opacity: 0.45;
+            fill-opacity: 0.16;
+            transform: scale(0.35);
         }
         to {
             stroke-opacity: 0;
             fill-opacity: 0;
-            transform: scale(1.8);
+            transform: scale(1.45);
         }
     }
     @keyframes textPulse {
@@ -870,12 +870,12 @@ async function showPacketSeenNodes(pkt){
 
             const landingTimeout = setTimeout(() => {
                 const landing = L.circleMarker([lat, lng], {
-                    radius: 14,
+                    radius: 16,
                     color: "#000",
                     fillColor: "#000",
-                    fillOpacity: 0.35,
-                    opacity: 0.95,
-                    weight: 2,
+                    fillOpacity: 0.16,
+                    opacity: 0.45,
+                    weight: 1,
                     className: "packet-seen-landing",
                     interactive: false
                 }).addTo(packetSeenLayer);
@@ -908,8 +908,8 @@ function blinkNode(marker,longName,portnum,payload){
     const blinkStart = Date.now();
     const tooltipDurationMs = 5000;
     const blinkDurationMs = 10000;
-    const earlyBlinkColor = "yellow";
-    const lateBlinkColor = "#ff7a00";
+    const earlyBlinkColor = "#ff4f00";
+    const lateBlinkColor = "yellow";
     const safeName = escapeHtml(longName);
     const portLabel = portMap[portnum] || `Port ${portnum ?? "?"}`;
     const payloadText = (payload || "").trim();
