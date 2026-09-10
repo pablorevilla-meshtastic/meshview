@@ -904,10 +904,10 @@ function blinkNode(marker,longName,portnum,payload){
         clearBlinkForMarker(marker);
     }
 
-    let blinkCount = 0;
     const blinkStart = Date.now();
     const tooltipDurationMs = 5000;
     const blinkDurationMs = 15000;
+    const fastBlinkStartMs = blinkDurationMs - 3000;
     const blinkColor = "yellow";
     const safeName = escapeHtml(longName);
     const portLabel = portMap[portnum] || `Port ${portnum ?? "?"}`;
@@ -937,22 +937,25 @@ function blinkNode(marker,longName,portnum,payload){
     }, tooltipDurationMs);
 
     const interval = setInterval(()=>{
+        const elapsedMs = Date.now() - blinkStart;
+        const blinkPeriodMs = elapsedMs >= fastBlinkStartMs ? 250 : 500;
         if(isNodeVisibleForPackets(marker)){
             marker.setStyle({
-                fillColor: blinkCount%2===0 ? blinkColor : marker.originalColor
+                fillColor: Math.floor(elapsedMs / blinkPeriodMs)%2===0
+                    ? blinkColor
+                    : marker.originalColor
             });
             marker.bringToFront();
         } else {
             clearBlinkForMarker(marker);
             return;
         }
-        blinkCount++;
 
-        if(Date.now() - blinkStart > blinkDurationMs){
+        if(elapsedMs > blinkDurationMs){
             clearBlinkForMarker(marker);
         }
 
-    },500);
+    },250);
 
     activeBlinks.set(marker, { interval, tooltipTimeout });
 }
