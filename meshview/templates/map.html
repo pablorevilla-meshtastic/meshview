@@ -40,7 +40,7 @@
     .packet-seen-trace {
         stroke-dasharray: 1 999;
         stroke-linecap: round;
-        filter: drop-shadow(0 0 4px rgba(0, 183, 255, 0.85));
+        filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.65));
         animation: packetTrace 6.5s cubic-bezier(0.25, 0.05, 0.15, 1) 1 forwards;
     }
     .packet-seen-landing {
@@ -843,7 +843,7 @@ async function showPacketSeenNodes(pkt){
             const lat = markerLatLng?.lat ?? node.lat;
             const lng = markerLatLng?.lng ?? node.long;
             const trace = L.polyline([[sourceLatLng.lat, sourceLatLng.lng], [lat, lng]], {
-                color: "#26d9ff",
+                color: "#000",
                 weight: 6,
                 opacity: 0.9,
                 className: "packet-seen-trace",
@@ -853,8 +853,8 @@ async function showPacketSeenNodes(pkt){
             const landingTimeout = setTimeout(() => {
                 const landing = L.circleMarker([lat, lng], {
                     radius: 14,
-                    color: "#26d9ff",
-                    fillColor: "#26d9ff",
+                    color: "#000",
+                    fillColor: "#000",
                     fillOpacity: 0.35,
                     opacity: 0.95,
                     weight: 2,
