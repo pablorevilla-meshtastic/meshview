@@ -1294,13 +1294,26 @@ async function loadLatestNeighborIds() {
 
 /* ======================================================
     NEIGHBOR CHART (portnum=71)
+
+    The request is bounded to NEIGHBOR_WINDOW_DAYS through the
+    API's `since` parameter, and only the NEIGHBOR_MAX_SERIES
+    neighbors with the most data points in that window are
+    drawn. Without both limits a busy node produces hundreds of
+    legend entries covering weeks of history.
    ====================================================== */
+
+const NEIGHBOR_WINDOW_DAYS = 7;
+const NEIGHBOR_MAX_SERIES  = 15;
 
 async function loadNeighborTimeSeries() {
     const container = document.getElementById("neighbor_chart_container");
     const chartEl   = document.getElementById("chart_neighbors");
 
-    const url = `/api/packets?portnum=71&from_node_id=${fromNodeId}&limit=500`;
+    // Start of the window, in microseconds (import_time_us is epoch-us).
+    const sinceUs = (Date.now() - NEIGHBOR_WINDOW_DAYS * 86400 * 1000) * 1000;
+
+    const url = `/api/packets?portnum=71&from_node_id=${fromNodeId}`
+              + `&since=${sinceUs}&limit=500`;
     const res = await fetch(url);
 
     if (!res.ok) {
@@ -1309,7 +1322,11 @@ async function loadNeighborTimeSeries() {
     }
 
     const data = await res.json();
-    const packets = data.packets || [];
+
+    // Re-apply the window here too, so the chart cannot drift past
+    // it if the packet source ever returns something older.
+    const packets = (data.packets || [])
+        .filter(p => (p.import_time_us || 0) >= sinceUs);
 
     if (!packets.length) {
         container.style.display = "none";
@@ -1319,7 +1336,8 @@ async function loadNeighborTimeSeries() {
     // Sort packets chronologically (microseconds)
     packets.sort((a, b) => (a.import_time_us || 0) - (b.import_time_us || 0));
 
-    const neighborHistory = {}; // node_id -> { name, times[], snr[] }
+    // --- Pass 1: collect the readings, without looking up names yet ---
+    const neighborHistory = {}; // node_id -> { times[], snr[] }
 
     for (const pkt of packets) {
         if (!pkt.import_time_us || !pkt.payload) continue;
@@ -1338,39 +1356,56 @@ async function loadNeighborTimeSeries() {
             if (!idMatch || !snrMatch) continue;
 
             const nid = parseInt(idMatch[1], 10);
-            const snr = parseFloat(snrMatch[1]);
-
-            // Fetch neighbor metadata once
-            const neighbor = await fetchNodeFromApi(nid);
 
             if (!neighborHistory[nid]) {
-                neighborHistory[nid] = {
-                    name: neighbor?.short_name ||
-                          neighbor?.long_name ||
-                          `Node ${nid}`,
-                    times: [],
-                    snr: []
-                };
+                neighborHistory[nid] = { times: [], snr: [] };
             }
 
             neighborHistory[nid].times.push(ts);
-            neighborHistory[nid].snr.push(snr);
+            neighborHistory[nid].snr.push(parseFloat(snrMatch[1]));
         }
     }
 
-    // Collect ALL timestamps across neighbors
-    const allTimes = new Set();
-    Object.values(neighborHistory).forEach(entry => {
-        entry.times.forEach(t => allTimes.add(t));
-    });
+    // --- Keep the neighbors with the most data points in the window ---
+    const ranked = Object.entries(neighborHistory)
+        .sort((a, b) => b[1].times.length - a[1].times.length);
 
-    // Sort timestamps numerically
-    const xTimes = Array.from(allTimes).sort((a, b) => a - b);
+    const kept    = ranked.slice(0, NEIGHBOR_MAX_SERIES);
+    const dropped = ranked.length - kept.length;
+
+    if (!kept.length) {
+        container.style.display = "none";
+        return;
+    }
+
+    // --- Pass 2: names, only for the series that are drawn ---
+    await Promise.all(kept.map(async ([nid, entry]) => {
+        const neighbor = await fetchNodeFromApi(nid);
+        entry.name = neighbor?.short_name ||
+                     neighbor?.long_name  ||
+                     `Node ${nid}`;
+    }));
+
+    // ECharts identifies a series by its name, so two neighbors sharing
+    // a short name would be drawn as one line. Keep them apart.
+    const usedNames = new Set();
+    for (const [nid, entry] of kept) {
+        if (usedNames.has(entry.name)) entry.name = `${entry.name} (${nid})`;
+        usedNames.add(entry.name);
+    }
+
+    // Timestamps across the series that are drawn
+    const xTimes = Array.from(
+        new Set(kept.flatMap(([, entry]) => entry.times))
+    ).sort((a, b) => a - b);
 
     const legend = [];
     const series = [];
 
-    for (const entry of Object.values(neighborHistory)) {
+    for (const [, entry] of kept) {
+        const byTime = new Map();
+        entry.times.forEach((t, i) => byTime.set(t, entry.snr[i]));
+
         legend.push(entry.name);
 
         series.push({
@@ -1379,21 +1414,46 @@ async function loadNeighborTimeSeries() {
             smooth: true,
             connectNulls: true,
             showSymbol: false,
-            data: xTimes.map(t => {
-                const idx = entry.times.indexOf(t);
-                return idx >= 0 ? entry.snr[idx] : null;
-            })
+            data: xTimes.map(t => (byTime.has(t) ? byTime.get(t) : null))
         });
     }
+
+    // Values behind the "Export CSV" button: the most recent SNR
+    // in the window, per neighbor.
+    neighborData = {
+        ids:   kept.map(([nid]) => nid),
+        names: kept.map(([, entry]) => entry.name),
+        snrs:  kept.map(([, entry]) => entry.snr[entry.snr.length - 1])
+    };
+
+    // Say which neighbors are on screen, so a missing line is not a mystery.
+    const subtextTemplate = dropped > 0
+        ? (nodeTranslations.neighbors_chart_subtitle_capped ||
+           "Last {days} days — the {n} neighbors with the most data points, of {total}")
+        : (nodeTranslations.neighbors_chart_subtitle ||
+           "Last {days} days — {n} neighbors");
+
+    const subtext = subtextTemplate
+        .replace("{days}",  NEIGHBOR_WINDOW_DAYS)
+        .replace("{n}",     kept.length)
+        .replace("{total}", ranked.length);
 
     const chart = echarts.init(chartEl);
 
     chart.setOption({
+        title: {
+            subtext,
+            left: "center",
+            bottom: 0,
+            subtextStyle: { color: "#888", fontSize: 11 }
+        },
+        grid: { bottom: 60 },
         tooltip: {
             trigger: "axis",
             axisPointer: { type: "line" }
         },
         legend: {
+            type: "scroll",
             data: legend,
             textStyle: { color: "#ccc" }
         },
