@@ -207,6 +207,8 @@
     "air_channel": "Utilización del aire y del canal",
     "environment": "Métricas Ambientales",
     "neighbors_chart": "Vecinos (Relación Señal/Ruido)",
+    "neighbors_chart_subtitle": "Últimos {days} días — {n} vecinos",
+    "neighbors_chart_subtitle_capped": "Últimos {days} días — los {n} vecinos con más datos, de {total}",
     "expand": "Ampliar",
     "export_csv": "Exportar CSV",
     "time": "Hora",
