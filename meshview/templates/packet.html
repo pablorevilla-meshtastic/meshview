@@ -206,12 +206,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const fromNodeObj = nodeLookup[p.from_node_id];
     const toNodeObj   = nodeLookup[p.to_node_id];
 
-    const fromNodeLabel = fromNodeObj?.long_name || p.from_node_id;
+    const fromNodeLabel = escapeHtml(fromNodeObj?.long_name || p.from_node_id);
 
     const toNodeLabel =
         p.to_node_id == 4294967295
             ? (packetTranslations.all_broadcast || "All")
-            : (toNodeObj?.long_name || p.to_node_id);
+            : escapeHtml(toNodeObj?.long_name || p.to_node_id);
 
     /* ---------------------------------------------
        Parse payload for lat/lon
@@ -267,7 +267,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }</dd>
 
                 <dt data-translate-lang="channel">${packetTranslations.channel || "Channel"}:</dt>
-                <dd>${p.channel ?? "—"}</dd>
+                <dd>${escapeHtml(p.channel ?? "—")}</dd>
 
                 <dt data-translate-lang="port">${packetTranslations.port || "Port"}:</dt>
                 <dd><i>${PORT_NAMES[p.portnum] || "UNKNOWN APP"}</i> (${p.portnum})</dd>
@@ -338,7 +338,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 Lat: ${srcLat.toFixed(6)}<br>
                 Lon: ${srcLon.toFixed(6)}<br>
                 <span data-translate-lang="from_node">${packetTranslations.from_node || "From Node:"}</span> ${fromNodeLabel}<br>
-                <span data-translate-lang="channel">${packetTranslations.channel || "Channel:"}</span> ${p.channel ?? "—"}<br>
+                <span data-translate-lang="channel">${packetTranslations.channel || "Channel:"}</span> ${escapeHtml(p.channel ?? "—")}<br>
                 <span data-translate-lang="port">${packetTranslations.port || "Port:"}</span> ${PORT_NAMES[p.portnum] || "UNKNOWN"} (${p.portnum})
             </div>
         `);
@@ -427,7 +427,7 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
 
         const rows = hopGroups[hopKey].map(s => {
             const node = nodeLookup[s.node_id];
-            const label = node?.long_name || s.node_id;
+            const label = escapeHtml(node?.long_name || s.node_id);
 
             const hopDisplay = formatHopDisplay(hopKey, s.hop_start);
             const timeStr = s.import_time_us
@@ -473,8 +473,8 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                     <b>${label}</b><br>
                     <span data-translate-lang="node_id_short">Node ID</span>:
                     <a href="/node/${s.node_id}">${s.node_id}</a><br>
-                    HW: ${node?.hw_model ?? "—"}<br>
-                    <span data-translate-lang="channel">Channel</span>: ${s.channel ?? "—"}<br>
+                    HW: ${escapeHtml(node?.hw_model ?? "—")}<br>
+                    <span data-translate-lang="channel">Channel</span>: ${escapeHtml(s.channel ?? "—")}<br>
                     ${
                         distanceKm !== null
                             ? `<span data-translate-lang="distance">Distance</span>:
@@ -500,7 +500,7 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                     <td>${s.rx_rssi ?? "—"}</td>
                     <td>${s.rx_snr ?? "—"}</td>
                     <td>${hopDisplay}</td>
-                    <td>${s.channel ?? "—"}</td>
+                    <td>${escapeHtml(s.channel ?? "—")}</td>
                     <td>${timeStr}</td>
                 </tr>
             `;

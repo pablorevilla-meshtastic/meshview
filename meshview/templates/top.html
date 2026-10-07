@@ -194,11 +194,11 @@ async function renderTable() {
             <td>
                 <a class="node-link" href="/node/${n.node_id}"
                    onclick="event.stopPropagation()">
-                    ${n.long_name || n.node_id}
+                    ${escapeHtml(n.long_name || n.node_id)}
                 </a>
             </td>
-            <td>${n.short_name || ""}</td>
-            <td>${n.channel || ""}</td>
+            <td>${escapeHtml(n.short_name || "")}</td>
+            <td>${escapeHtml(n.channel || "")}</td>
             <td>${n.sent}</td>
             <td>${n.seen}</td>
             <td><span class="${avgClass(n.avg)}">${n.avg.toFixed(1)}</span></td>
