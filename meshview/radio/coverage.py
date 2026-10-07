@@ -42,7 +42,12 @@ def destination_point(
     return math.degrees(lat2), math.degrees(lon2)
 
 
-@lru_cache(maxsize=512)
+def _loop_is_safe(radius_km: float, step_km: float) -> bool:
+    """A non-positive step or a non-finite radius would make the distance loop endless."""
+    return math.isfinite(radius_km) and math.isfinite(step_km) and step_km > 0
+
+
+@lru_cache(maxsize=64)
 def compute_coverage(
     lat: float,
     lon: float,
@@ -54,7 +59,7 @@ def compute_coverage(
     step_km: float,
     reliability: float,
 ) -> list[tuple[float, float, float]]:
-    if not ITM_AVAILABLE:
+    if not ITM_AVAILABLE or not _loop_is_safe(radius_km, step_km):
         return []
 
     points = []
@@ -90,7 +95,7 @@ def compute_coverage(
     return points
 
 
-@lru_cache(maxsize=512)
+@lru_cache(maxsize=64)
 def compute_perimeter(
     lat: float,
     lon: float,
@@ -103,7 +108,7 @@ def compute_perimeter(
     reliability: float,
     threshold_dbm: float,
 ) -> list[tuple[float, float]]:
-    if not ITM_AVAILABLE:
+    if not ITM_AVAILABLE or not _loop_is_safe(radius_km, step_km):
         return []
 
     perimeter = []
