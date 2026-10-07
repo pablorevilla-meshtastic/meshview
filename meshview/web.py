@@ -241,8 +241,11 @@ async def serve_page(request):
     if not page.endswith(".html"):
         page = f"{page}.html"
 
-    html_file = pathlib.Path(__file__).parent / "static" / page
-    if not html_file.exists():
+    # aiohttp lets an encoded slash (%2F) through a single path segment, so resolve the
+    # final path and make sure it is still inside the static directory.
+    static_root = (pathlib.Path(__file__).parent / "static").resolve()
+    html_file = (static_root / page).resolve()
+    if static_root not in html_file.parents or not html_file.is_file():
         raise web.HTTPNotFound(text=f"Page '{page}' not found")
 
     content = html_file.read_text(encoding="utf-8")

@@ -5,6 +5,7 @@ import json
 import logging
 import math
 import os
+import re
 
 from aiohttp import web
 from sqlalchemy import func, select
@@ -36,6 +37,9 @@ _LANG_CACHE = {}
 
 # Create dedicated route table for API endpoints
 routes = web.RouteTableDef()
+
+# Language codes are short identifiers such as "en", "es", "pt-BR".
+LANG_CODE_RE = re.compile(r"^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})?$")
 
 
 def _config_bool(section: str, key: str, default: bool = False) -> bool:
@@ -779,6 +783,10 @@ async def api_lang(request):
     lang_code = request.query.get("lang") or CONFIG.get("site", {}).get("language", "en")
     section = request.query.get("section")
 
+    # The code names a file, so it must stay a plain language code. Anything else (a path,
+    # an absolute filename) falls back to English just like an unknown language does.
+    if not LANG_CODE_RE.match(lang_code):
+        lang_code = "en"
     lang_file = os.path.join(LANG_DIR, f"{lang_code}.json")
     if not os.path.exists(lang_file):
         lang_file = os.path.join(LANG_DIR, "en.json")
