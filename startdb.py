@@ -338,11 +338,16 @@ async def load_database_from_mqtt(
     mqtt_user: str | None = None,
     mqtt_passwd: str | None = None,
 ):
+    logger = logging.getLogger(__name__)
     async for topic, env in mqtt_reader.get_topic_envelopes(
         mqtt_server, mqtt_port, topics, mqtt_user, mqtt_passwd
     ):
         async with db_lock:  # Block if cleanup is running
-            await mqtt_store.process_envelope(topic, env)
+            try:
+                await mqtt_store.process_envelope(topic, env)
+            except Exception:
+                # One bad or unexpected message must not stop ingestion for everyone.
+                logger.exception("Failed to store a message from topic %s; skipping it", topic)
 
 
 # -------------------------

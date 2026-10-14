@@ -20,6 +20,27 @@ MQTT_GATEWAY_CACHE: set[int] = set()
 UNKNOWN_NODE_NAME = "unknown name"
 NODE_NAME_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 MQTT_DIRECT_NODE_ID = 1
+# Meshtastic node ids are "!" + up to 8 hex digits; be a little lenient on length but the
+# result must still fit the BigInteger columns.
+NODE_ID_PATTERN = re.compile(r"^!([0-9a-fA-F]{1,16})$")
+MAX_NODE_ID = 2**63 - 1
+
+
+def parse_node_id(value: str | None) -> int | None:
+    """Turn a "!deadbeef" style id into an int, or None when it is not one.
+
+    Gateway and user ids arrive over MQTT and are not trustworthy; a malformed one must
+    not raise, otherwise the whole ingest loop goes down with it.
+    """
+    if not value:
+        return None
+    match = NODE_ID_PATTERN.match(value)
+    if not match:
+        return None
+    node_id = int(match.group(1), 16)
+    if node_id > MAX_NODE_ID:
+        return None
+    return node_id
 
 
 def has_valid_location(lat: int | None, lon: int | None) -> bool:
@@ -259,23 +280,25 @@ async def process_envelope(topic, env):
 
         # --- PacketSeen insert with conflict-safe handling
 
-        if not env.gateway_id:
-            print("WARNING: Missing gateway_id, skipping PacketSeen entry")
+        gateway_node_id = parse_node_id(env.gateway_id)
+        if gateway_node_id is None:
             # Most likely a misconfiguration of a mqtt publisher?
+            logger.warning(
+                "Skipping PacketSeen entry: missing or malformed gateway_id %r", env.gateway_id
+            )
+            await session.commit()
             return
-        else:
-            node_id = int(env.gateway_id[1:], 16)
 
-        if node_id not in MQTT_GATEWAY_CACHE:
-            MQTT_GATEWAY_CACHE.add(node_id)
+        if gateway_node_id not in MQTT_GATEWAY_CACHE:
+            MQTT_GATEWAY_CACHE.add(gateway_node_id)
             await session.execute(
-                update(Node).where(Node.node_id == node_id).values(is_mqtt_gateway=True)
+                update(Node).where(Node.node_id == gateway_node_id).values(is_mqtt_gateway=True)
             )
 
         now_us = int(time.time() * 1_000_000)
         seen_values = {
             "packet_id": packet_id,
-            "node_id": int(env.gateway_id[1:], 16),
+            "node_id": gateway_node_id,
             "channel": env.channel_id,
             "rx_time": env.packet.rx_time,
             "rx_snr": env.packet.rx_snr,
@@ -317,9 +340,8 @@ async def process_envelope(topic, env):
                     PortNum.NODEINFO_APP, env.packet.decoded.payload
                 )
                 if user and user.id:
-                    if user.id[0] == "!" and re.fullmatch(r"[0-9a-fA-F]+", user.id[1:]):
-                        node_id = int(user.id[1:], 16)
-                    else:
+                    node_id = parse_node_id(user.id)
+                    if node_id is None:
                         logger.warning(
                             "Skipping NODEINFO_APP packet %s: unable to determine node_id",
                             env.packet.id,
@@ -341,6 +363,13 @@ async def process_envelope(topic, env):
                     node = (
                         await session.execute(select(Node).where(Node.id == user.id))
                     ).scalar_one_or_none()
+                    if node is None:
+                        # The same node may already be stored under a differently
+                        # spelled id (e.g. "!00abcd" vs "!abcd"); node_id is unique, so
+                        # update that row instead of inserting a duplicate.
+                        node = (
+                            await session.execute(select(Node).where(Node.node_id == node_id))
+                        ).scalar_one_or_none()
 
                     now_us = int(time.time() * 1_000_000)
                     long_name = normalize_node_name(user.long_name)
@@ -401,7 +430,7 @@ async def process_envelope(topic, env):
                         packet_id=packet_id,
                         route=env.packet.decoded.payload,
                         done=not env.packet.decoded.want_response,
-                        gateway_node_id=int(env.gateway_id[1:], 16),
+                        gateway_node_id=gateway_node_id,
                         import_time_us=now_us,
                     )
                 )
