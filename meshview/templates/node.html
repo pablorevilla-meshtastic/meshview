@@ -548,9 +548,9 @@ function makeNodePopup(node) {
     return `
         <div style="font-size:0.9em">
             <a href="/node/${node.node_id}" style="color:inherit; text-decoration:underline;">
-                <b>${node.long_name || node.short_name || node.node_id}</b>
+                <b>${escapeHtml(node.long_name || node.short_name || node.node_id)}</b>
             </a>
-            ${node.short_name ? ` (${node.short_name})` : ""}<br>
+            ${node.short_name ? ` (${escapeHtml(node.short_name)})` : ""}<br>
 
             <b><span data-translate-lang="node_id">
                 ${nodeTranslations.node_id || "Node ID"}:
@@ -558,19 +558,19 @@ function makeNodePopup(node) {
 
             <b><span data-translate-lang="hw_model">
                 ${nodeTranslations.hw_model || "HW Model"}:
-            </span></b> ${node.hw_model ?? "—"}<br>
+            </span></b> ${escapeHtml(node.hw_model ?? "—")}<br>
 
             <b><span data-translate-lang="channel">
                 ${nodeTranslations.channel || "Channel"}:
-            </span></b> ${node.channel ?? "—"}<br>
+            </span></b> ${escapeHtml(node.channel ?? "—")}<br>
 
             <b><span data-translate-lang="role">
                 ${nodeTranslations.role || "Role"}:
-            </span></b> ${node.role ?? "—"}<br>
+            </span></b> ${escapeHtml(node.role ?? "—")}<br>
 
             <b><span data-translate-lang="firmware">
                 ${nodeTranslations.firmware || "Firmware"}:
-            </span></b> ${node.firmware ?? "—"}<br>
+            </span></b> ${escapeHtml(node.firmware ?? "—")}<br>
 
             <b><span data-translate-lang="last_update">
                 ${nodeTranslations.last_update || "Last Update"}:
@@ -745,7 +745,7 @@ function nodeLink(id, labelOverride = null) {
     const label = labelOverride || nodeMap[id] || id;
 
     return `<a href="/node/${id}" style="text-decoration:underline; color:inherit;">
-                ${label}
+                ${escapeHtml(label)}
             </a>`;
 }
 
@@ -855,7 +855,7 @@ function addMarker(id, lat, lon, color = "red", node = null) {
         node = nodeCache[id] || null;
     }
 
-    const popupHtml = node ? makeNodePopup(node) : `<b>${id}</b>`;
+    const popupHtml = node ? makeNodePopup(node) : `<b>${escapeHtml(id)}</b>`;
 
     const m = L.circleMarker([lat, lon], {
         radius: 6,
@@ -1046,8 +1046,7 @@ async function loadPackets(filters = {}) {
         // ================================
         // TABLE ROW
         // ================================
-        const safePayload = (pkt.payload || "")
-            .replace(/[<>]/g, m => (m === "<" ? "&lt;" : "&gt;"));
+        const safePayload = escapeHtml(pkt.payload || "");
 
         const localTime = formatLocalTime(pkt.import_time_us);
         const fromCell  = nodeLink(pkt.from_node_id, pkt.long_name);
