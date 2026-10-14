@@ -236,7 +236,7 @@ L.control.scale({
 }).addTo(map);
 var nodeLayer = L.layerGroup().addTo(map);
 var edgeLayer = L.layerGroup().addTo(map);
-var packetSeenLayer = L.layerGroup().addTo(map);
+var packetSeenLayer = L.layerGroup();
 var trafficHeatLayer = L.heatLayer([], {
     radius: 34,
     blur: 18,
