@@ -908,7 +908,7 @@ function blinkNode(marker,longName,portnum,payload){
 
     const blinkStart = Date.now();
     const tooltipDurationMs = 5000;
-    const blinkDurationMs = 15000;
+    const blinkDurationMs = map.hasLayer(packetSeenLayer) ? 15000 : tooltipDurationMs;
     const fastBlinkStartMs = blinkDurationMs - 3000;
     const blinkColor = "yellow";
     const safeName = escapeHtml(longName);
@@ -932,6 +932,10 @@ function blinkNode(marker,longName,portnum,payload){
 
     marker.tooltip = tooltip;
     const tooltipTimeout = setTimeout(() => {
+        if(blinkDurationMs === tooltipDurationMs){
+            clearBlinkForMarker(marker);
+            return;
+        }
         if(marker.tooltip){
             map.removeLayer(marker.tooltip);
             marker.tooltip = null;
