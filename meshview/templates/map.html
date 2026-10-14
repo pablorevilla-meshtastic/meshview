@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block css %}
+<style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
       crossorigin=""/>
@@ -116,6 +117,7 @@
     #unmapped-list li:last-child { border-bottom: none; }
     .unmapped-node { font-weight: 400; color: #000; }
     .unmapped-empty { color: #666; font-style: italic; }
+</style>
 </style>
 {% endblock %}
 
