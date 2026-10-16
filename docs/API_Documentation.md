@@ -227,8 +227,31 @@ Response Example
 
 ## 6. Config API
 
+### GET `/api/snapshots/daily`
+
+Returns stored daily snapshots. For new snapshots, `packet_count` is the number of
+packet records imported during `date` (00:00 UTC inclusive to the next midnight
+exclusive). The scheduled capture records the previous complete UTC day. Repeated
+observations of the same packet are not counted separately. Node and gateway counts
+remain database totals at capture time. Older snapshots retain the cumulative packet
+counts originally stored; they are not automatically converted.
+
 ### GET `/api/config`
 Returns a safe subset of server configuration.
+
+`site.map_channel_colors` contains channel color overrides from the optional
+`[map_channel_colors]` INI section. Each entry is `channel = #RRGGBB`; invalid colors
+are omitted. Channel matching on the map ignores case, spaces, hyphens, and underscores.
+Unlisted channels use generated colors. For example:
+
+```ini
+[map_channel_colors]
+LongFast = #4363d8
+LocalChat = #18aa18
+```
+
+Restart the web server and reload the map after changing these settings. Omitting
+the section uses generated colors for every channel.
 
 Response Example
 ```json

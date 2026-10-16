@@ -744,6 +744,12 @@ async def api_config(request):
             "map_bottom_right_lat": get_float(site, "map_bottom_right_lat", 36.0),
             "map_bottom_right_lon": get_float(site, "map_bottom_right_lon", -121.0),
             "map_interval": get_int(site, "map_interval", 3),
+
+            "map_channel_colors": {
+                channel: color.strip()
+                for channel, color in CONFIG.get("map_channel_colors", {}).items()
+                if re.fullmatch(r"#[0-9a-fA-F]{6}", color.strip())
+            },
             "firehose_interval": get_int(site, "firehose_interval", 3),
             "weekly_net_message": get_str(
                 site, "weekly_net_message", "Weekly Mesh check-in message."

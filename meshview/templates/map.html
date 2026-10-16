@@ -275,23 +275,11 @@ const PACKET_LANDING_DURATION_MS = 1000;
 
 const portMap = window.PORT_LABEL_MAP;
 
-// Fallback colors for channels that are not Meshtastic presets.
-// Every entry clears 3:1 contrast against both the light map tiles and the dark
-// filter panel, and stays perceptually far from every channelColorOverrides value.
+// Generated colors for channels without a configured override.
 const palette = ["#18aa18","#976049","#a5508c","#1898dc","#3a8846","#dc1884",
                  "#b8813d","#b64f35","#408b18","#4c719e","#be379c","#18aa52"];
 
-const channelColorOverrides = {
-    longfast: "#4363d8",
-    longslow: "#000075",
-    verylongslow: "#808000",
-    mediumslow: "#008080",
-    mediumfast: "#e6194b",
-    shortslow: "#911eb4",
-    shortfast: "#f58231",
-    longmoderate: "#46f0f0",
-    shortturbo: "#f032e6"
-};
+const channelColorOverrides = new Map();
 
 const colorMap = new Map();
 const channelSet = new Set();
@@ -316,7 +304,7 @@ function hashToColor(str){
     const channel = String(str || "Unknown");
     if(colorMap.has(channel)) return colorMap.get(channel);
 
-    const override = channelColorOverrides[normalizeChannelName(channel)];
+    const override = channelColorOverrides.get(normalizeChannelName(channel));
     const c = override || palette[Math.floor(hashToUnit(channel) * palette.length) % palette.length];
     colorMap.set(channel,c);
     return c;
@@ -477,6 +465,9 @@ async function waitForConfig() {
     }
     try {
         const cfg = await window._siteConfigPromise;
+        for(const [channel, color] of Object.entries(cfg.site?.map_channel_colors || {})){
+            channelColorOverrides.set(normalizeChannelName(channel), color);
+        }
         return cfg.site || {};
     } catch (err) {
         console.error("Error loading site config:", err);
@@ -525,7 +516,8 @@ initMapPolling();
 
 fetch('/api/nodes?days_active=3')
     .then(r=>r.json())
-    .then(data=>{
+    .then(async data=>{
+        await waitForConfig();
         if(!data.nodes) return;
 
         nodes = data.nodes.map(n=>({

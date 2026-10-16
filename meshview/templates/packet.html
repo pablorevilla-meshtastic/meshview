@@ -535,7 +535,7 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
        Escape HTML helper
     ----------------------------------------------*/
     function escapeHtml(unsafe) {
-        return (unsafe ?? "").replace(/[&<"'>]/g, m => ({
+        return String(unsafe ?? "").replace(/[&<"'>]/g, m => ({
             "&":"&amp;",
             "<":"&lt;",
             ">":"&gt;",

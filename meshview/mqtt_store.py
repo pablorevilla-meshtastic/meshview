@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -110,12 +110,21 @@ async def ensure_node_exists(session, node_id: int | None, channel: str | None) 
 
 
 async def capture_daily_snapshot() -> None:
-    today = datetime.now(UTC).date()
+    """Record packet traffic for the previous complete UTC day."""
+    day_end = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_start = day_end - timedelta(days=1)
+    start_us = int(day_start.timestamp() * 1_000_000)
+    end_us = int(day_end.timestamp() * 1_000_000)
+    snapshot_date = day_start.date()
 
     async with mqtt_database.async_session() as session:
         node_count = (await session.execute(select(func.count()).select_from(Node))).scalar_one()
         packet_count = (
-            await session.execute(select(func.count()).select_from(Packet))
+            await session.execute(
+                select(func.count())
+                .select_from(Packet)
+                .where(Packet.import_time_us >= start_us, Packet.import_time_us < end_us)
+            )
         ).scalar_one()
         gateway_count = (
             await session.execute(
@@ -124,7 +133,7 @@ async def capture_daily_snapshot() -> None:
         ).scalar_one()
         captured_at_us = int(time.time() * 1_000_000)
         values = {
-            "snapshot_date": today,
+            "snapshot_date": snapshot_date,
             "node_count": node_count,
             "packet_count": packet_count,
             "gateway_count": gateway_count,
@@ -151,7 +160,7 @@ async def capture_daily_snapshot() -> None:
         else:
             snapshot = (
                 await session.execute(
-                    select(DailySnapshot).where(DailySnapshot.snapshot_date == today)
+                    select(DailySnapshot).where(DailySnapshot.snapshot_date == snapshot_date)
                 )
             ).scalar_one_or_none()
             if snapshot is None:
