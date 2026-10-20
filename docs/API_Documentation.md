@@ -232,9 +232,14 @@ Response Example
 Returns stored daily snapshots. For new snapshots, `packet_count` is the number of
 packet records imported during `date` (00:00 UTC inclusive to the next midnight
 exclusive). The scheduled capture records the previous complete UTC day. Repeated
-observations of the same packet are not counted separately. Node and gateway counts
-remain database totals at capture time. Older snapshots retain the cumulative packet
-counts originally stored; they are not automatically converted.
+observations of the same packet are not counted separately. `node_count` counts distinct
+packet senders whose packets were imported or observed during that UTC day (including
+observations of previously imported packets). `gateway_count` counts distinct MQTT
+gateways with packet observations imported during that day. These are activity counts,
+not database totals; recipients alone do not count as active nodes. Activity uses local
+import timestamps, not device timestamps. Older snapshots retain their originally stored
+counts and are not automatically converted. Counts depend on the packet and observation
+history still retained at capture time.
 
 ### GET `/api/config`
 Returns a safe subset of server configuration.

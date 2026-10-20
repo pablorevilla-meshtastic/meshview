@@ -110,7 +110,7 @@ async def ensure_node_exists(session, node_id: int | None, channel: str | None) 
 
 
 async def capture_daily_snapshot() -> None:
-    """Record packet traffic for the previous complete UTC day."""
+    """Record packet traffic and active nodes/gateways for the previous UTC day."""
     day_end = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     day_start = day_end - timedelta(days=1)
     start_us = int(day_start.timestamp() * 1_000_000)
@@ -118,7 +118,21 @@ async def capture_daily_snapshot() -> None:
     snapshot_date = day_start.date()
 
     async with mqtt_database.async_session() as session:
-        node_count = (await session.execute(select(func.count()).select_from(Node))).scalar_one()
+        # Include repeated observations of older packets as activity, too. Node.last_seen_us
+        # cannot answer this after a node has already been seen on the following day.
+        active_nodes = (
+            select(Packet.from_node_id)
+            .where(Packet.import_time_us >= start_us, Packet.import_time_us < end_us)
+            .union(
+                select(Packet.from_node_id)
+                .join(PacketSeen, PacketSeen.packet_id == Packet.id)
+                .where(PacketSeen.import_time_us >= start_us, PacketSeen.import_time_us < end_us)
+            )
+            .subquery()
+        )
+        node_count = (
+            await session.execute(select(func.count(active_nodes.c.from_node_id)))
+        ).scalar_one()
         packet_count = (
             await session.execute(
                 select(func.count())
@@ -128,7 +142,9 @@ async def capture_daily_snapshot() -> None:
         ).scalar_one()
         gateway_count = (
             await session.execute(
-                select(func.count()).select_from(Node).where(Node.is_mqtt_gateway.is_(True))
+                select(func.count(func.distinct(PacketSeen.node_id))).where(
+                    PacketSeen.import_time_us >= start_us, PacketSeen.import_time_us < end_us
+                )
             )
         ).scalar_one()
         captured_at_us = int(time.time() * 1_000_000)
