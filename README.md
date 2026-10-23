@@ -14,6 +14,29 @@ The project serves as a real-time monitoring and diagnostic tool for the Meshtas
 - Security and privacy: escape mesh-provided text in web pages, restrict language and static file requests to their intended directories, and prevent payload searches from matching redacted direct messages.
 - Coverage API: validate and bound request parameters, and run coverage calculations off the event loop to keep the web server responsive.
 
+#### Updating your configuration for 3.0.9
+
+Add the following section at the end of your existing `config.ini` to use these map channel colors.
+If `[map_channel_colors]` already exists, update that section instead of adding a duplicate.
+
+```ini
+# Map channel color overrides. Use six-digit hex colors; other channels get generated colors.
+# Names ignore case, spaces, hyphens, and underscores. Restart the web server after editing.
+[map_channel_colors]
+LongFast = #4363d8
+LongSlow = #000075
+VeryLongSlow = #808000
+MediumSlow = #008080
+MediumFast = #e6194b
+ShortSlow = #911eb4
+ShortFast = #f58231
+LongModerate = #46f0f0
+ShortTurbo = #f032e6
+```
+
+Restart the web server and reload the map after saving. This section is optional;
+channels without an override use generated colors.
+
 ### Version 3.0.8 — September 2026
 - Map updates: added OpenTopoMap as a selectable base map, improved map controls, and fixed several map/node display edge cases.
 - Traceroute: added a dedicated traceroute page, corrected route path orientation in graph edges, and improved traceroute API/documentation support.
