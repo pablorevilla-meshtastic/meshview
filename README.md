@@ -13,6 +13,7 @@ The project serves as a real-time monitoring and diagnostic tool for the Meshtas
 - MQTT reliability: skip malformed messages and invalid node IDs without stopping packet ingestion.
 - Security and privacy: escape mesh-provided text in web pages, restrict language and static file requests to their intended directories, and prevent payload searches from matching redacted direct messages.
 - Coverage API: validate and bound request parameters, and run coverage calculations off the event loop to keep the web server responsive.
+- Contributors: thanks to [nullrouten0](https://github.com/nullrouten0) and Nathan for the neighbor SNR chart, MQTT reliability, security, privacy, and coverage API fixes; Manuel Villaverde for improving map channel color visibility; and [Pablo Revilla](https://github.com/pablorevilla-meshtastic) for the live map, node tracking, and daily snapshot updates.
 
 #### Updating your configuration for 3.0.9
 
