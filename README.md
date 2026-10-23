@@ -4,6 +4,16 @@
 
 The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
 
+### Version 3.0.9 — October 2026
+
+- Live map: added animated packet traces from senders to reporting gateways and configurable channel colors through the optional `[map_channel_colors]` section in `config.ini`.
+- Daily snapshots: new snapshots report activity for the previous complete UTC day, including newly imported packets, unique packet senders observed that day, and gateways that reported packets that day. Existing historical snapshots keep their original counts.
+- Node tracking: record nodes from packet activity before their node information arrives, and preserve known positions when map reports have missing or invalid coordinates.
+- Neighbor SNR chart: show the last seven days and the 15 neighbors with the most data points, distinguish neighbors with identical short names, and fix CSV export.
+- MQTT reliability: skip malformed messages and invalid node IDs without stopping packet ingestion.
+- Security and privacy: escape mesh-provided text in web pages, restrict language and static file requests to their intended directories, and prevent payload searches from matching redacted direct messages.
+- Coverage API: validate and bound request parameters, and run coverage calculations off the event loop to keep the web server responsive.
+
 ### Version 3.0.8 — September 2026
 - Map updates: added OpenTopoMap as a selectable base map, improved map controls, and fixed several map/node display edge cases.
 - Traceroute: added a dedicated traceroute page, corrected route path orientation in graph edges, and improved traceroute API/documentation support.
@@ -22,10 +32,7 @@ The project serves as a real-time monitoring and diagnostic tool for the Meshtas
 - Tooling: improved the protobuf updater so it supports raw commit SHAs, the newer upstream `meshtastic/*.proto` layout, generated `.pyi` stubs, and the vendored `nanopb`/`serial_hal` outputs.
 
 ### Version 3.0.6 — March 2026
-- Daily snapshots: added the `daily_snapshot` table, scheduled snapshot capture, and `/api/snapshots/daily` for historical node, packet, and gateway counts.
-  Each new snapshot stores packets imported during the previous complete UTC day,
-  labeled with that day's date. Node and gateway counts are database totals at capture
-  time. Existing historical snapshots retain their previously stored packet totals.
+- Daily snapshots: added the `daily_snapshot` table, scheduled snapshot capture, and `/api/snapshots/daily` for historical node, packet, and gateway counts. These originally stored database totals; version 3.0.9 changes new snapshots to daily activity counts.
 - Stats/UI: expanded stats views with snapshot data and added channel filters to Chat and Firehose.
 - Map/node fixes: corrected node location handling, map popup behavior, packet page display, and node list sorting.
 - Ingestion/API reliability: improved duplicate `PacketSeen` handling, guarded invalid node info packets, and made traceroute/edge APIs more tolerant of decode failures.
