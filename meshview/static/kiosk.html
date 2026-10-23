@@ -45,6 +45,7 @@ body { margin: 0; font-family: monospace; background: #121212; color: #eee; }
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
 <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylinedecorator.js" crossorigin></script>
 <script src="/static/portmaps.js"></script>
+<script src="/static/html-escape.js"></script>
 
 <script>
 (async function(){
@@ -115,12 +116,12 @@ body { margin: 0; font-family: monospace; background: #121212; color: #eee; }
         marker.originalColor = color;
         markerById[node.node_id]=marker;
 
-        let popupContent=`<b>${node.long_name} (${node.short_name})</b><br>
-                          <b>Channel:</b> ${node.channel}<br>
-                          <b>Model:</b> ${node.hw_model}<br>
-                          <b>Role:</b> ${node.role}<br>`;
+        let popupContent=`<b>${escapeHtml(node.long_name)} (${escapeHtml(node.short_name)})</b><br>
+                          <b>Channel:</b> ${escapeHtml(node.channel)}<br>
+                          <b>Model:</b> ${escapeHtml(node.hw_model)}<br>
+                          <b>Role:</b> ${escapeHtml(node.role)}<br>`;
         if(node.last_seen_us) popupContent+=`<b>Last seen:</b> ${timeAgoFromUs(node.last_seen_us)}<br>`;
-        if(node.firmware) popupContent+=`<b>Firmware:</b> ${node.firmware}<br>`;
+        if(node.firmware) popupContent+=`<b>Firmware:</b> ${escapeHtml(node.firmware)}<br>`;
 
         marker.on('click', e=>{
             e.originalEvent.stopPropagation();
@@ -139,7 +140,7 @@ body { margin: 0; font-family: monospace; background: #121212; color: #eee; }
         const color=hashToColor(channel);
         const label=document.createElement('label');
         label.style.color=color;
-        label.innerHTML=`<input type="checkbox" class="filter-checkbox" id="${id}" checked> ${channel}`;
+        label.innerHTML=`<input type="checkbox" class="filter-checkbox" id="${escapeHtml(id)}" checked> ${escapeHtml(channel)}`;
         filterContainer.appendChild(label);
     });
 
@@ -178,7 +179,7 @@ body { margin: 0; font-family: monospace; background: #121212; color: #eee; }
         let count=0;
         const portName=portMap[portnum]||`Port ${portnum}`;
         const tooltip=L.tooltip({permanent:true,direction:'top',offset:[0,-marker.options.radius-5],className:'blinking-tooltip'})
-                        .setContent(`${longName} (${portName})`).setLatLng(marker.getLatLng());
+                        .setContent(`${escapeHtml(longName)} (${escapeHtml(portName)})`).setLatLng(marker.getLatLng());
         tooltip.addTo(map); marker.tooltip=tooltip;
         const interval=setInterval(()=>{
             if(map.hasLayer(marker)){

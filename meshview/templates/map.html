@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block css %}
+<style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
       crossorigin=""/>
@@ -27,15 +28,42 @@
         background: white;
         color: black;
         border: 1px solid #111;
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-size: 14px;
+        border-radius: 4px;
+        padding: 3px 6px;
+        font-size: 12px;
         font-weight: 400;
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     }
     .blinking-tooltip.text-packet {
         animation: textPulse 1.1s ease-in-out 6;
         border-color: #ff8c00;
+    }
+    .packet-seen-trace {
+        stroke-dasharray: 0.01px var(--packet-trace-gap, 999px);
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.65));
+        animation: packetTrace var(--packet-trace-duration, 6.5s) linear 1 forwards;
+    }
+    .packet-seen-landing {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: packetSeenLanding 1s ease-out 1 forwards;
+    }
+    @keyframes packetTrace {
+        from { stroke-dashoffset: 0; }
+        to { stroke-dashoffset: calc(-1 * var(--packet-trace-distance, 1000px)); }
+    }
+    @keyframes packetSeenLanding {
+        from {
+            stroke-opacity: 0.7;
+            fill-opacity: 0.24;
+            transform: scale(0.3);
+        }
+        to {
+            stroke-opacity: 0;
+            fill-opacity: 0;
+            transform: scale(1.6);
+        }
     }
     @keyframes textPulse {
         0% { box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
@@ -89,6 +117,7 @@
     #unmapped-list li:last-child { border-bottom: none; }
     .unmapped-node { font-weight: 400; color: #000; }
     .unmapped-empty { color: #666; font-style: italic; }
+</style>
 </style>
 {% endblock %}
 
@@ -207,6 +236,7 @@ L.control.scale({
 }).addTo(map);
 var nodeLayer = L.layerGroup().addTo(map);
 var edgeLayer = L.layerGroup().addTo(map);
+var packetSeenLayer = L.layerGroup();
 var trafficHeatLayer = L.heatLayer([], {
     radius: 34,
     blur: 18,
@@ -221,6 +251,7 @@ var trafficHeatLayer = L.heatLayer([], {
 });
 var overlayLayers = {
     "Nodes": nodeLayer,
+    "Packets Reach": packetSeenLayer,
     "Traffic HeatMap": trafficHeatLayer
 };
 L.control.layers(baseLayers, overlayLayers, { collapsed: false }).addTo(map);
@@ -229,32 +260,26 @@ L.control.layers(baseLayers, overlayLayers, { collapsed: false }).addTo(map);
 var nodes = [], markers = {}, markerById = {}, nodeMap = new Map();
 var selectedNodeId = null;
 var activeBlinks = new Map(), lastImportTime = null;
+var activePacketSeenHighlights = [];
 var mapInterval = 0;
 var unmappedPackets = [];
 var trafficHeatLoaded = false;
 var trafficHeatLoading = false;
 const UNMAPPED_LIMIT = 50;
 const UNMAPPED_TTL_MS = 5000;
+const PACKET_SEEN_DELAY_MS = 15000;
+const PACKET_TRACE_MIN_DURATION_MS = 1500;
+const PACKET_TRACE_MAX_DURATION_MS = 6500;
+const PACKET_TRACE_MS_PER_PIXEL = 18;
+const PACKET_LANDING_DURATION_MS = 1000;
 
 const portMap = window.PORT_LABEL_MAP;
 
-// Fallback colors for channels that are not Meshtastic presets.
-// Every entry clears 3:1 contrast against both the light map tiles and the dark
-// filter panel, and stays perceptually far from every channelColorOverrides value.
+// Generated colors for channels without a configured override.
 const palette = ["#18aa18","#976049","#a5508c","#1898dc","#3a8846","#dc1884",
                  "#b8813d","#b64f35","#408b18","#4c719e","#be379c","#18aa52"];
 
-const channelColorOverrides = {
-    longfast: "#4363d8",
-    longslow: "#000075",
-    verylongslow: "#808000",
-    mediumslow: "#008080",
-    mediumfast: "#e6194b",
-    shortslow: "#911eb4",
-    shortfast: "#f58231",
-    longmoderate: "#46f0f0",
-    shortturbo: "#f032e6"
-};
+const channelColorOverrides = new Map();
 
 const colorMap = new Map();
 const channelSet = new Set();
@@ -279,7 +304,7 @@ function hashToColor(str){
     const channel = String(str || "Unknown");
     if(colorMap.has(channel)) return colorMap.get(channel);
 
-    const override = channelColorOverrides[normalizeChannelName(channel)];
+    const override = channelColorOverrides.get(normalizeChannelName(channel));
     const c = override || palette[Math.floor(hashToUnit(channel) * palette.length) % palette.length];
     colorMap.set(channel,c);
     return c;
@@ -395,6 +420,7 @@ function fetchNewPackets(){
               } else {
                   addUnmappedPacket(pkt, nodeData);
               }
+              schedulePacketSeenNodes(pkt);
           });
 
           lastImportTime = latest;
@@ -430,6 +456,7 @@ map.on("overlayadd", e => {
 
 map.on("overlayremove", e => {
     if(e.layer === nodeLayer) clearActiveBlinks();
+    if(e.layer === packetSeenLayer) clearPacketSeenHighlights();
 });
 
 async function waitForConfig() {
@@ -438,6 +465,9 @@ async function waitForConfig() {
     }
     try {
         const cfg = await window._siteConfigPromise;
+        for(const [channel, color] of Object.entries(cfg.site?.map_channel_colors || {})){
+            channelColorOverrides.set(normalizeChannelName(channel), color);
+        }
         return cfg.site || {};
     } catch (err) {
         console.error("Error loading site config:", err);
@@ -486,7 +516,8 @@ initMapPolling();
 
 fetch('/api/nodes?days_active=3')
     .then(r=>r.json())
-    .then(data=>{
+    .then(async data=>{
+        await waitForConfig();
         if(!data.nodes) return;
 
         nodes = data.nodes.map(n=>({
@@ -753,8 +784,9 @@ function isNodeVisibleForPackets(marker){
 
 function clearBlinkForMarker(marker){
     if(activeBlinks.has(marker)){
-        const interval = activeBlinks.get(marker);
-        clearInterval(interval);
+        const blink = activeBlinks.get(marker);
+        clearInterval(blink.interval);
+        if(blink.tooltipTimeout) clearTimeout(blink.tooltipTimeout);
         activeBlinks.delete(marker);
     }
     marker.setStyle({ fillColor: marker.originalColor });
@@ -769,6 +801,96 @@ function clearActiveBlinks(){
     activeBlinks.clear();
 }
 
+function clearPacketSeenHighlights(){
+    activePacketSeenHighlights.forEach(timeout => clearTimeout(timeout));
+    activePacketSeenHighlights = [];
+    packetSeenLayer.clearLayers();
+}
+
+function schedulePacketSeenNodes(pkt){
+    if(!map.hasLayer(packetSeenLayer) || pkt.id == null) return;
+
+    const sourceNode = nodeMap.get(pkt.from_node_id);
+    if(!sourceNode || isInvalidCoord(sourceNode)) return;
+
+    const timeout = setTimeout(() => showPacketSeenNodes(pkt), PACKET_SEEN_DELAY_MS);
+    activePacketSeenHighlights.push(timeout);
+}
+
+async function showPacketSeenNodes(pkt){
+    if(!map.hasLayer(packetSeenLayer) || pkt.id == null) return;
+
+    try {
+        const res = await fetch(`/api/packets_seen/${pkt.id}`);
+        if(!res.ok) return;
+
+        const data = await res.json();
+        const seen = data.seen || [];
+        const sourceId = pkt.from_node_id;
+        const sourceNode = nodeMap.get(sourceId);
+        const sourceLatLng = sourceNode && !isInvalidCoord(sourceNode)
+            ? getNodeLatLng(sourceNode)
+            : null;
+
+        seen.forEach(row => {
+            const node = nodeMap.get(row.node_id);
+            if(!node || isInvalidCoord(node)) return;
+
+            const isSource = row.node_id === sourceId;
+            if(!sourceLatLng || isSource) return;
+
+            const markerLatLng = markerById[row.node_id]?.getLatLng();
+            const lat = markerLatLng?.lat ?? node.lat;
+            const lng = markerLatLng?.lng ?? node.long;
+            const trace = L.polyline([[sourceLatLng.lat, sourceLatLng.lng], [lat, lng]], {
+                color: "#000",
+                weight: 3,
+                opacity: 0.9,
+                className: "packet-seen-trace",
+                interactive: false
+            }).addTo(packetSeenLayer);
+            const traceEl = trace.getElement();
+            let traceDurationMs = PACKET_TRACE_MAX_DURATION_MS;
+            if(traceEl){
+                const traceLength = traceEl.getTotalLength();
+                traceDurationMs = Math.min(
+                    PACKET_TRACE_MAX_DURATION_MS,
+                    Math.max(PACKET_TRACE_MIN_DURATION_MS, traceLength * PACKET_TRACE_MS_PER_PIXEL)
+                );
+                traceEl.style.setProperty("--packet-trace-gap", `${traceLength + 20}px`);
+                traceEl.style.setProperty("--packet-trace-distance", `${traceLength + 20}px`);
+                traceEl.style.setProperty("--packet-trace-duration", `${traceDurationMs}ms`);
+            }
+
+            const landingTimeout = setTimeout(() => {
+                const landing = L.circleMarker([lat, lng], {
+                    radius: 16,
+                    color: "#000",
+                    fillColor: "#000",
+                    fillOpacity: 0.24,
+                    opacity: 0.7,
+                    weight: 2,
+                    className: "packet-seen-landing",
+                    interactive: false
+                }).addTo(packetSeenLayer);
+
+                const clearLandingTimeout = setTimeout(() => {
+                    packetSeenLayer.removeLayer(landing);
+                }, PACKET_LANDING_DURATION_MS);
+                activePacketSeenHighlights.push(clearLandingTimeout);
+            }, traceDurationMs);
+            activePacketSeenHighlights.push(landingTimeout);
+
+            const timeout = setTimeout(() => {
+                packetSeenLayer.removeLayer(trace);
+            }, traceDurationMs + PACKET_LANDING_DURATION_MS);
+            activePacketSeenHighlights.push(timeout);
+        });
+    } catch(err) {
+        console.error("Failed to load packet seen nodes", pkt.id, err);
+    }
+}
+
 function blinkNode(marker,longName,portnum,payload){
     if(!isNodeVisibleForPackets(marker)) return;
 
@@ -776,9 +898,11 @@ function blinkNode(marker,longName,portnum,payload){
         clearBlinkForMarker(marker);
     }
 
-    let blinkCount = 0;
     const blinkStart = Date.now();
-    const blinkDurationMs = 7000;
+    const tooltipDurationMs = 5000;
+    const blinkDurationMs = map.hasLayer(packetSeenLayer) ? 15000 : tooltipDurationMs;
+    const fastBlinkStartMs = blinkDurationMs - 3000;
+    const blinkColor = "yellow";
     const safeName = escapeHtml(longName);
     const portLabel = portMap[portnum] || `Port ${portnum ?? "?"}`;
     const payloadText = (payload || "").trim();
@@ -799,26 +923,39 @@ function blinkNode(marker,longName,portnum,payload){
     .addTo(map);
 
     marker.tooltip = tooltip;
+    const tooltipTimeout = setTimeout(() => {
+        if(blinkDurationMs === tooltipDurationMs){
+            clearBlinkForMarker(marker);
+            return;
+        }
+        if(marker.tooltip){
+            map.removeLayer(marker.tooltip);
+            marker.tooltip = null;
+        }
+    }, tooltipDurationMs);
 
     const interval = setInterval(()=>{
+        const elapsedMs = Date.now() - blinkStart;
+        const blinkPeriodMs = elapsedMs >= fastBlinkStartMs ? 250 : 500;
         if(isNodeVisibleForPackets(marker)){
             marker.setStyle({
-                fillColor: blinkCount%2===0 ? 'yellow' : marker.originalColor
+                fillColor: Math.floor(elapsedMs / blinkPeriodMs)%2===0
+                    ? blinkColor
+                    : marker.originalColor
             });
             marker.bringToFront();
         } else {
             clearBlinkForMarker(marker);
             return;
         }
-        blinkCount++;
 
-        if(Date.now() - blinkStart > blinkDurationMs){
+        if(elapsedMs > blinkDurationMs){
             clearBlinkForMarker(marker);
         }
 
-    },500);
+    },250);
 
-    activeBlinks.set(marker, interval);
+    activeBlinks.set(marker, { interval, tooltipTimeout });
 }
 
 /* ======================================================

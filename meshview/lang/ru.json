@@ -202,6 +202,8 @@
         "air_channel": "Использование сети и каналов",
         "environment": "Метрики среды",
         "neighbors_chart": "Соседи (Соотношение сигнал/шум)",
+        "neighbors_chart_subtitle": "Последние {days} дн. — {n} соседей",
+        "neighbors_chart_subtitle_capped": "Последние {days} дн. — {n} соседей с наибольшим числом точек, из {total}",
         "expand": "Расширить",
         "export_csv": "Экспорт в CSV",
         "time": "Время",

@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -20,6 +20,39 @@ MQTT_GATEWAY_CACHE: set[int] = set()
 UNKNOWN_NODE_NAME = "unknown name"
 NODE_NAME_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 MQTT_DIRECT_NODE_ID = 1
+# Meshtastic node ids are "!" + up to 8 hex digits; be a little lenient on length but the
+# result must still fit the BigInteger columns.
+NODE_ID_PATTERN = re.compile(r"^!([0-9a-fA-F]{1,16})$")
+MAX_NODE_ID = 2**63 - 1
+
+
+def parse_node_id(value: str | None) -> int | None:
+    """Turn a "!deadbeef" style id into an int, or None when it is not one.
+
+    Gateway and user ids arrive over MQTT and are not trustworthy; a malformed one must
+    not raise, otherwise the whole ingest loop goes down with it.
+    """
+    if not value:
+        return None
+    match = NODE_ID_PATTERN.match(value)
+    if not match:
+        return None
+    node_id = int(match.group(1), 16)
+    if node_id > MAX_NODE_ID:
+        return None
+    return node_id
+
+
+def has_valid_location(lat: int | None, lon: int | None) -> bool:
+    return lat is not None and lon is not None and abs(lat) > 1 and abs(lon) > 1
+
+
+def node_user_id(node_id: int) -> str:
+    return f"!{node_id:0{8}x}"
+
+
+def placeholder_short_name(node_id: int) -> str:
+    return node_user_id(node_id)[-4:]
 
 
 def normalize_node_name(name: str) -> str:
@@ -47,22 +80,76 @@ def storage_to_node_id(packet) -> int:
     return packet.to
 
 
+async def ensure_node_exists(session, node_id: int | None, channel: str | None) -> Node | None:
+    if node_id is None:
+        return None
+
+    node = (await session.execute(select(Node).where(Node.node_id == node_id))).scalar_one_or_none()
+    now_us = int(time.time() * 1_000_000)
+
+    if node:
+        node.last_seen_us = now_us
+        if node.first_seen_us is None:
+            node.first_seen_us = now_us
+        if channel and not node.channel:
+            node.channel = channel
+        return node
+
+    display_name = str(node_id)
+    node = Node(
+        id=node_user_id(node_id),
+        node_id=node_id,
+        long_name=display_name,
+        short_name=placeholder_short_name(node_id),
+        channel=channel,
+        first_seen_us=now_us,
+        last_seen_us=now_us,
+    )
+    session.add(node)
+    return node
+
+
 async def capture_daily_snapshot() -> None:
-    today = datetime.now(UTC).date()
+    """Record packet traffic and active nodes/gateways for the previous UTC day."""
+    day_end = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    day_start = day_end - timedelta(days=1)
+    start_us = int(day_start.timestamp() * 1_000_000)
+    end_us = int(day_end.timestamp() * 1_000_000)
+    snapshot_date = day_start.date()
 
     async with mqtt_database.async_session() as session:
-        node_count = (await session.execute(select(func.count()).select_from(Node))).scalar_one()
+        # Include repeated observations of older packets as activity, too. Node.last_seen_us
+        # cannot answer this after a node has already been seen on the following day.
+        active_nodes = (
+            select(Packet.from_node_id)
+            .where(Packet.import_time_us >= start_us, Packet.import_time_us < end_us)
+            .union(
+                select(Packet.from_node_id)
+                .join(PacketSeen, PacketSeen.packet_id == Packet.id)
+                .where(PacketSeen.import_time_us >= start_us, PacketSeen.import_time_us < end_us)
+            )
+            .subquery()
+        )
+        node_count = (
+            await session.execute(select(func.count(active_nodes.c.from_node_id)))
+        ).scalar_one()
         packet_count = (
-            await session.execute(select(func.count()).select_from(Packet))
+            await session.execute(
+                select(func.count())
+                .select_from(Packet)
+                .where(Packet.import_time_us >= start_us, Packet.import_time_us < end_us)
+            )
         ).scalar_one()
         gateway_count = (
             await session.execute(
-                select(func.count()).select_from(Node).where(Node.is_mqtt_gateway.is_(True))
+                select(func.count(func.distinct(PacketSeen.node_id))).where(
+                    PacketSeen.import_time_us >= start_us, PacketSeen.import_time_us < end_us
+                )
             )
         ).scalar_one()
         captured_at_us = int(time.time() * 1_000_000)
         values = {
-            "snapshot_date": today,
+            "snapshot_date": snapshot_date,
             "node_count": node_count,
             "packet_count": packet_count,
             "gateway_count": gateway_count,
@@ -89,7 +176,7 @@ async def capture_daily_snapshot() -> None:
         else:
             snapshot = (
                 await session.execute(
-                    select(DailySnapshot).where(DailySnapshot.snapshot_date == today)
+                    select(DailySnapshot).where(DailySnapshot.snapshot_date == snapshot_date)
                 )
             ).scalar_one_or_none()
             if snapshot is None:
@@ -130,6 +217,7 @@ async def process_envelope(topic, env):
                 ).scalar_one_or_none()
 
                 now_us = int(time.time() * 1_000_000)
+                has_location = has_valid_location(map_report.latitude_i, map_report.longitude_i)
 
                 if node:
                     node.node_id = node_id
@@ -139,8 +227,9 @@ async def process_envelope(topic, env):
                     node.role = role
                     if not node.channel:
                         node.channel = env.channel_id
-                    node.last_lat = map_report.latitude_i
-                    node.last_long = map_report.longitude_i
+                    if has_location:
+                        node.last_lat = map_report.latitude_i
+                        node.last_long = map_report.longitude_i
                     node.firmware = map_report.firmware_version
                     node.last_seen_us = now_us
                     if node.first_seen_us is None:
@@ -155,11 +244,12 @@ async def process_envelope(topic, env):
                         role=role,
                         channel=env.channel_id,
                         firmware=map_report.firmware_version,
-                        last_lat=map_report.latitude_i,
-                        last_long=map_report.longitude_i,
                         first_seen_us=now_us,
                         last_seen_us=now_us,
                     )
+                    if has_location:
+                        node.last_lat = map_report.latitude_i
+                        node.last_long = map_report.longitude_i
                     session.add(node)
             except Exception as e:
                 print(f"Error processing MAP_REPORT_APP: {e}")
@@ -172,6 +262,8 @@ async def process_envelope(topic, env):
 
     async with mqtt_database.async_session() as session:
         # --- Packet insert with ON CONFLICT DO NOTHING
+        from_node_id = getattr(env.packet, "from", None)
+
         result = await session.execute(select(Packet).where(Packet.id == packet_id))
         packet = result.scalar_one_or_none()
         if not packet:
@@ -179,7 +271,7 @@ async def process_envelope(topic, env):
             packet_values = {
                 "id": packet_id,
                 "portnum": env.packet.decoded.portnum,
-                "from_node_id": getattr(env.packet, "from"),
+                "from_node_id": from_node_id,
                 "to_node_id": storage_to_node_id(env.packet),
                 "payload": env.packet.SerializeToString(),
                 "import_time_us": now_us,
@@ -213,23 +305,25 @@ async def process_envelope(topic, env):
 
         # --- PacketSeen insert with conflict-safe handling
 
-        if not env.gateway_id:
-            print("WARNING: Missing gateway_id, skipping PacketSeen entry")
+        gateway_node_id = parse_node_id(env.gateway_id)
+        if gateway_node_id is None:
             # Most likely a misconfiguration of a mqtt publisher?
+            logger.warning(
+                "Skipping PacketSeen entry: missing or malformed gateway_id %r", env.gateway_id
+            )
+            await session.commit()
             return
-        else:
-            node_id = int(env.gateway_id[1:], 16)
 
-        if node_id not in MQTT_GATEWAY_CACHE:
-            MQTT_GATEWAY_CACHE.add(node_id)
+        if gateway_node_id not in MQTT_GATEWAY_CACHE:
+            MQTT_GATEWAY_CACHE.add(gateway_node_id)
             await session.execute(
-                update(Node).where(Node.node_id == node_id).values(is_mqtt_gateway=True)
+                update(Node).where(Node.node_id == gateway_node_id).values(is_mqtt_gateway=True)
             )
 
         now_us = int(time.time() * 1_000_000)
         seen_values = {
             "packet_id": packet_id,
-            "node_id": int(env.gateway_id[1:], 16),
+            "node_id": gateway_node_id,
             "channel": env.channel_id,
             "rx_time": env.packet.rx_time,
             "rx_snr": env.packet.rx_snr,
@@ -271,9 +365,8 @@ async def process_envelope(topic, env):
                     PortNum.NODEINFO_APP, env.packet.decoded.payload
                 )
                 if user and user.id:
-                    if user.id[0] == "!" and re.fullmatch(r"[0-9a-fA-F]+", user.id[1:]):
-                        node_id = int(user.id[1:], 16)
-                    else:
+                    node_id = parse_node_id(user.id)
+                    if node_id is None:
                         logger.warning(
                             "Skipping NODEINFO_APP packet %s: unable to determine node_id",
                             env.packet.id,
@@ -295,6 +388,13 @@ async def process_envelope(topic, env):
                     node = (
                         await session.execute(select(Node).where(Node.id == user.id))
                     ).scalar_one_or_none()
+                    if node is None:
+                        # The same node may already be stored under a differently
+                        # spelled id (e.g. "!00abcd" vs "!abcd"); node_id is unique, so
+                        # update that row instead of inserting a duplicate.
+                        node = (
+                            await session.execute(select(Node).where(Node.node_id == node_id))
+                        ).scalar_one_or_none()
 
                     now_us = int(time.time() * 1_000_000)
                     long_name = normalize_node_name(user.long_name)
@@ -332,11 +432,10 @@ async def process_envelope(topic, env):
             position = decode_payload.decode_payload(
                 PortNum.POSITION_APP, env.packet.decoded.payload
             )
-            if position and position.latitude_i and position.longitude_i:
-                from_node_id = getattr(env.packet, "from")
-                node = (
-                    await session.execute(select(Node).where(Node.node_id == from_node_id))
-                ).scalar_one_or_none()
+            if position and has_valid_location(position.latitude_i, position.longitude_i):
+                node = await ensure_node_exists(
+                    session, getattr(env.packet, "from", None), env.channel_id
+                )
                 if node:
                     now_us = int(time.time() * 1_000_000)
                     node.last_lat = position.latitude_i
@@ -356,7 +455,7 @@ async def process_envelope(topic, env):
                         packet_id=packet_id,
                         route=env.packet.decoded.payload,
                         done=not env.packet.decoded.want_response,
-                        gateway_node_id=int(env.gateway_id[1:], 16),
+                        gateway_node_id=gateway_node_id,
                         import_time_us=now_us,
                     )
                 )

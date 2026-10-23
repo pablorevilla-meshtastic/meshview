@@ -227,8 +227,36 @@ Response Example
 
 ## 6. Config API
 
+### GET `/api/snapshots/daily`
+
+Returns stored daily snapshots. For new snapshots, `packet_count` is the number of
+packet records imported during `date` (00:00 UTC inclusive to the next midnight
+exclusive). The scheduled capture records the previous complete UTC day. Repeated
+observations of the same packet are not counted separately. `node_count` counts distinct
+packet senders whose packets were imported or observed during that UTC day (including
+observations of previously imported packets). `gateway_count` counts distinct MQTT
+gateways with packet observations imported during that day. These are activity counts,
+not database totals; recipients alone do not count as active nodes. Activity uses local
+import timestamps, not device timestamps. Older snapshots retain their originally stored
+counts and are not automatically converted. Counts depend on the packet and observation
+history still retained at capture time.
+
 ### GET `/api/config`
 Returns a safe subset of server configuration.
+
+`site.map_channel_colors` contains channel color overrides from the optional
+`[map_channel_colors]` INI section. Each entry is `channel = #RRGGBB`; invalid colors
+are omitted. Channel matching on the map ignores case, spaces, hyphens, and underscores.
+Unlisted channels use generated colors. For example:
+
+```ini
+[map_channel_colors]
+LongFast = #4363d8
+LocalChat = #18aa18
+```
+
+Restart the web server and reload the map after changing these settings. Omitting
+the section uses generated colors for every channel.
 
 Response Example
 ```json

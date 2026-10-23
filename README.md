@@ -23,6 +23,9 @@ The project serves as a real-time monitoring and diagnostic tool for the Meshtas
 
 ### Version 3.0.6 — March 2026
 - Daily snapshots: added the `daily_snapshot` table, scheduled snapshot capture, and `/api/snapshots/daily` for historical node, packet, and gateway counts.
+  Each new snapshot stores packets imported during the previous complete UTC day,
+  labeled with that day's date. Node and gateway counts are database totals at capture
+  time. Existing historical snapshots retain their previously stored packet totals.
 - Stats/UI: expanded stats views with snapshot data and added channel filters to Chat and Firehose.
 - Map/node fixes: corrected node location handling, map popup behavior, packet page display, and node list sorting.
 - Ingestion/API reliability: improved duplicate `PacketSeen` handling, guarded invalid node info packets, and made traceroute/edge APIs more tolerant of decode failures.

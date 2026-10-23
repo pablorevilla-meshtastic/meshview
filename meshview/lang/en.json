@@ -221,6 +221,8 @@
         "air_channel": "Air & Channel Utilization",
         "environment": "Environment Metrics",
         "neighbors_chart": "Neighbors (Signal-to-Noise)",
+        "neighbors_chart_subtitle": "Last {days} days — {n} neighbors",
+        "neighbors_chart_subtitle_capped": "Last {days} days — the {n} neighbors with the most data points, of {total}",
         "expand": "Expand",
         "export_csv": "Export CSV",
         "time": "Time",

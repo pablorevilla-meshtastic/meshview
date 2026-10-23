@@ -1,10 +1,12 @@
 """API endpoints for MeshView."""
 
+import asyncio
 import datetime
 import json
 import logging
 import math
 import os
+import re
 
 from aiohttp import web
 from sqlalchemy import func, select
@@ -36,6 +38,9 @@ _LANG_CACHE = {}
 
 # Create dedicated route table for API endpoints
 routes = web.RouteTableDef()
+
+# Language codes are short identifiers such as "en", "es", "pt-BR".
+LANG_CODE_RE = re.compile(r"^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})?$")
 
 
 def _config_bool(section: str, key: str, default: bool = False) -> bool:
@@ -149,6 +154,20 @@ def _bearing_deg(lat1, lon1, lat2, lon2):
 
 
 OBSERVED_MAX_DISTANCE_KM = 50.0
+
+# Bounds for /api/coverage query parameters. The ITM loop runs once per (distance step x
+# bearing), so the request size must be capped or a single call can hold the CPU for minutes.
+COVERAGE_LIMITS = {
+    "freq_mhz": (1.0, 10_000.0),
+    "tx_dbm": (-50.0, 60.0),
+    "tx_height_m": (0.0, 1_000.0),
+    "rx_height_m": (0.0, 1_000.0),
+    "radius_km": (1.0, 200.0),
+    "step_km": (0.05, 50.0),
+    "reliability": (0.01, 0.99),
+    "threshold_dbm": (-200.0, 0.0),
+}
+COVERAGE_MAX_STEPS = 4_000  # radius_km / step_km
 
 
 def init_api_module(packet_class, seq_regex, lang_dir):
@@ -725,6 +744,12 @@ async def api_config(request):
             "map_bottom_right_lat": get_float(site, "map_bottom_right_lat", 36.0),
             "map_bottom_right_lon": get_float(site, "map_bottom_right_lon", -121.0),
             "map_interval": get_int(site, "map_interval", 3),
+
+            "map_channel_colors": {
+                channel: color.strip()
+                for channel, color in CONFIG.get("map_channel_colors", {}).items()
+                if re.fullmatch(r"#[0-9a-fA-F]{6}", color.strip())
+            },
             "firehose_interval": get_int(site, "firehose_interval", 3),
             "weekly_net_message": get_str(
                 site, "weekly_net_message", "Weekly Mesh check-in message."
@@ -779,6 +804,10 @@ async def api_lang(request):
     lang_code = request.query.get("lang") or CONFIG.get("site", {}).get("language", "en")
     section = request.query.get("section")
 
+    # The code names a file, so it must stay a plain language code. Anything else (a path,
+    # an absolute filename) falls back to English just like an unknown language does.
+    if not LANG_CODE_RE.match(lang_code):
+        lang_code = "en"
     lang_file = os.path.join(LANG_DIR, f"{lang_code}.json")
     if not os.path.exists(lang_file):
         lang_file = os.path.join(LANG_DIR, "en.json")
@@ -1219,12 +1248,19 @@ async def api_coverage(request):
         if value is None:
             return default
         try:
-            return float(value)
+            parsed = float(value)
         except ValueError as exc:
             raise web.HTTPBadRequest(
                 text=json.dumps({"error": f"{name} must be a number"}),
                 content_type="application/json",
             ) from exc
+        low, high = COVERAGE_LIMITS[name]
+        if not math.isfinite(parsed) or not (low <= parsed <= high):
+            raise web.HTTPBadRequest(
+                text=json.dumps({"error": f"{name} must be between {low} and {high}"}),
+                content_type="application/json",
+            )
+        return parsed
 
     try:
         freq_mhz = parse_float("freq_mhz", 907.0)
@@ -1238,6 +1274,11 @@ async def api_coverage(request):
     except web.HTTPBadRequest as exc:
         raise exc
 
+    if radius_km / step_km > COVERAGE_MAX_STEPS:
+        return web.json_response(
+            {"error": f"radius_km / step_km must not exceed {COVERAGE_MAX_STEPS}"}, status=400
+        )
+
     node = await store.get_node(node_id)
     if not node or not node.last_lat or not node.last_long:
         return web.json_response({"error": "Node not found or missing location"}, status=404)
@@ -1246,8 +1287,11 @@ async def api_coverage(request):
     lon = node.last_long * 1e-7
 
     mode = request.query.get("mode", "perimeter")
+    # The ITM model is pure CPU work; keep it off the event loop so other requests
+    # are still served while it runs.
     if mode == "perimeter":
-        perimeter = compute_perimeter(
+        perimeter = await asyncio.to_thread(
+            compute_perimeter,
             lat=round(lat, 7),
             lon=round(lon, 7),
             freq_mhz=round(freq_mhz, 3),
@@ -1263,7 +1307,8 @@ async def api_coverage(request):
             {"mode": "perimeter", "threshold_dbm": threshold_dbm, "perimeter": perimeter}
         )
 
-    points = compute_coverage(
+    points = await asyncio.to_thread(
+        compute_coverage,
         lat=round(lat, 7),
         lon=round(lon, 7),
         freq_mhz=round(freq_mhz, 3),

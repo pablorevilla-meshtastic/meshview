@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block css %}
+<style>
 .container {
     margin: 0 auto;
     padding: 10px;
@@ -90,6 +91,7 @@
 .inline-link:hover {
     color: #c7e6ff;
 }
+</style>
 {% endblock %}
 
 {% block body %}
@@ -199,9 +201,7 @@ function portLabel(portnum, payload, linksHtml) {
     const name = PORT_MAP[portnum] || "Unknown";
     const color = PORT_COLORS[portnum] || "#6c757d";
 
-    const safePayload = payload
-        ? payload.replace(/"/g, "&quot;")
-        : "";
+    const safePayload = escapeHtml(payload || "");
 
     return `
         <span class="port-tag" style="background-color:${color}" title="${safePayload}">
@@ -325,7 +325,7 @@ async function fetchUpdates() {
                            ${firehoseTranslations.all_broadcast || "All"}
                        </span>`
                     : `<a href="/node/${pkt.from_node_id}" style="text-decoration:underline; color:inherit;">
-                           ${nodeMap[pkt.from_node_id] || pkt.from_node_id}
+                           ${escapeHtml(nodeMap[pkt.from_node_id] || pkt.from_node_id)}
                        </a>`;
 
             /* TO — includes translation */
@@ -339,7 +339,7 @@ async function fetchUpdates() {
                            ${firehoseTranslations.all_broadcast || "All"}
                        </span>`
                     : `<a href="/node/${pkt.to_node_id}" style="text-decoration:underline; color:inherit;">
-                           ${nodeMap[pkt.to_node_id] || pkt.to_node_id}
+                           ${escapeHtml(nodeMap[pkt.to_node_id] || pkt.to_node_id)}
                        </a>`;
 
             let inlineLinks = "";
@@ -369,9 +369,7 @@ async function fetchUpdates() {
                                     >⮕</a>`;
             }
 
-            const safePayload = (pkt.payload || "")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
+            const safePayload = escapeHtml(pkt.payload || "");
             const packetIdCell = pkt.packet_id
                 ? `<a href="/packet/${pkt.storage_id || pkt.id}"
                       style="text-decoration:underline; color:inherit;">
@@ -395,7 +393,7 @@ async function fetchUpdates() {
 
     <td>${from}</td>
     <td>${to}</td>
-    <td>${pkt.channel || "—"}</td>
+    <td>${escapeHtml(pkt.channel || "—")}</td>
     <td>${portLabel(pkt.portnum, pkt.payload, inlineLinks)}</td>
 
 </tr>

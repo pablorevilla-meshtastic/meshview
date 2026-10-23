@@ -652,14 +652,14 @@ document.addEventListener("DOMContentLoaded", async function() {
                 // DESKTOP TABLE ROW
                 const row = document.createElement("tr");
                 row.innerHTML = `
-                    <td>${node.short_name || "N/A"}</td>
-                    <td><a href="/node/${node.node_id}">${node.long_name || "N/A"}</a></td>
-                    <td>${node.hw_model || "N/A"}</td>
-                    <td>${node.firmware || "N/A"}</td>
-                    <td>${node.role || "N/A"}</td>
+                    <td>${escapeHtml(node.short_name || "N/A")}</td>
+                    <td><a href="/node/${node.node_id}">${escapeHtml(node.long_name || "N/A")}</a></td>
+                    <td>${escapeHtml(node.hw_model || "N/A")}</td>
+                    <td>${escapeHtml(node.firmware || "N/A")}</td>
+                    <td>${escapeHtml(node.role || "N/A")}</td>
                     <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
                     <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
-                    <td>${node.channel || "N/A"}</td>
+                    <td>${escapeHtml(node.channel || "N/A")}</td>
                     <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || "Yes") : (nodelistTranslations.no || "No")}</td>
                     <td>${timeAgoFromMs(node.last_seen_ms)}</td>
                     <td style="text-align:center;">
@@ -675,22 +675,22 @@ document.addEventListener("DOMContentLoaded", async function() {
                 card.className = "node-card";
                 card.innerHTML = `
                     <div class="node-card-header">
-                        <span>${node.short_name || node.long_name || node.node_id}</span>
+                        <span>${escapeHtml(node.short_name || node.long_name || node.node_id)}</span>
                         <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
                             ${star}
                         </span>
                     </div>
 
                     <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
-                    <div class="node-card-field"><b>Name:</b> ${node.long_name || "N/A"}</div>
-                    <div class="node-card-field"><b>HW:</b> ${node.hw_model || "N/A"}</div>
-                    <div class="node-card-field"><b>Firmware:</b> ${node.firmware || "N/A"}</div>
-                    <div class="node-card-field"><b>Role:</b> ${node.role || "N/A"}</div>
+                    <div class="node-card-field"><b>Name:</b> ${escapeHtml(node.long_name || "N/A")}</div>
+                    <div class="node-card-field"><b>HW:</b> ${escapeHtml(node.hw_model || "N/A")}</div>
+                    <div class="node-card-field"><b>Firmware:</b> ${escapeHtml(node.firmware || "N/A")}</div>
+                    <div class="node-card-field"><b>Role:</b> ${escapeHtml(node.role || "N/A")}</div>
                     <div class="node-card-field"><b>Location:</b>
                         ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : "N/A"},
                         ${node.last_long ? (node.last_long / 1e7).toFixed(5) : "N/A"}
                     </div>
-                    <div class="node-card-field"><b>Channel:</b> ${node.channel || "N/A"}</div>
+                    <div class="node-card-field"><b>Channel:</b> ${escapeHtml(node.channel || "N/A")}</div>
                     <div class="node-card-field"><b>Last Seen:</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
 
                     <a href="/node/${node.node_id}" style="color:#9fd4ff; text-decoration:underline; margin-top:5px; display:block;">

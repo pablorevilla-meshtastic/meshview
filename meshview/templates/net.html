@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block css %}
+<style>
 .timestamp { min-width: 10em; color: #ccc; }
 
 .chat-packet:nth-of-type(odd) { background-color: #3a3a3a; }
@@ -26,6 +27,7 @@
 #weekly-message { margin: 15px 0; font-weight: bold; color: #ffeb3b; }
 #total-count { margin-bottom: 10px; font-style: italic; color: #ccc; }
 #net-note { margin: 16px 0 0; font-size: 0.9rem; color: #aaa; }
+</style>
 {% endblock %}
 
 {% block body %}
