@@ -670,6 +670,8 @@ async def api_edges(request):
                 _, neighbor_info = decode_payload.decode(packet)
             except Exception:
                 continue
+            if neighbor_info is None:  # payload did not parse as NeighborInfo
+                continue
 
             for node in neighbor_info.neighbors:
                 edge = (node.node_id, packet.from_node_id)
@@ -744,7 +746,6 @@ async def api_config(request):
             "map_bottom_right_lat": get_float(site, "map_bottom_right_lat", 36.0),
             "map_bottom_right_lon": get_float(site, "map_bottom_right_lon", -121.0),
             "map_interval": get_int(site, "map_interval", 3),
-
             "map_channel_colors": {
                 channel: color.strip()
                 for channel, color in CONFIG.get("map_channel_colors", {}).items()
@@ -907,6 +908,13 @@ async def version_endpoint(request):
         return web.json_response({"error": "Failed to fetch version info"}, status=500)
 
 
+def finite_or_none(value):
+    """Map inf/nan to None. json.dumps writes them as Infinity/NaN, which browsers reject."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
+
+
 @routes.get("/api/packets_seen/{packet_id}")
 async def api_packets_seen(request):
     try:
@@ -932,7 +940,7 @@ async def api_packets_seen(request):
                     "hop_limit": row.hop_limit,
                     "hop_start": row.hop_start,
                     "channel": row.channel,
-                    "rx_snr": row.rx_snr,
+                    "rx_snr": finite_or_none(row.rx_snr),
                     "rx_rssi": row.rx_rssi,
                     "topic": row.topic,
                     "import_time_us": row.import_time_us,
