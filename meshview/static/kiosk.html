@@ -93,7 +93,7 @@ body { margin: 0; font-family: monospace; background: #121212; color: #eee; }
         nodes = data.nodes || [];
     } catch(err){ console.error('Failed to load nodes', err); }
 
-    const markers = {};
+    const markers = new Map();  // channel -> markers; Map, because channel names come from the mesh
     const markerById = {};      // Keyed by numeric node_id for packets
     const nodeMap = new Map();  // Keyed by numeric node_id
     const channels = new Set();
@@ -105,7 +105,7 @@ body { margin: 0; font-family: monospace; background: #121212; color: #eee; }
         if(isInvalidCoord(node)) return;
         const lat = node.last_lat/1e7;
         const lng = node.last_long/1e7;
-        const isRouter = node.role.toLowerCase().includes("router");
+        const isRouter = (node.role || "").toLowerCase().includes("router");  // role is null until a NODEINFO/MAP_REPORT arrives
 
         channels.add(node.channel);
         nodeMap.set(node.node_id,node);
@@ -129,8 +129,8 @@ body { margin: 0; font-family: monospace; background: #121212; color: #eee; }
             setTimeout(()=>marker.closePopup(),3000);
         });
 
-        if(!markers[node.channel]) markers[node.channel]=[];
-        markers[node.channel].push({marker,isRouter});
+        if(!markers.has(node.channel)) markers.set(node.channel, []);
+        markers.get(node.channel).push({marker,isRouter});
     });
 
     // --- Filters ---
