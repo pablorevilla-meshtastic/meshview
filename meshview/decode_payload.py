@@ -17,12 +17,25 @@ def text_message(payload):
     return payload.decode("utf-8")
 
 
+# The firmware keeps at most 8 hops in each direction (none of 66,709 real traceroutes in 17
+# days of bay-area traffic had more). A longer route can only be forged, and one with
+# thousands of hops makes every page that draws it slow, so treat it as undecodable.
+MAX_ROUTE_HOPS = 8
+
+
+def route_discovery(payload):
+    route = RouteDiscovery.FromString(payload)
+    if max(len(route.route), len(route.route_back)) > MAX_ROUTE_HOPS:
+        return None
+    return route
+
+
 DECODE_MAP = {
     PortNum.POSITION_APP: Position.FromString,
     PortNum.NEIGHBORINFO_APP: NeighborInfo.FromString,
     PortNum.NODEINFO_APP: User.FromString,
     PortNum.TELEMETRY_APP: Telemetry.FromString,
-    PortNum.TRACEROUTE_APP: RouteDiscovery.FromString,
+    PortNum.TRACEROUTE_APP: route_discovery,
     PortNum.ROUTING_APP: Routing.FromString,
     PortNum.TEXT_MESSAGE_APP: text_message,
     PortNum.MAP_REPORT_APP: MapReport.FromString,

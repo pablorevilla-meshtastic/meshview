@@ -141,12 +141,19 @@ async def has_packets(node_id, portnum):
         )
 
 
+# Every TRACEROUTE message stores a row under its packet id, so anyone who can publish can add
+# thousands. Real ones have a few dozen (one per gateway that heard it; the most seen in 17 days
+# of bay-area traffic was 72), so only the earliest rows are used.
+MAX_TRACEROUTE_ROWS = 200
+
+
 async def get_traceroute(packet_id):
     async with database.async_session() as session:
         result = await session.execute(
             select(Traceroute)
             .where(Traceroute.packet_id == packet_id)
             .order_by(Traceroute.import_time_us)
+            .limit(MAX_TRACEROUTE_ROWS)
         )
         return result.scalars()
 
