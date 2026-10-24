@@ -293,7 +293,7 @@ async def api_packets(request):
             try:
                 since = int(since_str)
             except ValueError:
-                logger.warning(f"Invalid 'since' value (expected microseconds): {since_str}")
+                logger.warning("Invalid 'since' value (expected microseconds): %r", since_str)
 
         # --- Parse portnum ---
         portnum = None
@@ -301,7 +301,7 @@ async def api_packets(request):
             try:
                 portnum = int(portnum_str)
             except ValueError:
-                logger.warning(f"Invalid portnum: {portnum_str}")
+                logger.warning("Invalid portnum: %r", portnum_str)
 
         # --- Parse node filters ---
         from_node_id = None
@@ -312,19 +312,19 @@ async def api_packets(request):
             try:
                 from_node_id = int(from_node_id_str, 0)
             except ValueError:
-                logger.warning(f"Invalid from_node_id: {from_node_id_str}")
+                logger.warning("Invalid from_node_id: %r", from_node_id_str)
 
         if to_node_id_str:
             try:
                 to_node_id = int(to_node_id_str, 0)
             except ValueError:
-                logger.warning(f"Invalid to_node_id: {to_node_id_str}")
+                logger.warning("Invalid to_node_id: %r", to_node_id_str)
 
         if node_id_str:
             try:
                 node_id = int(node_id_str, 0)
             except ValueError:
-                logger.warning(f"Invalid node_id: {node_id_str}")
+                logger.warning("Invalid node_id: %r", node_id_str)
 
         # --- Fetch packets using explicit filters ---
         contains_for_query = contains
@@ -744,7 +744,6 @@ async def api_config(request):
             "map_bottom_right_lat": get_float(site, "map_bottom_right_lat", 36.0),
             "map_bottom_right_lon": get_float(site, "map_bottom_right_lon", -121.0),
             "map_interval": get_int(site, "map_interval", 3),
-
             "map_channel_colors": {
                 channel: color.strip()
                 for channel, color in CONFIG.get("map_channel_colors", {}).items()
