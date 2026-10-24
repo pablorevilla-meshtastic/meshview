@@ -3,6 +3,7 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
+AZERBAIJANI: Language
 BULGARIAN: Language
 CZECH: Language
 DANISH: Language
@@ -17,6 +18,7 @@ FREEZE_HEADING: CompassMode
 FRENCH: Language
 GERMAN: Language
 GREEK: Language
+HUNGARIAN: Language
 ITALIAN: Language
 LIGHT: Theme
 NORWEGIAN: Language

@@ -1,4 +1,5 @@
 from meshtastic.protobuf import device_ui_pb2 as _device_ui_pb2
+from meshtastic.protobuf import field_metadata_pb2 as _field_metadata_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -173,8 +174,12 @@ class Config(_message.Message):
         IGNORE_MQTT_FIELD_NUMBER: _ClassVar[int]
         IN: Config.LoRaConfig.RegionCode
         ITU1_2M: Config.LoRaConfig.RegionCode
+        ITU1_70CM: Config.LoRaConfig.RegionCode
+        ITU2_125CM: Config.LoRaConfig.RegionCode
         ITU2_2M: Config.LoRaConfig.RegionCode
+        ITU2_70CM: Config.LoRaConfig.RegionCode
         ITU3_2M: Config.LoRaConfig.RegionCode
+        ITU3_70CM: Config.LoRaConfig.RegionCode
         JP: Config.LoRaConfig.RegionCode
         KR: Config.LoRaConfig.RegionCode
         KZ_433: Config.LoRaConfig.RegionCode
@@ -188,6 +193,7 @@ class Config(_message.Message):
         LORA_24: Config.LoRaConfig.RegionCode
         MEDIUM_FAST: Config.LoRaConfig.ModemPreset
         MEDIUM_SLOW: Config.LoRaConfig.ModemPreset
+        MEDIUM_TURBO: Config.LoRaConfig.ModemPreset
         MODEM_PRESET_FIELD_NUMBER: _ClassVar[int]
         MY_433: Config.LoRaConfig.RegionCode
         MY_919: Config.LoRaConfig.RegionCode
@@ -212,6 +218,8 @@ class Config(_message.Message):
         SPREAD_FACTOR_FIELD_NUMBER: _ClassVar[int]
         SX126X_RX_BOOSTED_GAIN_FIELD_NUMBER: _ClassVar[int]
         TH: Config.LoRaConfig.RegionCode
+        TINY_FAST: Config.LoRaConfig.ModemPreset
+        TINY_SLOW: Config.LoRaConfig.ModemPreset
         TW: Config.LoRaConfig.RegionCode
         TX_ENABLED_FIELD_NUMBER: _ClassVar[int]
         TX_POWER_FIELD_NUMBER: _ClassVar[int]
@@ -353,11 +361,17 @@ class Config(_message.Message):
         wait_bluetooth_secs: int
         def __init__(self, is_power_saving: bool = ..., on_battery_shutdown_after_secs: _Optional[int] = ..., adc_multiplier_override: _Optional[float] = ..., wait_bluetooth_secs: _Optional[int] = ..., sds_secs: _Optional[int] = ..., ls_secs: _Optional[int] = ..., min_wake_secs: _Optional[int] = ..., device_battery_ina_address: _Optional[int] = ..., powermon_enables: _Optional[int] = ...) -> None: ...
     class SecurityConfig(_message.Message):
-        __slots__ = ["admin_channel_enabled", "admin_key", "debug_log_api_enabled", "is_managed", "private_key", "public_key", "serial_enabled"]
+        __slots__ = ["admin_channel_enabled", "admin_key", "debug_log_api_enabled", "is_managed", "packet_signature_policy", "private_key", "public_key", "serial_enabled"]
+        class PacketSignaturePolicy(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+            __slots__ = []
         ADMIN_CHANNEL_ENABLED_FIELD_NUMBER: _ClassVar[int]
         ADMIN_KEY_FIELD_NUMBER: _ClassVar[int]
         DEBUG_LOG_API_ENABLED_FIELD_NUMBER: _ClassVar[int]
         IS_MANAGED_FIELD_NUMBER: _ClassVar[int]
+        PACKET_SIGNATURE_POLICY_BALANCED: Config.SecurityConfig.PacketSignaturePolicy
+        PACKET_SIGNATURE_POLICY_COMPATIBLE: Config.SecurityConfig.PacketSignaturePolicy
+        PACKET_SIGNATURE_POLICY_FIELD_NUMBER: _ClassVar[int]
+        PACKET_SIGNATURE_POLICY_STRICT: Config.SecurityConfig.PacketSignaturePolicy
         PRIVATE_KEY_FIELD_NUMBER: _ClassVar[int]
         PUBLIC_KEY_FIELD_NUMBER: _ClassVar[int]
         SERIAL_ENABLED_FIELD_NUMBER: _ClassVar[int]
@@ -365,10 +379,11 @@ class Config(_message.Message):
         admin_key: _containers.RepeatedScalarFieldContainer[bytes]
         debug_log_api_enabled: bool
         is_managed: bool
+        packet_signature_policy: Config.SecurityConfig.PacketSignaturePolicy
         private_key: bytes
         public_key: bytes
         serial_enabled: bool
-        def __init__(self, public_key: _Optional[bytes] = ..., private_key: _Optional[bytes] = ..., admin_key: _Optional[_Iterable[bytes]] = ..., is_managed: bool = ..., serial_enabled: bool = ..., debug_log_api_enabled: bool = ..., admin_channel_enabled: bool = ...) -> None: ...
+        def __init__(self, public_key: _Optional[bytes] = ..., private_key: _Optional[bytes] = ..., admin_key: _Optional[_Iterable[bytes]] = ..., is_managed: bool = ..., serial_enabled: bool = ..., debug_log_api_enabled: bool = ..., admin_channel_enabled: bool = ..., packet_signature_policy: _Optional[_Union[Config.SecurityConfig.PacketSignaturePolicy, str]] = ...) -> None: ...
     class SessionkeyConfig(_message.Message):
         __slots__ = []
         def __init__(self) -> None: ...

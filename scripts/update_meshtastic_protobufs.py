@@ -36,6 +36,8 @@ def stage_meshtastic_package(proto_root, tmp_path):
         text = text.replace('import "meshtastic/', 'import "meshtastic/protobuf/')
         text = text.replace('import "nanopb.proto"', 'import "meshtastic/protobuf/nanopb.proto"')
         text = text.replace("package meshtastic;", "package meshtastic.protobuf;")
+        # Custom options are qualified with the upstream package name too.
+        text = text.replace("(meshtastic.", "(meshtastic.protobuf.")
         (staged_proto_root / proto.name).write_text(text, encoding="utf-8")
 
     nanopb = tmp_path / "nanopb.proto"

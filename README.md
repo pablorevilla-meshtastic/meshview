@@ -6,6 +6,7 @@ The project serves as a real-time monitoring and diagnostic tool for the Meshtas
 
 ### Version 3.0.9 — October 2026
 
+- Protobufs: refreshed Meshtastic schemas and Python type stubs to upstream commit `569a2b3ae7b6bda1a7ab177463a55d8ede3bef53`; updated the refresh script to handle custom metadata options.
 - Live map: added animated packet traces from senders to reporting gateways and configurable channel colors through the optional `[map_channel_colors]` section in `config.ini`.
 - Daily snapshots: new snapshots report activity for the previous complete UTC day, including newly imported packets, unique packet senders observed that day, and gateways that reported packets that day. Existing historical snapshots keep their original counts.
 - Node tracking: record nodes from packet activity before their node information arrives, and preserve known positions when map reports have missing or invalid coordinates.

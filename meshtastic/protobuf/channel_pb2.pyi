@@ -21,7 +21,7 @@ class Channel(_message.Message):
     def __init__(self, index: _Optional[int] = ..., settings: _Optional[_Union[ChannelSettings, _Mapping]] = ..., role: _Optional[_Union[Channel.Role, str]] = ...) -> None: ...
 
 class ChannelSettings(_message.Message):
-    __slots__ = ["channel_num", "downlink_enabled", "id", "module_settings", "name", "psk", "uplink_enabled"]
+    __slots__ = ["channel_num", "downlink_enabled", "id", "module_settings", "name", "psk", "uplink_enabled", "use_aead"]
     CHANNEL_NUM_FIELD_NUMBER: _ClassVar[int]
     DOWNLINK_ENABLED_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
@@ -29,6 +29,7 @@ class ChannelSettings(_message.Message):
     NAME_FIELD_NUMBER: _ClassVar[int]
     PSK_FIELD_NUMBER: _ClassVar[int]
     UPLINK_ENABLED_FIELD_NUMBER: _ClassVar[int]
+    USE_AEAD_FIELD_NUMBER: _ClassVar[int]
     channel_num: int
     downlink_enabled: bool
     id: int
@@ -36,7 +37,8 @@ class ChannelSettings(_message.Message):
     name: str
     psk: bytes
     uplink_enabled: bool
-    def __init__(self, channel_num: _Optional[int] = ..., psk: _Optional[bytes] = ..., name: _Optional[str] = ..., id: _Optional[int] = ..., uplink_enabled: bool = ..., downlink_enabled: bool = ..., module_settings: _Optional[_Union[ModuleSettings, _Mapping]] = ...) -> None: ...
+    use_aead: bool
+    def __init__(self, channel_num: _Optional[int] = ..., psk: _Optional[bytes] = ..., name: _Optional[str] = ..., id: _Optional[int] = ..., uplink_enabled: bool = ..., downlink_enabled: bool = ..., module_settings: _Optional[_Union[ModuleSettings, _Mapping]] = ..., use_aead: bool = ...) -> None: ...
 
 class ModuleSettings(_message.Message):
     __slots__ = ["is_muted", "position_precision"]
