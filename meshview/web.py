@@ -369,7 +369,10 @@ async def traceroute_page(request):
 # Keep !!
 @routes.get("/graph/traceroute/{packet_id}")
 async def graph_traceroute(request):
-    packet_id = int(request.match_info['packet_id'])
+    try:
+        packet_id = api.parse_db_int(request.match_info['packet_id'])
+    except ValueError:
+        raise web.HTTPBadRequest(text="packet_id must be an integer") from None
     traceroutes = list(await store.get_traceroute(packet_id))
 
     packet = await store.get_packet(packet_id)
