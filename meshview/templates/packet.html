@@ -278,7 +278,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ${
                     telemetryExtras.length
                     ? `<dt data-translate-lang="decoded_telemetry">${packetTranslations.decoded_telemetry || "Decoded Telemetry"}</dt>
-                       <dd><pre>${telemetryExtras.join("\n")}</pre></dd>`
+                       <dd><pre>${escapeHtml(telemetryExtras.join("\n"))}</pre></dd>`
                     : ""
                 }
 
