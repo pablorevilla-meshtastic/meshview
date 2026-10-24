@@ -347,7 +347,7 @@ async def load_database_from_mqtt(
                 await mqtt_store.process_envelope(topic, env)
             except Exception:
                 # One bad or unexpected message must not stop ingestion for everyone.
-                logger.exception("Failed to store a message from topic %s; skipping it", topic)
+                logger.exception("Failed to store a message from topic %r; skipping it", topic)
 
 
 # -------------------------
