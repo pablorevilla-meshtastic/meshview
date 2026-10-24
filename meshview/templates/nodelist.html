@@ -732,23 +732,16 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function exportToCSV() {
-        const rows = [];
-        const headerList = Array.from(headers).map(h =>
-            `"${h.innerText.replace(/▲|▼/g,'')}"`
-        );
-        rows.push(headerList.join(","));
-
-        const trs = tbody.querySelectorAll("tr");
-        trs.forEach(tr => {
-            const cells = Array.from(tr.children).map(td =>
-                `"${td.innerText.replace(/"/g,'""')}"`
-            );
-            rows.push(cells.join(","));
+        const rows = [Array.from(headers).map(h => h.innerText.replace(/▲|▼/g,''))];
+        tbody.querySelectorAll("tr").forEach(tr => {
+            rows.push(Array.from(tr.children).map(td => td.innerText));
         });
 
-        const csv = "data:text/csv;charset=utf-8,\uFEFF" + rows.join("\n");
+        // A Blob, not a data: URL: encodeURI() leaves "#" alone, which cut the file short at
+        // the first "#" in any cell (node names such as "Big Rock Ridge #1").
+        const blob = new Blob(["\uFEFF" + csvFromRows(rows)], { type: "text/csv;charset=utf-8" });
         const a = document.createElement("a");
-        a.href = encodeURI(csv);
+        a.href = URL.createObjectURL(blob);
         a.download = "nodelist.csv";
         a.click();
     }
