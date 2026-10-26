@@ -704,17 +704,21 @@ function renderNodesOnMap(){
         marker.nodeId = node.key;
         marker.originalColor = color;
         markerById[node.key] = marker;
+        {% if not dashboard %}
         marker.bindPopup(buildNodePopup(node), {
             autoPan: true,
             closeButton: true
         });
+        {% endif %}
 
         marker.on('click', e => {
             if(e.originalEvent){
                 L.DomEvent.stopPropagation(e.originalEvent);
             }
+            {% if not dashboard %}
             marker.setPopupContent(buildNodePopup(node));
             marker.openPopup();
+            {% endif %}
             onNodeClick(node);
         });
     });
