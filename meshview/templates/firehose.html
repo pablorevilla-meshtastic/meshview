@@ -1,103 +1,23 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-firehose-page{% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-.container {
-    margin: 0 auto;
-    padding: 10px;
-}
-#pause-button {
-    white-space: nowrap;
-    padding: 4px 10px;
-    font-size: 0.9rem;
-    border-radius: 6px;
-}
-.firehose-controls {
-    gap: 12px;
-}
-.firehose-filter {
-    min-width: 220px;
-}
-
-.port-tag {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #fff;
-}
-
-/* Packet table */
-.packet-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    color: #e4e9ee;
-}
-
-.packet-table th, .packet-table td {
-    border: 1px solid #3a3f44;
-    padding: 6px 10px;
-    text-align: left;
-}
-.packet-table th {
-    background-color: #1f2226;
-    font-weight: bold;
-}
-.packet-table tr:nth-of-type(odd) { background-color: #272b2f; }
-.packet-table tr:nth-of-type(even) { background-color: #212529; }
-
-/* Port tag */
-.port-tag {
-    display: inline-block;
-    padding: 1px 6px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #fff;
-}
-
-.to-mqtt { font-style: italic; color: #aaa; }
-
-/* Payload rows */
-.payload-row { display: none; background-color: #1b1e22; }
-.payload-cell {
-    padding: 8px 12px;
-    font-family: monospace;
-    white-space: pre-wrap;
-    color: #b0bec5;
-}
-.packet-table tr.expanded + .payload-row {
-    display: table-row;
-}
-
-/* Toggle arrow */
-.toggle-btn {
-    cursor: pointer;
-    color: #aaa;
-    margin-right: 6px;
-    font-weight: bold;
-}
-.toggle-btn:hover { color: #fff; }
-
-/* Inline link next to port tag */
-.inline-link {
-    margin-left: 6px;
-    font-weight: bold;
-    text-decoration: none;
-    color: #9fd4ff;
-}
-.inline-link:hover {
-    color: #c7e6ff;
-}
+.firehose-controls { justify-content:space-between; }
+.firehose-controls h2 { font-size:15px; font-weight:600; }
+.firehose-controls > div { flex-wrap:wrap; }
+.firehose-filter { width:190px; }
+@media(max-width:700px) { .firehose-controls > div { width:100%; } .firehose-filter { flex:1; width:120px; } }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="container">
+<header class="data-heading"><div><span class="mesh-eyebrow">NETWORK ACTIVITY</span><h1>Live packets</h1><p>Follow packet traffic across your mesh network.</p></div><a class="mesh-secondary-button" href="/map">View map ↗</a></header>
 
-    <form class="d-flex align-items-center justify-content-between mb-3 firehose-controls">
+    <form class="data-toolbar firehose-controls">
         <h2 class="mb-0" data-translate-lang="live_feed">📡 Live Feed</h2>
 
         <div class="d-flex align-items-center gap-2">
@@ -115,6 +35,7 @@
         </div>
     </form>
 
+    <div class="data-table-wrap" role="region" aria-label="Live packet table" tabindex="0">
     <table class="packet-table">
         <thead>
             <tr>
@@ -128,6 +49,7 @@
         </thead>
         <tbody id="packet_list"></tbody>
     </table>
+    </div>
 
 </div>
 
@@ -426,6 +348,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     pauseBtn.addEventListener("click", () => {
         updatesPaused = !updatesPaused;
+        pauseBtn.setAttribute("aria-pressed", String(updatesPaused));
 
         pauseBtn.textContent =
             updatesPaused

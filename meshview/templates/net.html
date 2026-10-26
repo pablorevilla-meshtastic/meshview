@@ -1,44 +1,32 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-net-page{% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-.timestamp { min-width: 10em; color: #ccc; }
-
-.chat-packet:nth-of-type(odd) { background-color: #3a3a3a; }
-.chat-packet {
-    border-bottom: 1px solid #555;
-    padding: 3px 6px;
-    border-radius: 6px;
-    margin: 0;
-}
-
-.chat-packet > [class^="col-"] {
-    padding-left: 10px !important;
-    padding-right: 10px !important;
-    padding-top: 1px !important;
-    padding-bottom: 1px !important;
-}
-
-.chat-packet:nth-of-type(even) { background-color: #333333; }
-
-.channel { font-style: italic; color: #bbb; }
-.channel a { font-style: normal; color: #999; }
-
-#weekly-message { margin: 15px 0; font-weight: bold; color: #ffeb3b; }
-#total-count { margin-bottom: 10px; font-style: italic; color: #ccc; }
-#net-note { margin: 16px 0 0; font-size: 0.9rem; color: #aaa; }
+#weekly-message { padding:18px 22px; background:var(--mesh-soft); border:1px solid var(--mesh-border); border-radius:9px; color:var(--mesh-primary-dark); font-size:14px; margin-bottom:18px; white-space:pre-wrap; overflow-wrap:anywhere; }
+#weekly-message:empty { display:none; }
+#total-count { padding:16px 20px; color:#64748b; background:white; border:1px solid var(--mesh-border); border-radius:9px 9px 0 0; font-size:13px; }
+#total-count-value { font-size:20px; font-weight:650; color:var(--mesh-primary); margin-left:8px; }
+#chat-log { padding:0; }
+#chat-container { border:1px solid var(--mesh-border); border-top:0; border-radius:0 0 9px 9px; background:white; overflow:hidden; }
+.chat-packet { display:grid; grid-template-columns:155px 130px 200px minmax(0,1fr); gap:16px; margin:0; padding:16px 20px; border-bottom:1px solid #edf1f6; font-size:13px; }
+.chat-packet:nth-child(even) { background:var(--mesh-stripe); }
+.chat-packet > span { width:auto; padding:0; min-width:0; overflow-wrap:anywhere; }
+.chat-packet .timestamp { color:#8190a5; font-size:11px; }
+.chat-packet .channel { color:#64748b; font-size:12px; }
+.chat-packet .nodename { font-weight:600; }
+.chat-packet a { text-decoration:none; }
+#net-note { color:#64748b; font-size:12px; margin-top:14px; }
+@media(max-width:900px) { .chat-packet { grid-template-columns:120px 100px minmax(0,1fr); } .chat-packet .message { grid-column:1 / -1; } }
+@media(max-width:500px) { .chat-packet { grid-template-columns:1fr 1fr; gap:8px; } .chat-packet .nodename { grid-column:1 / -1; } }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="container">
-    <!-- ⭐ NET TITLE WITH ICON ⭐ -->
-    <div class="container px-2">
-        <h2 style="color:white; margin:0 0 10px 0;">
-            <span class="icon">💬</span>
-            <span data-translate-lang="net_title"></span>
-        </h2>
-    </div>
+<header class="data-heading"><div><span class="mesh-eyebrow">COMMUNITY NET</span><h1><span data-translate-lang="net_title">Network check-in</span></h1><p>Weekly check-ins and reports from your mesh.</p></div><a class="mesh-secondary-button" href="/map">View map ↗</a></header>
 
     <!-- Weekly network message -->
     <div id="weekly-message"></div>
@@ -132,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const fromName =
             (packet.long_name || "").trim() ||
-            `${netTranslations.node_fallback} ${packet.from_node_id}`;
+            `${netTranslations.node_fallback || "Node"} ${packet.from_node_id}`;
 
         const div = document.createElement("div");
         div.className = "row chat-packet";
@@ -201,6 +189,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 `/api/packets?portnum=1&contains=${encodeURIComponent(tag)}&since=${sinceUs}&limit=1000`;
 
             const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const data = await resp.json();
 
             if (data?.packets?.length)
@@ -208,6 +197,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         } catch (err) {
             console.error("Initial fetch error:", err);
+            chatContainer.innerHTML = '<p class="data-empty">Unable to load check-ins. Reload to try again.</p>';
         }
     }
 
@@ -239,6 +229,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         await loadTranslations(cfg);
         await fetchInitialPackets(netTag);
+        if (!chatContainer.children.length) {
+            const empty = document.createElement("p");
+            empty.className = "data-empty";
+            empty.textContent = netTag ? "No check-ins received in the last six days." : "No network check-in tag configured.";
+            chatContainer.append(empty);
+        }
 
     } catch (err) {
         console.error("Initialization failed:", err);

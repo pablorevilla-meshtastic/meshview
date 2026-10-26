@@ -214,14 +214,14 @@ routes = web.RouteTableDef()
 
 
 @routes.get("/")
+@routes.get("/index")
+@routes.get("/index.html")
 async def index(request):
-    """
-    Redirect root URL '/' to the page specified in CONFIG['site']['starting'].
-    Defaults to '/map' if not set.
-    """
-    # Get the starting page from config
-    starting_url = CONFIG["site"].get("starting", "/map")  # default to /map if not set
-    raise web.HTTPFound(location=starting_url)
+    """Render the network dashboard as the home page."""
+    return web.Response(
+        text=env.get_template("index.html").render(),
+        content_type="text/html",
+    )
 
 
 # redirect for backwards compatibility
@@ -232,7 +232,6 @@ async def redirect_packet_list(request):
 
 
 # Generic static HTML route
-@routes.get("/{page}")
 async def serve_page(request):
     """Serve static HTML pages from meshview/static."""
     page = request.match_info["page"]
@@ -275,6 +274,7 @@ async def net(request):
 
 
 @routes.get("/map")
+@routes.get("/map.html")
 async def map(request):
     template = env.get_template("map.html")
     return web.Response(text=template.render(), content_type="text/html")
@@ -479,6 +479,10 @@ async def graph_traceroute(request):
         body=graph.create_svg(),
         content_type="image/svg+xml",
     )
+
+
+# Register the static-page fallback after named pages so it cannot shadow them.
+routes.get("/{page}")(serve_page)
 
 
 async def run_server():

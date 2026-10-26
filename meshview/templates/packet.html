@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-packet-page{% endblock %}
 
 {% block title %}Packet Details{% endblock %}
 
@@ -7,99 +9,30 @@
 {% endblock %}
 
 {% block css %}
-{{ super() }}
+{% include "data-page-styles.html" %}
 <style>
-
-/* --- Packet page container --- */
-.packet-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px 15px;
-    font-family: "JetBrains Mono", monospace;
-}
-
-/* --- Packet Details Card --- */
-.packet-card .card-body { padding: 26px 30px; }
-.packet-card {
-    background-color: #1e1f22;
-    border: 1px solid #3a3a3a;
-    border-radius: 12px;
-    color: #ddd;
-    margin-top: 35px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.35);
-    overflow: hidden;
-}
-
-.packet-card .card-header {
-    background: linear-gradient(90deg, #2c2f35, #25262a);
-    border-bottom: 1px solid #3f3f3f;
-    font-weight: 600;
-    font-size: 1.1em;
-    padding: 14px 18px;
-    color: #e2e6ea;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* --- Map --- */
-#map {
-    width: 100%;
-    height: 640px;
-    border-radius: 10px;
-    margin-top: 20px;
-    border: 1px solid #333;
-    display: none;
-}
-
-/* --- SOURCE MARKER --- */
-.source-marker {
-    width: 24px;
-    height: 24px;
-    background: rgba(255,0,0,0.55);
-    border: 3px solid #ff0000;
-    border-radius: 50%;
-    box-shadow: 0 0 6px rgba(255,0,0,0.7);
-}
-
-/* --- Seen Table --- */
-.seen-table {
-    border-collapse: separate;
-    border-spacing: 0 6px;
-    font-size: 0.92em;
-}
-.seen-table thead th {
-    background-color: #2a2b2f;
-    color: #e2e2e2;
-    padding: 10px 12px;
-    border: none !important;
-    text-transform: uppercase;
-    font-size: 0.75em;
-}
-.seen-table tbody td {
-    background: #323338;
-    color: #f0f0f0;
-    border-top: 1px solid #4a4c4f !important;
-    border-bottom: 1px solid #4a4c4f !important;
-    padding: 10px 12px !important;
-}
-.seen-table tbody tr:hover td { background-color: #3a3c41 !important; }
-.seen-table tbody tr td:first-child {
-    border-left: 1px solid #4a4c4f;
-    border-top-left-radius: 8px;
-    border-bottom-left-radius: 8px;
-}
-.seen-table tbody tr td:last-child {
-    border-right: 1px solid #4a4c4f;
-    border-top-right-radius: 8px;
-    border-bottom-right-radius: 8px;
-}
-
+.mesh-data-page .packet-container { max-width:1150px!important; margin:0 auto!important; }
+.packet-card { background:white; border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; color:#334155; }
+.packet-card .card-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background:var(--mesh-soft); padding:18px 22px; border-bottom:1px solid var(--mesh-border); color:var(--mesh-primary-dark); font-size:15px; font-weight:600; }
+.packet-card .card-header small { font-size:11px; font-weight:400; }
+.packet-card .card-body { padding:24px; }
+.packet-card dl { display:grid; grid-template-columns:180px minmax(0,1fr); gap:16px 24px; margin:0; font-size:13px; }
+.packet-card dt { color:#64748b; font-weight:500; }
+.packet-card dd { margin:0; overflow-wrap:anywhere; }
+.packet-card pre { padding:14px; background:var(--mesh-stripe); border:1px solid #e5ebf3; border-radius:6px; color:#334155; font-size:12px; white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
+#map { display:none; }
+.source-marker { width:24px; height:24px; background:#f4484866; border:3px solid #e33; border-radius:50%; box-shadow:0 0 6px #f007; }
+#seen-container { background:white; border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
+#seen-container h5 { padding:16px 20px; margin:0!important; color:#334155; font-size:15px; }
+.seen-table { margin:0; }
+#loading { color:#64748b; padding:24px; background:white; border:1px solid var(--mesh-border); border-radius:9px; }
+@media(max-width:700px) { .packet-card dl { grid-template-columns:minmax(0,1fr); gap:6px; } .packet-card dd { margin-bottom:14px; } .packet-card .card-body { padding:18px; } }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container mt-4 mb-5 packet-container">
+<div class="container packet-container">
+<header class="data-heading"><div><span class="mesh-eyebrow">PACKET INSPECTOR</span><h1>Packet details</h1><p>Inspect the payload, route, and gateways that received this packet.</p></div><a class="mesh-secondary-button" href="/firehose">Live packets ↗</a></header>
 
     <div id="loading" data-translate-lang="loading">Loading packet information...</div>
     <div id="packet-card" class="packet-card d-none"></div>
@@ -107,13 +40,13 @@
     <div id="map"></div>
 
     <div id="seen-container" class="mt-4 d-none">
-        <h5 style="color:#ccc; margin:15px 0 10px 0;">
+        <h5 >
             📡 <span data-translate-lang="seen_by">Seen By</span>
-            <span id="seen-count" style="color:#4da6ff;"></span>
+            <span id="seen-count" style="color:var(--mesh-primary);"></span>
         </h5>
 
         <div class="table-responsive">
-            <table class="table table-dark table-sm seen-table">
+            <table class="table table-sm seen-table">
                 <thead>
                     <tr>
                         <th data-translate-lang="gateway">Gateway</th>
@@ -510,10 +443,10 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
             <tr>
                 <td colspan="6"
                     style="
-                        background:#1f2327;
+                        background:var(--mesh-soft);
                         font-weight:700;
-                        color:#9ecbff;
-                        border-top:1px solid #444;
+                        color:var(--mesh-primary-dark);
+                        border-top:1px solid var(--mesh-border);
                         padding:8px 12px;
                     ">
                     🔁 ${hopLabel} (${hopGroups[hopKey].length})

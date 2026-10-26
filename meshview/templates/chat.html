@@ -1,304 +1,86 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
 
 {% block css %}
 <style>
-.timestamp {
-    min-width: 10em;
-    color: #ccc;
-}
-
-.chat-packet:nth-of-type(odd) { background-color: #3a3a3a; }
-.chat-packet {
-    border-bottom: 1px solid #555;
-    padding: 3px 6px;
-    border-radius: 6px;
-    margin: 0;
-}
-
-/* Same column spacing as before */
-.chat-packet > [class^="col-"] {
-    padding-left: 10px !important;
-    padding-right: 10px !important;
-    padding-top: 1px !important;
-    padding-bottom: 1px !important;
-}
-
-.chat-packet:nth-of-type(even) { background-color: #333333; }
-
-.channel {
-    font-style: italic;
-    color: #bbb;
-}
-.channel a {
-    font-style: normal;
-    color: #999;
-}
-
-@keyframes flash {
-    0% { background-color: #ffe066; }
-    100% { background-color: inherit; }
-}
-.chat-packet.flash { animation: flash 3.5s ease-out; }
-
-.replying-to {
-    font-size: 0.8em;
-    color: #aaa;
-    margin-top: 2px;
-    padding-left: 10px;
-}
-.replying-to .reply-preview { color: #aaa; }
-.chat-controls {
-    gap: 12px;
-    margin-bottom: 10px;
-}
-.chat-filter {
-    min-width: 220px;
+body:has(#chat-container) { height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+body:has(#chat-container) .mesh-header { flex-shrink:0; }
+body:has(#chat-container) .mesh-content { display:flex; flex:1; min-height:0; width:100%; max-width:none; padding:0; }
+body:has(#chat-container) .mesh-footer { display:none; }
+body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
+#chat-container { display:flex; flex-direction:column; flex:1; min-width:0; min-height:0; background:var(--mesh-stripe); }
+.chat-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:12px 24px; border-bottom:1px solid var(--mesh-border); background:white; flex-shrink:0; }
+.chat-heading { display:flex; align-items:center; gap:8px; margin:0 6px 0 0; font-size:15px; font-weight:650; }
+.chat-heading span:first-child { color:var(--mesh-primary); }
+.chat-channel-control { display:flex; align-items:center; gap:6px; color:#64748b; }
+.chat-filter { width:170px; font-size:12px; border-color:#dce3ed; }
+.chat-search { width:210px; font-size:12px; border-color:#dce3ed; }
+.chat-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
+.chat-status { border-radius:20px; padding:4px 9px; background:#e8f5ee; color:#187346; font-size:11px; white-space:nowrap; }
+.chat-status[data-state="error"] { background:#fff0ed; color:#b23d2f; }
+.chat-status[data-state="paused"],.chat-status[data-state="loading"] { background:#eef2f7; color:#64748b; }
+.chat-control { font-size:12px; background:white; border:1px solid #dce3ed; border-radius:5px; padding:5px 9px; color:#475569; }
+.chat-control:hover { background:var(--mesh-soft); }
+.chat-messages { flex:1; min-height:0; overflow-y:auto; overflow-anchor:none; padding:12px 0; font-family:ui-monospace,"SFMono-Regular",Consolas,monospace; font-size:13px; line-height:1.6; scrollbar-gutter:stable; }
+.chat-date-sep { display:flex; align-items:center; gap:14px; margin:12px 24px; color:#64748b; font:600 10px system-ui,sans-serif; letter-spacing:.7px; text-transform:uppercase; }
+.chat-date-sep::before,.chat-date-sep::after { content:""; flex:1; height:1px; background:var(--mesh-border); }
+.chat-line { display:grid; grid-template-columns:64px 165px minmax(0,1fr) auto; gap:12px; align-items:baseline; padding:5px 24px; }
+.chat-line:hover { background:var(--mesh-stripe); }
+.chat-time { color:#8190a5; font-size:11px; text-align:right; white-space:nowrap; }
+.chat-nick { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; font-size:12px; text-decoration:none; text-align:right; }
+.chat-nick:hover { text-decoration:underline; }
+.chat-message { min-width:0; color:#26364a; overflow-wrap:anywhere; white-space:pre-wrap; }
+.chat-meta { display:flex; align-items:center; gap:10px; font:11px system-ui,sans-serif; }
+.chat-channel { background:#edf1f7; color:#66758a; border-radius:4px; padding:2px 6px; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chat-details { display:inline-flex; align-items:center; padding:4px 8px; border:1px solid #9dceb0; border-radius:5px; background:#e8f5ee; color:#187346; font-weight:600; text-decoration:none; white-space:nowrap; }
+.chat-details:hover { color:#0f5132; background:#d1e7dd; border-color:#69aa85; }
+.chat-details:focus-visible { outline:2px solid #198754; outline-offset:2px; }
+.replying-to { display:block; border-left:2px solid var(--mesh-border); margin:4px 0; padding:2px 9px; color:#64748b; font-size:11px; white-space:normal; }
+.chat-empty { text-align:center; color:#64748b; padding:48px 20px; font:13px system-ui,sans-serif; }
+.chat-bottom { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 24px; border-top:1px solid var(--mesh-border); color:#64748b; background:white; font-size:11px; flex-shrink:0; }
+.chat-bottom p { margin:0; }
+.chat-line.flash { animation:chat-flash 2s ease-out; }
+@keyframes chat-flash { from { background:var(--mesh-hover); } to { background:transparent; } }
+@media(prefers-reduced-motion:reduce) { .chat-line.flash { animation:none; } }
+@media(max-width:700px) {
+    .chat-toolbar { padding:10px 14px; gap:8px; }
+    .chat-heading { width:100%; }
+    .chat-filter { width:140px; }
+    .chat-search { flex:1; width:120px; min-width:0; }
+    .chat-actions { width:100%; margin-left:0; }
+    #chat-count { margin-right:auto; }
+    .chat-line { grid-template-columns:50px minmax(0,1fr) auto; gap:2px 8px; padding:7px 14px; }
+    .chat-time { grid-column:1; grid-row:1; }
+    .chat-nick { grid-column:2; grid-row:1; text-align:left; }
+    .chat-meta { grid-column:3; grid-row:1; gap:5px; }
+    .chat-channel { max-width:85px; }
+    .chat-message { grid-column:2 / 4; grid-row:2; }
+    .chat-date-sep { margin:12px 14px; }
+    .chat-bottom { padding:8px 14px; }
 }
 </style>
 {% endblock %}
 
 {% block body %}
-<div id="chat-container" class="mt-3">
-
-    <!-- ⭐ CHAT TITLE WITH ICON, aligned to container ⭐ -->
-    <div class="container px-2">
-        <div class="d-flex align-items-center justify-content-between chat-controls">
-            <h2 style="color:white; margin:0;">
-                <span class="icon">💬</span>
-                <span data-translate="chat_title"></span>
-            </h2>
-
-            <div class="d-flex align-items-center gap-2">
-                <label for="channel-filter" class="mb-0" data-translate="channel">Channel</label>
-                <select id="channel-filter" class="form-select form-select-sm chat-filter">
-                    <option value="" data-translate="all_channels">All Channels</option>
-                </select>
-            </div>
+<section id="chat-container" aria-label="Mesh chat">
+    <div class="chat-toolbar">
+        <h1 class="chat-heading"><span aria-hidden="true">#</span> <span data-chat-translate="chat_title">Mesh chat</span></h1>
+        <div class="chat-channel-control">
+            <label for="channel-filter" class="visually-hidden" data-chat-translate="channel">Channel</label>
+            <span aria-hidden="true">#</span>
+            <select id="channel-filter" class="form-select form-select-sm chat-filter"><option value="" data-chat-translate="all_channels">All channels</option></select>
+        </div>
+        <label for="chat-search" class="visually-hidden">Search messages or nodes</label>
+        <input id="chat-search" class="form-control form-control-sm chat-search" type="search" placeholder="Search messages or nodes…" autocomplete="off">
+        <div class="chat-actions">
+            <span id="chat-count" class="text-secondary small">0 messages</span>
+            <span id="chat-status" class="chat-status" data-state="loading" role="status">Connecting…</span>
+            <button id="chat-pause" class="chat-control" type="button" aria-pressed="false">Pause</button>
+            <button id="chat-latest" class="chat-control" type="button">↓ Latest</button>
         </div>
     </div>
-
-    <div class="container" id="chat-log"></div>
-</div>
-
-<script>
-document.addEventListener("DOMContentLoaded", async () => {
-    const chatContainer = document.querySelector("#chat-log");
-    if (!chatContainer) return console.error("#chat-log not found");
-
-    let lastTime = null;
-    let selectedChannel = "";
-    const renderedPacketIds = new Set();
-    const packetMap = new Map();
-    let chatLang = {};
-
-    /* ==========================================================
-       TRANSLATIONS FOR CHAT PAGE
-       ========================================================== */
-    function applyTranslations(dict, root=document) {
-        root.querySelectorAll("[data-translate]").forEach(el => {
-            const key = el.dataset.translate;
-            const val = dict[key];
-            if (!val) return;
-            if (el.placeholder) el.placeholder = val;
-            else el.textContent = val;
-        });
-    }
-
-    async function loadChatLang() {
-        try {
-            const cfg = await window._siteConfigPromise;
-            const langCode = cfg?.site?.language || "en";
-            const res = await fetch(`/api/lang?lang=${langCode}&section=chat`);
-            chatLang = await res.json();
-
-            // Apply to existing DOM
-            applyTranslations(chatLang);
-        } catch (err) {
-            console.error("Chat translation load failed:", err);
-        }
-    }
-
-    async function loadChannels() {
-        try {
-            const res = await fetch("/api/channels");
-            if (!res.ok) return;
-
-            const data = await res.json();
-            const select = document.getElementById("channel-filter");
-            const channels = data.channels || [];
-
-            for (const channel of channels) {
-                const option = document.createElement("option");
-                option.value = channel;
-                option.textContent = channel;
-                select.appendChild(option);
-            }
-        } catch (err) {
-            console.error("Failed loading channels:", err);
-        }
-    }
-
-    /* ==========================================================
-       SAFE HTML
-       ========================================================== */
-    function escapeHtml(text) {
-        const div = document.createElement("div");
-        div.textContent = text ?? "";
-        return div.innerHTML;
-    }
-
-    /* ==========================================================
-       RENDERING PACKETS
-       ========================================================== */
-    function renderPacket(packet, highlight = false) {
-        if (renderedPacketIds.has(packet.id)) return;
-        renderedPacketIds.add(packet.id);
-        packetMap.set(packet.id, packet);
-
-        let date;
-        if (packet.import_time_us && packet.import_time_us > 0) {
-            date = new Date(packet.import_time_us / 1000);
-        } else if (packet.import_time) {
-            date = new Date(packet.import_time);
-        } else {
-            date = new Date();
-        }
-
-        const formattedTime = date.toLocaleTimeString([], {
-            hour:"numeric",
-            minute:"2-digit",
-            second:"2-digit",
-            hour12:true
-        });
-        const formattedDate =
-            `${(date.getMonth()+1).toString().padStart(2,"0")}/` +
-            `${date.getDate().toString().padStart(2,"0")}/` +
-            `${date.getFullYear()}`;
-
-        const formattedTimestamp = `${formattedTime} - ${formattedDate}`;
-
-        let replyHtml = "";
-        if (packet.reply_id) {
-            const parent = packetMap.get(packet.reply_id);
-            const replyPrefix = `<i data-translate="replying_to"></i>`;
-            if (parent) {
-                replyHtml = `
-                    <div class="replying-to">
-                        ${replyPrefix}
-                        <strong>${escapeHtml((parent.long_name || "").trim() || `Node ${parent.from_node_id}`)}</strong>:
-                        ${escapeHtml(parent.payload || "")}
-                    </div>`;
-            } else {
-                replyHtml = `
-                    <div class="replying-to">
-                        ${replyPrefix}
-                        <a href="/packet/${packet.reply_id}">${packet.reply_id}</a>
-                    </div>`;
-            }
-        }
-
-        const div = document.createElement("div");
-        div.className = "row chat-packet" + (highlight ? " flash" : "");
-        div.dataset.packetId = packet.id;
-
-        div.innerHTML = `
-            <span class="col-2 timestamp" title="${packet.import_time_us}">
-                ${formattedTimestamp}
-            </span>
-
-            <span class="col-2 channel">
-                <a href="/packet/${packet.id}" title="${chatLang.view_packet_details || 'View details'}">🔎</a>
-                ${escapeHtml(packet.channel || "")}
-            </span>
-
-            <span class="col-3 nodename">
-                <a href="/node/${packet.from_node_id}">
-                    ${escapeHtml((packet.long_name || "").trim() || `Node ${packet.from_node_id}`)}
-                </a>
-            </span>
-
-            <span class="col-5 message">
-                ${escapeHtml(packet.payload)}${replyHtml}
-            </span>
-        `;
-
-        chatContainer.prepend(div);
-
-        // Translate newly added DOM
-        applyTranslations(chatLang, div);
-
-        if (highlight) setTimeout(() => div.classList.remove("flash"), 2500);
-    }
-
-    function matchesSelectedChannel(packet) {
-        if (!selectedChannel) return true;
-        return (packet.channel || "").toLowerCase() === selectedChannel.toLowerCase();
-    }
-
-    function resetChat() {
-        lastTime = null;
-        renderedPacketIds.clear();
-        packetMap.clear();
-        chatContainer.innerHTML = "";
-    }
-
-    function renderPacketsEnsureDescending(packets, highlight=false) {
-        if (!Array.isArray(packets) || packets.length===0) return;
-        const sortedDesc = packets.slice().sort((a,b)=>{
-            const aTime = a.import_time_us || (new Date(a.import_time).getTime() * 1000);
-            const bTime = b.import_time_us || (new Date(b.import_time).getTime() * 1000);
-            return bTime - aTime;
-        });
-        for (let i=sortedDesc.length-1; i>=0; i--) {
-            if (!matchesSelectedChannel(sortedDesc[i])) continue;
-            renderPacket(sortedDesc[i], highlight);
-        }
-    }
-
-    /* ==========================================================
-       FETCHING PACKETS
-       ========================================================== */
-    async function fetchInitial() {
-        try {
-            const resp = await fetch("/api/packets?portnum=1&limit=100");
-            const data = await resp.json();
-            if (data?.packets?.length) renderPacketsEnsureDescending(data.packets);
-            lastTime = data?.latest_import_time || lastTime;
-        } catch(err){
-            console.error("Initial fetch error:", err);
-        }
-    }
-
-    async function fetchUpdates() {
-        try {
-            const url = new URL("/api/packets?portnum=1", window.location.origin);
-            url.searchParams.set("limit","100");
-            if (lastTime) url.searchParams.set("since", lastTime);
-            const resp = await fetch(url);
-            const data = await resp.json();
-            if (data?.packets?.length) renderPacketsEnsureDescending(data.packets, true);
-            lastTime = data?.latest_import_time || lastTime;
-        } catch(err){
-            console.error("Fetch updates error:", err);
-        }
-    }
-
-    /* ==========================================================
-       INIT
-       ========================================================== */
-    await loadChatLang();     // load translations FIRST
-    await loadChannels();
-
-    document.getElementById("channel-filter").addEventListener("change", async (e) => {
-        selectedChannel = e.target.value;
-        resetChat();
-        await fetchInitial();
-    });
-
-    await fetchInitial();     // then fetch initial packets
-
-    setInterval(fetchUpdates, 5000);
-});
-</script>
-
+    <div id="chat-log" class="chat-messages" role="region" aria-label="Messages, oldest to newest" tabindex="0"><p class="chat-empty">Loading messages…</p></div>
+    <div class="chat-bottom"><p>Received text messages · updates every 5 seconds</p><span id="chat-updated" role="status"></span></div>
+</section>
+<script src="/static/chat-dashboard.js"></script>
 {% endblock %}

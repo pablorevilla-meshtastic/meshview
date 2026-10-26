@@ -1,226 +1,35 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-nodelist-page{% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-    html, body {
-    overflow-x: auto !important;
-}
-
-table {
-    /* FIX: allow table to keep natural width so scrolling works */
-    width: max-content;
-    min-width: 100%;
-    border-collapse: collapse;
-    margin: 1em auto;
-}
-
-/* Desktop scroll wrapper */
-#node-list {
-    width: 100%;
-    overflow-x: auto;     /* allows horizontal scroll */
-    overflow-y: hidden;
-    /* !!! removed display:flex because it prevents scrolling */
-}
-
-#node-list table {
-    width: max-content;   /* table keeps its natural width */
-    min-width: 100%;      /* won't shrink smaller than viewport */
-}
-th, td {
-    padding: 10px;
-    border: 1px solid #333;
-    text-align: left;
-}
-
-th {
-    background-color: #1f1f1f;
-    color: white;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    cursor: pointer;
-}
-
-.sort-icon {
-    font-size: 0.7em;
-    margin-left: 4px;
-}
-
-tr:nth-child(even) {
-    background-color: #181818;
-}
-
-tr:nth-child(odd) {
-    background-color: #222;
-}
-
-tr:hover {
-    background-color: #2a2a2a;
-}
-
-.filter-container {
-    width: 80%;
-    margin: 1em auto;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-select, .export-btn, .search-box, .clear-btn {
-    padding: 6px;
-    border-radius: 4px;
-    border: 1px solid #333;
-    cursor: pointer;
-}
-
-.search-box {
-    flex: 1;
-}
-
-.export-btn {
-    background-color: #28a745;
-    color: white;
-    border: none;
-}
-
-.export-btn:hover {
-    background-color: #218838;
-}
-
-.clear-btn {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-}
-
-.clear-btn:hover {
-    background-color: #c82333;
-}
-
-.count-container {
-    width: 80%;
-    margin: 0 auto 10px;
-    font-weight: bold;
-    color: white;
-}
-.node-list-note {
-    width: 80%;
-    margin: -4px auto 10px;
-    color: rgba(255, 255, 255, 0.68);
-    font-size: 0.9em;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.node-list-note select {
-    padding: 3px 6px;
-    min-width: 70px;
-}
-.node-status {
-    margin-left: 10px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    border: 1px solid #2a6a8a;
-    background: #0d2a3a;
-    color: #9fd4ff;
-    font-size: 0.9em;
-    display: inline-block;
-    opacity: 0;
-    transition: opacity 0.15s ease-in-out;
-}
-.node-status.active {
-    opacity: 1;
-}
-
-/* Favorite stars */
-.favorite-star {
-    cursor: pointer;
-    font-size: 1.2em;
-    user-select: none;
-    transition: color 0.2s;
-}
-
-.favorite-star:hover {
-    transform: scale(1.2);
-}
-
-.favorite-star.active {
-    color: #ffd700;
-}
-
-/* Favorite filter button */
-.favorites-btn {
-    background-color: #ffd700;
-    color: #000;
-    border: none;
-}
-
-.favorites-btn:hover {
-    background-color: #ffed4e;
-}
-
-.favorites-btn.active {
-    background-color: #ff6b6b;
-    color: white;
-}
-
-/* --------------------------------------------- */
-/* MOBILE CARD VIEW */
-/* --------------------------------------------- */
-@media (max-width: 768px) {
-
-    /* Hide desktop view */
-    #node-list table {
-        display: none;
-    }
-
-    /* Show mobile cards */
-    #mobile-node-list {
-        display: block !important;
-        width: 100%;
-        padding: 0 10px;
-
-        /* If you want horizontal swiping, uncomment:
-        overflow-x: auto;
-        white-space: nowrap; */
-    }
-
-    .node-card {
-        background: #1e1e1e;
-        border: 1px solid #333;
-        border-radius: 8px;
-        padding: 12px 15px;
-        margin-bottom: 12px;
-        color: white;
-    }
-
-    .node-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 1.2em;
-        font-weight: bold;
-        margin-bottom: 8px;
-    }
-
-    .node-card-field {
-        margin: 4px 0;
-        font-size: 0.9em;
-    }
-
-    .node-card-field b {
-        color: #9fd4ff;
-    }
-
-    .favorite-star {
-        font-size: 1.4em;
-    }
-}
+#node-list { width:100%; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:white; }
+#node-list table { min-width:1150px; }
+#node-list th { cursor:pointer; }
+.filter-container { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px; padding:16px; background:white; border:1px solid var(--mesh-border); border-radius:9px; }
+.search-box { flex:1 1 220px; }
+.count-container { font-size:13px; color:#64748b; margin-bottom:10px; }
+#node-count { color:var(--mesh-primary); font-weight:700; }
+.node-list-note { display:flex; align-items:center; gap:8px; color:#64748b; font-size:12px; margin-bottom:18px; flex-wrap:wrap; }
+.node-status { opacity:0; padding:3px 8px; border-radius:20px; background:var(--mesh-soft); color:var(--mesh-primary); margin-left:10px; font-size:11px; }
+.node-status.active { opacity:1; }
+.favorite-star { cursor:pointer; font-size:20px; color:#8b98aa; user-select:none; }
+.favorite-star.active { color:#ad7800; }
+.mesh-data-page .favorites-btn.active { background:#fff3d6; border-color:#eacb80; color:#8b6200; }
+.sort-icon { font-size:10px; }
+#mobile-node-list { display:none; }
+.node-card { background:white; border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:12px; font-size:13px; overflow-wrap:anywhere; }
+.node-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:16px; font-weight:600; }
+.node-card-field { padding:3px 0; }
+.node-card-field b { color:#64748b; font-weight:500; }
+@media(max-width:768px) { #node-list { display:none; } #mobile-node-list { display:block!important; } .filter-container { padding:12px; gap:8px; } .filter-container select { flex:1 1 130px; } }
 </style>
 {% endblock %}
 
 {% block body %}
+<header class="data-heading"><div><span class="mesh-eyebrow">NODE DIRECTORY</span><h1>Network nodes</h1><p>Find devices, inspect their activity, and manage your favorites.</p></div><a class="mesh-secondary-button" href="/map">View map ↗</a></header>
 <div class="filter-container">
 
     <input
@@ -231,19 +40,19 @@ select, .export-btn, .search-box, .clear-btn {
         placeholder="Search by name or ID or HEX ID..."
     />
 
-    <select id="role-filter">
+    <select id="role-filter" aria-label="Filter by role">
         <option value="" data-translate-lang="all_roles">All Roles</option>
     </select>
 
-    <select id="channel-filter">
+    <select id="channel-filter" aria-label="Filter by channel">
         <option value="" data-translate-lang="all_channels">All Channels</option>
     </select>
 
-    <select id="hw-filter">
+    <select id="hw-filter" aria-label="Filter by hardware">
         <option value="" data-translate-lang="all_hw">All HW Models</option>
     </select>
 
-    <select id="firmware-filter">
+    <select id="firmware-filter" aria-label="Filter by firmware">
         <option value="" data-translate-lang="all_firmware">All Firmware</option>
     </select>
 
@@ -296,7 +105,7 @@ select, .export-btn, .search-box, .clear-btn {
         </thead>
         <tbody id="node-table-body">
             <tr>
-                <td colspan="11" style="text-align:center; color:white;" data-translate-lang="loading_nodes">
+                <td colspan="11" style="text-align:center; color:#64748b;" data-translate-lang="loading_nodes">
                     Loading nodes...
                 </td>
             </tr>
@@ -630,12 +439,12 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (!nodes.length) {
             if (shouldRenderTable) {
                 tbody.innerHTML = `<tr>
-                    <td colspan="11" style="text-align:center; color:white;">
+                    <td colspan="11" style="text-align:center; color:#64748b;">
                         ${nodelistTranslations.no_nodes_found || "No nodes found"}
                     </td>
                 </tr>`;
             } else {
-                mobileList.innerHTML = `<div style="text-align:center; color:white;">
+                mobileList.innerHTML = `<div style="text-align:center; color:#64748b;">
                     ${nodelistTranslations.no_nodes_found || "No nodes found"}
                 </div>`;
             }
@@ -693,7 +502,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                     <div class="node-card-field"><b>Channel:</b> ${escapeHtml(node.channel || "N/A")}</div>
                     <div class="node-card-field"><b>Last Seen:</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
 
-                    <a href="/node/${node.node_id}" style="color:#9fd4ff; text-decoration:underline; margin-top:5px; display:block;">
+                    <a href="/node/${node.node_id}" style="color:var(--mesh-primary); text-decoration:none; margin-top:10px; display:block;">
                         View Node →
                     </a>
                 `;

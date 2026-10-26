@@ -1,273 +1,464 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Meshview API Documentation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meshview API Reference</title>
+<link rel="icon" type="image/svg+xml" href="/static/meshview-icon.svg">
 <style>
-    body {
-        background: #121212;
-        color: #eee;
-        font-family: monospace;
-        margin: 20px;
-        line-height: 1.5;
-    }
-    h1, h2, h3 { color: #79c0ff; }
-    code {
-        background: #1e1e1e;
-        padding: 3px 6px;
-        border-radius: 4px;
-        color: #ffd479;
-        font-size: 0.95rem;
-    }
-    .endpoint {
-        border: 1px solid #333;
-        padding: 12px;
-        margin-bottom: 18px;
-        border-radius: 8px;
-        background: #1a1a1a;
-    }
-    .method {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 4px;
-        margin-right: 6px;
-        font-weight: bold;
-    }
-    .get { background: #0066cc; }
-    .path { font-weight: bold; color: #fff; }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 8px;
-    }
-    th, td {
-        border: 1px solid #444;
-        padding: 6px 10px;
-    }
-    th {
-        background: #222;
-        color: #9ddcff;
-    }
-    .example {
-        margin-top: 10px;
-        padding: 10px;
-        background: #161616;
-        border-radius: 6px;
-        border: 1px solid #333;
-    }
+:root { color-scheme:light; --primary:#187346; --border:#dce7df; }
+* { box-sizing:border-box; }
+html { scroll-padding-top:80px; }
+body { margin:0; background:#f5f9f6; color:#243247; font:14px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif; }
+a { color:var(--primary); }
+a:hover { color:#0f5132; }
+header { background:var(--primary); color:white; position:sticky; top:0; z-index:2; box-shadow:0 2px 8px #174b2d18; }
+.header-inner { max-width:1180px; margin:auto; min-height:56px; display:flex; align-items:center; gap:12px; padding:8px 24px; }
+header img { width:32px; height:32px; }
+header a { color:white; text-decoration:none; }
+header a:hover { color:white; text-decoration:underline; }
+.brand { font-size:18px; font-weight:700; display:flex; align-items:center; gap:10px; }
+.home-link { margin-left:auto; font-size:13px; }
+main { max-width:1180px; margin:auto; padding:28px 24px 60px; min-width:0; }
+h1 { font-size:28px; margin:0 0 16px; } h2 { font-size:21px; margin:32px 0 14px; } h3 { font-size:17px; margin:0 0 16px; }
+p,li { overflow-wrap:anywhere; }
+code { font:12px/1.7 ui-monospace,Consolas,monospace; color:#155c39; background:#eaf5ee; border-radius:4px; padding:2px 5px; overflow-wrap:anywhere; }
+pre { background:#f7faf8; border:1px solid var(--border); border-radius:7px; padding:16px; overflow:auto; }
+pre code { background:none; padding:0; white-space:pre; color:#334155; }
+h3 code { font-size:15px; }
+.endpoint { background:white; border:1px solid var(--border); border-radius:9px; padding:24px; margin-bottom:22px; scroll-margin-top:12px; min-width:0; }
+.method { display:inline-block; background:var(--primary); color:white; font-size:11px; padding:3px 8px; border-radius:5px; margin-right:5px; }
+hr { border:0; border-top:1px solid var(--border); margin:24px 0; }
+.api-index { background:white; border:1px solid var(--border); border-radius:9px; padding:16px 20px; margin-bottom:24px; }
+.api-index summary { color:var(--primary); font-weight:600; cursor:pointer; }
+.api-index ul { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 24px; padding-left:20px; }
+.api-index a { font:12px ui-monospace,monospace; }
+:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center; color:#64748b; font-size:12px; }
+@media(max-width:700px) { main { padding:20px 14px 40px; } .header-inner { padding:8px 14px; } h1 { font-size:24px; } h2 { font-size:19px; } h3 code { font-size:12px; } .endpoint { padding:16px; } .api-index ul { grid-template-columns:minmax(0,1fr); } }
 </style>
 </head>
-
 <body>
-
-<h1>Meshview API Documentation</h1>
-<p>This page describes all REST endpoints provided by Meshview.</p>
-
-
-<!------------------------------ NODES ------------------------------>
-<h2>/api/nodes</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/nodes</span>
-    <p>Returns a list of mesh nodes.</p>
-
-    <h3>Query Parameters</h3>
-    <table>
-        <tr><th>Parameter</th><th>Description</th></tr>
-        <tr><td>role</td><td>Filter by node role</td></tr>
-        <tr><td>channel</td><td>Filter by channel</td></tr>
-        <tr><td>hw_model</td><td>Hardware model filter</td></tr>
-        <tr><td>days_active</td><td>Only nodes seen within X days</td></tr>
-    </table>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/nodes?days_active=3</code>
-    </div>
-</div>
-
-
-<!------------------------------ PACKETS ------------------------------>
-<h2>/api/packets</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/packets</span>
-    <p>Fetch packets with many filters. Returns decoded packet data.</p>
-
-    <h3>Query Parameters</h3>
-    <table>
-        <tr><th>Parameter</th><th>Description</th></tr>
-        <tr><td>packet_id</td><td>Return exactly one packet</td></tr>
-        <tr><td>limit</td><td>Max number of results (1–100)</td></tr>
-        <tr><td>since</td><td>Only packets newer than import_time_us</td></tr>
-        <tr><td>from_node_id</td><td>Filter by sender node</td></tr>
-        <tr><td>to_node_id</td><td>Filter by destination node</td></tr>
-        <tr><td>node_id</td><td>Legacy: match either from or to</td></tr>
-        <tr><td>portnum</td><td>Filter by port number</td></tr>
-        <tr><td>contains</td><td>Substring filter for payload</td></tr>
-    </table>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/packets?from_node_id=123&limit=100</code>
-    </div>
-</div>
-
-
-<!------------------------------ PACKETS SEEN ------------------------------>
-<h2>/api/packets_seen/{packet_id}</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/packets_seen/&lt;packet_id&gt;</span>
-    <p>Returns list of gateways that heard the packet (RSSI/SNR/hops).</p>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/packets_seen/3314808102</code>
-    </div>
-</div>
-
-
-<!------------------------------ STATS ------------------------------>
-<h2>/api/stats</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/stats</span>
-    <p>Returns aggregated packet statistics for a node or globally.</p>
-
-    <h3>Query Parameters</h3>
-    <table>
-        <tr><th>Parameter</th><th>Description</th></tr>
-        <tr><td>period_type</td><td>"hour" or "day"</td></tr>
-        <tr><td>length</td><td>How many hours/days</td></tr>
-        <tr><td>node</td><td>Node ID for combined sent+seen stats</td></tr>
-        <tr><td>from_node</td><td>Filter by sender</td></tr>
-        <tr><td>to_node</td><td>Filter by receiver</td></tr>
-        <tr><td>portnum</td><td>Filter by port</td></tr>
-        <tr><td>channel</td><td>Filter by channel</td></tr>
-    </table>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/stats?node=1128180332&period_type=day&length=1</code>
-    </div>
-</div>
-
-
-<!------------------------------ STATS COUNT ------------------------------>
-<h2>/api/stats/count</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/stats/count</span>
-    <p>
-        Returns <b>total packets</b> and <b>total packet_seen entries</b>.
-        When no filters are provided, it returns global totals.
-        When filters are specified, they narrow the time, channel,
-        direction, or specific packet.
-    </p>
-
-    <h3>Query Parameters</h3>
-    <table>
-        <tr><th>Parameter</th><th>Description</th></tr>
-        <tr><td>period_type</td><td>"hour" or "day"</td></tr>
-        <tr><td>length</td><td>Number of hours or days (depends on period_type)</td></tr>
-        <tr><td>channel</td><td>Filter by channel</td></tr>
-        <tr><td>from_node</td><td>Only packets sent by this node</td></tr>
-        <tr><td>to_node</td><td>Only packets received by this node</td></tr>
-        <tr><td>packet_id</td><td>Filter seen counts for specific packet_id</td></tr>
-    </table>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/stats/count?from_node=1128180332&period_type=day&length=1</code>
-    </div>
-</div>
-
-
-
-<!------------------------------ EDGES ------------------------------>
-<h2>/api/edges</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/edges</span>
-    <p>Returns traceroute and/or neighbor edges for graph rendering.</p>
-
-    <h3>Query Parameters</h3>
-    <table>
-        <tr><th>Parameter</th><th>Description</th></tr>
-        <tr><td>type</td><td>"traceroute", "neighbor", or omitted for both</td></tr>
-    </table>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/edges?type=neighbor</code>
-    </div>
-</div>
-
-
-<!------------------------------ CONFIG ------------------------------>
-<h2>/api/config</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/config</span>
-    <p>Returns Meshview configuration (site, MQTT, cleanup, etc.).</p>
-
-    <div class="example">
-        <code>/api/config</code>
-    </div>
-</div>
-
-
-<!------------------------------ LANG ------------------------------>
-<h2>/api/lang</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/lang</span>
-    <p>Returns translated text for the UI.</p>
-
-    <h3>Parameters</h3>
-    <table>
-        <tr><th>lang</th><td>Language code (e.g. "en")</td></tr>
-        <tr><th>section</th><td>Optional UI section (firehose, map, top...)</td></tr>
-    </table>
-
-    <div class="example">
-        <code>/api/lang?lang=en&section=firehose</code>
-    </div>
-</div>
-
-
-<!------------------------------ HEALTH ------------------------------>
-<h2>/health</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/health</span>
-    <p>Returns API + database status.</p>
-</div>
-
-
-<!------------------------------ VERSION ------------------------------>
-<h2>/version</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/version</span>
-    <p>Returns Meshview version and Git revision.</p>
-</div>
-
-
-<br><br>
+<header><div class="header-inner"><a class="brand" href="/"><img src="/static/meshview-icon.svg" alt="" width="32" height="32">Meshview</a><span>API reference</span><a class="home-link" href="/">Home ↗</a></div></header>
+<main>
+<details class="api-index"><summary>Browse all 16 endpoints</summary><nav aria-label="API endpoints"><ul><li><a href="#get-api-nodes">GET /api/nodes</a></li><li><a href="#get-api-packets">GET /api/packets</a></li><li><a href="#get-api-channels">GET /api/channels</a></li><li><a href="#get-api-stats">GET /api/stats</a></li><li><a href="#get-api-stats-count">GET /api/stats/count</a></li><li><a href="#get-api-stats-top">GET /api/stats/top</a></li><li><a href="#get-api-edges">GET /api/edges</a></li><li><a href="#get-api-snapshots-daily">GET /api/snapshots/daily</a></li><li><a href="#get-api-config">GET /api/config</a></li><li><a href="#get-api-lang">GET /api/lang</a></li><li><a href="#get-api-packets-seen-packet-id">GET /api/packets_seen/{packet_id}</a></li><li><a href="#get-api-traceroute-packet-id">GET /api/traceroute/{packet_id}</a></li><li><a href="#get-health">GET /health</a></li><li><a href="#get-version">GET /version</a></li><li><a href="#get-api-node-node-id-qr">GET /api/node/{node_id}/qr</a></li><li><a href="#get-api-coverage-node-id">GET /api/coverage/{node_id}</a></li></ul></nav></details>
+<h1 id="api-documentation">API Documentation</h1>
+<p>Base URL: <code>http(s)://&lt;host&gt;</code></p>
+<p>This reference covers all 16 GET routes registered in <code>meshview/web_api/api.py</code>, including <code>/health</code> and <code>/version</code>. The browser version is served at <code>/api.html</code>. Responses below are illustrative examples; actual values depend on stored data. Regenerate the browser reference after editing this file with <code>node scripts/build-api-docs.mjs</code>.</p>
+<h2 id="conventions">Conventions</h2>
+<ul><li>Successful API responses are JSON. Explicit validation errors usually return JSON with an <code>error</code> field. Some unhandled errors return HTTP 500 with a plain-text body; check HTTP status and Content-Type before parsing an error response.</li><li>All routes are read-only. The application does not require an API token; a reverse proxy may impose authentication. There are no application-level write endpoints.</li><li><code>*_us</code> timestamps and <code>since</code> use microseconds since the Unix epoch. Snapshot dates and statistics buckets use UTC. Node latitude/longitude integers must be divided by 10,000,000 to obtain degrees; coverage coordinates are already degrees.</li><li>Packet <code>id</code> and <code>storage_id</code> are database row IDs. Use these for the <code>packet_id</code> query/path parameters on packet, observation, count, and traceroute endpoints. A response field named <code>packet_id</code> on a packet object is instead its over-the-air Meshtastic ID. <code>reply_id</code>, when present, is also an over-the-air ID. These ID types are not interchangeable. Node IDs are numeric Meshtastic node numbers; the node object&#39;s <code>id</code> is a separate string identifier.</li><li>Use decimal node IDs throughout. The packet sender/recipient filters and the QR and coverage paths also accept Python-style <code>0x</code> hexadecimal numbers. This is not supported consistently by the other routes.</li><li>Public broadcast text is readable. Direct text messages on port 1 are returned as <code>&lt;redacted&gt;</code>. Request chat with <code>/api/packets?portnum=1</code>; there is no <code>/api/chat</code> route. Do not treat a decoded <code>payload</code> string as trusted HTML.</li></ul>
+<h2 id="quick-examples">Quick examples</h2>
+<pre><code class="language-sh">curl &#39;http://localhost:8081/api/nodes?days_active=3&#39;
+curl &#39;http://localhost:8081/api/packets?portnum=1&amp;limit=100&#39;
+curl &#39;http://localhost:8081/api/stats/count&#39;
+curl &#39;http://localhost:8081/api/coverage/1234?mode=perimeter&amp;radius_km=20&#39;</code></pre>
+<h2 id="1-nodes-api">1. Nodes API</h2>
+<section class="endpoint" id="get-api-nodes"><h3><span class="method">GET</span> <code>/api/nodes</code></h3>
+<p>Returns a list of nodes, with optional filtering.</p>
+<p>Query Parameters</p>
+<ul><li><code>node_id</code> (optional, int): Exact node ID.</li><li><code>role</code> (optional, string): Node role.</li><li><code>channel</code> (optional, string): Channel name.</li><li><code>hw_model</code> (optional, string): Hardware model.</li><li><code>days_active</code> (optional, int): Nodes seen within the last N days. Omit for all nodes with a non-null last-seen timestamp; invalid integers are ignored.</li></ul>
+<p>Nodes are sorted by <code>short_name</code> ascending. <code>role</code> is normalized to uppercase; channel and hardware filters are exact matches. No pagination is implemented.</p>
+<p>Errors: HTTP 500 with <code>{&quot;error&quot;:&quot;Failed to fetch nodes&quot;}</code> for handler failures; the storage helper may return an empty list for database failures.</p>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;nodes&quot;: [
+    {
+      &quot;id&quot;: &quot;!000004d2&quot;,
+      &quot;node_id&quot;: 1234,
+      &quot;long_name&quot;: &quot;Alice&quot;,
+      &quot;short_name&quot;: &quot;A&quot;,
+      &quot;hw_model&quot;: &quot;T-Beam&quot;,
+      &quot;firmware&quot;: &quot;1.2.3&quot;,
+      &quot;role&quot;: &quot;client&quot;,
+      &quot;last_lat&quot;: 377749000,
+      &quot;last_long&quot;: -1224194000,
+      &quot;channel&quot;: &quot;main&quot;,
+      &quot;is_mqtt_gateway&quot;: true,
+      &quot;first_seen_us&quot;: 1736283723456789,
+      &quot;last_seen_us&quot;: 1736370123456789
+    }
+  ]
+}</code></pre>
 <hr>
-<p style="text-align:center; color:#666;">Meshview API — generated documentation</p>
-
+</section>
+<h2 id="2-packets-api">2. Packets API</h2>
+<section class="endpoint" id="get-api-packets"><h3><span class="method">GET</span> <code>/api/packets</code></h3>
+<p>Returns packets with optional filters.</p>
+<p>Query Parameters</p>
+<ul><li><code>packet_id</code> (optional, decimal int): Return one packet by database row ID (overrides other filters).</li><li><code>limit</code> (optional, int): Max packets to return, clamped 1-1000. Default: <code>50</code>.</li><li><code>since</code> (optional, int): Only packets imported after this microsecond timestamp.</li><li><code>portnum</code> (optional, int): Filter by port number.</li><li><code>contains</code> (optional, string): Payload substring filter.</li><li><code>from_node_id</code> (optional, int): Filter by sender node ID.</li><li><code>to_node_id</code> (optional, int): Filter by recipient node ID.</li><li><code>node_id</code> (optional, int): Legacy filter matching either from or to node ID.</li></ul>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;packets&quot;: [
+    {
+      &quot;id&quot;: 123,
+      &quot;storage_id&quot;: 123,
+      &quot;packet_id&quot;: 3314808102,
+      &quot;import_time_us&quot;: 1736370123456789,
+      &quot;channel&quot;: &quot;main&quot;,
+      &quot;from_node_id&quot;: 5678,
+      &quot;to_node_id&quot;: 4294967295,
+      &quot;portnum&quot;: 1,
+      &quot;long_name&quot;: &quot;Alice&quot;,
+      &quot;payload&quot;: &quot;Hello, mesh!&quot;,
+      &quot;to_long_name&quot;: null,
+      &quot;reply_id&quot;: 122
+    }
+  ],
+  &quot;latest_import_time&quot;: 1736370123456789
+}</code></pre>
+<p>Notes</p>
+<ul><li>For <code>portnum=1</code> (text messages), packets are filtered to remove sequence-only payloads.</li><li>Results are newest first. <code>since</code> is strictly greater than the supplied timestamp. Store <code>latest_import_time</code> for the next poll and deduplicate by <code>id</code>. A bounded result can omit older records if more packets arrive than the requested limit; this endpoint is not a durable cursor or backfill API.</li><li><code>latest_import_time</code> is returned only when the list response has a positive import timestamp; it is absent for empty results and single-packet lookups.</li><li><code>packet_id</code> lookup returns <code>{&quot;packets&quot;:[]}</code> with HTTP 200 when missing. Its objects omit <code>to_long_name</code> and <code>reply_id</code>; nullable <code>portnum</code> is possible in this mode.</li><li><code>contains</code> is case-insensitive. With <code>portnum=1</code>, matching is performed on decoded displayed payload text (including redaction placeholders) after the database limit is applied, so fewer than <code>limit</code> results may be returned. For other requests, it searches stored payload bytes cast to text; this is not a general search over decoded protobuf fields.</li><li>Invalid <code>limit</code> falls back to 50. Invalid <code>since</code>, <code>portnum</code>, and node filters are logged and ignored. Invalid single-packet IDs return HTTP 400; handler failures return HTTP 500 with <code>{&quot;error&quot;:&quot;Failed to fetch packets&quot;}</code>.</li></ul>
+<hr>
+</section>
+<h2 id="3-channels-api">3. Channels API</h2>
+<section class="endpoint" id="get-api-channels"><h3><span class="method">GET</span> <code>/api/channels</code></h3>
+<p>Returns channels seen in a time period.</p>
+<p>Query Parameters</p>
+<ul><li><code>period_type</code> (optional, string): <code>hour</code> or <code>day</code>. Default: <code>hour</code>.</li><li><code>length</code> (optional, int): Number of periods to look back. Default: <code>24</code>.</li></ul>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;channels&quot;: [&quot;LongFast&quot;, &quot;MediumFast&quot;, &quot;ShortFast&quot;]
+}</code></pre>
+<hr>
+<p>Errors: storage/period failures return HTTP 200 with <code>channels: []</code> and an <code>error</code> field. Non-integer <code>length</code> is parsed outside that handler and can return HTTP 500. Use a positive integer length and the literal <code>hour</code> or <code>day</code>.</p>
+</section>
+<h2 id="4-stats-api">4. Stats API</h2>
+<section class="endpoint" id="get-api-stats"><h3><span class="method">GET</span> <code>/api/stats</code></h3>
+<p>Returns packet statistics aggregated by time periods, with optional filtering.</p>
+<p>Query Parameters</p>
+<ul><li><code>period_type</code> (optional, string): <code>hour</code> or <code>day</code>. Default: <code>hour</code>.</li><li><code>length</code> (optional, int): Number of periods to include. Default: <code>24</code>.</li><li><code>channel</code> (optional, string): Filter by channel (case-insensitive).</li><li><code>portnum</code> (optional, int): Filter by port number.</li><li><code>to_node</code> (optional, int): Filter by destination node ID.</li><li><code>from_node</code> (optional, int): Filter by source node ID.</li><li><code>node</code> (optional, int): If provided, return combined <code>sent</code> and <code>seen</code> totals for that node.</li></ul>
+<p>Response Example (series)</p>
+<pre><code class="language-json">{
+  &quot;period_type&quot;: &quot;hour&quot;,
+  &quot;length&quot;: 24,
+  &quot;channel&quot;: &quot;LongFast&quot;,
+  &quot;portnum&quot;: 1,
+  &quot;to_node&quot;: 12345678,
+  &quot;from_node&quot;: 87654321,
+  &quot;data&quot;: [
+    { &quot;period&quot;: &quot;2025-08-08 14:00&quot;, &quot;count&quot;: 10 },
+    { &quot;period&quot;: &quot;2025-08-08 15:00&quot;, &quot;count&quot;: 7 }
+  ]
+}</code></pre>
+<p>Response Example (<code>node</code> totals)</p>
+<pre><code class="language-json">{
+  &quot;node_id&quot;: 12345678,
+  &quot;period_type&quot;: &quot;hour&quot;,
+  &quot;length&quot;: 24,
+  &quot;sent&quot;: 0,
+  &quot;seen&quot;: 0
+}</code></pre>
+<hr>
+<p>The series response contains only buckets with records, ordered oldest first; missing hours/days are not filled with zeroes. Periods are UTC strings.</p>
+<p>Current <code>node</code>-mode limitation: the handler reads a <code>total</code> key that the statistics helper does not provide, so <code>sent</code> and <code>seen</code> currently return zero. It also uses recipient filtering for the second query, rather than gateway observations. This mode ignores the other filters. For usable sent/observation totals, request <code>/api/stats/count?from_node=1234&amp;period_type=day&amp;length=1</code> instead.</p>
+<p>Errors: HTTP 400 for an unsupported <code>period_type</code>, non-integer <code>length</code>, <code>node</code>, <code>portnum</code>, <code>from_node</code>, or <code>to_node</code>. Storage failures can return HTTP 500. Use a positive <code>length</code>; the handler does not impose a positive lower bound.</p>
+</section>
+<section class="endpoint" id="get-api-stats-count"><h3><span class="method">GET</span> <code>/api/stats/count</code></h3>
+<p>Returns total packet counts, optionally filtered.</p>
+<p>Query Parameters</p>
+<ul><li><code>packet_id</code> (optional, int): Filter packet_seen by packet ID.</li><li><code>period_type</code> (optional, string): <code>hour</code> or <code>day</code>.</li><li><code>length</code> (optional, int): Number of periods to include.</li><li><code>channel</code> (optional, string): Filter by channel.</li><li><code>from_node</code> (optional, int): Filter by source node ID.</li><li><code>to_node</code> (optional, int): Filter by destination node ID.</li></ul>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;total_packets&quot;: 12345,
+  &quot;total_seen&quot;: 67890
+}</code></pre>
+<hr>
+<p>Without filters, counts cover the whole retained database. With time, channel, or direction filters, omitted time settings default to <code>period_type=day&amp;length=1</code>. <code>total_seen</code> counts observation rows for packets matching the packet import-time window, not distinct gateways. Channel matching is case-insensitive.</p>
+<p><code>packet_id</code> applies only to <code>total_seen</code> and overrides its other filters: it counts all observations of that database packet ID. It does not narrow <code>total_packets</code>. In particular, <code>packet_id</code> alone leaves <code>total_packets</code> as the global packet total.</p>
+<p>Errors: HTTP 400 for non-integer ID/length filters. Unsupported <code>period_type</code> or storage failures can return HTTP 500; use <code>hour</code> or <code>day</code> and a positive length.</p>
+</section>
+<section class="endpoint" id="get-api-stats-top"><h3><span class="method">GET</span> <code>/api/stats/top</code></h3>
+<p>Returns nodes sorted by packets seen, with pagination.</p>
+<p>Query Parameters</p>
+<ul><li><code>period_type</code> (optional, string): <code>hour</code> or <code>day</code>. Default: <code>day</code>.</li><li><code>length</code> (optional, int): Number of periods to include. Default: <code>1</code>.</li><li><code>channel</code> (optional, string): Filter by channel.</li><li><code>limit</code> (optional, int): Max nodes to return. Default: <code>20</code>, max <code>100</code>.</li><li><code>offset</code> (optional, int): Pagination offset. Default: <code>0</code>.</li></ul>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;total&quot;: 250,
+  &quot;limit&quot;: 20,
+  &quot;offset&quot;: 0,
+  &quot;nodes&quot;: [
+    {
+      &quot;node_id&quot;: 1234,
+      &quot;long_name&quot;: &quot;Alice&quot;,
+      &quot;short_name&quot;: &quot;A&quot;,
+      &quot;channel&quot;: &quot;main&quot;,
+      &quot;sent&quot;: 100,
+      &quot;seen&quot;: 240,
+      &quot;avg&quot;: 2.4
+    }
+  ]
+}</code></pre>
+<hr>
+<p><code>sent</code> counts packet records from each node; <code>seen</code> counts observation records for that sender&#39;s packets. <code>avg</code> is <code>round(seen / max(sent, 1), 2)</code>, not a distinct-gateway count. Windows are anchored to the newest packet and newest observation in the respective tables, not wall-clock time. Nodes with zero activity are included; <code>total</code> counts nodes matching the channel filter, not just active nodes.</p>
+<p>Channel matching is exact. Use positive <code>length</code> and <code>limit</code>, and a nonnegative <code>offset</code>. Only the upper limit of 100 is enforced. Invalid numeric strings can return HTTP 500; any <code>period_type</code> other than the literal <code>hour</code> is treated as days.</p>
+</section>
+<h2 id="5-edges-api">5. Edges API</h2>
+<section class="endpoint" id="get-api-edges"><h3><span class="method">GET</span> <code>/api/edges</code></h3>
+<p>Returns network edges (connections between nodes) based on traceroutes and neighbor info. Traceroute edges are collected over the last 12 hours. Neighbor edges are based on port 71 packets.</p>
+<p>A completed traceroute is observed as a response packet, whose <code>from</code>/<code>to</code> are reversed with respect to the traced path, so edges are built as <code>to -&gt; route[] -&gt; from</code>. <code>route[]</code> may contain <code>0xFFFFFFFF</code> placeholders for hops the mesh could not identify; the edges on either side of such a placeholder are omitted, because the nodes around an unknown hop are not neighbours.</p>
+<p>Query Parameters</p>
+<ul><li><code>type</code> (optional, string): <code>traceroute</code> or <code>neighbor</code>. If omitted, returns both.</li><li><code>node_id</code> (optional, int): Filter edges to only those touching a node.</li></ul>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;edges&quot;: [
+    { &quot;from&quot;: 12345678, &quot;to&quot;: 87654321, &quot;type&quot;: &quot;traceroute&quot; },
+    { &quot;from&quot;: 11111111, &quot;to&quot;: 22222222, &quot;type&quot;: &quot;neighbor&quot; }
+  ]
+}</code></pre>
+<hr>
+<p>Unknown <code>type</code> values return an empty edge list. Invalid <code>node_id</code> returns HTTP 400; storage failures can return HTTP 500. A missing node is not an error and normally returns an empty list. Neighbor edges come from the latest stored port-71 sample (the storage helper defaults to 50 packets), not the traceroute 12-hour window.</p>
+</section>
+<h2 id="6-daily-snapshots-and-configuration">6. Daily Snapshots and Configuration</h2>
+<section class="endpoint" id="get-api-snapshots-daily"><h3><span class="method">GET</span> <code>/api/snapshots/daily</code></h3>
+<p>Returns stored daily snapshots. For new snapshots, <code>packet_count</code> is the number of packet records imported during <code>date</code> (00:00 UTC inclusive to the next midnight exclusive). The scheduled capture records the previous complete UTC day. Repeated observations of the same packet are not counted separately. <code>node_count</code> counts distinct packet senders whose packets were imported or observed during that UTC day (including observations of previously imported packets). <code>gateway_count</code> counts distinct MQTT gateways with packet observations imported during that day. These are activity counts, not database totals; recipients alone do not count as active nodes. Activity uses local import timestamps, not device timestamps. Older snapshots retain their originally stored counts and are not automatically converted. Counts depend on the packet and observation history still retained at capture time.</p>
+<p>Query Parameters</p>
+<ul><li><code>length</code> (optional, int): Return the latest N snapshot records, clamped to 1-3650. Omit for all stored snapshots. Results are always ordered by date ascending. This is a record limit, not a guarantee of consecutive calendar dates.</li></ul>
+<p>Response Example</p>
+<pre><code class="language-json">{&quot;data&quot;:[{&quot;date&quot;:&quot;2026-10-24&quot;,&quot;node_count&quot;:143,&quot;packet_count&quot;:28465,&quot;gateway_count&quot;:17,&quot;captured_at_us&quot;:1792886400000000}]}</code></pre>
+<p>No stored snapshots returns <code>{&quot;data&quot;:[]}</code>. Invalid <code>length</code> returns HTTP 400; storage failures return HTTP 500. <code>captured_at_us</code> is the capture time, which may be later than the day summarized by <code>date</code>.</p>
+</section>
+<section class="endpoint" id="get-api-config"><h3><span class="method">GET</span> <code>/api/config</code></h3>
+<p>Returns a safe subset of server configuration.</p>
+<p><code>site.map_channel_colors</code> contains channel color overrides from the optional <code>[map_channel_colors]</code> INI section. Each entry is <code>channel = #RRGGBB</code>; invalid colors are omitted. Channel matching on the map ignores case, spaces, hyphens, and underscores. Unlisted channels use generated colors. For example:</p>
+<pre><code class="language-ini">[map_channel_colors]
+LongFast = #4363d8
+LocalChat = #18aa18</code></pre>
+<p>No query parameters are supported. Only the <code>site</code>, MQTT server/topics, and cleanup fields shown here are exposed; credentials and the database connection string are not returned. Feature flags and cleanup booleans are lowercase strings (<code>&quot;true&quot;</code> / <code>&quot;false&quot;</code>), not JSON booleans. Cleanup scheduling values are strings; map bounds are numbers and refresh intervals are integers. The removed <code>starting</code> option is not returned: <code>/</code> always serves the dashboard. Handler failures return HTTP 500.</p>
+<p>Restart the web server and reload the map after changing these settings. Omitting the section uses generated colors for every channel.</p>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;site&quot;: {
+    &quot;domain&quot;: &quot;example.com&quot;,
+    &quot;language&quot;: &quot;en&quot;,
+    &quot;title&quot;: &quot;Meshview&quot;,
+    &quot;message&quot;: &quot;&quot;,
+    &quot;nodes&quot;: &quot;true&quot;,
+    &quot;chat&quot;: &quot;true&quot;,
+    &quot;everything&quot;: &quot;true&quot;,
+    &quot;graphs&quot;: &quot;true&quot;,
+    &quot;stats&quot;: &quot;true&quot;,
+    &quot;net&quot;: &quot;true&quot;,
+    &quot;map&quot;: &quot;true&quot;,
+    &quot;top&quot;: &quot;true&quot;,
+    &quot;map_top_left_lat&quot;: 39.0,
+    &quot;map_top_left_lon&quot;: -123.0,
+    &quot;map_bottom_right_lat&quot;: 36.0,
+    &quot;map_bottom_right_lon&quot;: -121.0,
+    &quot;map_interval&quot;: 3,
+    &quot;map_channel_colors&quot;: {&quot;LongFast&quot;:&quot;#4363d8&quot;},
+    &quot;firehose_interval&quot;: 3,
+    &quot;weekly_net_message&quot;: &quot;Weekly Mesh check-in message.&quot;,
+    &quot;net_tag&quot;: &quot;#BayMeshNet&quot;,
+    &quot;version&quot;: &quot;3.0.0&quot;
+  },
+  &quot;mqtt&quot;: {
+    &quot;server&quot;: &quot;mqtt.example.com&quot;,
+    &quot;topics&quot;: [&quot;msh/region/#&quot;]
+  },
+  &quot;cleanup&quot;: {
+    &quot;enabled&quot;: &quot;false&quot;,
+    &quot;days_to_keep&quot;: &quot;14&quot;,
+    &quot;hour&quot;: &quot;2&quot;,
+    &quot;minute&quot;: &quot;0&quot;,
+    &quot;vacuum&quot;: &quot;false&quot;
+  }
+}</code></pre>
+<hr>
+</section>
+<h2 id="7-language-api">7. Language API</h2>
+<section class="endpoint" id="get-api-lang"><h3><span class="method">GET</span> <code>/api/lang</code></h3>
+<p>Returns translation strings.</p>
+<p>Query Parameters</p>
+<ul><li><code>lang</code> (optional, string): Language code (e.g., <code>en</code>, <code>es</code>). Default from config or <code>en</code>.</li><li><code>section</code> (optional, string): Return only one section (e.g., <code>nodelist</code>, <code>firehose</code>).</li></ul>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;Meshview&quot;,
+  &quot;search_placeholder&quot;: &quot;Search...&quot;
+}</code></pre>
+<hr>
+<p>Unknown or invalid language codes fall back to the English file. An unknown section returns HTTP 404. The response has no wrapper: it is either the full translation object or the requested section. Translation-file failures can return HTTP 500.</p>
+</section>
+<h2 id="8-packets-seen-api">8. Packets Seen API</h2>
+<section class="endpoint" id="get-api-packets-seen-packet-id"><h3><span class="method">GET</span> <code>/api/packets_seen/{packet_id}</code></h3>
+<p>Returns packet_seen entries for a packet.</p>
+<p>Path Parameters</p>
+<ul><li><code>packet_id</code> (required, int): Packet ID.</li></ul>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;seen&quot;: [
+    {
+      &quot;packet_id&quot;: 123,
+      &quot;node_id&quot;: 456,
+      &quot;rx_time&quot;: 1753188300,
+      &quot;hop_limit&quot;: 7,
+      &quot;hop_start&quot;: 0,
+      &quot;channel&quot;: &quot;main&quot;,
+      &quot;rx_snr&quot;: 5.0,
+      &quot;rx_rssi&quot;: -90,
+      &quot;topic&quot;: &quot;msh/region/#&quot;,
+      &quot;import_time_us&quot;: 1736370123456789
+    }
+  ]
+}</code></pre>
+<hr>
+<p><code>node_id</code> identifies the observing MQTT gateway. <code>rx_time</code> is the device-provided receive time in Unix seconds, while <code>import_time_us</code> is local import time in microseconds. Signal fields can be null. Multiple rows can describe the same gateway; consumers wanting unique gateways must deduplicate them. Hop count is usually <code>max(0, hop_start - hop_limit)</code> when both values are known. Observations do not by themselves prove a direct radio link from the sender to that gateway.</p>
+<p>No observations, including for an unknown packet, returns <code>{&quot;seen&quot;:[]}</code> with HTTP 200. Invalid path IDs return HTTP 400; handler failures return HTTP 500.</p>
+</section>
+<h2 id="9-traceroute-api">9. Traceroute API</h2>
+<section class="endpoint" id="get-api-traceroute-packet-id"><h3><span class="method">GET</span> <code>/api/traceroute/{packet_id}</code></h3>
+<p>Returns traceroute details and derived paths for a packet.</p>
+<p>Path Parameters</p>
+<ul><li><code>packet_id</code> (required, int): Packet ID.</li></ul>
+<p>A completed traceroute is observed as a response packet, whose <code>from</code>/<code>to</code> are reversed with respect to the traced path. <code>initiator</code> and <code>target</code> resolve this: the forward path runs <code>initiator -&gt; forward_hops -&gt; target</code> and the return path runs <code>target -&gt; reverse_hops -&gt; initiator</code>, in both directions of travel. <code>forward_hops</code> and <code>reverse_hops</code> contain only the intermediate hops, never the endpoints.</p>
+<p>A gateway usually reports a response that is still travelling home, so <code>reverse_hops</code> is often incomplete. <code>reverse_complete</code> says whether that observation had reached the initiator; only then does the corresponding <code>winning_paths.reverse</code> entry end at the initiator.</p>
+<p><code>winning_paths</code> is built from response observations, since a response proves the request reached the target. <code>complete</code> on a <code>unique_forward_paths</code> entry says whether some response reported that hop list, and so whether it is known to end at the target.</p>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;packet&quot;: {
+    &quot;id&quot;: 123,
+    &quot;from&quot;: 222,
+    &quot;to&quot;: 111,
+    &quot;initiator&quot;: 111,
+    &quot;target&quot;: 222,
+    &quot;channel&quot;: &quot;main&quot;
+  },
+  &quot;traceroute_packets&quot;: [
+    {
+      &quot;index&quot;: 0,
+      &quot;gateway_node_id&quot;: 333,
+      &quot;done&quot;: true,
+      &quot;forward_hops&quot;: [444, 555],
+      &quot;reverse_hops&quot;: [555, 444],
+      &quot;reverse_complete&quot;: true
+    }
+  ],
+  &quot;unique_forward_paths&quot;: [
+    { &quot;path&quot;: [444, 555], &quot;count&quot;: 2, &quot;complete&quot;: true }
+  ],
+  &quot;unique_reverse_paths&quot;: [
+    [555, 444]
+  ],
+  &quot;winning_paths&quot;: {
+    &quot;forward&quot;: [[111, 444, 555, 222]],
+    &quot;reverse&quot;: [[222, 555, 444, 111]]
+  }
+}</code></pre>
+<hr>
+<p><code>traceroute_packets</code> can be empty even when the packet exists. Unknown database packet IDs return HTTP 404. Invalid integer IDs and storage failures can return HTTP 500; this handler does not implement a separate HTTP 400 validation branch.</p>
+</section>
+<h2 id="10-health-api">10. Health API</h2>
+<section class="endpoint" id="get-health"><h3><span class="method">GET</span> <code>/health</code></h3>
+<p>Returns service health and database status.</p>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;healthy&quot;,
+  &quot;timestamp&quot;: &quot;2025-07-22T12:45:00+00:00&quot;,
+  &quot;version&quot;: &quot;3.0.3&quot;,
+  &quot;git_revision&quot;: &quot;abc1234&quot;,
+  &quot;cleanup&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;days_to_keep&quot;: 14,
+    &quot;scheduled_time&quot;: &quot;02:00&quot;,
+    &quot;vacuum&quot;: false,
+    &quot;status&quot;: &quot;ok&quot;,
+    &quot;status_file&quot;: &quot;dbcleanup.status.json&quot;,
+    &quot;last_run&quot;: {
+      &quot;status&quot;: &quot;ok&quot;,
+      &quot;started_at&quot;: &quot;2026-06-04T09:00:00+00:00&quot;,
+      &quot;completed_at&quot;: &quot;2026-06-04T09:00:03+00:00&quot;,
+      &quot;cutoff_at&quot;: &quot;2026-05-21T09:00:00+00:00&quot;,
+      &quot;days_to_keep&quot;: 14,
+      &quot;vacuum_requested&quot;: false,
+      &quot;vacuum_completed&quot;: false,
+      &quot;rows_deleted&quot;: {
+        &quot;packet&quot;: 1200,
+        &quot;packet_seen&quot;: 3400,
+        &quot;traceroute&quot;: 42,
+        &quot;node&quot;: 3
+      },
+      &quot;error&quot;: null
+    }
+  },
+  &quot;backup&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;backup_dir&quot;: &quot;./backups&quot;,
+    &quot;scheduled_time&quot;: &quot;02:00&quot;,
+    &quot;status&quot;: &quot;ok&quot;,
+    &quot;status_file&quot;: &quot;dbbackup.status.json&quot;,
+    &quot;last_run&quot;: {
+      &quot;status&quot;: &quot;ok&quot;,
+      &quot;started_at&quot;: &quot;2026-06-04T09:00:00+00:00&quot;,
+      &quot;completed_at&quot;: &quot;2026-06-04T09:00:02+00:00&quot;,
+      &quot;backup_dir&quot;: &quot;./backups&quot;,
+      &quot;database_path&quot;: &quot;packets.db&quot;,
+      &quot;backup_file&quot;: &quot;backups/packets_backup_20260604_090000.db.gz&quot;,
+      &quot;original_size_bytes&quot;: 12939444,
+      &quot;compressed_size_bytes&quot;: 4211560,
+      &quot;compression_percent&quot;: 67.5,
+      &quot;error&quot;: null
+    }
+  },
+  &quot;database&quot;: &quot;connected&quot;,
+  &quot;database_size&quot;: &quot;12.34 MB&quot;,
+  &quot;database_size_bytes&quot;: 12939444
+}</code></pre>
+<hr>
+<p>No query parameters. HTTP 200 reports <code>status: &quot;healthy&quot;</code> with database connectivity. A database failure returns HTTP 503 with <code>status: &quot;unhealthy&quot;</code> and <code>database: &quot;disconnected&quot;</code>. <code>seconds_since_last_message</code> is included only when a latest imported packet exists; SQLite size fields appear only when available. Cleanup and backup reports include configured schedules and status-file contents when present. Their status may be <code>disabled</code>, <code>unknown</code>, <code>error</code>, or the last job&#39;s recorded status; a failed backup/cleanup does not itself change the top-level HTTP status. The optional <code>last_run</code> objects depend on the job&#39;s stored report.</p>
+</section>
+<h2 id="11-version-api">11. Version API</h2>
+<section class="endpoint" id="get-version"><h3><span class="method">GET</span> <code>/version</code></h3>
+<p>Returns version metadata.</p>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;version&quot;: &quot;3.0.3&quot;,
+  &quot;release_date&quot;: &quot;2026-1-15&quot;,
+  &quot;git_revision&quot;: &quot;abc1234&quot;,
+  &quot;git_revision_short&quot;: &quot;abc1234&quot;
+}</code></pre>
+<p>No query parameters. HTTP 500 with an <code>error</code> field if version metadata cannot be retrieved. A revision may be <code>unknown</code> if Git metadata is unavailable.</p>
+</section>
+<h2 id="12-node-contact-url">12. Node Contact URL</h2>
+<section class="endpoint" id="get-api-node-node-id-qr"><h3><span class="method">GET</span> <code>/api/node/{node_id}/qr</code></h3>
+<p>Returns a Meshtastic shared-contact URL as JSON, not a PNG or SVG image. The client can encode <code>meshtastic_url</code> in a QR code. No query parameters are supported.</p>
+<p>Path Parameters</p>
+<ul><li><code>node_id</code> (required, int): Node number in decimal or <code>0x</code> hexadecimal form.</li></ul>
+<p>Response Example</p>
+<pre><code class="language-json">{
+  &quot;node_id&quot;:1234,
+  &quot;long_name&quot;:&quot;Alice&quot;,
+  &quot;short_name&quot;:&quot;A&quot;,
+  &quot;role&quot;:&quot;CLIENT&quot;,
+  &quot;meshtastic_url&quot;:&quot;https://meshtastic.org/v/#BASE64URL_CONTACT&quot;
+}</code></pre>
+<p>The example contact payload is a placeholder, not an importable contact. The URL encodes node identity and available user metadata as a base64url SharedContact protobuf, with <code>manually_verified</code> false. Metadata can be null.</p>
+<p>Errors: HTTP 400 for invalid IDs; HTTP 404 when the node is absent; HTTP 500 for contact serialization failures or unhandled storage errors.</p>
+</section>
+<h2 id="13-predicted-radio-coverage">13. Predicted Radio Coverage</h2>
+<section class="endpoint" id="get-api-coverage-node-id"><h3><span class="method">GET</span> <code>/api/coverage/{node_id}</code></h3>
+<p>Computes an ITM area-model prediction centered on the node&#39;s last stored position. This is a model prediction, not a measured coverage boundary or terrain profile. The optional <code>pyitm</code> dependency is required. Calculations run off the event loop and reuse cached model results. All parameters are optional except the node ID.</p>
+<p>Path Parameters</p>
+<ul><li><code>node_id</code> (required, int): Node number in decimal or <code>0x</code> hexadecimal form.</li></ul>
+<p>Query Parameters</p>
+<ul><li><code>mode</code> (string, default <code>perimeter</code>): <code>perimeter</code> or <code>heatmap</code>. Currently every value other than the exact string <code>perimeter</code> selects the heatmap branch.</li><li><code>freq_mhz</code> (number, default <code>907</code>): Frequency in MHz; range 1-10000.</li><li><code>tx_dbm</code> (number, default <code>20</code>): Transmit power in dBm; range -50 to 60.</li><li><code>tx_height_m</code> (number, default <code>5</code>): Transmit antenna height in meters; range 0-1000.</li><li><code>rx_height_m</code> (number, default <code>1.5</code>): Receive antenna height in meters; range 0-1000.</li><li><code>radius_km</code> (number, default <code>40</code>): Maximum distance in kilometers; range 1-200.</li><li><code>step_km</code> (number, default <code>0.25</code>): Radial sample spacing in kilometers; range 0.05-50.</li><li><code>reliability</code> (number, default <code>0.5</code>): ITM time fraction; range 0.01-0.99.</li><li><code>threshold_dbm</code> (number, default <code>-120</code>): Perimeter received-power threshold in dBm; range -200 to 0. Ignored by heatmap computation, although still validated.</li></ul>
+<p>Numeric bounds are inclusive, values must be finite, and <code>radius_km / step_km</code> must not exceed 4000. Smaller steps increase computation cost.</p>
+<p>Response Example (<code>mode=perimeter</code>)</p>
+<pre><code class="language-json">{
+  &quot;mode&quot;:&quot;perimeter&quot;,
+  &quot;threshold_dbm&quot;:-120.0,
+  &quot;perimeter&quot;:[[30.21,-93.20],[30.209,-93.198]]
+}</code></pre>
+<p><code>perimeter</code> contains <code>[latitude, longitude]</code> degree pairs for the furthest qualifying sample on each modeled bearing. Bearings with no qualifying sample are omitted; the list is not necessarily a closed GeoJSON polygon.</p>
+<p>Response Example (<code>mode=heatmap</code>)</p>
+<pre><code class="language-json">{
+  &quot;mode&quot;:&quot;heatmap&quot;,
+  &quot;min_dbm&quot;:-130.0,
+  &quot;max_dbm&quot;:-80.0,
+  &quot;points&quot;:[[30.21,-93.20,-110.5]]
+}</code></pre>
+<p><code>points</code> contains <code>[latitude, longitude, received_power_dbm]</code> triples. Min/max values provide a color-scale range, extended from the defaults to include computed values. An empty perimeter or point list is a valid result when no samples qualify.</p>
+<p>Errors: HTTP 400 for invalid IDs, nonnumeric/nonfinite/out-of-range parameters, or an excessive radius/step ratio; HTTP 404 for an unknown node or missing/zero-valued stored coordinates; HTTP 503 when <code>pyitm</code> is unavailable. Dependency availability is checked before numeric query validation and node lookup. Unexpected model/storage failures can return HTTP 500.</p>
+</section>
+</main>
+<footer>Source: docs/API_Documentation.md · Generated with node scripts/build-api-docs.mjs</footer>
 </body>
 </html>

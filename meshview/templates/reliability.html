@@ -1,280 +1,60 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-reliability-page{% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-.reach-page {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 16px;
-}
-
-.reach-header {
-    margin-bottom: 10px;
-}
-
-.reach-header h1 {
-    font-size: 1.35rem;
-    margin-bottom: 2px;
-}
-
-.reach-panel {
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 8px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.reach-controls {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-}
-
-.reach-search {
-    min-width: 0;
-    flex: 0 1 420px;
-}
-
-.reach-search-label,
-.reach-limit-label {
-    align-self: center;
-    white-space: nowrap;
-    color: rgba(255, 255, 255, 0.72);
-    font-size: 0.9rem;
-}
-
-.reach-limit-label {
-    margin-left: auto;
-}
-
-.reach-node-link {
-    align-self: center;
-    white-space: nowrap;
-}
-
-@media (max-width: 600px) {
-    .reach-controls {
-        flex-direction: column;
-    }
-}
-
-.reach-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.reach-metric {
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    padding: 8px 10px;
-    background: rgba(0, 0, 0, 0.18);
-}
-
-.reach-metric-value {
-    font-size: 1.2rem;
-    line-height: 1.2;
-}
-
-.reach-table-wrap {
-    overflow-x: auto;
-    margin-top: 10px;
-}
-
-.reach-table {
-    width: 100%;
-    min-width: 760px;
-    font-size: 0.9rem;
-}
-
-.reach-map {
-    width: 100%;
-    height: 520px;
-    margin-top: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 8px;
-    overflow: hidden;
-    background: rgba(0, 0, 0, 0.18);
-}
-
-.reach-map-marker {
-    width: 34px;
-    height: 34px;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 0.65rem;
-    font-weight: 800;
-    line-height: 1;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-}
-
-.reach-map-marker-source {
-    background: #111827;
-    font-size: 0.95rem;
-}
-
-.reach-gateway-panels {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.reach-gateway-panel {
-    overflow-x: auto;
-}
-
-.reach-gateway-table {
-    min-width: 0;
-}
-
-.reach-table th,
-.reach-table td {
-    vertical-align: top;
-    padding: 0.35rem 0.5rem;
-}
-
-.reach-count-bar-cell {
-    min-width: 180px;
-}
-
-.reach-count-bar-track {
-    position: relative;
-    height: 20px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
-    overflow: hidden;
-}
-
-.reach-count-bar-fill {
-    height: 100%;
-    min-width: 24px;
-    border-radius: inherit;
-    background: var(--reach-bar-color, #4ade80);
-}
-
-.reach-count-bar-value {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding-left: 8px;
-    font-family: monospace;
-    font-size: 0.85rem;
-    color: #fff;
-    font-weight: 700;
-}
-
-.reach-muted {
-    color: rgba(255, 255, 255, 0.62);
-}
-
-.reach-heard-link {
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: #8ab4f8;
-    text-decoration: underline;
-    cursor: pointer;
-}
-
-.port-tag {
-    display: inline-block;
-    padding: 1px 6px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #fff;
-}
-
-.reliability-modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 5000;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    background: rgba(0, 0, 0, 0.72);
-}
-
-.reliability-modal.open {
-    display: flex;
-}
-
-.reliability-modal-panel {
-    width: min(760px, 100%);
-    max-height: min(720px, 92vh);
-    overflow: auto;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 8px;
-    background: #111827;
-    padding: 12px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-}
-
-.reliability-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 10px;
-}
-
-.reliability-modal-title {
-    font-size: 1rem;
-    font-weight: 600;
-}
-
-.reliability-status-heard {
-    color: #4ade80 !important;
-    font-weight: 700;
-}
-
-.reliability-status-missed {
-    color: #f87171 !important;
-    font-weight: 700;
-}
-
-.reliability-status-skipped {
-    color: #cbd5e1 !important;
-    font-weight: 700;
-}
-
-.reliability-row-skipped td {
-    text-decoration: line-through;
-    text-decoration-thickness: 1px;
-    color: rgba(255, 255, 255, 0.58) !important;
-}
-
-@media (max-width: 600px) {
-    .reach-gateway-panels {
-        grid-template-columns: 1fr;
-    }
-}
+.reach-page { width:100%; }
+.reach-description { margin-bottom:20px; background:white; border:1px solid var(--mesh-border); border-radius:9px; padding:14px 18px; font-size:13px; color:#64748b; }
+.reach-description summary { cursor:pointer; color:#334155; font-weight:500; }
+.reach-description p { margin:12px 0 0; line-height:1.7; }
+.reach-controls { display:flex; align-items:center; flex-wrap:wrap; gap:10px; background:white; border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:20px; }
+.reach-search { flex:1 1 260px; }
+.reach-search-label,.reach-limit-label { color:#64748b; font-size:12px; }
+.reach-node-link { white-space:nowrap; font-size:12px; }
+.reach-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-bottom:20px; }
+.reach-metric { background:white; border:1px solid var(--mesh-border); border-radius:9px; padding:20px 24px; font-size:13px; }
+.reach-metric-value { font-size:30px; font-weight:650; color:var(--mesh-primary); margin-top:6px; font-variant-numeric:tabular-nums; }
+.reach-metric:nth-child(2) .reach-metric-value { color:#198754; }
+.reach-table-wrap { overflow-x:auto; border:1px solid var(--mesh-border); border-radius:9px; background:white; margin-bottom:20px; }
+.reach-table { min-width:520px; }
+.reach-map { width:100%; height:450px; border:1px solid #dce4ef; border-radius:9px; overflow:hidden; margin-bottom:20px; background:#edf1f5; }
+.reach-map-marker { width:34px; height:34px; border:2px solid white; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:10px; font-weight:800; line-height:1; text-shadow:0 1px 2px #000b; box-shadow:0 2px 8px #0003; }
+.reach-map-marker-source { font-size:14px; }
+.reach-gateway-panels { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.reach-gateway-panel { min-width:0; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:white; margin-bottom:20px; }
+.reach-gateway-table { min-width:480px; }
+.reach-count-bar-cell { min-width:180px; }
+.reach-count-bar-track { position:relative; height:24px; border-radius:5px; background:#edf1f7; overflow:hidden; }
+.reach-count-bar-value span { background:#fffffff2; border-radius:3px; padding:0 5px; }
+.reach-count-bar-fill { height:100%; border-radius:inherit; background:var(--reach-bar-color,#22c55e); }
+.reach-count-bar-value { position:absolute; inset:0; display:flex; align-items:center; padding-left:9px; font:600 12px ui-monospace,monospace; color:#17263c; }
+.reach-muted { color:#64748b; }
+.mesh-data-page .mesh-content .reach-heard-link { padding:2px 7px; font-weight:600; }
+.reliability-modal { display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center; padding:16px; background:#17263c99; }
+.reliability-modal.open { display:flex; }
+.reliability-modal-panel { width:min(900px,100%); max-height:90dvh; overflow:auto; border:1px solid var(--mesh-border); border-radius:10px; background:white; padding:20px; box-shadow:0 16px 48px #17263c33; }
+.reliability-modal-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+.reliability-modal-title { font-size:15px; font-weight:600; overflow-wrap:anywhere; }
+.reliability-status-heard { color:#187346!important; font-weight:600; }
+.reliability-status-missed { color:#b23d2f!important; font-weight:600; }
+.reliability-status-skipped { color:#64748b!important; font-weight:600; }
+.reliability-row-skipped td { text-decoration:line-through; color:#64748b!important; }
+@media(max-width:1000px) { .reach-gateway-panels { grid-template-columns:minmax(0,1fr); gap:0; } }
+@media(max-width:600px) { .reach-controls { align-items:stretch; } .reach-search-label { width:100%; } .reach-search { flex-basis:100%; } .reach-summary { gap:10px; } .reach-metric { padding:16px; } .reach-metric-value { font-size:26px; } .reach-map { height:340px; } .reliability-modal-panel { padding:14px; } }
 </style>
 {% endblock %}
 
 {% block body %}
-<main class="reach-page">
-    <div class="reach-header">
-        <h1>Reliability</h1>
-        <p class="text-secondary mb-0">
-            Review how often each gateway hears packets from a selected node. The report uses the
+<section class="reach-page">
+    <header class="data-heading"><div><span class="mesh-eyebrow">GATEWAY DIAGNOSTICS</span><h1>Reliability</h1><p>See how consistently gateways hear packets from a selected node.</p></div><a class="mesh-secondary-button" href="/nodelist">All nodes ↗</a></header>
+    <details class="reach-description"><summary>How reliability is calculated</summary><p>Review how often each gateway hears packets from a selected node. The report uses the
             latest selected packet sample and calculates reliability as heard packets divided by packets
             reviewed. The range table groups gateways by reliability bands, while the gateway list
             shows each gateway's heard count and percentage for the same sample. Reliability is
             calculated only from Text, Position, Node Info, and Telemetry packets; other packet types
-            are shown in packet details but skipped from the calculation.
-        </p>
-    </div>
+            are shown in packet details but skipped from the calculation.</p></details>
 
     <section class="reach-panel">
         <form class="reach-controls" id="reach-search-form">
@@ -314,8 +94,19 @@
             </a>
         </form>
 
-        <div class="reach-table-wrap">
-            <table class="table table-dark table-sm table-striped reach-table">
+        <div class="reach-summary">
+            <div class="reach-metric">
+                <div class="text-secondary">Latest Packets</div>
+                <div class="reach-metric-value" id="reach-packet-count">...</div>
+            </div>
+            <div class="reach-metric">
+                <div class="text-secondary">Unique Gateways</div>
+                <div class="reach-metric-value" id="reach-gateway-count">...</div>
+            </div>
+        </div>
+
+        <div class="reach-table-wrap" role="region" aria-label="Reliability report table" tabindex="0">
+            <table class="table table-sm reach-table">
                 <thead>
                     <tr>
                         <th>Reliability Bands</th>
@@ -332,20 +123,9 @@
 
         <div id="reach-gateway-map" class="reach-map"></div>
 
-        <div class="reach-summary">
-            <div class="reach-metric">
-                <div class="text-secondary">Latest Packets</div>
-                <div class="reach-metric-value" id="reach-packet-count">...</div>
-            </div>
-            <div class="reach-metric">
-                <div class="text-secondary">Unique Gateways</div>
-                <div class="reach-metric-value" id="reach-gateway-count">...</div>
-            </div>
-        </div>
-
         <div class="reach-gateway-panels">
-            <div class="reach-gateway-panel">
-                <table class="table table-dark table-sm table-striped reach-table reach-gateway-table">
+            <div class="reach-gateway-panel" role="region" aria-label="Gateway reliability table" tabindex="0">
+                <table class="table table-sm reach-table reach-gateway-table">
                     <thead>
                         <tr>
                             <th>Gateway</th>
@@ -361,8 +141,8 @@
                     </tbody>
                 </table>
             </div>
-            <div class="reach-gateway-panel">
-                <table class="table table-dark table-sm table-striped reach-table reach-gateway-table">
+            <div class="reach-gateway-panel" role="region" aria-label="Gateway reliability table" tabindex="0">
+                <table class="table table-sm reach-table reach-gateway-table">
                     <thead>
                         <tr>
                             <th>Gateway</th>
@@ -380,16 +160,16 @@
             </div>
         </div>
     </section>
-</main>
+</section>
 
 <div class="reliability-modal" id="gateway-packet-modal" role="dialog" aria-modal="true" aria-labelledby="gateway-packet-title">
     <div class="reliability-modal-panel">
         <div class="reliability-modal-header">
             <div class="reliability-modal-title" id="gateway-packet-title">Packet Details</div>
-            <button class="btn btn-sm btn-outline-light" type="button" onclick="closeGatewayPacketModal()">Close</button>
+            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="closeGatewayPacketModal()">Close</button>
         </div>
-        <div class="reach-table-wrap">
-            <table class="table table-dark table-sm table-striped reach-table">
+        <div class="reach-table-wrap" role="region" aria-label="Reliability report table" tabindex="0">
+            <table class="table table-sm reach-table">
                 <thead>
                     <tr>
                         <th>Packet</th>
@@ -761,7 +541,7 @@ async function loadReachReport(nodeId = reachNodeId) {
                     <td class="reach-count-bar-cell">
                         <div class="reach-count-bar-track">
                             <div class="reach-count-bar-fill" style="width:${width}%; --reach-bar-color:${row.color};"></div>
-                            <div class="reach-count-bar-value">${row.count}</div>
+                            <div class="reach-count-bar-value"><span>${row.count}</span></div>
                         </div>
                     </td>
                 </tr>

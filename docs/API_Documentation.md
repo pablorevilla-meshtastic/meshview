@@ -2,8 +2,43 @@
 
 Base URL: `http(s)://<host>`
 
-All endpoints return JSON. Timestamps are either ISO 8601 strings or `*_us` values in
-microseconds since epoch.
+This reference covers all 16 GET routes registered in `meshview/web_api/api.py`,
+including `/health` and `/version`. The browser version is served at `/api.html`.
+Responses below are illustrative examples; actual values depend on stored data.
+Regenerate the browser reference after editing this file with
+`node scripts/build-api-docs.mjs`.
+
+## Conventions
+
+- Successful API responses are JSON. Explicit validation errors usually return JSON
+  with an `error` field. Some unhandled errors return HTTP 500 with a plain-text
+  body; check HTTP status and Content-Type before parsing an error response.
+- All routes are read-only. The application does not require an API token; a reverse
+  proxy may impose authentication. There are no application-level write endpoints.
+- `*_us` timestamps and `since` use microseconds since the Unix epoch. Snapshot dates
+  and statistics buckets use UTC. Node latitude/longitude integers must be divided
+  by 10,000,000 to obtain degrees; coverage coordinates are already degrees.
+- Packet `id` and `storage_id` are database row IDs. Use these for the `packet_id`
+  query/path parameters on packet, observation, count, and traceroute endpoints.
+  A response field named `packet_id` on a packet object is instead its over-the-air
+  Meshtastic ID. `reply_id`, when present, is also an over-the-air ID. These ID types
+  are not interchangeable. Node IDs are numeric Meshtastic node numbers; the node
+  object's `id` is a separate string identifier.
+- Use decimal node IDs throughout. The packet sender/recipient filters and the QR
+  and coverage paths also accept Python-style `0x` hexadecimal numbers. This is
+  not supported consistently by the other routes.
+- Public broadcast text is readable. Direct text messages on port 1 are returned as
+  `<redacted>`. Request chat with `/api/packets?portnum=1`; there is no `/api/chat`
+  route. Do not treat a decoded `payload` string as trusted HTML.
+
+## Quick examples
+
+```sh
+curl 'http://localhost:8081/api/nodes?days_active=3'
+curl 'http://localhost:8081/api/packets?portnum=1&limit=100'
+curl 'http://localhost:8081/api/stats/count'
+curl 'http://localhost:8081/api/coverage/1234?mode=perimeter&radius_km=20'
+```
 
 ## 1. Nodes API
 
@@ -15,14 +50,21 @@ Query Parameters
 - `role` (optional, string): Node role.
 - `channel` (optional, string): Channel name.
 - `hw_model` (optional, string): Hardware model.
-- `days_active` (optional, int): Nodes seen within the last N days.
+- `days_active` (optional, int): Nodes seen within the last N days. Omit for all
+  nodes with a non-null last-seen timestamp; invalid integers are ignored.
+
+Nodes are sorted by `short_name` ascending. `role` is normalized to uppercase;
+channel and hardware filters are exact matches. No pagination is implemented.
+
+Errors: HTTP 500 with `{"error":"Failed to fetch nodes"}` for handler failures;
+the storage helper may return an empty list for database failures.
 
 Response Example
 ```json
 {
   "nodes": [
     {
-      "id": 42,
+      "id": "!000004d2",
       "node_id": 1234,
       "long_name": "Alice",
       "short_name": "A",
@@ -32,6 +74,8 @@ Response Example
       "last_lat": 377749000,
       "last_long": -1224194000,
       "channel": "main",
+      "is_mqtt_gateway": true,
+      "first_seen_us": 1736283723456789,
       "last_seen_us": 1736370123456789
     }
   ]
@@ -46,7 +90,7 @@ Response Example
 Returns packets with optional filters.
 
 Query Parameters
-- `packet_id` (optional, int): Return exactly one packet (overrides other filters).
+- `packet_id` (optional, decimal int): Return one packet by database row ID (overrides other filters).
 - `limit` (optional, int): Max packets to return, clamped 1-1000. Default: `50`.
 - `since` (optional, int): Only packets imported after this microsecond timestamp.
 - `portnum` (optional, int): Filter by port number.
@@ -61,14 +105,16 @@ Response Example
   "packets": [
     {
       "id": 123,
+      "storage_id": 123,
+      "packet_id": 3314808102,
       "import_time_us": 1736370123456789,
       "channel": "main",
       "from_node_id": 5678,
-      "to_node_id": 91011,
+      "to_node_id": 4294967295,
       "portnum": 1,
       "long_name": "Alice",
-      "payload": "Hello, Bob!",
-      "to_long_name": "Bob",
+      "payload": "Hello, mesh!",
+      "to_long_name": null,
       "reply_id": 122
     }
   ],
@@ -78,7 +124,21 @@ Response Example
 
 Notes
 - For `portnum=1` (text messages), packets are filtered to remove sequence-only payloads.
-- `latest_import_time` is returned when available for incremental polling (microseconds).
+- Results are newest first. `since` is strictly greater than the supplied timestamp.
+  Store `latest_import_time` for the next poll and deduplicate by `id`. A bounded
+  result can omit older records if more packets arrive than the requested limit;
+  this endpoint is not a durable cursor or backfill API.
+- `latest_import_time` is returned only when the list response has a positive import
+  timestamp; it is absent for empty results and single-packet lookups.
+- `packet_id` lookup returns `{"packets":[]}` with HTTP 200 when missing. Its objects
+  omit `to_long_name` and `reply_id`; nullable `portnum` is possible in this mode.
+- `contains` is case-insensitive. With `portnum=1`, matching is performed on decoded
+  displayed payload text (including redaction placeholders) after the database limit is applied, so fewer than `limit` results
+  may be returned. For other requests, it searches stored payload bytes cast to text;
+  this is not a general search over decoded protobuf fields.
+- Invalid `limit` falls back to 50. Invalid `since`, `portnum`, and node filters are
+  logged and ignored. Invalid single-packet IDs return HTTP 400; handler failures
+  return HTTP 500 with `{"error":"Failed to fetch packets"}`.
 
 ---
 
@@ -99,6 +159,10 @@ Response Example
 ```
 
 ---
+
+Errors: storage/period failures return HTTP 200 with `channels: []` and an `error`
+field. Non-integer `length` is parsed outside that handler and can return HTTP 500.
+Use a positive integer length and the literal `hour` or `day`.
 
 ## 4. Stats API
 
@@ -136,12 +200,25 @@ Response Example (`node` totals)
   "node_id": 12345678,
   "period_type": "hour",
   "length": 24,
-  "sent": 42,
-  "seen": 58
+  "sent": 0,
+  "seen": 0
 }
 ```
 
 ---
+
+The series response contains only buckets with records, ordered oldest first;
+missing hours/days are not filled with zeroes. Periods are UTC strings.
+
+Current `node`-mode limitation: the handler reads a `total` key that the statistics
+helper does not provide, so `sent` and `seen` currently return zero. It also uses
+recipient filtering for the second query, rather than gateway observations. This
+mode ignores the other filters. For usable sent/observation totals, request
+`/api/stats/count?from_node=1234&period_type=day&length=1` instead.
+
+Errors: HTTP 400 for an unsupported `period_type`, non-integer `length`, `node`,
+`portnum`, `from_node`, or `to_node`. Storage failures can return HTTP 500.
+Use a positive `length`; the handler does not impose a positive lower bound.
 
 ### GET `/api/stats/count`
 Returns total packet counts, optionally filtered.
@@ -163,6 +240,18 @@ Response Example
 ```
 
 ---
+
+Without filters, counts cover the whole retained database. With time, channel,
+or direction filters, omitted time settings default to `period_type=day&length=1`.
+`total_seen` counts observation rows for packets matching the packet import-time
+window, not distinct gateways. Channel matching is case-insensitive.
+
+`packet_id` applies only to `total_seen` and overrides its other filters: it counts
+all observations of that database packet ID. It does not narrow `total_packets`.
+In particular, `packet_id` alone leaves `total_packets` as the global packet total.
+
+Errors: HTTP 400 for non-integer ID/length filters. Unsupported `period_type` or
+storage failures can return HTTP 500; use `hour` or `day` and a positive length.
 
 ### GET `/api/stats/top`
 Returns nodes sorted by packets seen, with pagination.
@@ -196,6 +285,16 @@ Response Example
 
 ---
 
+`sent` counts packet records from each node; `seen` counts observation records for
+that sender's packets. `avg` is `round(seen / max(sent, 1), 2)`, not a distinct-gateway
+count. Windows are anchored to the newest packet and newest observation in the
+respective tables, not wall-clock time. Nodes with zero activity are included;
+`total` counts nodes matching the channel filter, not just active nodes.
+
+Channel matching is exact. Use positive `length` and `limit`, and a nonnegative
+`offset`. Only the upper limit of 100 is enforced. Invalid numeric strings can
+return HTTP 500; any `period_type` other than the literal `hour` is treated as days.
+
 ## 5. Edges API
 
 ### GET `/api/edges`
@@ -225,7 +324,12 @@ Response Example
 
 ---
 
-## 6. Config API
+Unknown `type` values return an empty edge list. Invalid `node_id` returns HTTP 400;
+storage failures can return HTTP 500. A missing node is not an error and normally
+returns an empty list. Neighbor edges come from the latest stored port-71 sample
+(the storage helper defaults to 50 packets), not the traceroute 12-hour window.
+
+## 6. Daily Snapshots and Configuration
 
 ### GET `/api/snapshots/daily`
 
@@ -241,6 +345,22 @@ import timestamps, not device timestamps. Older snapshots retain their originall
 counts and are not automatically converted. Counts depend on the packet and observation
 history still retained at capture time.
 
+Query Parameters
+
+- `length` (optional, int): Return the latest N snapshot records, clamped to 1-3650.
+  Omit for all stored snapshots. Results are always ordered by date ascending.
+  This is a record limit, not a guarantee of consecutive calendar dates.
+
+Response Example
+
+```json
+{"data":[{"date":"2026-10-24","node_count":143,"packet_count":28465,"gateway_count":17,"captured_at_us":1792886400000000}]}
+```
+
+No stored snapshots returns `{"data":[]}`. Invalid `length` returns HTTP 400;
+storage failures return HTTP 500. `captured_at_us` is the capture time, which may
+be later than the day summarized by `date`.
+
 ### GET `/api/config`
 Returns a safe subset of server configuration.
 
@@ -255,6 +375,13 @@ LongFast = #4363d8
 LocalChat = #18aa18
 ```
 
+No query parameters are supported. Only the `site`, MQTT server/topics, and cleanup
+fields shown here are exposed; credentials and the database connection string are
+not returned. Feature flags and cleanup booleans are lowercase strings (`"true"` /
+`"false"`), not JSON booleans. Cleanup scheduling values are strings; map bounds are
+numbers and refresh intervals are integers. The removed `starting` option is not
+returned: `/` always serves the dashboard. Handler failures return HTTP 500.
+
 Restart the web server and reload the map after changing these settings. Omitting
 the section uses generated colors for every channel.
 
@@ -266,7 +393,6 @@ Response Example
     "language": "en",
     "title": "Meshview",
     "message": "",
-    "starting": "/chat",
     "nodes": "true",
     "chat": "true",
     "everything": "true",
@@ -280,6 +406,7 @@ Response Example
     "map_bottom_right_lat": 36.0,
     "map_bottom_right_lon": -121.0,
     "map_interval": 3,
+    "map_channel_colors": {"LongFast":"#4363d8"},
     "firehose_interval": 3,
     "weekly_net_message": "Weekly Mesh check-in message.",
     "net_tag": "#BayMeshNet",
@@ -320,6 +447,10 @@ Response Example
 
 ---
 
+Unknown or invalid language codes fall back to the English file. An unknown section
+returns HTTP 404. The response has no wrapper: it is either the full translation
+object or the requested section. Translation-file failures can return HTTP 500.
+
 ## 8. Packets Seen API
 
 ### GET `/api/packets_seen/{packet_id}`
@@ -335,7 +466,7 @@ Response Example
     {
       "packet_id": 123,
       "node_id": 456,
-      "rx_time": "2025-07-22T12:45:00",
+      "rx_time": 1753188300,
       "hop_limit": 7,
       "hop_start": 0,
       "channel": "main",
@@ -349,6 +480,16 @@ Response Example
 ```
 
 ---
+
+`node_id` identifies the observing MQTT gateway. `rx_time` is the device-provided
+receive time in Unix seconds, while `import_time_us` is local import time
+in microseconds. Signal fields can be null. Multiple rows can describe the same
+gateway; consumers wanting unique gateways must deduplicate them. Hop count is
+usually `max(0, hop_start - hop_limit)` when both values are known. Observations
+do not by themselves prove a direct radio link from the sender to that gateway.
+
+No observations, including for an unknown packet, returns `{"seen":[]}` with HTTP
+200. Invalid path IDs return HTTP 400; handler failures return HTTP 500.
 
 ## 9. Traceroute API
 
@@ -408,6 +549,10 @@ Response Example
 ```
 
 ---
+
+`traceroute_packets` can be empty even when the packet exists. Unknown database
+packet IDs return HTTP 404. Invalid integer IDs and storage failures can return
+HTTP 500; this handler does not implement a separate HTTP 400 validation branch.
 
 ## 10. Health API
 
@@ -472,6 +617,15 @@ Response Example
 
 ---
 
+No query parameters. HTTP 200 reports `status: "healthy"` with database connectivity.
+A database failure returns HTTP 503 with `status: "unhealthy"` and
+`database: "disconnected"`. `seconds_since_last_message` is included only when a
+latest imported packet exists; SQLite size fields appear only when available.
+Cleanup and backup reports include configured schedules and status-file contents
+when present. Their status may be `disabled`, `unknown`, `error`, or the last job's
+recorded status; a failed backup/cleanup does not itself change the top-level HTTP
+status. The optional `last_run` objects depend on the job's stored report.
+
 ## 11. Version API
 
 ### GET `/version`
@@ -486,3 +640,101 @@ Response Example
   "git_revision_short": "abc1234"
 }
 ```
+
+No query parameters. HTTP 500 with an `error` field if version metadata cannot be
+retrieved. A revision may be `unknown` if Git metadata is unavailable.
+
+## 12. Node Contact URL
+
+### GET `/api/node/{node_id}/qr`
+
+Returns a Meshtastic shared-contact URL as JSON, not a PNG or SVG image. The client
+can encode `meshtastic_url` in a QR code. No query parameters are supported.
+
+Path Parameters
+
+- `node_id` (required, int): Node number in decimal or `0x` hexadecimal form.
+
+Response Example
+
+```json
+{
+  "node_id":1234,
+  "long_name":"Alice",
+  "short_name":"A",
+  "role":"CLIENT",
+  "meshtastic_url":"https://meshtastic.org/v/#BASE64URL_CONTACT"
+}
+```
+
+The example contact payload is a placeholder, not an importable contact. The URL
+encodes node identity and available user metadata as a base64url SharedContact
+protobuf, with `manually_verified` false. Metadata can be null.
+
+Errors: HTTP 400 for invalid IDs; HTTP 404 when the node is absent; HTTP 500 for
+contact serialization failures or unhandled storage errors.
+
+## 13. Predicted Radio Coverage
+
+### GET `/api/coverage/{node_id}`
+
+Computes an ITM area-model prediction centered on the node's last stored position.
+This is a model prediction, not a measured coverage boundary or terrain profile.
+The optional `pyitm` dependency is required. Calculations run off the event loop
+and reuse cached model results. All parameters are optional except the node ID.
+
+Path Parameters
+
+- `node_id` (required, int): Node number in decimal or `0x` hexadecimal form.
+
+Query Parameters
+
+- `mode` (string, default `perimeter`): `perimeter` or `heatmap`. Currently every
+  value other than the exact string `perimeter` selects the heatmap branch.
+- `freq_mhz` (number, default `907`): Frequency in MHz; range 1-10000.
+- `tx_dbm` (number, default `20`): Transmit power in dBm; range -50 to 60.
+- `tx_height_m` (number, default `5`): Transmit antenna height in meters; range 0-1000.
+- `rx_height_m` (number, default `1.5`): Receive antenna height in meters; range 0-1000.
+- `radius_km` (number, default `40`): Maximum distance in kilometers; range 1-200.
+- `step_km` (number, default `0.25`): Radial sample spacing in kilometers; range 0.05-50.
+- `reliability` (number, default `0.5`): ITM time fraction; range 0.01-0.99.
+- `threshold_dbm` (number, default `-120`): Perimeter received-power threshold in dBm;
+  range -200 to 0. Ignored by heatmap computation, although still validated.
+
+Numeric bounds are inclusive, values must be finite, and `radius_km / step_km`
+must not exceed 4000. Smaller steps increase computation cost.
+
+Response Example (`mode=perimeter`)
+
+```json
+{
+  "mode":"perimeter",
+  "threshold_dbm":-120.0,
+  "perimeter":[[30.21,-93.20],[30.209,-93.198]]
+}
+```
+
+`perimeter` contains `[latitude, longitude]` degree pairs for the furthest qualifying
+sample on each modeled bearing. Bearings with no qualifying sample are omitted;
+the list is not necessarily a closed GeoJSON polygon.
+
+Response Example (`mode=heatmap`)
+
+```json
+{
+  "mode":"heatmap",
+  "min_dbm":-130.0,
+  "max_dbm":-80.0,
+  "points":[[30.21,-93.20,-110.5]]
+}
+```
+
+`points` contains `[latitude, longitude, received_power_dbm]` triples. Min/max values
+provide a color-scale range, extended from the defaults to include computed values.
+An empty perimeter or point list is a valid result when no samples qualify.
+
+Errors: HTTP 400 for invalid IDs, nonnumeric/nonfinite/out-of-range parameters, or
+an excessive radius/step ratio; HTTP 404 for an unknown node or missing/zero-valued
+stored coordinates; HTTP 503 when `pyitm` is unavailable. Dependency availability is checked
+before numeric query validation and node lookup. Unexpected model/storage failures
+can return HTTP 500.
