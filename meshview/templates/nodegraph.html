@@ -9,8 +9,8 @@
 #mynetwork {
     width: 100%;
     height: 100vh;
-    border: 1px solid #ddd;
-    background-color: #f8f9fa;
+    border: 1px solid var(--mesh-border);
+    background-color: var(--mesh-surface);
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
@@ -30,15 +30,15 @@
 .search-container button {
     padding: 8px;
     border-radius: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--mesh-border);
 }
 .search-container button {
-    background-color: var(--mesh-primary);
+    background-color: var(--mesh-brand);
     color: white;
     cursor: pointer;
 }
 .search-container button:hover {
-    background-color: var(--mesh-primary-dark);
+    background-color: var(--mesh-brand-deep);
 }
 
 /* Node info box */
@@ -49,10 +49,10 @@
     background-color: rgba(255,255,255,0.95);
     padding: 12px;
     border-radius: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--mesh-border);
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     font-size: 14px;
-    color: #333;
+    color: var(--mesh-text);
     width: 260px;
     max-height: 250px;
     overflow-y: auto;
@@ -66,11 +66,13 @@
     background: rgba(255,255,255,0.9);
     padding: 10px;
     border-radius: 5px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--mesh-border);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     font-size: 14px;
     display: flex;
-    color: #333;
+    flex-wrap: wrap;
+    max-width: calc(100% - 20px);
+    color: var(--mesh-text);
 }
 .legend-category {
     margin-right: 10px;
@@ -91,7 +93,7 @@
 
 <!-- SEARCH + FILTER -->
 <div class="search-container">
-    <label style="color:#333;">Channel:</label>
+    <label style="color:var(--mesh-text);">Channel:</label>
     <select id="channel-select" onchange="filterByChannel()"></select>
 
     <input type="text" id="node-search" placeholder="Search node...">
@@ -131,7 +133,7 @@
 
 <script>
 // Initialize ECharts
-const chart = echarts.init(document.getElementById("mynetwork"));
+const chart = initMeshChart(document.getElementById("mynetwork"));
 
 // -----------------------------------
 // COLOR + ROLE HELPERS

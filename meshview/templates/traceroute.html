@@ -9,14 +9,14 @@
 {% block css %}
 {% include "data-page-styles.html" %}
 <style>
-#traceroute-graph-wrap { position:relative; background:white; border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
+#traceroute-graph-wrap { position:relative; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
 #traceroute-graph { width:100%; height:clamp(460px,calc(100dvh - 280px),900px); }
-#traceroute-legend { position:absolute; right:16px; bottom:16px; z-index:2; display:grid; gap:9px; padding:14px 16px; color:#54647a; background:#fffffff2; border:1px solid var(--mesh-border); border-radius:7px; font-size:12px; box-shadow:0 2px 8px #17263c08; pointer-events:none; }
+#traceroute-legend { position:absolute; right:16px; bottom:16px; z-index:2; display:grid; gap:9px; padding:14px 16px; color:var(--mesh-muted); background:#fffffff2; border:1px solid var(--mesh-border); border-radius:7px; font-size:12px; box-shadow:0 2px 8px #17263c08; pointer-events:none; }
 .traceroute-legend-row { display:grid; grid-template-columns:34px auto; align-items:center; gap:10px; }
 .traceroute-legend-line { height:0; border-top:3px solid var(--line-color); }
 .traceroute-legend-line.muted { border-top-width:2px; opacity:.55; }
 .traceroute-legend-line.dashed { border-top-style:dashed; }
-#traceroute-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:14px 18px; border:1px solid var(--mesh-border); border-radius:9px; background:white; margin-bottom:18px; color:#64748b; font-size:13px; }
+#traceroute-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:14px 18px; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); margin-bottom:18px; color:var(--mesh-muted); font-size:13px; }
 #traceroute-title { color:var(--mesh-primary); font-weight:600; }
 #traceroute-error { color:#b23d2f; }
 .traceroute-help { margin-left:auto; font-size:12px; }
@@ -51,7 +51,7 @@
 
 <script>
 const el = document.getElementById("traceroute-graph");
-const chart = echarts.init(el);
+const chart = initMeshChart(el);
 
 function packetIdFromPath() {
     const parts = window.location.pathname.split("/").filter(Boolean);

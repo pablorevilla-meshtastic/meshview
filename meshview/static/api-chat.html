@@ -5,15 +5,90 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Meshview Chat API</title>
 <link rel="icon" type="image/svg+xml" href="/static/meshview-icon.svg">
+<script src="/static/theme.js"></script>
 <style>
 body { margin:0; background:#f5f9f6; color:#243247; font:15px/1.7 system-ui,sans-serif; }
-main { max-width:760px; margin:40px auto; padding:24px; background:white; border:1px solid #dce7df; border-radius:9px; }
-h1 { color:#187346; font-size:24px; } a { color:#187346; }
-code { background:#eaf5ee; padding:3px 6px; border-radius:4px; overflow-wrap:anywhere; }
+main { max-width:760px; margin:40px auto; padding:24px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
+h1 { color:var(--mesh-primary); font-size:24px; } a { color:var(--mesh-primary); }
+code { background:var(--mesh-soft); padding:3px 6px; border-radius:4px; overflow-wrap:anywhere; }
 @media(max-width:700px) { main { margin:16px; padding:18px; } }
 </style>
+<!-- mesh-theme:start -->
+<style>
+:root {
+    color-scheme:light;
+    --mesh-primary:#187346;
+    --mesh-primary-dark:#0f5132;
+    --mesh-primary-rgb:24,115,70;
+    --mesh-brand:#187346;
+    --mesh-brand-deep:#0f5132;
+    --mesh-surface:#ffffff;
+    --mesh-text:#243247;
+    --mesh-soft:#eaf5ee;
+    --mesh-hover:#dceee2;
+    --mesh-border:#dce7df;
+    --mesh-page:#f5f9f6;
+    --mesh-stripe:#f7faf8;
+    --mesh-muted:#64748b;
+    --mesh-chat-stripe:#eef6f0;
+    --mesh-pulse-soft:#edf8f0;
+    --mesh-pulse-peak:#ccebd7;
+    --mesh-pulse-mid:#e2f3e8;
+}
+[data-bs-theme="dark"] {
+    color-scheme:dark;
+    --mesh-primary:#80cfa3;
+    --mesh-primary-dark:#a3e3be;
+    --mesh-primary-rgb:128,207,163;
+    --mesh-brand:#14532d;
+    --mesh-brand-deep:#0c3a1f;
+    --mesh-surface:#18231e;
+    --mesh-text:#e2ece5;
+    --mesh-soft:#203c2b;
+    --mesh-hover:#294c36;
+    --mesh-border:#34483c;
+    --mesh-page:#101914;
+    --mesh-stripe:#1c2a22;
+    --mesh-muted:#9faea6;
+    --mesh-chat-stripe:#203227;
+    --mesh-pulse-soft:#203c2b;
+    --mesh-pulse-peak:#356b49;
+    --mesh-pulse-mid:#294c36;
+    --bs-link-color:var(--mesh-primary);
+    --bs-link-color-rgb:var(--mesh-primary-rgb);
+    --bs-link-hover-color:var(--mesh-primary-dark);
+    --bs-link-hover-color-rgb:163,227,190;
+}
+body { background:var(--mesh-page); color:var(--mesh-text); }
+.mesh-theme-toggle { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #ffffff70; border-radius:6px; background:transparent; color:white; font:22px/1 system-ui,sans-serif; cursor:pointer; }
+.mesh-header .mesh-theme-toggle { margin-left:auto; }
+.mesh-theme-toggle:hover { background:#ffffff20; }
+.mesh-theme-toggle:focus-visible { outline:2px solid white; outline-offset:3px; }
+@media(max-width:1000px) { .mesh-header .mesh-menu-toggle { margin-left:auto; } .mesh-header .mesh-theme-toggle { margin-left:12px; } .mesh-header #site-menu { order:4; } }
+[data-bs-theme="dark"] :is(.chat-status,.chat-details,.chat-channel,.chat-status[data-state="paused"],.chat-status[data-state="loading"],.good-x) { background:var(--mesh-soft); color:var(--mesh-primary); border-color:var(--mesh-border); }
+[data-bs-theme="dark"] :is(.chat-status[data-state="error"],.bad-x) { background:#472a24; color:#ffb4a6; }
+[data-bs-theme="dark"] .ok-x { background:#453820; color:#f1d38a; }
+[data-bs-theme="dark"] .chat-details:hover { background:var(--mesh-hover); color:var(--mesh-primary-dark); }
+[data-bs-theme="dark"] .chat-nick { filter:brightness(1.4) saturate(.8); }
+[data-bs-theme="dark"] :is(.summary-card:nth-child(2) .summary-count,.summary-card:nth-child(3) .summary-count,.summary-card:nth-child(4) .summary-count,.mesh-metric:nth-child(2) strong,.mesh-metric:nth-child(3) strong,.reach-metric:nth-child(2) .reach-metric-value) { color:var(--mesh-primary); }
+[data-bs-theme="dark"] :is(.reliability-status-heard) { color:#8fd7aa!important; }
+[data-bs-theme="dark"] .reliability-status-missed { color:#ffb4a6!important; }
+[data-bs-theme="dark"] .reach-count-bar-value span { color:#17263c; }
+[data-bs-theme="dark"] .leaflet-tile-pane { filter:invert(1) hue-rotate(180deg) brightness(.85) saturate(.75); }
+[data-bs-theme="dark"] :is(.leaflet-container,.leaflet-control-layers,.leaflet-bar a,.leaflet-popup-content-wrapper,.leaflet-popup-tip,.leaflet-tooltip,.leaflet-control-attribution,.leaflet-control-scale-line,#unmapped-packets,#legend,#node-info,.legend) { background:var(--mesh-surface); color:var(--mesh-text); border-color:var(--mesh-border); }
+[data-bs-theme="dark"] :is(.leaflet-control-layers label,.leaflet-popup-close-button,#unmapped-packets h3,.unmapped-node,.blinking-tooltip,.legend) { color:var(--mesh-text); }
+[data-bs-theme="dark"] :is(.leaflet-bar a:hover,.leaflet-control-layers-expanded) { background:var(--mesh-stripe); }
+[data-bs-theme="dark"] :is(.unmapped-empty,.reach-muted) { color:var(--mesh-muted); }
+[data-bs-theme="dark"] :is(.source-marker,.reach-map-marker) { color:white; }
+[data-bs-theme="dark"] .qr-image { background:white; }
+[data-bs-theme="dark"] :is(#traceroute-error,#map-load-status,.text-danger) { color:#ffb4a6; }
+[data-bs-theme="dark"] .reach-count-bar-track { background:var(--mesh-soft); }
+</style>
+
+<!-- mesh-theme:end -->
 </head>
-<body><main>
+<body>
+<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#187346" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false">☾</button><main>
 <h1>Chat messages API</h1>
 <p>Chat uses <code>GET /api/packets?portnum=1</code>. There is no separate <code>/api/chat</code> endpoint.</p>
 <p>Use <code>limit</code> and <code>since</code> for incremental polling. Direct port-1 text messages are returned as <code>&lt;redacted&gt;</code>.</p>

@@ -12,20 +12,20 @@
 {% include "data-page-styles.html" %}
 <style>
 .mesh-data-page .packet-container { max-width:1150px!important; margin:0 auto!important; }
-.packet-card { background:white; border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; color:#334155; }
+.packet-card { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; color:var(--mesh-text); }
 .packet-card .card-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background:var(--mesh-soft); padding:18px 22px; border-bottom:1px solid var(--mesh-border); color:var(--mesh-primary-dark); font-size:15px; font-weight:600; }
 .packet-card .card-header small { font-size:11px; font-weight:400; }
 .packet-card .card-body { padding:24px; }
 .packet-card dl { display:grid; grid-template-columns:180px minmax(0,1fr); gap:16px 24px; margin:0; font-size:13px; }
-.packet-card dt { color:#64748b; font-weight:500; }
+.packet-card dt { color:var(--mesh-muted); font-weight:500; }
 .packet-card dd { margin:0; overflow-wrap:anywhere; }
-.packet-card pre { padding:14px; background:var(--mesh-stripe); border:1px solid #e5ebf3; border-radius:6px; color:#334155; font-size:12px; white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
+.packet-card pre { padding:14px; background:var(--mesh-stripe); border:1px solid var(--mesh-border); border-radius:6px; color:var(--mesh-text); font-size:12px; white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
 #map { display:none; }
 .source-marker { width:24px; height:24px; background:#f4484866; border:3px solid #e33; border-radius:50%; box-shadow:0 0 6px #f007; }
-#seen-container { background:white; border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
-#seen-container h5 { padding:16px 20px; margin:0!important; color:#334155; font-size:15px; }
+#seen-container { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
+#seen-container h5 { padding:16px 20px; margin:0!important; color:var(--mesh-text); font-size:15px; }
 .seen-table { margin:0; }
-#loading { color:#64748b; padding:24px; background:white; border:1px solid var(--mesh-border); border-radius:9px; }
+#loading { color:var(--mesh-muted); padding:24px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
 @media(max-width:700px) { .packet-card dl { grid-template-columns:minmax(0,1fr); gap:6px; } .packet-card dd { margin-bottom:14px; } .packet-card .card-body { padding:18px; } }
 </style>
 {% endblock %}

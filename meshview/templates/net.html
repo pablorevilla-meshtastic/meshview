@@ -7,18 +7,18 @@
 <style>
 #weekly-message { padding:18px 22px; background:var(--mesh-soft); border:1px solid var(--mesh-border); border-radius:9px; color:var(--mesh-primary-dark); font-size:14px; margin-bottom:18px; white-space:pre-wrap; overflow-wrap:anywhere; }
 #weekly-message:empty { display:none; }
-#total-count { padding:16px 20px; color:#64748b; background:white; border:1px solid var(--mesh-border); border-radius:9px 9px 0 0; font-size:13px; }
+#total-count { padding:16px 20px; color:var(--mesh-muted); background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px 9px 0 0; font-size:13px; }
 #total-count-value { font-size:20px; font-weight:650; color:var(--mesh-primary); margin-left:8px; }
 #chat-log { padding:0; }
-#chat-container { border:1px solid var(--mesh-border); border-top:0; border-radius:0 0 9px 9px; background:white; overflow:hidden; }
-.chat-packet { display:grid; grid-template-columns:155px 130px 200px minmax(0,1fr); gap:16px; margin:0; padding:16px 20px; border-bottom:1px solid #edf1f6; font-size:13px; }
+#chat-container { border:1px solid var(--mesh-border); border-top:0; border-radius:0 0 9px 9px; background:var(--mesh-surface); overflow:hidden; }
+.chat-packet { display:grid; grid-template-columns:155px 130px 200px minmax(0,1fr); gap:16px; margin:0; padding:16px 20px; border-bottom:1px solid var(--mesh-border); font-size:13px; }
 .chat-packet:nth-child(even) { background:var(--mesh-stripe); }
 .chat-packet > span { width:auto; padding:0; min-width:0; overflow-wrap:anywhere; }
-.chat-packet .timestamp { color:#8190a5; font-size:11px; }
-.chat-packet .channel { color:#64748b; font-size:12px; }
+.chat-packet .timestamp { color:var(--mesh-muted); font-size:11px; }
+.chat-packet .channel { color:var(--mesh-muted); font-size:12px; }
 .chat-packet .nodename { font-weight:600; }
 .chat-packet a { text-decoration:none; }
-#net-note { color:#64748b; font-size:12px; margin-top:14px; }
+#net-note { color:var(--mesh-muted); font-size:12px; margin-top:14px; }
 @media(max-width:900px) { .chat-packet { grid-template-columns:120px 100px minmax(0,1fr); } .chat-packet .message { grid-column:1 / -1; } }
 @media(max-width:500px) { .chat-packet { grid-template-columns:1fr 1fr; gap:8px; } .chat-packet .nodename { grid-column:1 / -1; } }
 </style>

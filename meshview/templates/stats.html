@@ -7,19 +7,19 @@
 <style>
 .main-container { width:100%; }
 .summary-container { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-bottom:24px; }
-.summary-card { padding:20px 24px; background:white; border:1px solid var(--mesh-border); border-radius:9px; min-width:0; }
-.summary-card p { color:#64748b; font-size:13px; margin:0 0 8px; }
+.summary-card { padding:20px 24px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; min-width:0; }
+.summary-card p { color:var(--mesh-muted); font-size:13px; margin:0 0 8px; }
 .summary-count { font-size:30px; font-weight:650; color:var(--mesh-primary); font-variant-numeric:tabular-nums; }
 .summary-card:nth-child(2) .summary-count { color:#198754; }
 .summary-card:nth-child(3) .summary-count { color:#236b4b; }
 .summary-card:nth-child(4) .summary-count { color:#497b55; }
 .stats-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
-.card-section { min-width:0; display:flex; align-items:center; align-content:flex-start; flex-wrap:wrap; gap:10px; padding:20px; background:white; border:1px solid var(--mesh-border); border-radius:9px; }
-.section-header { width:100%; font-size:15px; font-weight:600; color:#334155; padding-bottom:14px; margin:0 0 2px; border-bottom:1px solid #edf1f6; }
-.total-count { font-size:12px; color:#64748b; margin-right:auto; }
+.card-section { min-width:0; display:flex; align-items:center; align-content:flex-start; flex-wrap:wrap; gap:10px; padding:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
+.section-header { width:100%; font-size:15px; font-weight:600; color:var(--mesh-text); padding-bottom:14px; margin:0 0 2px; border-bottom:1px solid var(--mesh-border); }
+.total-count { font-size:12px; color:var(--mesh-muted); margin-right:auto; }
 .chart { width:100%; min-width:0; height:340px; margin-top:8px; }
 #chartModal { display:none; position:fixed; inset:0; background:#17263c99; z-index:9999; justify-content:center; align-items:center; padding:16px; }
-#chartModal > div { position:relative; width:95%; max-width:1200px; height:85%; background:white; border-radius:10px; padding:48px 16px 16px; display:flex; flex-direction:column; }
+#chartModal > div { position:relative; width:95%; max-width:1200px; height:85%; background:var(--mesh-surface); border-radius:10px; padding:48px 16px 16px; display:flex; flex-direction:column; }
 #chartModal #closeModal { position:absolute; top:10px; right:12px; font-size:22px; padding:0; width:32px; height:32px; line-height:1; }
 #modalChart { flex:1; min-height:0; width:100%; }
 @media(max-width:1000px) { .stats-chart-grid { grid-template-columns:minmax(0,1fr); } }
@@ -292,7 +292,7 @@ function filterSnapshotsByRange(data, rangeValue){
 function renderChart(domId,data,type,color){
     const el=document.getElementById(domId);
     if(!el) return;
-    const chart=echarts.init(el);
+    const chart=initMeshChart(el);
     const periods=data.map(d=>(d.period??d.period===0)?d.period.toString():'');
     const counts=data.map(d=>d.count??d.packet_count??0);
     chart.setOption({
@@ -324,7 +324,7 @@ function renderChart(domId,data,type,color){
 function renderPieChart(elId,data,name){
     const el=document.getElementById(elId);
     if(!el) return;
-    const chart=echarts.init(el);
+    const chart=initMeshChart(el);
     const top20=prepareTopN(data,20);
     chart.setOption({
         backgroundColor:"#ffffff",
@@ -395,7 +395,7 @@ function makeTelemetryLine(name, color, seriesData) {
 function renderDailySnapshotPacketsChart(domId,data){
     const el=document.getElementById(domId);
     if(!el) return;
-    const chart=echarts.getInstanceByDom(el) || echarts.init(el);
+    const chart=echarts.getInstanceByDom(el) || initMeshChart(el);
     const labels=data.map(d=>d.date||"");
     const packetCounts=data.map(d=>d.packet_count??0);
 
@@ -428,7 +428,7 @@ function renderDailySnapshotPacketsChart(domId,data){
 function renderDailySnapshotNodesGatewaysChart(domId,data){
     const el=document.getElementById(domId);
     if(!el) return;
-    const chart=echarts.getInstanceByDom(el) || echarts.init(el);
+    const chart=echarts.getInstanceByDom(el) || initMeshChart(el);
     const labels=data.map(d=>d.date||"");
     const nodeCounts=data.map(d=>d.node_count??0);
     const gatewayCounts=data.map(d=>d.gateway_count??0);
@@ -620,7 +620,7 @@ document.querySelectorAll(".expand-btn").forEach(btn=>{
         const sourceChart=echarts.getInstanceByDom(document.getElementById(chartId));
         if(!sourceChart)return;
         modal.style.display="flex";
-        modalChart=echarts.init(modalChartEl);
+        modalChart=initMeshChart(modalChartEl);
         modalChart.setOption(sourceChart.getOption());
     });
 });

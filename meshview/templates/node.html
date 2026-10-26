@@ -6,24 +6,24 @@
 {% include "data-page-styles.html" %}
 <style>
 .node-info { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-bottom:20px; font-size:13px; }
-.node-info-col { background:white; border:1px solid var(--mesh-border); border-radius:9px; padding:20px; overflow-wrap:anywhere; }
+.node-info-col { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:20px; overflow-wrap:anywhere; }
 .node-info-col > div { padding:5px 0; }
-.node-info strong { color:#64748b; font-weight:500; }
+.node-info strong { color:var(--mesh-muted); font-weight:500; }
 .node-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
-.chart-container { width:100%; background:white; border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:20px; overflow:hidden; }
+.chart-container { width:100%; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:20px; overflow:hidden; }
 .chart-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:16px 20px; border-bottom:1px solid var(--mesh-border); font-size:14px; font-weight:600; }
 .chart-actions { display:flex; gap:6px; }
-.filter-container { display:flex; gap:10px; flex-wrap:wrap; padding:16px; background:white; border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:18px; }
+.filter-container { display:flex; gap:10px; flex-wrap:wrap; padding:16px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:18px; }
 #chartModal,#qrModal { display:none; position:fixed; inset:0; background:#17263c99; z-index:9999; align-items:center; justify-content:center; padding:16px; }
-#chartModal > div { background:white; border-radius:10px; width:95%; height:85%; padding:14px; }
-#qrModal > div { background:white; border:1px solid var(--mesh-border); border-radius:12px; padding:24px; width:380px; max-width:100%; text-align:center; }
+#chartModal > div { background:var(--mesh-surface); border-radius:10px; width:95%; height:85%; padding:14px; }
+#qrModal > div { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:12px; padding:24px; width:380px; max-width:100%; text-align:center; }
 .qr-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
 .qr-title { font-size:18px; margin:0; }
 .qr-node-name { font-size:15px; margin:16px 0; overflow-wrap:anywhere; }
-.qr-image { display:inline-block; padding:16px; background:white; margin-bottom:14px; }
+.qr-image { display:inline-block; padding:16px; background:var(--mesh-surface); margin-bottom:14px; }
 .qr-image img,.qr-image canvas { max-width:100%; }
 .qr-url-container { border:1px solid var(--mesh-border); border-radius:6px; background:var(--mesh-page); padding:12px; margin-bottom:16px; }
-.qr-url { display:block; max-height:80px; overflow:auto; overflow-wrap:anywhere; font:11px/1.6 monospace; color:#64748b; }
+.qr-url { display:block; max-height:80px; overflow:auto; overflow-wrap:anywhere; font:11px/1.6 monospace; color:var(--mesh-muted); }
 .qr-actions { display:flex; justify-content:center; }
 .mesh-data-page .copied { background:#e8f5ee; color:#187346; }
 @media(max-width:900px) { .node-info { grid-template-columns:minmax(0,1fr); gap:10px; } }
@@ -197,7 +197,7 @@
 <div id="chartModal">
     <div>
         <div style="text-align:right;">
-            <button onclick="closeModal()" style="background:none;border:none;color:#64748b;">✖</button>
+            <button onclick="closeModal()" style="background:none;border:none;color:var(--mesh-muted);">✖</button>
         </div>
         <div id="modalChart" style="width:100%; height:90%;"></div>
     </div>
@@ -934,7 +934,7 @@ async function loadTelemetryCharts(){
     // Battery / Voltage chart
     if (hasBattery || hasVoltage) {
         batteryContainer.style.display = "block";
-        chart1 = echarts.init(document.getElementById('chart_battery_voltage'));
+        chart1 = initMeshChart(document.getElementById('chart_battery_voltage'));
         chart1.setOption({
             tooltip: { trigger:'axis' },
             legend: { data:['Battery Level','Voltage'], textStyle:{ color:'#64748b' } },
@@ -955,7 +955,7 @@ async function loadTelemetryCharts(){
     // Air / Channel chart
     if (hasAir || hasChan) {
         airContainer.style.display = "block";
-        chart2 = echarts.init(document.getElementById('chart_air_channel'));
+        chart2 = initMeshChart(document.getElementById('chart_air_channel'));
         chart2.setOption({
             tooltip: { trigger:'axis' },
             legend: { data:['Air Util Tx','Channel Utilization'], textStyle:{ color:'#64748b' } },
@@ -973,7 +973,7 @@ async function loadTelemetryCharts(){
     // Environment chart
     if (hasEnv) {
         envContainer.style.display = "block";
-        chart3 = echarts.init(document.getElementById('chart_environment'));
+        chart3 = initMeshChart(document.getElementById('chart_environment'));
         chart3.setOption({
             tooltip: { trigger:'axis' },
             legend: { data:['Temperature (°C)','Humidity (%)','Pressure (hPa)'], textStyle:{ color:'#64748b' } },
@@ -1170,7 +1170,7 @@ async function loadNeighborTimeSeries() {
         .replace("{n}",     kept.length)
         .replace("{total}", ranked.length);
 
-    const chart = echarts.init(chartEl);
+    const chart = initMeshChart(chartEl);
 
     chart.setOption({
         title: {
@@ -1291,7 +1291,7 @@ async function loadPacketHistogram() {
             data: dayKeys.map(d => counts[port]?.[d] || 0)
         }));
 
-    const chart = echarts.init(
+    const chart = initMeshChart(
         document.getElementById("chart_packet_histogram")
     );
 
@@ -1327,7 +1327,7 @@ function expandChart(type){
     if (!sourceChart) return;
 
     const modal = document.getElementById('chartModal');
-    const modalChart = echarts.init(document.getElementById('modalChart'));
+    const modalChart = initMeshChart(document.getElementById('modalChart'));
     modal.style.display = "flex";
     modalChart.setOption(sourceChart.getOption());
     modalChart.resize();

@@ -3,33 +3,33 @@
 .mesh-data-page .mesh-content > .container { max-width:none; padding:0; }
 .mesh-data-page .data-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px; }
 .mesh-data-page .data-heading h1 { font-size:28px; font-weight:650; margin:5px 0 7px; overflow-wrap:anywhere; }
-.mesh-data-page .data-heading p { margin:0; color:#64748b; font-size:14px; }
+.mesh-data-page .data-heading p { margin:0; color:var(--mesh-muted); font-size:14px; }
 .mesh-data-page .data-heading a { white-space:nowrap; }
-.mesh-data-page .data-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:10px; background:white; border:1px solid var(--mesh-border); padding:16px; border-radius:9px; margin:0 0 18px; }
-.mesh-data-page select,.mesh-data-page input[type="text"],.mesh-data-page input[type="search"] { min-width:0; max-width:100%; padding:8px 10px; border:1px solid #d5deea; border-radius:5px; background:white; color:#334155; font-size:13px; }
-.mesh-data-page .mesh-content button { border:1px solid #d5deea; border-radius:5px; background:var(--mesh-soft); color:var(--mesh-primary); padding:8px 12px; font-size:12px; cursor:pointer; }
+.mesh-data-page .data-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:10px; background:var(--mesh-surface); border:1px solid var(--mesh-border); padding:16px; border-radius:9px; margin:0 0 18px; }
+.mesh-data-page select,.mesh-data-page input[type="text"],.mesh-data-page input[type="search"] { min-width:0; max-width:100%; padding:8px 10px; border:1px solid var(--mesh-border); border-radius:5px; background:var(--mesh-surface); color:var(--mesh-text); font-size:13px; }
+.mesh-data-page .mesh-content button { border:1px solid var(--mesh-border); border-radius:5px; background:var(--mesh-soft); color:var(--mesh-primary); padding:8px 12px; font-size:12px; cursor:pointer; }
 .mesh-data-page .mesh-content button:hover { background:var(--mesh-hover); }
 .mesh-data-page .mesh-content button:disabled { opacity:.5; cursor:default; }
 .mesh-data-page :is(button,a,input,select):focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
-.mesh-data-page .data-table-wrap { width:100%; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:white; margin-bottom:20px; }
-.mesh-data-page table { width:100%; border-collapse:collapse; font-size:13px; margin:0; color:#334155; }
-.mesh-data-page table th { padding:12px 14px; background:var(--mesh-primary); color:white; border:0; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
-.mesh-data-page table td { padding:11px 14px; border:0; border-bottom:1px solid #edf1f6; text-align:left; }
-.mesh-data-page table tbody tr { background:white; }
+.mesh-data-page .data-table-wrap { width:100%; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); margin-bottom:20px; }
+.mesh-data-page table { width:100%; border-collapse:collapse; font-size:13px; margin:0; color:var(--mesh-text); }
+.mesh-data-page table th { padding:12px 14px; background:var(--mesh-brand); color:white; border:0; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
+.mesh-data-page table td { padding:11px 14px; border:0; border-bottom:1px solid var(--mesh-border); text-align:left; }
+.mesh-data-page table tbody tr { background:var(--mesh-surface); }
 .mesh-data-page table tbody tr:nth-child(even) { background:var(--mesh-stripe); }
 .mesh-data-page table tbody tr:hover { background:var(--mesh-hover); }
 .mesh-data-page table a { text-decoration:none; }
 .mesh-data-page table a:hover { text-decoration:underline; }
 .mesh-data-page .port-tag { display:inline-block; padding:3px 7px; border-radius:5px; color:white; font-size:10px; font-weight:500; white-space:nowrap; }
-.mesh-data-page .to-mqtt { color:#64748b; font-size:12px; font-style:italic; }
+.mesh-data-page .to-mqtt { color:var(--mesh-muted); font-size:12px; font-style:italic; }
 .mesh-data-page .payload-row { display:none; }
 .mesh-data-page .packet-table tr.expanded + .payload-row { display:table-row; }
-.mesh-data-page .payload-cell { font:12px/1.7 ui-monospace,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; background:var(--mesh-soft); color:#334155; }
-.mesh-data-page .toggle-btn { cursor:pointer; color:#64748b; display:inline-block; margin-right:7px; }
+.mesh-data-page .payload-cell { font:12px/1.7 ui-monospace,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; background:var(--mesh-soft); color:var(--mesh-text); }
+.mesh-data-page .toggle-btn { cursor:pointer; color:var(--mesh-muted); display:inline-block; margin-right:7px; }
 .mesh-data-page .inline-link { margin-left:6px; color:var(--mesh-primary); text-decoration:none; }
-.mesh-data-page #map { width:100%; height:650px; border:1px solid #dce4ef; border-radius:9px; margin:18px 0 24px; }
-.mesh-data-page .leaflet-container { background:#edf1f5; z-index:1; }
-.mesh-data-page .data-empty { padding:30px 16px; text-align:center; color:#64748b; }
+.mesh-data-page #map { width:100%; height:650px; border:1px solid var(--mesh-border); border-radius:9px; margin:18px 0 24px; }
+.mesh-data-page .leaflet-container { background:var(--mesh-stripe); z-index:1; }
+.mesh-data-page .data-empty { padding:30px 16px; text-align:center; color:var(--mesh-muted); }
 @media(max-width:700px) {
     .mesh-data-page .data-heading { align-items:flex-start; gap:10px; }
     .mesh-data-page .data-heading h1 { font-size:23px; }

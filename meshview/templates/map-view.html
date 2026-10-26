@@ -4,7 +4,7 @@
 
 {% block css %}
 <style>
-    .legend { background:white;padding:8px;line-height:1.5;border-radius:5px;box-shadow:0 0 10px rgba(0,0,0,0.3);font-size:14px;color:black; }
+    .legend { background:var(--mesh-surface);padding:8px;line-height:1.5;border-radius:5px;box-shadow:0 0 10px rgba(0,0,0,0.3);font-size:14px;color:var(--mesh-text); }
     .legend i { width:12px;height:12px;display:inline-block;margin-right:6px;border-radius:50%; }
 
     #filter-container { text-align:center;margin-top:10px; }
@@ -23,8 +23,8 @@
     #reset-filters-button:active { background-color:#c41e0d; }
 
     .blinking-tooltip {
-        background: white;
-        color: black;
+        background: var(--mesh-surface);
+        color:var(--mesh-text);
         border: 1px solid #111;
         border-radius: 4px;
         padding: 3px 6px;
@@ -46,6 +46,16 @@
         transform-box: fill-box;
         transform-origin: center;
         animation: packetSeenLanding 1s ease-out 1 forwards;
+    }
+    [data-bs-theme="dark"] .packet-seen-trace,
+    [data-bs-theme="dark"] .packet-seen-landing {
+        stroke: #e6fff0;
+    }
+    [data-bs-theme="dark"] .packet-seen-landing {
+        fill: #e6fff0;
+    }
+    [data-bs-theme="dark"] .packet-seen-trace {
+        filter: drop-shadow(0 0 2px rgba(230, 255, 240, 0.65));
     }
     @keyframes packetTrace {
         from { stroke-dashoffset: 0; }
@@ -139,7 +149,7 @@
 .mesh-inspector-section { margin:18px 0 10px; font-size:12px; font-weight:650; padding-top:14px; border-top:1px solid var(--mesh-border); }
 .mesh-inspector-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
 .mesh-inspector-actions a { font-size:12px; }
-.mesh-inspector-packet { display:block; width:100%; text-align:left; padding:10px 0; border:0; border-bottom:1px solid #edf1f6; background:white; color:#334155; font-size:12px; text-decoration:none; }
+.mesh-inspector-packet { display:block; width:100%; text-align:left; padding:10px 0; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font-size:12px; text-decoration:none; }
 .mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-inspector-packet strong,.mesh-inspector-packet small { display:block; }
 .mesh-inspector-packet small { color:var(--mesh-muted); margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -148,15 +158,15 @@
 .mesh-inspector-telemetry div { padding:10px; background:var(--mesh-soft); border-radius:6px; }
 .mesh-inspector-telemetry strong { display:block; font-size:18px; color:var(--mesh-primary); }
 .mesh-inspector-telemetry span { font-size:10px; color:var(--mesh-muted); }
-.mesh-traffic { margin-top:20px; background:white; border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
+.mesh-traffic { margin-top:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
 .mesh-traffic-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .mesh-traffic-status { font-size:11px; color:var(--mesh-primary); }
 .mesh-traffic-status[data-state="error"] { color:#b23d2f; }
 .mesh-traffic-list { max-height:260px; overflow:auto; }
- .mesh-traffic-table { width:100%; min-width:780px; border-collapse:collapse; font-size:13px; color:#334155; }
-.mesh-traffic-table th { position:sticky; top:0; z-index:1; padding:12px 14px; background:var(--mesh-primary); color:white; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
-.mesh-traffic-table td { padding:11px 14px; border-bottom:1px solid #edf1f6; text-align:left; }
-.mesh-traffic-row { background:white; }
+ .mesh-traffic-table { width:100%; min-width:780px; border-collapse:collapse; font-size:13px; color:var(--mesh-text); }
+.mesh-traffic-table th { position:sticky; top:0; z-index:1; padding:12px 14px; background:var(--mesh-brand); color:white; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
+.mesh-traffic-table td { padding:11px 14px; border-bottom:1px solid var(--mesh-border); text-align:left; }
+.mesh-traffic-row { background:var(--mesh-surface); }
 .mesh-traffic-row:hover { background:var(--mesh-soft); }
 .mesh-traffic-table a { color:var(--mesh-primary); text-decoration:none; }
 .mesh-traffic-table a:hover { text-decoration:underline; }
@@ -168,7 +178,7 @@
 .mesh-traffic-payload[hidden] { display:none; }
 .mesh-traffic-payload td { background:var(--mesh-soft); }
 .mesh-traffic-payload pre { margin:0; max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.7 ui-monospace,monospace; }
-#map-traffic-channel { border:1px solid var(--mesh-border); border-radius:5px; color:#334155; background:white; font-size:12px; padding:6px 8px; max-width:180px; }
+#map-traffic-channel { border:1px solid var(--mesh-border); border-radius:5px; color:var(--mesh-text); background:var(--mesh-surface); font-size:12px; padding:6px 8px; max-width:180px; }
 :is(.mesh-traffic-toggle,.mesh-traffic-table a,#map-traffic-channel,.mesh-inspector-packet,.mesh-inspector-back,.mesh-traffic-control):focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
 .mesh-traffic-note { padding:8px 18px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:11px; margin:0; }
 @media(max-width:700px) { .mesh-node-inspector { max-height:none; } .mesh-traffic .mesh-panel-title { align-items:flex-start; flex-direction:column; } }
@@ -652,7 +662,7 @@ function renderNodesOnMap(){
 
         const [jLat, jLon] = jitterLatLng(node.lat, node.long, node.key);
         const marker = L.circleMarker([jLat,jLon], {
-            radius: node.isRouter ? 9 : 7,
+            radius: 6,
             color: "white",
             fillColor: color,
             fillOpacity: 1,

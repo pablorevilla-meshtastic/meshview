@@ -5,14 +5,14 @@
 {% block css %}
 {% include "data-page-styles.html" %}
 <style>
-#node-list { width:100%; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:white; }
+#node-list { width:100%; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); }
 #node-list table { min-width:1150px; }
 #node-list th { cursor:pointer; }
-.filter-container { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px; padding:16px; background:white; border:1px solid var(--mesh-border); border-radius:9px; }
+.filter-container { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px; padding:16px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
 .search-box { flex:1 1 220px; }
-.count-container { font-size:13px; color:#64748b; margin-bottom:10px; }
+.count-container { font-size:13px; color:var(--mesh-muted); margin-bottom:10px; }
 #node-count { color:var(--mesh-primary); font-weight:700; }
-.node-list-note { display:flex; align-items:center; gap:8px; color:#64748b; font-size:12px; margin-bottom:18px; flex-wrap:wrap; }
+.node-list-note { display:flex; align-items:center; gap:8px; color:var(--mesh-muted); font-size:12px; margin-bottom:18px; flex-wrap:wrap; }
 .node-status { opacity:0; padding:3px 8px; border-radius:20px; background:var(--mesh-soft); color:var(--mesh-primary); margin-left:10px; font-size:11px; }
 .node-status.active { opacity:1; }
 .favorite-star { cursor:pointer; font-size:20px; color:#8b98aa; user-select:none; }
@@ -20,10 +20,10 @@
 .mesh-data-page .favorites-btn.active { background:#fff3d6; border-color:#eacb80; color:#8b6200; }
 .sort-icon { font-size:10px; }
 #mobile-node-list { display:none; }
-.node-card { background:white; border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:12px; font-size:13px; overflow-wrap:anywhere; }
+.node-card { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:12px; font-size:13px; overflow-wrap:anywhere; }
 .node-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:16px; font-weight:600; }
 .node-card-field { padding:3px 0; }
-.node-card-field b { color:#64748b; font-weight:500; }
+.node-card-field b { color:var(--mesh-muted); font-weight:500; }
 @media(max-width:768px) { #node-list { display:none; } #mobile-node-list { display:block!important; } .filter-container { padding:12px; gap:8px; } .filter-container select { flex:1 1 130px; } }
 </style>
 {% endblock %}
@@ -105,7 +105,7 @@
         </thead>
         <tbody id="node-table-body">
             <tr>
-                <td colspan="11" style="text-align:center; color:#64748b;" data-translate-lang="loading_nodes">
+                <td colspan="11" style="text-align:center; color:var(--mesh-muted);" data-translate-lang="loading_nodes">
                     Loading nodes...
                 </td>
             </tr>
@@ -439,12 +439,12 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (!nodes.length) {
             if (shouldRenderTable) {
                 tbody.innerHTML = `<tr>
-                    <td colspan="11" style="text-align:center; color:#64748b;">
+                    <td colspan="11" style="text-align:center; color:var(--mesh-muted);">
                         ${nodelistTranslations.no_nodes_found || "No nodes found"}
                     </td>
                 </tr>`;
             } else {
-                mobileList.innerHTML = `<div style="text-align:center; color:#64748b;">
+                mobileList.innerHTML = `<div style="text-align:center; color:var(--mesh-muted);">
                     ${nodelistTranslations.no_nodes_found || "No nodes found"}
                 </div>`;
             }
