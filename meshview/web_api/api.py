@@ -744,7 +744,6 @@ async def api_config(request):
             "map_bottom_right_lat": get_float(site, "map_bottom_right_lat", 36.0),
             "map_bottom_right_lon": get_float(site, "map_bottom_right_lon", -121.0),
             "map_interval": get_int(site, "map_interval", 3),
-
             "map_channel_colors": {
                 channel: color.strip()
                 for channel, color in CONFIG.get("map_channel_colors", {}).items()
@@ -1200,18 +1199,30 @@ async def api_node_qr(request):
             except (AttributeError, TypeError):
                 pass
 
-        contact = SharedContact()
-        contact.node_num = node_id
-        contact.user.CopyFrom(user)
-        contact.manually_verified = False
+        # Meshview does not store public keys, so read it from the node's latest NODEINFO packet.
+        packets = await store.get_packets_from(node_id, PortNum.NODEINFO_APP, limit=1)
+        packet = packets.first()
+        if packet:
+            _, nodeinfo = decode_payload.decode(packet)
+            if isinstance(nodeinfo, User) and len(nodeinfo.public_key) == 32:
+                user.public_key = nodeinfo.public_key
 
-        contact_bytes = contact.SerializeToString()
         import base64
 
-        contact_b64 = base64.b64encode(contact_bytes).decode("ascii")
-        contact_b64url = contact_b64.replace("+", "-").replace("/", "_").rstrip("=")
+        # A contact without a public key is refused by current Meshtastic apps and, on older
+        # firmware, erases the key the importing radio already has, so only share it with one.
+        meshtastic_url = None
+        if user.public_key:
+            contact = SharedContact()
+            contact.node_num = node_id
+            contact.user.CopyFrom(user)
+            contact.manually_verified = False
 
-        meshtastic_url = f"https://meshtastic.org/v/#{contact_b64url}"
+            contact_bytes = contact.SerializeToString()
+            contact_b64 = base64.b64encode(contact_bytes).decode("ascii")
+            contact_b64url = contact_b64.replace("+", "-").replace("/", "_").rstrip("=")
+
+            meshtastic_url = f"https://meshtastic.org/v/#{contact_b64url}"
 
         return web.json_response(
             {
@@ -1219,6 +1230,9 @@ async def api_node_qr(request):
                 "long_name": node.long_name,
                 "short_name": node.short_name,
                 "role": node.role,
+                "public_key": (
+                    base64.b64encode(user.public_key).decode("ascii") if user.public_key else None
+                ),
                 "meshtastic_url": meshtastic_url,
             }
         )

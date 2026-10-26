@@ -232,7 +232,8 @@
     "share_contact_qr": "Compartir contacto QR",
     "copy_url": "Copiar URL",
     "copied": "¡Copiado!",
-    "scan_qr_to_add": "Escanea este código QR para agregar este nodo como contacto en otro dispositivo."
+    "scan_qr_to_add": "Escanea este código QR para agregar este nodo como contacto en otro dispositivo.",
+    "qr_no_public_key": "Aún no se ha recibido la clave pública de este nodo, por lo que no se puede compartir como contacto."
   },
 
   "packet": {
