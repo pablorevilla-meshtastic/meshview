@@ -116,15 +116,15 @@
     .unmapped-node { font-weight: 400; color: #000; }
     .unmapped-empty { color: #666; font-style: italic; }
 
-/* Standalone map uses the full content width. */
-.mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 290px); min-height:420px; }
-@media(max-width:700px) { .mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 300px); min-height:380px; } }
+/* Give the standalone map more vertical space. */
+.mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 220px); min-height:650px; }
+@media(max-width:700px) { .mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 240px); min-height:500px; } }
 /* Let the map determine the desktop row height; scroll longer node panels. */
 @media(min-width:701px) {
-    .mesh-dashboard .mesh-node-panel { contain:size; }
-    .mesh-dashboard .mesh-node-browser:not([hidden]) { height:100%; display:flex; flex-direction:column; }
-    .mesh-dashboard .mesh-node-list { flex:1; min-height:0; }
-    .mesh-dashboard .mesh-node-inspector { max-height:100%; }
+    .mesh-explorer .mesh-node-panel { contain:size; }
+    .mesh-explorer .mesh-node-browser:not([hidden]) { height:100%; display:flex; flex-direction:column; }
+    .mesh-explorer .mesh-node-list { flex:1; min-height:0; max-height:none; }
+    .mesh-explorer .mesh-node-inspector { max-height:100%; }
 }
 /* Map-side inspection and shared live packet stream. */
 .mesh-node-browser[hidden],.mesh-node-inspector[hidden] { display:none; }
@@ -187,6 +187,9 @@
     <div class="mesh-metric"><span>MQTT gateways</span><strong id="metric-gateways">—</strong><small>Among recent nodes</small></div>
     <div class="mesh-metric"><span>Total packets</span><strong id="metric-packets">—</strong><small id="metric-status" role="status">Loading network totals…</small></div>
 </section>
+{% else %}
+<section class="mesh-page-heading"><div><span class="mesh-eyebrow">NETWORK EXPLORER</span><h1>Network map</h1><p>Explore node locations and network connections.</p></div><a class="mesh-secondary-button" href="/">Home ↗</a></section>
+{% endif %}
 <div class="mesh-explorer">
 <aside class="mesh-node-panel" aria-label="Node explorer">
     <div id="mesh-node-browser" class="mesh-node-browser">
@@ -209,9 +212,7 @@
         </div>
     </section>
 </aside>
-{% else %}
-<section class="mesh-page-heading"><div><span class="mesh-eyebrow">NETWORK EXPLORER</span><h1>Network map</h1><p>Explore node locations and network connections.</p></div><a class="mesh-secondary-button" href="/">Home ↗</a></section>
-{% endif %}
+
 <section class="mesh-map-panel" aria-label="Network map">
 <div class="mesh-panel-title"><h2>Network map</h2><button class="mesh-fit-button" type="button" id="fit-network">Fit network</button></div>
 <p id="map-load-status" role="status" style="margin:0; color:#b23d2f;"></p>
@@ -271,9 +272,8 @@
 
 
 </section>
-{% if dashboard %}
 </div>
-
+{% if dashboard %}
 <section class="mesh-traffic" aria-label="Live network traffic">
     <div class="mesh-panel-title"><h2>Live traffic</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">Channel</label><select id="map-traffic-channel"><option value="">All channels</option></select><span id="map-traffic-status" class="mesh-traffic-status" role="status">Loading packets…</span><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="Pause the traffic list; map animations continue">Pause feed</button><button id="map-traffic-refresh" class="mesh-traffic-control" type="button">Refresh</button></div></div>
     <div id="map-traffic-list" class="mesh-traffic-list" role="region" aria-label="Live packet table" tabindex="0">
@@ -423,48 +423,6 @@ function hashToColor(str){
     const c = override || palette[Math.floor(hashToUnit(channel) * palette.length) % palette.length];
     colorMap.set(channel,c);
     return c;
-}
-
-function labelFor(key, fallback){
-    return mapTranslations[key] || fallback;
-}
-
-function buildNodePopup(node){
-    const labels = {
-        channel: labelFor("channel_label", "Channel"),
-        nodeId: labelFor("node_id", "Node ID"),
-        model: labelFor("model_label", "Model"),
-        role: labelFor("role_label", "Role"),
-        mqtt: labelFor("mqtt_gateway", "MQTT Gateway"),
-        lastSeen: labelFor("last_seen", "Last Seen"),
-        firmware: labelFor("firmware", "Firmware"),
-        yes: mapTranslations.yes || "Yes",
-        no: mapTranslations.no || "No"
-    };
-    const displayName = node.long_name || node.short_name || `Node ${node.node_id}`;
-    const shortName = node.short_name ? ` (${escapeHtml(node.short_name)})` : "";
-
-    return `
-        <b><a href="/node/${node.node_id}">${escapeHtml(displayName)}</a>${shortName}</b><br>
-
-        <b>${labels.nodeId}</b> ${node.node_id}<br>
-        <b>${labels.channel}</b> ${escapeHtml(node.channel || "N/A")}<br>
-        <b>${labels.model}</b> ${escapeHtml(node.hw_model || "N/A")}<br>
-        <b>${labels.role}</b> ${escapeHtml(node.role || "N/A")}<br>
-        <b>${labels.mqtt}</b> ${node.is_mqtt_gateway ? labels.yes : labels.no}<br>
-
-        ${
-            node.last_seen_us
-                ? `<b>${labels.lastSeen}</b> ${timeAgoFromUs(node.last_seen_us)}<br>`
-                : ""
-        }
-
-        ${
-            node.firmware
-                ? `<b>${labels.firmware}</b> ${escapeHtml(node.firmware)}<br>`
-                : ""
-        }
-    `;
 }
 
 function hashToUnit(str){
@@ -704,21 +662,11 @@ function renderNodesOnMap(){
         marker.nodeId = node.key;
         marker.originalColor = color;
         markerById[node.key] = marker;
-        {% if not dashboard %}
-        marker.bindPopup(buildNodePopup(node), {
-            autoPan: true,
-            closeButton: true
-        });
-        {% endif %}
 
         marker.on('click', e => {
             if(e.originalEvent){
                 L.DomEvent.stopPropagation(e.originalEvent);
             }
-            {% if not dashboard %}
-            marker.setPopupContent(buildNodePopup(node));
-            marker.openPopup();
-            {% endif %}
             onNodeClick(node);
         });
     });
@@ -1218,15 +1166,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-{% if dashboard %}
 <script src="/static/map-dashboard.js"></script>
 <script src="/static/map-inspector.js"></script>
-{% else %}
-<script>
-document.getElementById('fit-network').addEventListener('click', () => {
-    const points = Object.values(markerById).filter(marker => nodeLayer.hasLayer(marker)).map(marker => marker.getLatLng());
-    if (points.length) map.fitBounds(L.latLngBounds(points), {padding:[35,35], maxZoom:13});
-});
-</script>
+{% if dashboard %}
+<script src="/static/map-traffic.js"></script>
 {% endif %}
 {% endblock %}

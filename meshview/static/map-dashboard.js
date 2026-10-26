@@ -1,9 +1,11 @@
 /* UI only: reuse the map's nodes, markers, and existing API. */
 function initializeNodeExplorer() {
     const activeSince = Date.now() - 24 * 60 * 60 * 1000;
-    document.getElementById('metric-nodes').textContent = nodes.length.toLocaleString();
-    document.getElementById('metric-active').textContent = nodes.filter(n => n.last_seen_us / 1000 >= activeSince).length.toLocaleString();
-    document.getElementById('metric-gateways').textContent = nodes.filter(n => n.is_mqtt_gateway).length.toLocaleString();
+    if (document.getElementById('metric-nodes')) {
+        document.getElementById('metric-nodes').textContent = nodes.length.toLocaleString();
+        document.getElementById('metric-active').textContent = nodes.filter(n => n.last_seen_us / 1000 >= activeSince).length.toLocaleString();
+        document.getElementById('metric-gateways').textContent = nodes.filter(n => n.is_mqtt_gateway).length.toLocaleString();
+    }
     renderNodeExplorer();
 }
 
@@ -49,6 +51,7 @@ document.getElementById('fit-network').addEventListener('click', () => {
 });
 
 (async () => {
+    if (!document.getElementById('metric-packets')) return;
     try {
         const response = await fetch('/api/stats/count');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
