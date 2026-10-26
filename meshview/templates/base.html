@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="/static/html-escape.js"></script>
+    <script src="/static/packet-arrival.js"></script>
 
     {% block head %}{% endblock %}
 
@@ -90,6 +91,23 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .form-check-input:focus { border-color:#91bda1; box-shadow:0 0 0 .25rem rgba(var(--mesh-primary-rgb),.2); }
 .page-link { --bs-pagination-color:var(--mesh-primary); --bs-pagination-hover-color:var(--mesh-primary-dark); --bs-pagination-active-bg:var(--mesh-primary); --bs-pagination-active-border-color:var(--mesh-primary); }
 [data-bs-theme="light"] body { background:var(--mesh-page); color:#243247; font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; }
+/* Tint whole cells: an edge-only shadow is too subtle on wide packet tables. */
+.packet-arrival-glow > td {
+    animation:packet-arrival-beat 1s ease-in-out 1;
+    animation-delay:var(--packet-glow-delay,0ms);
+    box-shadow:inset 0 0 14px rgba(24,115,70,.12);
+}
+.packet-arrival-glow > td:first-child {
+    box-shadow:inset 4px 0 0 var(--mesh-primary),inset 0 0 14px rgba(24,115,70,.12);
+}
+@keyframes packet-arrival-beat {
+    0%,100% { background-color:transparent; }
+    45% { background-color:#ccebd7; }
+    75% { background-color:#e2f3e8; }
+}
+@media(prefers-reduced-motion:reduce) {
+    .packet-arrival-glow > td { animation:none; background:#d8efdf; }
+}
 .mesh-header { background:var(--mesh-primary); color:white; box-shadow:0 2px 8px #174b2d18; }
 .mesh-header-inner { max-width:1600px; margin:auto; padding:0 28px; min-height:56px; display:flex; align-items:center; gap:32px; }
 .mesh-brand { display:flex; align-items:center; gap:10px; font-size:19px; font-weight:700; color:white; text-decoration:none; flex-shrink:0; }

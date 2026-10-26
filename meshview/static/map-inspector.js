@@ -3,6 +3,9 @@
     const byId = id => document.getElementById(id);
     const packetHistory = new Map();
     const expandedPackets = new Set();
+    const displayedPackets = new Set();
+    const packetArrivals = new Map();
+    let trafficLoaded = false;
     let nodeRequest = null;
     let inspectedNodeId = null;
     let recentPackets = [];
@@ -220,6 +223,11 @@
                 toggle.setAttribute('aria-expanded',String(!payloadRow.hidden)); toggle.textContent = payloadRow.hidden ? '▶' : '▼';
             });
             body.append(row,payloadRow);
+            if (!displayedPackets.has(id)) {
+                displayedPackets.add(id);
+                packetArrivals.set(id,Date.now());
+            }
+            if (packetArrivals.has(id)) markNewPacketArrival(row,packetArrivals.get(id));
         }
         list.scrollTop = scrollTop;
         if (focusedId && focusedControl) {
@@ -243,6 +251,7 @@
         for (const packet of event.detail) {
             if (!packetHistory.has(String(packetId(packet)))) added = true;
             packetHistory.set(String(packetId(packet)),packet);
+            if (!trafficLoaded) displayedPackets.add(String(packetId(packet)));
             if (packet.channel && ![...byId('map-traffic-channel').options].some(o => o.value === packet.channel)) {
                 byId('map-traffic-channel').add(new Option(packet.channel,packet.channel));
             }
@@ -253,10 +262,12 @@
                 if (String(packet.from_node_id) === inspectedNodeId && Number(packet.portnum) === 67) renderTelemetry(packet);
             }
         }
+        trafficLoaded = true;
         if (packetHistory.size > 30) {
             const sorted = [...packetHistory.values()].sort((a,b) => packetTime(b)-packetTime(a));
             for (const packet of sorted.slice(30)) {
                 packetHistory.delete(String(packetId(packet))); expandedPackets.delete(String(packetId(packet)));
+                displayedPackets.delete(String(packetId(packet))); packetArrivals.delete(String(packetId(packet)));
             }
         }
         if (!paused && added) renderTraffic();
