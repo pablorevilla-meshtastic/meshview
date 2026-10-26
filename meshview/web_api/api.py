@@ -1205,6 +1205,8 @@ async def api_node_qr(request):
         latest_nodeinfo = None
         public_keys = set()
         for payload in await store.get_nodeinfo_payloads(node_id):
+            if not payload:
+                continue
             try:
                 mesh_packet = MeshPacket.FromString(payload)
             except DecodeError:
