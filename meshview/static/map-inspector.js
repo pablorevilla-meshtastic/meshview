@@ -3,11 +3,8 @@
     const byId = id => document.getElementById(id);
     const packetHistory = new Map();
     const expandedPackets = new Set();
-    const packetHighlight = L.layerGroup().addTo(map);
     let nodeRequest = null;
-    let packetRequest = null;
     let inspectedNodeId = null;
-    let selectedPacketId = null;
     let recentPackets = [];
     let telemetryTime = -1;
     let paused = false;
@@ -23,8 +20,7 @@
     const portName = packet => window.PORT_LABEL_MAP[packet.portnum] || `Port ${packet.portnum ?? '?'}`;
     const dateText = us => us ? new Date(Number(us) / 1000).toLocaleString() : 'Unknown time';
     const timeText = us => us ? new Date(Number(us) / 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '—';
-    const destination = packet => Number(packet.to_node_id) === 4294967295 ? 'Broadcast' :
-        Number(packet.to_node_id) === 1 ? 'MQTT' : nodeName(packet.to_node_id, packet.to_long_name);
+
 
     async function fetchJson(url, signal) {
         const response = await fetch(url, {signal});
@@ -94,14 +90,14 @@
         if (!recentPackets.length) { note(container, 'No recent packets found.'); return; }
         container.replaceChildren();
         for (const packet of recentPackets) {
-            const button = document.createElement('button'); button.type = 'button';
+            const button = document.createElement('a');
+            button.href = `/packet/${encodeURIComponent(packetId(packet))}`;
             button.className = 'mesh-inspector-packet';
             const heading = document.createElement('strong');
             heading.textContent = `${portName(packet)} · ${timeText(packet.import_time_us)}`;
             const preview = document.createElement('small');
             preview.textContent = packet.payload || `From ${nodeName(packet.from_node_id, packet.long_name)}`;
             button.append(heading, preview);
-            button.addEventListener('click', () => selectMapPacket(packet, false));
             container.append(button);
         }
     }
@@ -160,85 +156,6 @@
         byId('node-search').focus({preventScroll:true});
     });
 
-    function locationFor(id) {
-        const node = findNode(id);
-        return node && !isInvalidCoord(node) ? getNodeLatLng(node) : null;
-    }
-    function drawPacketObservation(packet, seen) {
-        packetHighlight.clearLayers();
-        const source = locationFor(packet.from_node_id);
-        const color = getComputedStyle(document.documentElement).getPropertyValue('--mesh-primary').trim() || '#187346';
-        const bounds = [];
-        if (source) {
-            L.circleMarker(source, {radius:15, color, weight:3, fillOpacity:0.15, interactive:false}).addTo(packetHighlight);
-            bounds.push(source);
-        }
-        let mapped = 0;
-        for (const row of seen) {
-            const position = locationFor(row.node_id);
-            if (!position) continue;
-            mapped++; bounds.push(position);
-            L.circleMarker(position, {radius:12, color, weight:2, fillOpacity:0.2, interactive:false}).addTo(packetHighlight);
-        }
-        if (bounds.length) map.fitBounds(L.latLngBounds(bounds), {padding:[35,35],maxZoom:13});
-        return mapped;
-    }
-    async function selectMapPacket(packet, inspectSender = true) {
-        packetRequest?.abort();
-        const request = new AbortController(); packetRequest = request;
-        const id = packetId(packet); selectedPacketId = String(id);
-        const panel = byId('mesh-packet-inspector'); panel.hidden = false;
-        byId('packet-inspector-title').textContent = `Packet #${id}`;
-        byId('packet-inspector-summary').textContent = `${nodeName(packet.from_node_id, packet.long_name)} → ${destination(packet)}`;
-        byId('packet-inspector-meta').textContent = `${portName(packet)} · ${packet.channel || 'Unknown channel'} · ${dateText(packet.import_time_us)}`;
-        byId('packet-inspector-payload').textContent = packet.payload || '(No decoded payload)';
-        byId('packet-inspector-link').href = `/packet/${encodeURIComponent(id)}`;
-        byId('packet-inspector-observers').replaceChildren();
-        byId('packet-inspector-status').textContent = 'Loading gateway observations…';
-        document.querySelectorAll('.mesh-traffic-row').forEach(row => {
-            const selected = row.dataset.packetId === selectedPacketId;
-            row.classList.toggle('selected', selected);
-            row.querySelector('.mesh-traffic-select').setAttribute('aria-pressed', String(selected));
-        });
-        drawPacketObservation(packet, []);
-        if (inspectSender) openMapNodeInspector(findNode(packet.from_node_id) || {key:packet.from_node_id,long_name:packet.long_name});
-        if (matchMedia('(max-width: 700px)').matches) panel.scrollIntoView({block:'nearest'});
-        try {
-            const data = await fetchJson(`/api/packets_seen/${encodeURIComponent(id)}`, request.signal);
-            if (request.signal.aborted) return;
-            if (!Array.isArray(data.seen)) throw new Error('Invalid observations response');
-            const byGateway = new Map();
-            for (const row of data.seen) {
-                if (Number(row.node_id) === Number(packet.from_node_id)) continue;
-                const previous = byGateway.get(String(row.node_id));
-                if (!previous || Number(row.import_time_us || 0) >= Number(previous.import_time_us || 0)) byGateway.set(String(row.node_id), row);
-            }
-            const seen = [...byGateway.values()];
-            for (const row of seen) {
-                const button = document.createElement('button'); button.type = 'button'; button.className = 'mesh-observer';
-                button.append(nodeName(row.node_id));
-                const signal = document.createElement('small');
-                signal.textContent = `RSSI ${row.rx_rssi ?? '—'} dBm · SNR ${row.rx_snr ?? '—'} dB${locationFor(row.node_id) ? '' : ' · No mapped position'}`;
-                button.append(signal);
-                button.addEventListener('click', () => openMapNodeInspector(findNode(row.node_id) || {key:row.node_id}));
-                byId('packet-inspector-observers').append(button);
-            }
-            const mapped = drawPacketObservation(packet, seen);
-            byId('packet-inspector-status').textContent = seen.length ?
-                `${seen.length} gateway${seen.length === 1 ? '' : 's'} observed · ${mapped} mapped${locationFor(packet.from_node_id) ? '' : ' · Sender has no mapped position'}` :
-                'No receiving gateway observations recorded for this packet.';
-        } catch (error) {
-            if (error.name !== 'AbortError') byId('packet-inspector-status').textContent = 'Gateway observations unavailable. Select the packet again to retry.';
-        }
-    }
-    byId('packet-inspector-close').addEventListener('click', () => {
-        packetRequest?.abort(); packetHighlight.clearLayers(); selectedPacketId = null;
-        byId('mesh-packet-inspector').hidden = true;
-        document.querySelectorAll('.mesh-traffic-row.selected').forEach(row => {
-            row.classList.remove('selected'); row.querySelector('.mesh-traffic-select').setAttribute('aria-pressed','false');
-        });
-    });
-
     function renderTraffic() {
         const list = byId('map-traffic-list');
         const body = byId('map-traffic-body');
@@ -271,7 +188,6 @@
         for (const packet of packets) {
             const id = String(packetId(packet));
             const row = document.createElement('tr'); row.className = 'mesh-traffic-row'; row.dataset.packetId = id;
-            const selected = id === selectedPacketId; row.classList.toggle('selected',selected);
             const time = document.createElement('td'); time.className = 'mesh-traffic-time';
             time.textContent = packet.import_time_us ? new Date(Number(packet.import_time_us)/1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) : '—';
             time.title = dateText(packet.import_time_us);
@@ -291,11 +207,7 @@
             tag.style.backgroundColor = window.PORT_COLOR_MAP[packet.portnum] || '#6c757d';
             tag.title = packet.payload || '';
             const number = document.createElement('span'); number.className = 'mesh-traffic-port-number'; number.textContent = `(${packet.portnum ?? '?'})`;
-            const inspect = document.createElement('button'); inspect.type = 'button'; inspect.className = 'mesh-traffic-select';
-            inspect.dataset.trafficFocus = 'map'; inspect.setAttribute('aria-pressed',String(selected));
-            inspect.textContent = 'Map'; inspect.title = 'Inspect this packet on the map';
-            inspect.addEventListener('click', () => selectMapPacket(packet));
-            port.append(tag,number,inspect);
+            port.append(tag,number);
             row.append(time,packetCell,nodeCell(packet.from_node_id,packet.long_name),nodeCell(packet.to_node_id,packet.to_long_name,true),channelCell,port);
             const payloadRow = document.createElement('tr'); payloadRow.className = 'mesh-traffic-payload';
             payloadRow.hidden = !expandedPackets.has(id);
@@ -306,9 +218,6 @@
                 if (expandedPackets.has(id)) expandedPackets.delete(id); else expandedPackets.add(id);
                 payloadRow.hidden = !expandedPackets.has(id);
                 toggle.setAttribute('aria-expanded',String(!payloadRow.hidden)); toggle.textContent = payloadRow.hidden ? '▶' : '▼';
-            });
-            row.addEventListener('click', event => {
-                if (!event.target.closest('a,button')) selectMapPacket(packet);
             });
             body.append(row,payloadRow);
         }

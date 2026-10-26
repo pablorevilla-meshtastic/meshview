@@ -138,6 +138,7 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-map-panel #filter-container { display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:5px; margin:0; padding:12px; font-size:12px; border-top:1px solid var(--mesh-border); }
 .mesh-map-panel .filter-checkbox { margin:0 2px 0 10px; accent-color:var(--mesh-primary); }
 .mesh-map-panel #share-button,.mesh-map-panel #reset-filters-button { background:var(--mesh-soft); color:var(--mesh-primary); margin:5px; padding:8px 12px; font-size:12px; }
+.mesh-map-panel #share-button.is-copied { background:var(--mesh-primary-dark); color:white; }
 .mesh-map-panel #reset-filters-button { color:#546174; background:#f0f3f7; }
 .mesh-map-panel #map-legend { bottom:80px!important; left:12px; right:auto!important; box-shadow:0 2px 8px #0001; font-size:11px; }
 .mesh-map-panel #unmapped-packets { bottom:25px; right:10px; width:190px; }
@@ -279,7 +280,7 @@ async function initializePage() {
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
                 if (site[key] === "true" || site[key] === true) {
-                    items.push(`<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || key)}</a>`);
+                    items.push(`<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || (key === "everything" ? "Live Traffic" : key))}</a>`);
                 }
             }
             items.push('<a href="/api.html">API</a>');

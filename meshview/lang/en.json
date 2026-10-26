@@ -2,7 +2,7 @@
     "base": {
       "chat": "Chat",
       "nodes": "Nodes",
-      "everything": "See Everything",
+      "everything": "Live Traffic",
       "graphs": "Mesh Graphs",
       "net": "Weekly Net",
       "map": "Live Map",
@@ -176,7 +176,7 @@
     },
     "firehose":
       {
-        "live_feed": "📡 Live Feed",
+        "live_feed": "📡 Live Traffic",
         "pause": "Pause",
         "resume": "Resume",
         "time": "Time",

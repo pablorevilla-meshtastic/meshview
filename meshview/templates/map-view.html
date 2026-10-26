@@ -119,10 +119,17 @@
 /* Standalone map uses the full content width. */
 .mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 290px); min-height:420px; }
 @media(max-width:700px) { .mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 300px); min-height:380px; } }
+/* Let the map determine the desktop row height; scroll longer node panels. */
+@media(min-width:701px) {
+    .mesh-dashboard .mesh-node-panel { contain:size; }
+    .mesh-dashboard .mesh-node-browser:not([hidden]) { height:100%; display:flex; flex-direction:column; }
+    .mesh-dashboard .mesh-node-list { flex:1; min-height:0; }
+    .mesh-dashboard .mesh-node-inspector { max-height:100%; }
+}
 /* Map-side inspection and shared live packet stream. */
-.mesh-node-browser[hidden],.mesh-node-inspector[hidden],.mesh-packet-inspector[hidden] { display:none; }
+.mesh-node-browser[hidden],.mesh-node-inspector[hidden] { display:none; }
 .mesh-node-inspector { max-height:690px; overflow:auto; }
-.mesh-inspector-back,.mesh-inspector-close,.mesh-traffic-control { padding:6px 10px; background:var(--mesh-soft); color:var(--mesh-primary); border:1px solid var(--mesh-border); border-radius:5px; font-size:12px; }
+.mesh-inspector-back,.mesh-traffic-control { padding:6px 10px; background:var(--mesh-soft); color:var(--mesh-primary); border:1px solid var(--mesh-border); border-radius:5px; font-size:12px; }
 .mesh-inspector-body { padding:16px; }
 .mesh-inspector-name { font-size:17px; font-weight:650; overflow-wrap:anywhere; margin:0 0 5px; }
 .mesh-inspector-meta { color:var(--mesh-muted); font-size:11px; margin:0 0 16px; overflow-wrap:anywhere; }
@@ -132,7 +139,7 @@
 .mesh-inspector-section { margin:18px 0 10px; font-size:12px; font-weight:650; padding-top:14px; border-top:1px solid var(--mesh-border); }
 .mesh-inspector-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
 .mesh-inspector-actions a { font-size:12px; }
-.mesh-inspector-packet { display:block; width:100%; text-align:left; padding:10px 0; border:0; border-bottom:1px solid #edf1f6; background:white; color:#334155; font-size:12px; }
+.mesh-inspector-packet { display:block; width:100%; text-align:left; padding:10px 0; border:0; border-bottom:1px solid #edf1f6; background:white; color:#334155; font-size:12px; text-decoration:none; }
 .mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-inspector-packet strong,.mesh-inspector-packet small { display:block; }
 .mesh-inspector-packet small { color:var(--mesh-muted); margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -141,12 +148,6 @@
 .mesh-inspector-telemetry div { padding:10px; background:var(--mesh-soft); border-radius:6px; }
 .mesh-inspector-telemetry strong { display:block; font-size:18px; color:var(--mesh-primary); }
 .mesh-inspector-telemetry span { font-size:10px; color:var(--mesh-muted); }
-.mesh-packet-inspector { border-top:1px solid var(--mesh-border); }
-.mesh-packet-heading { margin:0; font-size:14px; font-weight:600; }
-.mesh-packet-payload { max-height:100px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; padding:12px; background:var(--mesh-stripe); border:1px solid var(--mesh-border); border-radius:6px; font:12px/1.6 ui-monospace,monospace; }
-.mesh-observer-list { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
-.mesh-observer { text-align:left; background:var(--mesh-soft); border:1px solid var(--mesh-border); color:var(--mesh-primary); border-radius:6px; padding:8px 10px; font-size:12px; max-width:100%; overflow-wrap:anywhere; }
-.mesh-observer small { display:block; font-size:10px; color:var(--mesh-muted); margin-top:3px; }
 .mesh-traffic { margin-top:20px; background:white; border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
 .mesh-traffic-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .mesh-traffic-status { font-size:11px; color:var(--mesh-primary); }
@@ -155,21 +156,21 @@
  .mesh-traffic-table { width:100%; min-width:780px; border-collapse:collapse; font-size:13px; color:#334155; }
 .mesh-traffic-table th { position:sticky; top:0; z-index:1; padding:12px 14px; background:var(--mesh-primary); color:white; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
 .mesh-traffic-table td { padding:11px 14px; border-bottom:1px solid #edf1f6; text-align:left; }
-.mesh-traffic-row { cursor:pointer; background:white; }
+.mesh-traffic-row { background:white; }
 .mesh-traffic-row:nth-of-type(4n+3) { background:var(--mesh-stripe); }
-.mesh-traffic-row:hover,.mesh-traffic-row.selected { background:var(--mesh-soft); }
+.mesh-traffic-row:hover { background:var(--mesh-soft); }
 .mesh-traffic-table a { color:var(--mesh-primary); text-decoration:none; }
 .mesh-traffic-table a:hover { text-decoration:underline; }
 .mesh-traffic-time { white-space:nowrap; font-size:12px; }
 .mesh-traffic-type { display:inline-block; color:white; padding:3px 7px; border-radius:5px; font-size:10px; font-weight:500; white-space:nowrap; }
 .mesh-traffic-port-number { color:var(--mesh-muted); font-size:11px; margin:0 6px; }
-.mesh-traffic-select,.mesh-traffic-toggle { border:1px solid var(--mesh-border); background:var(--mesh-soft); color:var(--mesh-primary); border-radius:5px; font-size:11px; padding:4px 7px; white-space:nowrap; }
+.mesh-traffic-toggle { border:1px solid var(--mesh-border); background:var(--mesh-soft); color:var(--mesh-primary); border-radius:5px; font-size:11px; padding:4px 7px; white-space:nowrap; }
 .mesh-traffic-toggle { margin-right:7px; }
 .mesh-traffic-payload[hidden] { display:none; }
 .mesh-traffic-payload td { background:var(--mesh-soft); }
 .mesh-traffic-payload pre { margin:0; max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.7 ui-monospace,monospace; }
 #map-traffic-channel { border:1px solid var(--mesh-border); border-radius:5px; color:#334155; background:white; font-size:12px; padding:6px 8px; max-width:180px; }
-:is(.mesh-traffic-select,.mesh-traffic-toggle,.mesh-traffic-table a,#map-traffic-channel,.mesh-observer,.mesh-inspector-packet,.mesh-inspector-back,.mesh-inspector-close,.mesh-traffic-control):focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
+:is(.mesh-traffic-toggle,.mesh-traffic-table a,#map-traffic-channel,.mesh-inspector-packet,.mesh-inspector-back,.mesh-traffic-control):focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
 .mesh-traffic-note { padding:8px 18px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:11px; margin:0; }
 @media(max-width:700px) { .mesh-node-inspector { max-height:none; } .mesh-traffic .mesh-panel-title { align-items:flex-start; flex-direction:column; } }
 </style>
@@ -257,6 +258,7 @@
     <span data-translate-lang="show_mqtt_only">Show MQTT Gateways Only</span>
 </div>
 
+{% if not dashboard %}
 <div style="text-align:center;margin-top:5px;">
     <button id="share-button" onclick="shareCurrentView()" data-translate-lang="share_view">
         🔗 Share This View
@@ -265,20 +267,9 @@
         ↺ Reset Filters To Defaults
     </button>
 </div>
-
-{% if dashboard %}
-<section id="mesh-packet-inspector" class="mesh-packet-inspector" aria-label="Selected packet" hidden>
-    <div class="mesh-panel-title"><h2 id="packet-inspector-title">Packet observations</h2><button id="packet-inspector-close" class="mesh-inspector-close" type="button">Clear</button></div>
-    <div class="mesh-inspector-body">
-        <p id="packet-inspector-summary" class="mesh-packet-heading"></p>
-        <p id="packet-inspector-meta" class="mesh-inspector-note"></p>
-        <pre id="packet-inspector-payload" class="mesh-packet-payload"></pre>
-        <div id="packet-inspector-observers" class="mesh-observer-list" aria-live="polite"></div>
-        <p id="packet-inspector-status" class="mesh-inspector-note" role="status"></p>
-        <a id="packet-inspector-link" href="/firehose">Full packet details ↗</a>
-    </div>
-</section>
 {% endif %}
+
+
 
 </section>
 {% if dashboard %}
@@ -289,7 +280,7 @@
     <div id="map-traffic-list" class="mesh-traffic-list" role="region" aria-label="Live packet table" tabindex="0">
         <table class="mesh-traffic-table"><thead><tr><th>Time</th><th>Packet ID</th><th>From</th><th>To</th><th>Channel</th><th>Port</th></tr></thead><tbody id="map-traffic-body"><tr><td colspan="6" class="mesh-empty">Loading recent network traffic…</td></tr></tbody></table>
     </div>
-    <p class="mesh-traffic-note">Latest 30 packets · expand the arrow to view payloads · select a row or Map to inspect gateway observations.</p>
+    <p class="mesh-traffic-note">Latest 30 packets · expand the arrow to view payloads · follow packet IDs or node names for details.</p>
 </section>
 
 {% endif %}
@@ -1185,19 +1176,22 @@ function updateNodeVisibility(){
    SHARE / RESET
    ====================================================== */
 
+let shareViewResetTimer = null;
 function shareCurrentView() {
     const c = map.getCenter();
     const url = `${window.location.origin}/map?lat=${c.lat.toFixed(6)}&lng=${c.lng.toFixed(6)}&zoom=${map.getZoom()}`;
 
     navigator.clipboard.writeText(url).then(()=>{
         const btn = document.getElementById('share-button');
-        const old = btn.textContent;
+        if (!btn.classList.contains('is-copied')) btn.dataset.shareLabel = btn.textContent;
+        clearTimeout(shareViewResetTimer);
         btn.textContent = '✓ ' + (mapTranslations.link_copied || 'Link Copied!');
-        btn.style.backgroundColor = 'var(--mesh-primary-dark)';
+        btn.classList.add('is-copied');
 
-        setTimeout(()=>{
-            btn.textContent = old;
-            btn.style.backgroundColor = 'var(--mesh-primary)';
+        shareViewResetTimer = setTimeout(()=>{
+            btn.textContent = btn.dataset.shareLabel;
+            btn.classList.remove('is-copied');
+            delete btn.dataset.shareLabel;
         }, 2000);
     });
 }
