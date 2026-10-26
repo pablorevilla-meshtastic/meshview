@@ -301,7 +301,9 @@ async function initializePage() {
                     items.push(`<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || (key === "everything" ? "Live Traffic" : key))}</a>`);
                 }
             }
-            items.push('<a href="/api.html">API</a>');
+            if (site.api !== "false" && site.api !== false) {
+                items.push('<a href="/api.html">API</a>');
+            }
             items.push('<a href="https://meshview.world" target="_blank" rel="noopener noreferrer">MeshviewWorld</a>');
 
             menu.innerHTML = items.join("");

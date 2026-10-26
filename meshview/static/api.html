@@ -223,7 +223,7 @@ curl &#39;http://localhost:8081/api/coverage/1234?mode=perimeter&amp;radius_km=2
 <pre><code class="language-ini">[map_channel_colors]
 LongFast = #4363d8
 LocalChat = #18aa18</code></pre>
-<p>No query parameters are supported. Only the <code>site</code>, MQTT server/topics, and cleanup fields shown here are exposed; credentials and the database connection string are not returned. Feature flags and cleanup booleans are lowercase strings (<code>&quot;true&quot;</code> / <code>&quot;false&quot;</code>), not JSON booleans. Cleanup scheduling values are strings; map bounds are numbers and refresh intervals are integers. The removed <code>starting</code> option is not returned: <code>/</code> always serves the dashboard. Handler failures return HTTP 500.</p>
+<p>No query parameters are supported. Only the <code>site</code>, MQTT server/topics, and cleanup fields shown here are exposed; credentials and the database connection string are not returned. Feature flags and cleanup booleans are lowercase strings (<code>&quot;true&quot;</code> / <code>&quot;false&quot;</code>), not JSON booleans. Cleanup scheduling values are strings; map bounds are numbers and refresh intervals are integers. The removed <code>starting</code> option is not returned: <code>/</code> always serves the dashboard. <code>site.api</code> controls visibility of the API documentation link in the navigation bar, defaults to <code>&quot;true&quot;</code>, and can be disabled with <code>api = False</code> in <code>[site]</code>. This setting does not disable documentation or API routes. Restart the web server and reload the page after changing it. Handler failures return HTTP 500.</p>
 <p>Restart the web server and reload the map after changing these settings. Omitting the section uses generated colors for every channel.</p>
 <p>Response Example</p>
 <pre><code class="language-json">{
@@ -240,6 +240,7 @@ LocalChat = #18aa18</code></pre>
     &quot;net&quot;: &quot;true&quot;,
     &quot;map&quot;: &quot;true&quot;,
     &quot;top&quot;: &quot;true&quot;,
+    &quot;api&quot;: &quot;true&quot;,
     &quot;map_top_left_lat&quot;: 39.0,
     &quot;map_top_left_lon&quot;: -123.0,
     &quot;map_bottom_right_lat&quot;: 36.0,
