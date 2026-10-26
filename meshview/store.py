@@ -113,6 +113,17 @@ async def get_packets_from(node_id=None, portnum=None, since=None, limit=500):
         return result.scalars()
 
 
+async def get_nodeinfo_payloads(node_id):
+    """Return the payloads of every stored NODEINFO_APP packet from a node, newest first."""
+    async with database.async_session() as session:
+        result = await session.execute(
+            select(Packet.payload)
+            .where(Packet.from_node_id == node_id, Packet.portnum == PortNum.NODEINFO_APP)
+            .order_by(Packet.import_time_us.desc().nulls_last())
+        )
+        return result.scalars().all()
+
+
 async def get_packet(packet_id):
     async with database.async_session() as session:
         q = select(Packet).where(Packet.id == packet_id)

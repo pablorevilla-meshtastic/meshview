@@ -59,6 +59,12 @@ class Packet(Base):
         Index("idx_packet_to_node_id", "to_node_id"),
         Index("idx_packet_import_time_us", desc("import_time_us")),
         Index("idx_packet_from_node_time_us", "from_node_id", desc("import_time_us")),
+        Index(
+            "idx_packet_from_node_portnum_time_us",
+            "from_node_id",
+            "portnum",
+            desc("import_time_us"),
+        ),
     )
 
 

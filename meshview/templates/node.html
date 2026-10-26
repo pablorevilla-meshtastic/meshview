@@ -323,6 +323,9 @@
         <span class="qr-unavailable" id="qrUnavailable" style="display:none;" data-translate-lang="qr_no_public_key">
             No public key heard from this node yet, so it cannot be shared as a contact.
         </span>
+        <span class="qr-unavailable" id="qrKeyConflict" style="display:none;" data-translate-lang="qr_key_conflict">
+            This node has reported more than one public key, so it is not shared as a contact.
+        </span>
         <button onclick="openReachReport()" id="reachReportBtn">
             <span>📈</span> <span>Reliability</span>
         </button>
@@ -1820,12 +1823,15 @@ async function loadNodeQr() {
         const qrRes = await fetch(`/api/node/${fromNodeId}/qr`);
         const qrData = await qrRes.json();
         if (qrRes.ok) {
-            // No URL means no public key is known; a keyless contact cannot be imported.
+            // No URL means no usable public key: none is known, or the node reported several.
             currentMeshtasticUrl = qrData.meshtastic_url || "";
             const canShare = Boolean(currentMeshtasticUrl);
+            const keyConflict = Boolean(qrData.public_key_conflict);
             document.getElementById("copyUrlBtn").style.display = canShare ? "" : "none";
             document.getElementById("showQrBtn").style.display = canShare ? "" : "none";
-            document.getElementById("qrUnavailable").style.display = canShare ? "none" : "";
+            document.getElementById("qrUnavailable").style.display =
+                canShare || keyConflict ? "none" : "";
+            document.getElementById("qrKeyConflict").style.display = keyConflict ? "" : "none";
             actionsDiv.style.display = "flex";
         } else {
             actionsDiv.style.display = "none";

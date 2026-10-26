@@ -1172,9 +1172,11 @@ async def api_node_qr(request):
         return web.json_response({"error": "Node not found"}, status=404)
 
     try:
+        from google.protobuf.message import DecodeError
+
         from meshtastic.protobuf.admin_pb2 import SharedContact
         from meshtastic.protobuf.config_pb2 import Config
-        from meshtastic.protobuf.mesh_pb2 import User
+        from meshtastic.protobuf.mesh_pb2 import MeshPacket, User
 
         user = User()
         user.id = f"!{node_id:08x}"
@@ -1199,20 +1201,40 @@ async def api_node_qr(request):
             except (AttributeError, TypeError):
                 pass
 
-        # Meshview does not store public keys, so read it from the node's latest NODEINFO packet.
-        packets = await store.get_packets_from(node_id, PortNum.NODEINFO_APP, limit=1)
-        packet = packets.first()
-        if packet:
-            _, nodeinfo = decode_payload.decode(packet)
-            if isinstance(nodeinfo, User) and len(nodeinfo.public_key) == 32:
-                user.public_key = nodeinfo.public_key
+        # Meshview does not store public keys, so read them from the node's NODEINFO packets.
+        latest_nodeinfo = None
+        public_keys = set()
+        for payload in await store.get_nodeinfo_payloads(node_id):
+            try:
+                mesh_packet = MeshPacket.FromString(payload)
+            except DecodeError:
+                continue
+            nodeinfo = decode_payload.decode_payload(
+                PortNum.NODEINFO_APP, mesh_packet.decoded.payload
+            )
+            if not isinstance(nodeinfo, User):
+                continue
+            if latest_nodeinfo is None:
+                latest_nodeinfo = nodeinfo
+            if len(nodeinfo.public_key) == 32:
+                public_keys.add(nodeinfo.public_key)
+
+        if latest_nodeinfo is not None:
+            if len(latest_nodeinfo.public_key) == 32:
+                user.public_key = latest_nodeinfo.public_key
+            user.is_licensed = latest_nodeinfo.is_licensed
+            if latest_nodeinfo.HasField("is_unmessagable"):
+                user.is_unmessagable = latest_nodeinfo.is_unmessagable
 
         import base64
 
         # A contact without a public key is refused by current Meshtastic apps and, on older
-        # firmware, erases the key the importing radio already has, so only share it with one.
+        # firmware, erases the key the importing radio already has. Importing a contact also
+        # replaces a key the radio has pinned, so when the node's packets disagree on its key
+        # (one of them may be forged), share neither.
+        public_key_conflict = len(public_keys) > 1
         meshtastic_url = None
-        if user.public_key:
+        if user.public_key and not public_key_conflict:
             contact = SharedContact()
             contact.node_num = node_id
             contact.user.CopyFrom(user)
@@ -1233,6 +1255,7 @@ async def api_node_qr(request):
                 "public_key": (
                     base64.b64encode(user.public_key).decode("ascii") if user.public_key else None
                 ),
+                "public_key_conflict": public_key_conflict,
                 "meshtastic_url": meshtastic_url,
             }
         )
