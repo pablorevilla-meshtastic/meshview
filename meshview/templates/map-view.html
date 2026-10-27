@@ -230,7 +230,6 @@
 <div id="map-wrapper">
     <div id="map"></div>
 
-    {% if dashboard %}
     <div id="unmapped-packets">
         <h3 data-translate-lang="unmapped_packets_title">Unmapped Packets</h3>  
         <ul id="unmapped-list">
@@ -239,7 +238,6 @@
             </li>
         </ul>
     </div>
-    {% endif %}
 <div id="map-legend"
      class="legend"
      style="position:absolute;
@@ -471,6 +469,7 @@ function getNodeLatLng(n){
    ====================================================== */
 
 let mapPacketFetchBusy = false;
+let mapActivityGeneration = 0;
 function publishMapTrafficStatus(state) {
     document.dispatchEvent(new CustomEvent("mesh:traffic-status", { detail: state }));
 }
@@ -478,24 +477,30 @@ function publishMapPackets(packets) {
     document.dispatchEvent(new CustomEvent("mesh:packets", { detail: packets }));
 }
 async function fetchLatestPacket(){
-    if(mapPacketFetchBusy) return;
+    if(document.hidden || mapPacketFetchBusy) return;
+    const generation = mapActivityGeneration;
     mapPacketFetchBusy = true;
     try {
         const res = await fetch('/api/packets?limit=30');
         if(!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+        if(generation !== mapActivityGeneration || document.hidden) return;
         if(!Array.isArray(data.packets)) throw new Error("Invalid packet response");
         lastImportTime = Math.max(lastImportTime || 0, ...data.packets.map(p => Number(p.import_time_us) || 0));
         publishMapPackets(data.packets);
         publishMapTrafficStatus("ready");
     } catch(error) {
+        if(generation !== mapActivityGeneration || document.hidden) return;
         console.error("Map traffic:", error);
         publishMapTrafficStatus("error");
-    } finally { mapPacketFetchBusy = false; }
+    } finally {
+        if(generation === mapActivityGeneration) mapPacketFetchBusy = false;
+    }
 }
 async function fetchNewPackets(){
-    if(mapInterval <= 0 || mapPacketFetchBusy) return;
+    if(document.hidden || mapInterval <= 0 || mapPacketFetchBusy) return;
     if(lastImportTime === null) return fetchLatestPacket();
+    const generation = mapActivityGeneration;
     mapPacketFetchBusy = true;
     try {
         const url = new URL('/api/packets', window.location.origin);
@@ -504,6 +509,7 @@ async function fetchNewPackets(){
         const res = await fetch(url);
         if(!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+        if(generation !== mapActivityGeneration || document.hidden) return;
         if(!Array.isArray(data.packets)) throw new Error("Invalid packet response");
         data.packets.forEach(pkt => {
             lastImportTime = Math.max(lastImportTime || 0, Number(pkt.import_time_us) || 0);
@@ -516,15 +522,18 @@ async function fetchNewPackets(){
         publishMapPackets(data.packets);
         publishMapTrafficStatus("ready");
     } catch(error) {
+        if(generation !== mapActivityGeneration || document.hidden) return;
         console.error("Map traffic:", error);
         publishMapTrafficStatus("error");
-    } finally { mapPacketFetchBusy = false; }
+    } finally {
+        if(generation === mapActivityGeneration) mapPacketFetchBusy = false;
+    }
 }
 
 let packetInterval=null;
 
 function startPacketFetcher(){
-    if(mapInterval<=0) return;
+    if(document.hidden || mapInterval<=0) return;
     if(!packetInterval){
         if(lastImportTime === null) fetchLatestPacket();
         else fetchNewPackets();
@@ -539,8 +548,30 @@ function stopPacketFetcher(){
     }
 }
 
+function resetMapActivity(){
+    stopPacketFetcher();
+    mapActivityGeneration++;
+    mapPacketFetchBusy = false;
+    lastImportTime = null;
+    clearActiveBlinks();
+    clearPacketSeenHighlights();
+    unmappedPackets = [];
+    renderUnmappedPackets();
+}
+function resumeMapActivity(){
+    resetMapActivity();
+    if(document.hidden) return;
+    publishMapTrafficStatus("loading");
+    if(mapInterval > 0) startPacketFetcher();
+    else fetchLatestPacket();
+}
 document.addEventListener("visibilitychange",()=>{
-    document.hidden?stopPacketFetcher():startPacketFetcher();
+    if(document.hidden) resetMapActivity();
+    else resumeMapActivity();
+});
+window.addEventListener("pagehide", resetMapActivity);
+window.addEventListener("pageshow", event => {
+    if(event.persisted) resumeMapActivity();
 });
 
 map.on("overlayadd", e => {
@@ -915,13 +946,15 @@ function schedulePacketSeenNodes(pkt){
 }
 
 async function showPacketSeenNodes(pkt){
-    if(!map.hasLayer(packetSeenLayer) || pkt.id == null) return;
+    if(document.hidden || !map.hasLayer(packetSeenLayer) || pkt.id == null) return;
+    const generation = mapActivityGeneration;
 
     try {
         const res = await fetch(`/api/packets_seen/${pkt.id}`);
         if(!res.ok) return;
 
         const data = await res.json();
+        if(generation !== mapActivityGeneration || document.hidden || !map.hasLayer(packetSeenLayer)) return;
         const seen = data.seen || [];
         const sourceId = pkt.from_node_id;
         const sourceNode = nodeMap.get(sourceId);
