@@ -45,7 +45,8 @@ def parse_node_id(value: str | None) -> int | None:
 
 
 def has_valid_location(lat: int | None, lon: int | None) -> bool:
-    return lat is not None and lon is not None and abs(lat) > 1 and abs(lon) > 1
+    """Exclude the box within one degree of (0, 0); coordinates use 1e-7 degrees."""
+    return lat is not None and lon is not None and (abs(lat) > 10_000_000 or abs(lon) > 10_000_000)
 
 
 def node_user_id(node_id: int) -> str:
