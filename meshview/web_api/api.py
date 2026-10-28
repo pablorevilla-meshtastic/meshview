@@ -170,6 +170,57 @@ COVERAGE_LIMITS = {
 COVERAGE_MAX_STEPS = 4_000  # radius_km / step_km
 
 
+# Longest look-back any stats/channel query may ask for. Larger windows only make the
+# aggregate scan the whole table, which is what an abusive caller would want.
+MAX_PERIOD_LENGTH = 3650
+
+
+def parse_db_int(text, base=10, bits=64):
+    """int(text, base), but a value that does not fit a signed `bits`-bit column raises
+    ValueError too. Without this a long number parses fine and then fails inside the
+    database driver, which answers 500. Node and packet ids are BIGINT (64 bits); portnum
+    is INTEGER (32 bits on PostgreSQL).
+    """
+    value = int(text, base)
+    if not -(2 ** (bits - 1)) <= value < 2 ** (bits - 1):
+        raise ValueError(f"outside the {bits}-bit integer range")
+    return value
+
+
+def _query_int(request, name, default=None, minimum=None, maximum=None):
+    """Read an integer query parameter, answering 400 instead of 500 on bad input.
+
+    Values outside [minimum, maximum] are clamped rather than rejected so existing
+    callers that ask for "everything" keep working within the allowed bounds.
+    """
+    raw = request.query.get(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        value = parse_db_int(raw)
+    except ValueError:
+        raise web.HTTPBadRequest(
+            text=json.dumps({"error": f"{name} must be an integer"}),
+            content_type="application/json",
+        ) from None
+    if minimum is not None:
+        value = max(minimum, value)
+    if maximum is not None:
+        value = min(maximum, value)
+    return value
+
+
+def _match_int(request, name):
+    """Read an integer path segment, answering 400 instead of 500 on bad input."""
+    try:
+        return parse_db_int(request.match_info[name])
+    except (KeyError, ValueError):
+        raise web.HTTPBadRequest(
+            text=json.dumps({"error": f"{name} must be an integer"}),
+            content_type="application/json",
+        ) from None
+
+
 def init_api_module(packet_class, seq_regex, lang_dir):
     """Initialize API module with dependencies from main web module."""
     global Packet, SEQ_REGEX, LANG_DIR
@@ -181,7 +232,7 @@ def init_api_module(packet_class, seq_regex, lang_dir):
 @routes.get("/api/channels")
 async def api_channels(request: web.Request):
     period_type = request.query.get("period_type", "hour")
-    length = int(request.query.get("length", 24))
+    length = _query_int(request, "length", 24, 1, MAX_PERIOD_LENGTH)
 
     try:
         channels = await store.get_channels_in_period(period_type, length)
@@ -258,7 +309,7 @@ async def api_packets(request):
         # --- If a packet_id is provided, return only that packet ---
         if packet_id_str:
             try:
-                packet_id = int(packet_id_str)
+                packet_id = parse_db_int(packet_id_str)
             except ValueError:
                 return web.json_response({"error": "Invalid packet_id format"}, status=400)
 
@@ -291,7 +342,7 @@ async def api_packets(request):
         since = None
         if since_str:
             try:
-                since = int(since_str)
+                since = parse_db_int(since_str)
             except ValueError:
                 logger.warning("Invalid 'since' value (expected microseconds): %r", since_str)
 
@@ -299,7 +350,7 @@ async def api_packets(request):
         portnum = None
         if portnum_str:
             try:
-                portnum = int(portnum_str)
+                portnum = parse_db_int(portnum_str, bits=32)
             except ValueError:
                 logger.warning("Invalid portnum: %r", portnum_str)
 
@@ -310,19 +361,19 @@ async def api_packets(request):
 
         if from_node_id_str:
             try:
-                from_node_id = int(from_node_id_str, 0)
+                from_node_id = parse_db_int(from_node_id_str, 0)
             except ValueError:
                 logger.warning("Invalid from_node_id: %r", from_node_id_str)
 
         if to_node_id_str:
             try:
-                to_node_id = int(to_node_id_str, 0)
+                to_node_id = parse_db_int(to_node_id_str, 0)
             except ValueError:
                 logger.warning("Invalid to_node_id: %r", to_node_id_str)
 
         if node_id_str:
             try:
-                node_id = int(node_id_str, 0)
+                node_id = parse_db_int(node_id_str, 0)
             except ValueError:
                 logger.warning("Invalid node_id: %r", node_id_str)
 
@@ -417,16 +468,13 @@ async def api_stats(request):
             status=400,
         )
 
-    try:
-        length = int(request.query.get("length", 24))
-    except ValueError:
-        return web.json_response({"error": "length must be an integer"}, status=400)
+    length = _query_int(request, "length", 24, 1, MAX_PERIOD_LENGTH)
 
     # NEW: optional combined node stats
     node_str = request.query.get("node")
     if node_str:
         try:
-            node_id = int(node_str)
+            node_id = parse_db_int(node_str)
         except ValueError:
             return web.json_response({"error": "node must be an integer"}, status=400)
 
@@ -457,11 +505,11 @@ async def api_stats(request):
     # ---- Existing full stats mode (unchanged) ----
     channel = request.query.get("channel")
 
-    def parse_int_param(name):
+    def parse_int_param(name, bits=64):
         value = request.query.get(name)
         if value is not None:
             try:
-                return int(value)
+                return parse_db_int(value, bits=bits)
             except ValueError:
                 raise web.HTTPBadRequest(
                     text=json.dumps({"error": f"{name} must be an integer"}),
@@ -469,7 +517,7 @@ async def api_stats(request):
                 ) from None
         return None
 
-    portnum = parse_int_param("portnum")
+    portnum = parse_int_param("portnum", bits=32)
     to_node = parse_int_param("to_node")
     from_node = parse_int_param("from_node")
 
@@ -499,18 +547,12 @@ async def api_stats_count(request):
     packet_id = None
     if packet_id_str:
         try:
-            packet_id = int(packet_id_str)
+            packet_id = parse_db_int(packet_id_str)
         except ValueError:
             return web.json_response({"error": "packet_id must be integer"}, status=400)
 
     period_type = request.query.get("period_type")
-    length_str = request.query.get("length")
-    length = None
-    if length_str:
-        try:
-            length = int(length_str)
-        except ValueError:
-            return web.json_response({"error": "length must be integer"}, status=400)
+    length = _query_int(request, "length", None, 1, MAX_PERIOD_LENGTH)
 
     channel = request.query.get("channel")
 
@@ -519,7 +561,7 @@ async def api_stats_count(request):
         if value is None:
             return None
         try:
-            return int(value)
+            return parse_db_int(value)
         except ValueError:
             raise web.HTTPBadRequest(
                 text=json.dumps({"error": f"{name} must be integer"}),
@@ -911,7 +953,7 @@ async def api_packets_seen(request):
     try:
         # --- Validate packet_id ---
         try:
-            packet_id = int(request.match_info["packet_id"])
+            packet_id = parse_db_int(request.match_info["packet_id"])
         except (KeyError, ValueError):
             return web.json_response(
                 {"error": "Invalid or missing packet_id"},
@@ -950,7 +992,7 @@ async def api_packets_seen(request):
 
 @routes.get("/api/traceroute/{packet_id}")
 async def api_traceroute(request):
-    packet_id = int(request.match_info['packet_id'])
+    packet_id = _match_int(request, "packet_id")
 
     traceroutes = list(await store.get_traceroute(packet_id))
     packet = await store.get_packet(packet_id)
@@ -1075,11 +1117,12 @@ async def api_stats_top(request):
     """
 
     period_type = request.query.get("period_type", "day")
-    length = int(request.query.get("length", 1))
+    length = _query_int(request, "length", 1, 1, MAX_PERIOD_LENGTH)
     channel = request.query.get("channel")
 
-    limit = min(int(request.query.get("limit", 20)), 100)
-    offset = int(request.query.get("offset", 0))
+    # SQLite reads a negative LIMIT as "no limit", so the lower bound matters too.
+    limit = _query_int(request, "limit", 20, 1, 100)
+    offset = _query_int(request, "offset", 0, 0, None)
 
     multiplier = 3600 if period_type == "hour" else 86400
     window_us = length * multiplier * 1_000_000
@@ -1163,7 +1206,7 @@ async def api_node_qr(request):
     """
     try:
         node_id_str = request.match_info["node_id"]
-        node_id = int(node_id_str, 0)
+        node_id = parse_db_int(node_id_str, 0)
     except (KeyError, ValueError):
         return web.json_response({"error": "Invalid node_id"}, status=400)
 
@@ -1272,7 +1315,7 @@ async def api_node_qr(request):
 @routes.get("/api/coverage/{node_id}")
 async def api_coverage(request):
     try:
-        node_id = int(request.match_info["node_id"], 0)
+        node_id = parse_db_int(request.match_info["node_id"], 0)
     except (KeyError, ValueError):
         return web.json_response({"error": "Invalid node_id"}, status=400)
 
