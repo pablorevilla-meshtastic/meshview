@@ -21,6 +21,7 @@ class Node(Base):
     role: Mapped[str] = mapped_column(nullable=True)
     last_lat: Mapped[int] = mapped_column(BigInteger, nullable=True)
     last_long: Mapped[int] = mapped_column(BigInteger, nullable=True)
+    last_altitude: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     channel: Mapped[str] = mapped_column(nullable=True)
     is_mqtt_gateway: Mapped[bool] = mapped_column(nullable=True)
     first_seen_us: Mapped[int] = mapped_column(BigInteger, nullable=True)

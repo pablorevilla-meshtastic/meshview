@@ -224,6 +224,9 @@ async def process_envelope(topic, env):
                     if has_location:
                         node.last_lat = map_report.latitude_i
                         node.last_long = map_report.longitude_i
+                        # MapReport has no presence flag for altitude.
+                        if map_report.altitude != 0:
+                            node.last_altitude = map_report.altitude
                     node.firmware = map_report.firmware_version
                     node.last_seen_us = now_us
                     if node.first_seen_us is None:
@@ -244,6 +247,9 @@ async def process_envelope(topic, env):
                     if has_location:
                         node.last_lat = map_report.latitude_i
                         node.last_long = map_report.longitude_i
+                        # MapReport has no presence flag for altitude.
+                        if map_report.altitude != 0:
+                            node.last_altitude = map_report.altitude
                     session.add(node)
             except Exception as e:
                 print(f"Error processing MAP_REPORT_APP: {e}")
@@ -427,6 +433,8 @@ async def process_envelope(topic, env):
                     now_us = int(time.time() * 1_000_000)
                     node.last_lat = position.latitude_i
                     node.last_long = position.longitude_i
+                    if position.HasField("altitude"):
+                        node.last_altitude = position.altitude
                     node.last_seen_us = now_us
                     if node.first_seen_us is None:
                         node.first_seen_us = now_us

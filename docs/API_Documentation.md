@@ -73,6 +73,7 @@ Response Example
       "role": "client",
       "last_lat": 377749000,
       "last_long": -1224194000,
+      "last_altitude": 125,
       "channel": "main",
       "is_mqtt_gateway": true,
       "first_seen_us": 1736283723456789,
@@ -81,6 +82,12 @@ Response Example
   ]
 }
 ```
+
+`last_altitude` is the latest reported altitude in meters above sea level, or `null`
+when unknown. It updates with valid node locations from position packets and map reports.
+Position packets without altitude preserve the previous value. Map reports lack altitude
+field presence, so zero values in map reports also preserve the previous value.
+Existing nodes receive altitude as new reports arrive.
 
 ---
 
