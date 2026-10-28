@@ -57,7 +57,7 @@
         <option value="" data-translate-lang="all_firmware">All Firmware</option>
     </select>
 
-    <button class="favorites-btn" id="favorites-btn" data-translate-lang="show_favorites">
+    <button type="button" class="favorites-btn" id="favorites-btn" aria-pressed="false" data-translate-lang="show_favorites">
         ⭐ Show Favorites
     </button>
 
@@ -412,11 +412,14 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function toggleFavoritesFilter() {
-        showOnlyFavorites = !showOnlyFavorites;
-        favoritesBtn.textContent = showOnlyFavorites
-            ? "Show All"
-            : "⭐ Show Favorites";
-        favoritesBtn.classList.toggle("active", showOnlyFavorites);
+        if (showOnlyFavorites) {
+            clearFilters();
+            return;
+        }
+        showOnlyFavorites = true;
+        favoritesBtn.textContent = "Show All";
+        favoritesBtn.classList.add("active");
+        favoritesBtn.setAttribute("aria-pressed", "true");
         applyFilters();
     }
 
@@ -565,8 +568,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         sortAsc = true;
         showOnlyFavorites = false;
 
-        favoritesBtn.textContent = "⭐ Show Favorites";
+        favoritesBtn.textContent = nodelistTranslations.show_favorites || "⭐ Show Favorites";
         favoritesBtn.classList.remove("active");
+        favoritesBtn.setAttribute("aria-pressed", "false");
 
         applyFilters();
         updateSortIcons();
