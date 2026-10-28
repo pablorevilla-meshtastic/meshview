@@ -101,6 +101,16 @@
         <p class="total-count">Top 10 senders from the latest 500 text packets across all channels. Only packets on the sender’s recorded main channel count; unknown channels are excluded.</p>
     </div>
 
+    <div class="card-section">
+        <p class="section-header">10 highest nodes · altitude</p>
+        <button id="altitude-refresh" type="button">Refresh report</button>
+        <span class="total-count" id="altitude-status" role="status">Loading…</span>
+        <button class="expand-btn" data-chart="chart_altitude">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_altitude">Export CSV</button>
+        <div id="chart_altitude" class="chart"></div>
+        <p class="total-count">Latest reported altitude in meters above sea level. Nodes without altitude are excluded. Click a bar to view the node.</p>
+    </div>
+
     <!-- Packet Types Pie Chart with Channel Selector -->
     <div class="card-section">
         <p class="section-header" data-translate-lang="packet_types_last_24h">
@@ -285,6 +295,55 @@ async function loadTextNodes() {
 document.getElementById("text-nodes-refresh").addEventListener("click", loadTextNodes);
 loadTextNodes();
 
+let altitudeRows = [];
+function rankAltitudeNodes(nodes) {
+    return nodes
+        .filter(node => Number.isFinite(node.last_altitude) && node.node_id != null)
+        .sort((a, b) => b.last_altitude - a.last_altitude || a.node_id - b.node_id)
+        .slice(0, 10);
+}
+function openAltitudeNode(event) {
+    const node = altitudeRows[event.dataIndex];
+    if (event.componentType === "series" && node) {
+        location.href = `/node/${encodeURIComponent(node.node_id)}`;
+    }
+}
+async function loadAltitudeNodes(refreshNodes = false) {
+    const status = document.getElementById("altitude-status");
+    const refresh = document.getElementById("altitude-refresh");
+    const el = document.getElementById("chart_altitude");
+    const chart = echarts.getInstanceByDom(el) || initMeshChart(el);
+    refresh.disabled = true;
+    status.textContent = "Loading…";
+    chart.off("click");
+    chart.on("click", openAltitudeNode);
+    try {
+        altitudeRows = rankAltitudeNodes(await fetchStatsNodes(refreshNodes));
+        chart.setOption({
+            tooltip: {trigger:"axis", renderMode:"richText", valueFormatter:value => `${value} m`},
+            grid: {left:10, right:20, top:55, bottom:10, containLabel:true},
+            xAxis: {type:"category", data:altitudeRows.map(node => node.long_name || node.short_name || node.id),
+                axisLabel:{interval:0, rotate:35, width:85, overflow:"truncate"}},
+            yAxis: {type:"value", name:"Altitude (m above sea level)", nameGap:30},
+            series: [{type:"bar", name:"Altitude", barMaxWidth:45,
+                itemStyle:{color:"#187346"}, label:{show:true, position:"top", formatter:"{c} m"},
+                data:altitudeRows.map(node => node.last_altitude)}]
+        }, true);
+        status.textContent = altitudeRows.length
+            ? `Showing ${altitudeRows.length} nodes · highest first`
+            : "No nodes have reported altitude yet.";
+    } catch (error) {
+        altitudeRows = [];
+        chart.clear();
+        status.textContent = "Unable to load altitudes. Use Refresh report to retry.";
+        console.error(error);
+    } finally {
+        refresh.disabled = false;
+    }
+}
+document.getElementById("altitude-refresh").addEventListener("click", () => loadAltitudeNodes(true));
+loadAltitudeNodes();
+
 // --- Fetch & Processing ---
 async function fetchStats(period_type,length,portnum=null,channel=null){
     try{
@@ -307,7 +366,8 @@ async function fetchDailySnapshots(){
     }catch{return [];}
 }
 
-function fetchStatsNodes() {
+function fetchStatsNodes(refresh = false) {
+    if (refresh) statsNodesPromise = null;
     if (!statsNodesPromise) {
         statsNodesPromise = fetch("/api/nodes").then(async response => {
             if (!response.ok) throw new Error("Unable to load nodes");
@@ -726,6 +786,7 @@ document.querySelectorAll(".expand-btn").forEach(btn=>{
         modalChart.setOption(sourceChart.getOption());
         modalChart.off("click");
         if (chartId === "chart_text_nodes") modalChart.on("click", openTextSender);
+        if (chartId === "chart_altitude") modalChart.on("click", openAltitudeNode);
     });
 });
 
@@ -753,6 +814,12 @@ document.querySelectorAll(".export-btn").forEach(btn=>{
         if(!chart)return;
         const option=chart.getOption();
         let rows=[];
+        if (chartId === "chart_altitude") {
+            rows = [["Node ID", "Short Name", "Long Name", "Altitude (m above sea level)"],
+                ...altitudeRows.map(node => [node.node_id, node.short_name || "", node.long_name || "", node.last_altitude])];
+            downloadCSV(chartId + ".csv", rows);
+            return;
+        }
         if (chartId === "chart_text_nodes") {
             rows = [["Node ID", "Short Name", "Long Name", "Main Channel", "Text Packets"],
                 ...textNodeRows.map(row => [row.node_id, row.short_name || "", row.long_name || "", row.channel, row.packet_count])];
