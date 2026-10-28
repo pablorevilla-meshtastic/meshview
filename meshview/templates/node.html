@@ -1649,7 +1649,7 @@ function exportCSV(type){
         }
     }
 
-    const csv  = rows.map(r => r.join(",")).join("\n");
+    const csv  = csvFromRows(rows);
     const blob = new Blob([csv], { type:"text/csv" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -1785,10 +1785,8 @@ async function loadNodeStats(nodeId) {
         const portName = PORT_LABEL_MAP[pkt.portnum] || `Port ${pkt.portnum}`;
         const displayPacketId = pkt.packet_id || (pkt.portnum === 73 ? "Not a Packet" : "");
 
-        // Escape quotes + line breaks for CSV safety
-        const payload = (pkt.payload || "")
-            .replace(/"/g, '""')
-            .replace(/\r?\n/g, " ");
+        // Keep each packet on one line; csvFromRows() does the quoting.
+        const payload = (pkt.payload || "").replace(/\r?\n/g, " ");
 
         rows.push([
             time,
@@ -1797,11 +1795,11 @@ async function loadNodeStats(nodeId) {
             pkt.to_node_id,
             pkt.portnum,
             portName,
-            `"${payload}"`
+            payload
         ]);
     }
 
-    const csv = rows.map(r => r.join(",")).join("\n");
+    const csv = csvFromRows(rows);
     const blob = new Blob([csv], { type: "text/csv" });
 
      const link = document.createElement("a");
