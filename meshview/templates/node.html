@@ -5,9 +5,10 @@
 {% block css %}
 {% include "data-page-styles.html" %}
 <style>
-.node-info { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-bottom:20px; font-size:13px; }
+.node-info { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:20px; font-size:13px; }
 .node-info-col { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:20px; overflow-wrap:anywhere; }
 .node-info-col > div { padding:5px 0; }
+.node-info-col h2 { margin:0 0 10px; padding-bottom:10px; border-bottom:1px solid var(--mesh-border); color:var(--mesh-text); font-size:15px; font-weight:600; }
 .node-info strong { color:var(--mesh-muted); font-weight:500; }
 .node-actions .qr-unavailable { align-self:center; color:var(--mesh-muted); font-size:13px; }
 .node-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
@@ -64,24 +65,31 @@
 
     <!-- Node Info -->
     <div id="node-info" class="node-info">
-        <div class="node-info-col">
-            <div><strong data-translate-lang="node_id">Node ID</strong><strong>: </strong><span id="info-node-id">—</span></div>
-            <div><strong data-translate-lang="id">Hex ID</strong><strong>: </strong><span id="info-id">—</span></div>
-            <div><strong data-translate-lang="short_name">Short Name</strong><strong>: </strong> <span id="info-short-name">—</span></div>
+        <section class="node-info-col" aria-labelledby="node-info-heading-0">
+            <h2 id="node-info-heading-0">Identity</h2>
             <div><strong data-translate-lang="long_name">Long Name</strong><strong>: </strong> <span id="info-long-name">—</span></div>
+            <div><strong data-translate-lang="short_name">Short Name</strong><strong>: </strong> <span id="info-short-name">—</span></div>
+            <div><strong data-translate-lang="id">Hex ID</strong><strong>: </strong><span id="info-id">—</span></div>
+            <div><strong data-translate-lang="node_id">Node ID</strong><strong>: </strong><span id="info-node-id">—</span></div>
+        </section>
+        <section class="node-info-col" aria-labelledby="node-info-heading-1">
+            <h2 id="node-info-heading-1">Device & network</h2>
+            <div><strong data-translate-lang="hw_model">Hardware Model</strong><strong>: </strong> <span id="info-hw-model">—</span></div>
+            <div><strong data-translate-lang="firmware">Firmware</strong><strong>: </strong> <span id="info-firmware">—</span></div>
+            <div><strong data-translate-lang="role">Role</strong><strong>: </strong> <span id="info-role">—</span></div>
             <div><strong data-translate-lang="channel">Channel</strong><strong>: </strong> <span id="info-channel">—</span></div>
-        </div>
-        <div class="node-info-col">
+            <div><strong data-translate-lang="mqtt_gateway">MQTT Gateway</strong><strong>: </strong> <span id="info-mqtt-gateway">—</span></div>
+        </section>
+        <section class="node-info-col" aria-labelledby="node-info-heading-2">
+            <h2 id="node-info-heading-2">Location</h2>
             <div><strong data-translate-lang="latitude">Latitude</strong><strong>: </strong> <span id="info-lat">—</span></div>
             <div><strong data-translate-lang="longitude">Longitude</strong><strong>: </strong> <span id="info-lon">—</span></div>
-            <div><strong data-translate-lang="role">Role</strong><strong>: </strong> <span id="info-role">—</span></div>
-            <div><strong data-translate-lang="hw_model">Hardware Model</strong><strong>: </strong> <span id="info-hw-model">—</span></div>
-            <div><strong data-translate-lang="mqtt_gateway">MQTT Gateway</strong><strong>: </strong> <span id="info-mqtt-gateway">—</span></div>
-        </div>
-        <div class="node-info-col">
+            <div><strong>Altitude (above sea level)</strong><strong>: </strong> <span id="info-altitude">—</span></div>
+        </section>
+        <section class="node-info-col" aria-labelledby="node-info-heading-3">
+            <h2 id="node-info-heading-3">Activity</h2>
             <div><strong data-translate-lang="first_update">First Update</strong><strong>: </strong> <span id="info-first-update">—</span></div>
             <div><strong data-translate-lang="last_update">Last Update</strong><strong>: </strong> <span id="info-last-update">—</span></div>
-            <div><strong data-translate-lang="firmware">Firmware</strong><strong>: </strong> <span id="info-firmware">—</span></div>
             <div>
                 <strong data-translate-lang="statistics">Statistics</strong><strong>: </strong>
                 <span id="info-stats"
@@ -89,7 +97,7 @@
                       data-label-sent="Packets sent"
                       data-label-seen="Times seen">—</span>
             </div>
-        </div>
+        </section>
     </div>
 
     <!-- Map. -->
@@ -427,9 +435,11 @@ async function loadNodeInfo(){
         document.getElementById("info-channel").textContent    = node.channel ?? "—";
 
         document.getElementById("info-lat").textContent =
-            node.last_lat ? (node.last_lat / 1e7).toFixed(6) : "—";
+            node.last_lat != null ? (node.last_lat / 1e7).toFixed(6) : "—";
         document.getElementById("info-lon").textContent =
-            node.last_long ? (node.last_long / 1e7).toFixed(6) : "—";
+            node.last_long != null ? (node.last_long / 1e7).toFixed(6) : "—";
+        document.getElementById("info-altitude").textContent =
+            node.last_altitude != null ? `${node.last_altitude} m` : "—";
         const coverageBtn = document.getElementById("toggleCoverageBtn");
         const coverageHelp = document.getElementById("coverageHelpLink");
         if (coverageBtn) {
