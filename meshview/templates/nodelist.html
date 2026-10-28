@@ -18,6 +18,7 @@
 .favorite-star { cursor:pointer; font-size:20px; color:#8b98aa; user-select:none; }
 .favorite-star.active { color:#ad7800; }
 .mesh-data-page .favorites-btn.active { background:#fff3d6; border-color:#eacb80; color:#8b6200; }
+.node-pagination { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap; }
 .sort-icon { font-size:10px; }
 #mobile-node-list { display:none; }
 .node-card { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:12px; font-size:13px; overflow-wrap:anywhere; }
@@ -115,6 +116,11 @@
 
 <!-- Mobile Card View -->
 <div id="mobile-node-list" style="display:none;"></div>
+<nav class="node-pagination" aria-label="Node list pages">
+    <span id="node-page-range" class="reach-muted" aria-live="polite"></span>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-previous" disabled>Previous</button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-next" disabled>Next</button>
+</nav>
 
 <script>
 // =====================================================
@@ -226,7 +232,7 @@ function timeAgoFromMs(msTimestamp) {
 // =====================================================
 document.addEventListener("DOMContentLoaded", async function() {
 
-    await loadTranslationsNodelist();
+    const translationsReady = loadTranslationsNodelist();
     loadFavorites();
 
     const tbody = document.getElementById("node-table-body");
@@ -244,6 +250,12 @@ document.addEventListener("DOMContentLoaded", async function() {
     const clearBtn = document.getElementById("clear-btn");
     const favoritesBtn = document.getElementById("favorites-btn");
 
+    const pageSize = 100;
+    let currentPage = 1;
+    let filteredNodes = [];
+    const previousPage = document.getElementById("node-page-previous");
+    const nextPage = document.getElementById("node-page-next");
+
     let lastIsMobile = (window.innerWidth <= 768);
 
     async function loadNodesForActiveDays() {
@@ -254,6 +266,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (!res.ok) throw new Error("Failed to fetch nodes");
 
         const data = await res.json();
+        await translationsReady;
 
         allNodes = data.nodes.map(n => {
             const firmware = n.firmware || n.firmware_version || "";
@@ -278,7 +291,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
 
         populateFilters(allNodes);
-        applyFilters(); // ensures initial sort + render uses same path
+        await applyFilters(); // ensures initial sort + render uses same path
         updateSortIcons();
         setStatus("");
     }
@@ -293,6 +306,15 @@ document.addEventListener("DOMContentLoaded", async function() {
         setStatus("");
         return;
     }
+
+    previousPage.addEventListener("click", () => {
+        currentPage--;
+        applyFilters(false);
+    });
+    nextPage.addEventListener("click", () => {
+        currentPage++;
+        applyFilters(false);
+    });
 
     roleFilter.addEventListener("change", applyFilters);
     channelFilter.addEventListener("change", applyFilters);
@@ -398,7 +420,8 @@ document.addEventListener("DOMContentLoaded", async function() {
         applyFilters();
     }
 
-    async function applyFilters() {
+    async function applyFilters(resetPage = true) {
+        if (resetPage !== false) currentPage = 1;
         setStatus("Updating…");
         await nextFrame();
         const searchTerm = searchBox.value.trim().toLowerCase();
@@ -418,12 +441,21 @@ document.addEventListener("DOMContentLoaded", async function() {
         // IMPORTANT: Always sort the filtered subset to preserve expected behavior
         filtered = sortNodes(filtered, sortColumn, sortAsc);
 
+        filteredNodes = filtered;
         renderTable(filtered);
         updateSortIcons();
         setStatus("");
     }
 
     function renderTable(nodes) {
+        const total = nodes.length;
+        currentPage = Math.max(1, Math.min(currentPage, Math.ceil(total / pageSize)));
+        const start = (currentPage - 1) * pageSize;
+        document.getElementById("node-page-range").textContent = total
+            ? `${start + 1}–${Math.min(start + pageSize, total)} of ${total} nodes` : "0 nodes";
+        previousPage.disabled = currentPage === 1;
+        nextPage.disabled = start + pageSize >= total;
+        nodes = nodes.slice(start, start + pageSize);
         const isMobile = window.innerWidth <= 768;
         const shouldRenderTable = !isMobile;
 
@@ -513,7 +545,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         // Toggle correct view
         mobileList.style.display = isMobile ? "block" : "none";
 
-        countSpan.textContent = nodes.length;
+        countSpan.textContent = total;
 
         if (shouldRenderTable) {
             tbody.appendChild(tableFrag);
@@ -542,8 +574,16 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     function exportToCSV() {
         const rows = [Array.from(headers).map(h => h.innerText.replace(/▲|▼/g,''))];
-        tbody.querySelectorAll("tr").forEach(tr => {
-            rows.push(Array.from(tr.children).map(td => td.innerText));
+        filteredNodes.forEach(node => {
+            rows.push([
+                node.short_name || "N/A", node.long_name || "N/A", node.hw_model || "N/A",
+                node.firmware || "N/A", node.role || "N/A",
+                node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A",
+                node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A",
+                node.channel || "N/A",
+                node.is_mqtt_gateway ? (nodelistTranslations.yes || "Yes") : (nodelistTranslations.no || "No"),
+                timeAgoFromMs(node.last_seen_ms), isFavorite(node.node_id) ? "★" : "☆"
+            ]);
         });
 
         // A Blob, not a data: URL: encodeURI() leaves "#" alone, which cut the file short at
