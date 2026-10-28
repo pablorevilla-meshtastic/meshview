@@ -18,6 +18,7 @@
 .section-header { text-transform:lowercase; width:100%; font-size:15px; font-weight:600; color:var(--mesh-text); padding-bottom:14px; margin:0 0 2px; border-bottom:1px solid var(--mesh-border); }
 .total-count { font-size:12px; color:var(--mesh-muted); margin-right:auto; }
 .chart { width:100%; min-width:0; height:340px; margin-top:8px; }
+#chart_hourly_all,#chart_portnum_1 { height:380px; }
 #chartModal { display:none; position:fixed; inset:0; background:#17263c99; z-index:9999; justify-content:center; align-items:center; padding:16px; }
 #chartModal > div { position:relative; width:95%; max-width:1200px; height:85%; background:var(--mesh-surface); border-radius:10px; padding:48px 16px 16px; display:flex; flex-direction:column; }
 #chartModal #closeModal { position:absolute; top:10px; right:12px; font-size:22px; padding:0; width:32px; height:32px; line-height:1; }
@@ -458,15 +459,20 @@ function renderChart(domId,data,type,color){
     const chart=initMeshChart(el);
     const periods=data.map(d=>(d.period??d.period===0)?d.period.toString():'');
     const counts=data.map(d=>d.count??d.packet_count??0);
+    const hourly = domId === 'chart_hourly_all' || domId === 'chart_portnum_1';
     chart.setOption({
         backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
-        grid:{left:'6%', right:'6%', bottom:'18%'},
+        grid:hourly
+            ? {left:15, right:20, top:35, bottom:20, containLabel:true}
+            : {left:'6%', right:'6%', bottom:'18%'},
         xAxis:{
             type:'category',
             data:periods,
             axisLine:{lineStyle:{color:'#c3cfdf'}},
-            axisLabel:{rotate:45,color:'#64748b'}
+            axisLabel:hourly
+                ? {rotate:45, color:'#64748b', margin:16, hideOverlap:true}
+                : {rotate:45,color:'#64748b'}
         },
         yAxis:{
             type:'value',
