@@ -744,7 +744,6 @@ async def api_config(request):
             "map_bottom_right_lat": get_float(site, "map_bottom_right_lat", 36.0),
             "map_bottom_right_lon": get_float(site, "map_bottom_right_lon", -121.0),
             "map_interval": get_int(site, "map_interval", 3),
-
             "map_channel_colors": {
                 channel: color.strip()
                 for channel, color in CONFIG.get("map_channel_colors", {}).items()
@@ -1173,9 +1172,11 @@ async def api_node_qr(request):
         return web.json_response({"error": "Node not found"}, status=404)
 
     try:
+        from google.protobuf.message import DecodeError
+
         from meshtastic.protobuf.admin_pb2 import SharedContact
         from meshtastic.protobuf.config_pb2 import Config
-        from meshtastic.protobuf.mesh_pb2 import User
+        from meshtastic.protobuf.mesh_pb2 import MeshPacket, User
 
         user = User()
         user.id = f"!{node_id:08x}"
@@ -1200,18 +1201,52 @@ async def api_node_qr(request):
             except (AttributeError, TypeError):
                 pass
 
-        contact = SharedContact()
-        contact.node_num = node_id
-        contact.user.CopyFrom(user)
-        contact.manually_verified = False
+        # Meshview does not store public keys, so read them from the node's NODEINFO packets.
+        latest_nodeinfo = None
+        public_keys = set()
+        for payload in await store.get_nodeinfo_payloads(node_id):
+            if not payload:
+                continue
+            try:
+                mesh_packet = MeshPacket.FromString(payload)
+            except DecodeError:
+                continue
+            nodeinfo = decode_payload.decode_payload(
+                PortNum.NODEINFO_APP, mesh_packet.decoded.payload
+            )
+            if not isinstance(nodeinfo, User):
+                continue
+            if latest_nodeinfo is None:
+                latest_nodeinfo = nodeinfo
+            if len(nodeinfo.public_key) == 32:
+                public_keys.add(nodeinfo.public_key)
 
-        contact_bytes = contact.SerializeToString()
+        if latest_nodeinfo is not None:
+            if len(latest_nodeinfo.public_key) == 32:
+                user.public_key = latest_nodeinfo.public_key
+            user.is_licensed = latest_nodeinfo.is_licensed
+            if latest_nodeinfo.HasField("is_unmessagable"):
+                user.is_unmessagable = latest_nodeinfo.is_unmessagable
+
         import base64
 
-        contact_b64 = base64.b64encode(contact_bytes).decode("ascii")
-        contact_b64url = contact_b64.replace("+", "-").replace("/", "_").rstrip("=")
+        # A contact without a public key is refused by current Meshtastic apps and, on older
+        # firmware, erases the key the importing radio already has. Importing a contact also
+        # replaces a key the radio has pinned, so when the node's packets disagree on its key
+        # (one of them may be forged), share neither.
+        public_key_conflict = len(public_keys) > 1
+        meshtastic_url = None
+        if user.public_key and not public_key_conflict:
+            contact = SharedContact()
+            contact.node_num = node_id
+            contact.user.CopyFrom(user)
+            contact.manually_verified = False
 
-        meshtastic_url = f"https://meshtastic.org/v/#{contact_b64url}"
+            contact_bytes = contact.SerializeToString()
+            contact_b64 = base64.b64encode(contact_bytes).decode("ascii")
+            contact_b64url = contact_b64.replace("+", "-").replace("/", "_").rstrip("=")
+
+            meshtastic_url = f"https://meshtastic.org/v/#{contact_b64url}"
 
         return web.json_response(
             {
@@ -1219,6 +1254,10 @@ async def api_node_qr(request):
                 "long_name": node.long_name,
                 "short_name": node.short_name,
                 "role": node.role,
+                "public_key": (
+                    base64.b64encode(user.public_key).decode("ascii") if user.public_key else None
+                ),
+                "public_key_conflict": public_key_conflict,
                 "meshtastic_url": meshtastic_url,
             }
         )

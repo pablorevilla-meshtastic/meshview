@@ -173,6 +173,11 @@
     border-color: #48bb78;
     color: #fff;
 }
+.node-actions .qr-unavailable {
+    align-self: center;
+    color: #b0bec5;
+    font-size: 0.85rem;
+}
 .copy-success {
     color: #4ade80 !important;
     transition: opacity 0.3s;
@@ -315,6 +320,12 @@
         <button onclick="showQrCode()" id="showQrBtn">
             <span>🔳</span> <span data-translate-lang="show_qr_code">Show QR Code</span>
         </button>
+        <span class="qr-unavailable" id="qrUnavailable" style="display:none;" data-translate-lang="qr_no_public_key">
+            No public key heard from this node yet, so it cannot be shared as a contact.
+        </span>
+        <span class="qr-unavailable" id="qrKeyConflict" style="display:none;" data-translate-lang="qr_key_conflict">
+            This node has reported more than one public key, so it is not shared as a contact.
+        </span>
         <button onclick="openReachReport()" id="reachReportBtn">
             <span>📈</span> <span>Reliability</span>
         </button>
@@ -1811,8 +1822,16 @@ async function loadNodeQr() {
     try {
         const qrRes = await fetch(`/api/node/${fromNodeId}/qr`);
         const qrData = await qrRes.json();
-        if (qrRes.ok && qrData.meshtastic_url) {
-            currentMeshtasticUrl = qrData.meshtastic_url;
+        if (qrRes.ok) {
+            // No URL means no usable public key: none is known, or the node reported several.
+            currentMeshtasticUrl = qrData.meshtastic_url || "";
+            const canShare = Boolean(currentMeshtasticUrl);
+            const keyConflict = Boolean(qrData.public_key_conflict);
+            document.getElementById("copyUrlBtn").style.display = canShare ? "" : "none";
+            document.getElementById("showQrBtn").style.display = canShare ? "" : "none";
+            document.getElementById("qrUnavailable").style.display =
+                canShare || keyConflict ? "none" : "";
+            document.getElementById("qrKeyConflict").style.display = keyConflict ? "" : "none";
             actionsDiv.style.display = "flex";
         } else {
             actionsDiv.style.display = "none";

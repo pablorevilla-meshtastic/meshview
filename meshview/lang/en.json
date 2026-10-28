@@ -246,7 +246,9 @@
         "share_contact_qr": "Share Contact QR",
         "copy_url": "Copy URL",
         "copied": "Copied!",
-        "scan_qr_to_add": "Scan this QR code to add this node as a contact on another device."
+        "scan_qr_to_add": "Scan this QR code to add this node as a contact on another device.",
+        "qr_no_public_key": "No public key heard from this node yet, so it cannot be shared as a contact.",
+        "qr_key_conflict": "This node has reported more than one public key, so it is not shared as a contact."
     },
     "packet": {
       "loading": "Loading packet information...",
