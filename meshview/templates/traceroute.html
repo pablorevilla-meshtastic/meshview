@@ -230,7 +230,7 @@ async function loadTraceroute() {
             tooltip: {
                 formatter: () => {
                     const longName = nodeLongNameById.get(n.name) || n.name;
-                    return longName === n.name ? n.name : `${longName} (${n.name})`;
+                    return longName === n.name ? n.name : `${escapeHtml(longName)} (${n.name})`;
                 }
             }
         };

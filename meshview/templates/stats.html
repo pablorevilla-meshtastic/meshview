@@ -406,7 +406,7 @@ function renderPieChart(elId,data,name){
         backgroundColor:"#272b2f",
         tooltip:{
             trigger:"item",
-            formatter: params=>`${params.name}: ${Math.round(params.percent)}% (${params.value})`
+            formatter: params=>`${escapeHtml(params.name)}: ${Math.round(params.percent)}% (${params.value})`
         },
         series:[{
             name:name,
