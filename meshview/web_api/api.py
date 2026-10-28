@@ -300,6 +300,7 @@ async def api_packets(request):
         since_str = request.query.get("since")
         portnum_str = request.query.get("portnum")
         contains = request.query.get("contains")
+        channel = request.query.get("channel")
 
         # NEW — explicit filters
         from_node_id_str = request.query.get("from_node_id")
@@ -390,6 +391,7 @@ async def api_packets(request):
             after=since,
             contains=contains_for_query,
             limit=limit,
+            channel=channel,
         )
 
         ui_packets = [Packet.from_model(p) for p in packets]

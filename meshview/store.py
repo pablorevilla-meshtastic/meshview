@@ -38,6 +38,7 @@ async def get_packets(
     after=None,
     contains=None,  # substring search
     limit=50,
+    channel=None,
 ):
     async with database.async_session() as session:
         stmt = select(models.Packet)
@@ -59,6 +60,9 @@ async def get_packets(
                     models.Packet.to_node_id == node_id,
                 )
             )
+
+        if channel is not None:
+            conditions.append(models.Packet.channel == channel)
 
         # Port filter
         if portnum is not None:

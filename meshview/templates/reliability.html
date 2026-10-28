@@ -50,7 +50,7 @@
 <section class="reach-page">
     <header class="data-heading"><div><span class="mesh-eyebrow">GATEWAY DIAGNOSTICS</span><h1>Reliability</h1><p>See how consistently gateways hear packets from a selected node.</p></div><a class="mesh-secondary-button" href="/nodelist">All nodes ↗</a></header>
     <details class="reach-description"><summary>How reliability is calculated</summary><p>Review how often each gateway hears packets from a selected node. The report uses the
-            latest selected packet sample and calculates reliability as heard packets divided by packets
+            latest selected packet sample on the node’s recorded main channel and calculates reliability as heard packets divided by packets
             reviewed. The range table groups gateways by reliability bands, while the gateway list
             shows each gateway's heard count and percentage for the same sample. Reliability is
             calculated only from Text, Position, Node Info, and Telemetry packets; other packet types
@@ -94,6 +94,7 @@
             </a>
         </form>
 
+        <p class="reach-muted" id="reach-channel" role="status"></p>
         <div class="reach-summary">
             <div class="reach-metric">
                 <div class="text-secondary">Latest Packets</div>
@@ -466,7 +467,19 @@ async function loadReachReport(nodeId = reachNodeId) {
     resetReliabilityMap();
 
     try {
+        const nodesById = new Map(reachNodes.map(node => [Number(node.node_id), node]));
+        const mainChannel = nodesById.get(reachNodeId)?.channel;
+        document.getElementById("reach-channel").textContent = mainChannel
+            ? `Main channel: ${mainChannel}` : "Main channel unknown — no report available yet.";
+        if (!mainChannel) {
+            packetCountEl.textContent = "0";
+            gatewayCountEl.textContent = "0";
+            bucketBodyEl.innerHTML = '<tr><td colspan="2" class="reach-muted">The node’s main channel is unknown.</td></tr>';
+            setGatewayTables('<tr><td colspan="4" class="reach-muted">The node’s main channel is unknown.</td></tr>');
+            return;
+        }
         const packetUrl = new URL("/api/packets", window.location.origin);
+        packetUrl.searchParams.set("channel", mainChannel);
         packetUrl.searchParams.set("from_node_id", reachNodeId);
         packetUrl.searchParams.set("limit", packetLimit);
         if (packetType) packetUrl.searchParams.set("portnum", packetType);
@@ -475,8 +488,7 @@ async function loadReachReport(nodeId = reachNodeId) {
             fetchJson(packetUrl),
         ]);
 
-        const packets = packetData.packets || [];
-        const nodesById = new Map(reachNodes.map(node => [Number(node.node_id), node]));
+        const packets = (packetData.packets || []).filter(packet => packet.channel === mainChannel);
 
         packetCountEl.textContent = packets.length;
 

@@ -96,6 +96,7 @@ Query Parameters
 - `portnum` (optional, int): Filter by port number.
 - `contains` (optional, string): Payload substring filter.
 - `from_node_id` (optional, int): Filter by sender node ID.
+- `channel` (optional, string): Filter by exact channel name before applying the packet limit.
 - `to_node_id` (optional, int): Filter by recipient node ID.
 - `node_id` (optional, int): Legacy filter matching either from or to node ID.
 
