@@ -1189,7 +1189,15 @@ async function loadNeighborTimeSeries() {
         grid: { bottom: 60 },
         tooltip: {
             trigger: "axis",
-            axisPointer: { type: "line" }
+            axisPointer: { type: "line" },
+            formatter: params => {
+                if (!params.length) return "";
+                const timestamp = Number(params[0].axisValue);
+                const heading = new Date(timestamp / 1000).toLocaleString();
+                return escapeHtml(heading) + "<br>" + params.map(point =>
+                    `${point.marker}${escapeHtml(point.seriesName)}: ${escapeHtml(point.value ?? "N/A")}`
+                ).join("<br>");
+            }
         },
         legend: {
             type: "scroll",
