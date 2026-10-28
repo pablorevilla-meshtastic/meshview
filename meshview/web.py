@@ -91,7 +91,7 @@ class Packet:
             text_payload = (
                 "ACK"
                 if payload.error_reason == Routing.Error.NONE
-                else f"NAK: {Routing.Error.Name(payload.error_reason)}"
+                else f"NAK: {decode_payload.enum_name(Routing.Error, payload.error_reason)}"
             )
         elif isinstance(payload, Message):
             text_payload = text_format.MessageToString(payload)

@@ -42,6 +42,18 @@ DECODE_MAP = {
 }
 
 
+def enum_name(enum_type, value):
+    """Return the name of a protobuf enum value, or ``unknown(N)`` if it is not defined.
+
+    These values come from packets on the mesh, so a newer firmware or a forged packet
+    can carry a number the bundled protobufs do not know. ``Name()`` raises on those.
+    """
+    try:
+        return enum_type.Name(value)
+    except ValueError:
+        return f"unknown({value})"
+
+
 def decode_payload(portnum, payload):
     if portnum not in DECODE_MAP:
         return None
