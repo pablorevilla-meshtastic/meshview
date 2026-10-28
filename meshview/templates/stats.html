@@ -323,12 +323,12 @@ function buildPacketTypeBreakdownFromSeries(allData, perPortSeries){
 }
 
 function processCountField(nodes,field){
-    const counts={};
+    const counts=new Map();  // keys are mesh-provided strings, e.g. a channel called "constructor"
     nodes.forEach(n=>{
         const key=n[field]||"Unknown";
-        counts[key]=(counts[key]||0)+1;
+        counts.set(key,(counts.get(key)||0)+1);
     });
-    return Object.entries(counts).map(([name,value])=>({name,value}));
+    return Array.from(counts,([name,value])=>({name,value}));
 }
 
 function updateTotalCount(domId,data){
