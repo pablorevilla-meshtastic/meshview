@@ -1,9 +1,15 @@
 <!doctype html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en" data-bs-theme="{% block theme %}dark{% endblock %}">
 <head>
     <title>Meshview</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48 64x64 256x256" href="/static/favicon.ico">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="/static/meshview-icon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+
+    <script src="/static/theme.js"></script>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
@@ -12,6 +18,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="/static/html-escape.js"></script>
     <script src="/static/csv.js"></script>
+    <script src="/static/packet-arrival.js"></script>
 
     {% block head %}{% endblock %}
 
@@ -44,22 +51,132 @@
     </style>
 
     {% block css %}{% endblock %}
+    <style>
+/* Shared dashboard chrome and map explorer. */
+:root,[data-bs-theme="light"],[data-bs-theme="dark"] {
+    --bs-primary:var(--mesh-brand);
+    --bs-primary-rgb:var(--mesh-primary-rgb);
+    --bs-link-color:var(--mesh-primary);
+    --bs-link-color-rgb:var(--mesh-primary-rgb);
+    --bs-link-hover-color:var(--mesh-primary-dark);
+    --bs-link-hover-color-rgb:15,81,50;
+    --bs-focus-ring-color:rgba(var(--mesh-primary-rgb),.25);
+}
+[data-bs-theme="dark"] { --bs-link-color:#75c99c; --bs-link-color-rgb:117,201,156; --bs-link-hover-color:#a3dfbc; --bs-link-hover-color-rgb:163,223,188; }
+.btn-primary {
+    --bs-btn-bg:var(--mesh-brand); --bs-btn-border-color:var(--mesh-brand);
+    --bs-btn-hover-bg:var(--mesh-brand-deep); --bs-btn-hover-border-color:var(--mesh-brand-deep);
+    --bs-btn-active-bg:var(--mesh-brand-deep); --bs-btn-active-border-color:var(--mesh-brand-deep);
+    --bs-btn-disabled-bg:var(--mesh-brand); --bs-btn-disabled-border-color:var(--mesh-brand);
+    --bs-btn-focus-shadow-rgb:var(--mesh-primary-rgb);
+}
+.btn-outline-primary {
+    --bs-btn-color:var(--mesh-primary); --bs-btn-border-color:var(--mesh-brand);
+    --bs-btn-hover-bg:var(--mesh-brand); --bs-btn-hover-border-color:var(--mesh-brand);
+    --bs-btn-active-bg:var(--mesh-brand-deep); --bs-btn-active-border-color:var(--mesh-brand-deep);
+    --bs-btn-focus-shadow-rgb:var(--mesh-primary-rgb);
+}
+.form-control:focus,.form-select:focus { border-color:#91bda1; box-shadow:0 0 0 .25rem rgba(var(--mesh-primary-rgb),.2); }
+input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
+.leaflet-popup-content a,.leaflet-control-attribution a { color:var(--mesh-primary); }
+.form-check-input:checked { background-color:var(--mesh-primary); border-color:var(--mesh-primary); }
+.form-check-input:focus { border-color:#91bda1; box-shadow:0 0 0 .25rem rgba(var(--mesh-primary-rgb),.2); }
+.page-link { --bs-pagination-color:var(--mesh-primary); --bs-pagination-hover-color:var(--mesh-primary-dark); --bs-pagination-active-bg:var(--mesh-primary); --bs-pagination-active-border-color:var(--mesh-primary); }
+[data-bs-theme="light"] body { background:var(--mesh-page); color:var(--mesh-text); font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; }
+/* Tint whole cells: an edge-only shadow is too subtle on wide packet tables. */
+.packet-arrival-glow > td {
+    animation:packet-arrival-beat 1s ease-in-out 1;
+    animation-delay:var(--packet-glow-delay,0ms);
+    box-shadow:inset 0 0 14px rgba(24,115,70,.12);
+}
+.packet-arrival-glow > td:first-child {
+    box-shadow:inset 4px 0 0 var(--mesh-primary),inset 0 0 14px rgba(24,115,70,.12);
+}
+@keyframes packet-arrival-beat {
+    0%,100% { background-color:transparent; }
+    45% { background-color:var(--mesh-pulse-peak); }
+    75% { background-color:var(--mesh-pulse-mid); }
+}
+@media(prefers-reduced-motion:reduce) {
+    .packet-arrival-glow > td { animation:none; background:var(--mesh-soft); }
+}
+.mesh-header { background:var(--mesh-brand); color:white; box-shadow:0 2px 8px #174b2d18; }
+.mesh-header-inner { max-width:1600px; margin:auto; padding:0 28px; min-height:56px; display:flex; align-items:center; gap:32px; }
+.mesh-brand { display:flex; align-items:center; gap:10px; font-size:19px; font-weight:700; color:white; text-decoration:none; flex-shrink:0; }
+.mesh-brand:hover { color:white; }
+.mesh-brand-icon { width:32px; height:32px; display:block; flex-shrink:0; }
+#site-menu { display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
+#site-menu a { color:#e6f4ea; text-decoration:none; padding:10px 12px; border-radius:6px; font-size:14px; text-transform:capitalize; }
+#site-menu a:hover, #site-menu a.active { color:white; background:#ffffff26; }
+.mesh-menu-toggle { display:none; color:white; background:none; border:1px solid #ffffff70; border-radius:5px; font-size:22px; }
+.mesh-content { max-width:1600px; margin:0 auto; padding:28px; }
+.mesh-announcement { text-align:center; padding:10px 20px; background:var(--mesh-soft); color:var(--mesh-text); font-size:14px; }
+.mesh-announcement:empty { display:none; }
+.mesh-footer { display:flex; justify-content:space-between; gap:16px; padding:20px 28px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:12px; }
+.mesh-page-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:24px; }
+.mesh-eyebrow { font-size:10px; letter-spacing:1.6px; font-weight:700; color:var(--mesh-primary); }
+.mesh-page-heading h1 { font-size:28px; font-weight:650; margin:5px 0 7px; }
+.mesh-page-heading p { color:var(--mesh-muted); font-size:14px; margin:0; }
+.mesh-secondary-button,.mesh-fit-button { border:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); padding:9px 14px; border-radius:6px; text-decoration:none; font-size:13px; }
+.mesh-secondary-button:hover,.mesh-fit-button:hover { background:var(--mesh-soft); }
+.mesh-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-bottom:24px; }
+.mesh-metric { padding:20px 24px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; box-shadow:0 2px 4px var(--mesh-text)04; display:flex; flex-direction:column; gap:5px; }
+.mesh-metric>span { font-size:13px; font-weight:500; color:var(--mesh-muted); }
+.mesh-metric strong { font-size:30px; font-weight:650; color:var(--mesh-primary); font-variant-numeric:tabular-nums; }
+.mesh-metric:nth-child(2) strong { color:#198754; }
+.mesh-metric:nth-child(3) strong { color:#397955; }
+.mesh-metric small { font-size:11px; color:var(--mesh-muted); }
+.mesh-explorer { display:grid; grid-template-columns:290px minmax(0,1fr); gap:20px; }
+.mesh-node-panel,.mesh-map-panel { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; min-width:0; }
+.mesh-panel-title { display:flex; justify-content:space-between; align-items:center; padding:16px 18px; border-bottom:1px solid var(--mesh-border); gap:8px; min-height:64px; }
+.mesh-panel-title h2 { font-size:15px; font-weight:650; margin:0; }
+.mesh-count { color:var(--mesh-primary); background:var(--mesh-soft); padding:3px 8px; border-radius:5px; font-size:12px; }
+.mesh-search-label { margin:16px 16px 5px; font-size:11px; color:var(--mesh-muted); }
+.mesh-search { display:block; width:calc(100% - 32px); margin:0 16px 12px; border:1px solid var(--mesh-border); border-radius:6px; padding:10px; font-size:13px; }
+.mesh-search:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
+.mesh-node-list { max-height:535px; overflow:auto; }
+.mesh-node-row { display:flex; align-items:center; gap:10px; width:100%; padding:14px 16px; border:0; border-top:1px solid var(--mesh-stripe); background:var(--mesh-surface); text-align:left; color:var(--mesh-text); }
+.mesh-node-row:hover,.mesh-node-row:focus-visible { background:var(--mesh-soft); }
+.mesh-node-dot { width:9px; height:9px; border-radius:50%; background:#198754; flex-shrink:0; }
+.mesh-node-dot.offline { background:#c0c9d5; }
+.mesh-node-copy { min-width:0; flex:1; }
+.mesh-node-copy strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:600; }
+.mesh-node-copy small { display:block; color:var(--mesh-muted); font-size:11px; margin-top:4px; }
+.mesh-node-role { font-size:10px; color:var(--mesh-muted); }
+.mesh-empty { color:var(--mesh-muted); padding:20px 16px; font-size:13px; }
+.mesh-map-panel #map-wrapper { height:520px; }
+.mesh-map-panel #filter-container { display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:5px; margin:0; padding:12px; font-size:12px; border-top:1px solid var(--mesh-border); }
+.mesh-map-panel .filter-checkbox { margin:0 2px 0 10px; accent-color:var(--mesh-primary); }
+.mesh-map-panel #share-button,.mesh-map-panel #reset-filters-button { background:var(--mesh-soft); color:var(--mesh-primary); margin:5px; padding:8px 12px; font-size:12px; }
+.mesh-map-panel #share-button.is-copied { background:var(--mesh-brand-deep); color:white; }
+.mesh-map-panel #reset-filters-button { color:var(--mesh-muted); background:var(--mesh-stripe); }
+.mesh-map-panel #map-legend { bottom:80px!important; left:12px; right:auto!important; box-shadow:0 2px 8px #0001; font-size:11px; }
+.mesh-map-panel #unmapped-packets { bottom:25px; right:10px; width:190px; }
+.mesh-map-panel .leaflet-control-layers { font-size:11px; border:1px solid var(--mesh-border); box-shadow:0 2px 8px #0001; }
+@media(min-width:1000px) { .mesh-header-inner { gap:20px; } #site-menu a { padding:9px; } }
+@media(max-width:1000px) { .mesh-header-inner { flex-wrap:wrap; gap:0; padding:8px 20px; justify-content:space-between; } .mesh-menu-toggle { display:block; } #site-menu { display:none; width:100%; padding-top:14px; } #site-menu.is-open { display:flex; } .mesh-explorer { grid-template-columns:240px minmax(0,1fr); } }
+@media(max-width:700px) { .mesh-content { padding:20px 14px; } .mesh-page-heading { align-items:flex-start; } .mesh-page-heading h1 { font-size:24px; } .mesh-secondary-button { white-space:nowrap; font-size:11px; padding:8px; } .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .mesh-metric { padding:14px; } .mesh-metric strong { font-size:26px; } .mesh-explorer { display:flex; flex-direction:column-reverse; gap:16px; } .mesh-map-panel #map-wrapper { height:440px; } .mesh-node-list { max-height:300px; } .mesh-map-panel #unmapped-packets { width:155px; font-size:10px; } .mesh-footer { flex-direction:column; } }
+    </style>
+{% include "theme-styles.html" %}
 </head>
 
-<body>
-<br>
-<div style="text-align:center" id="site-header"></div>
-<div style="text-align:center" id="site-message"></div>
-<div style="text-align:center" id="site-menu"></div>
-
-<br>
-
+<body class="{% block body_class %}{% endblock %}">
+<header class="mesh-header">
+    <div class="mesh-header-inner">
+        <a class="mesh-brand" href="/"><img class="mesh-brand-icon" src="/static/meshview-icon.svg" width="32" height="32" alt=""> <span id="site-header">Meshview</span></a>
+        <button class="mesh-menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-menu">☰</button>
+        <nav id="site-menu" aria-label="Main navigation"></nav>
+        <button class="mesh-theme-toggle" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false" title="Night mode">☾</button>
+    </div>
+</header>
+<div id="site-message" class="mesh-announcement"></div>
+<main class="mesh-content">
 {% block body %}{% endblock %}
-
-<br>
-<div style="text-align:center" id="footer" data-translate="footer"></div>
-<div style="text-align:center"><small id="site-version">ver. unknown</small></div>
-<br>
+</main>
+<footer class="mesh-footer">
+    <span id="footer" data-translate="footer"></span>
+    <span id="site-version">Meshview</span>
+</footer>
 
 <script>
 // --- Shared Promises ---
@@ -161,27 +278,29 @@ async function initializePage() {
         document.title = "Meshview - " + (site.title || "");
 
         // Header & Message
-        document.getElementById("site-header").innerHTML =
-            `<strong>${site.title || ""} ${site.domain ? "(" + site.domain + ")" : ""}</strong>`;
+        document.getElementById("site-header").textContent = site.title || "Meshview";
 
         document.getElementById("site-message").textContent = site.message || "";
 
         // Menu
         const menu = document.getElementById("site-menu");
         if (menu) {
-            const items = [];
+            const items = ['<a href="/"' + (["/", "/index", "/index.html"].includes(location.pathname) ? ' class="active" aria-current="page"' : "") + '>Home</a>'];
             const keys = ["nodes", "chat", "everything", "graphs", "net", "map", "stats", "top"];
             const urls = ["/nodelist", "/chat", "/firehose", "/nodegraph", "/net", "/map", "/stats", "/top"];
 
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
-                if (site[key] === "true") {
-                    items.push(`<a href="${urls[i]}">${dict[key] || key}</a>`);
+                if (site[key] === "true" || site[key] === true) {
+                    items.push(`<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || (key === "everything" ? "Live Traffic" : key))}</a>`);
                 }
+            }
+            if (site.api !== "false" && site.api !== false) {
+                items.push('<a href="/api.html">API</a>');
             }
             items.push('<a href="https://meshview.world" target="_blank" rel="noopener noreferrer">MeshviewWorld</a>');
 
-            menu.innerHTML = items.join("&nbsp;-&nbsp;");
+            menu.innerHTML = items.join("");
         }
 
         // Version
@@ -199,6 +318,11 @@ async function initializePage() {
     }
 }
 
+document.querySelector(".mesh-menu-toggle").addEventListener("click", function () {
+    const expanded = this.getAttribute("aria-expanded") !== "true";
+    this.setAttribute("aria-expanded", String(expanded));
+    document.getElementById("site-menu").classList.toggle("is-open", expanded);
+});
 document.addEventListener("DOMContentLoaded", initializePage);
 </script>
 

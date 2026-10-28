@@ -1,100 +1,29 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-stats-page{% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-#packet_details {
-    height: 95vh;
-    overflow: auto;
-}
-
-.main-container, .container {
-    max-width: 900px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-.card-section {
-    background-color: #272b2f;
-    border: 1px solid #474b4e;
-    padding: 15px 20px;
-    margin-bottom: 20px;
-    border-radius: 10px;
-    transition: background-color 0.2s ease;
-}
-
-.card-section:hover {
-    background-color: #2f3338;
-}
-
-.section-header {
-    font-size: 16px;
-    margin: 0 0 6px 0;
-    font-weight: 500;
-    color: #fff;
-}
-
-.main-header {
-    font-size: 22px;
-    margin-bottom: 20px;
-    font-weight: 600;
-}
-
-.chart {
-    height: 400px;
-    margin-top: 10px;
-}
-
-.total-count {
-    color: #ccc;
-    font-size: 14px;
-    margin-bottom: 8px;
-}
-
-.expand-btn, .export-btn {
-    margin-bottom: 8px;
-    padding: 4px 8px;
-    cursor: pointer;
-    background-color: #444;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    font-size: 12px;
-}
-
-.expand-btn:hover { background-color: #666; }
-.export-btn:hover { background-color: #777; }
-
-/* Summary cards at top */
-.summary-card {
-    background-color: #1f2124;
-    border: 1px solid #474b4e;
-    padding: 10px 15px;
-    margin-bottom: 15px;
-    border-radius: 8px;
-}
-.summary-count {
-    font-size: 18px;
-    color: #66bb6a;
-    font-weight: bold;
-}
-
-#channelSelect {
-    margin-bottom: 8px;
-    padding: 4px 6px;
-    background:#444;
-    color:#fff;
-    border:none;
-    border-radius:4px;
-}
-
-.chart-filter {
-    margin-bottom: 8px;
-    padding: 4px 6px;
-    background: #444;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-}
+.main-container { width:100%; }
+.summary-container { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-bottom:24px; }
+.summary-card { padding:20px 24px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; min-width:0; }
+.summary-card p { color:var(--mesh-muted); font-size:13px; margin:0 0 8px; }
+.summary-count { font-size:30px; font-weight:650; color:var(--mesh-primary); font-variant-numeric:tabular-nums; }
+.summary-card:nth-child(2) .summary-count { color:#198754; }
+.summary-card:nth-child(3) .summary-count { color:#236b4b; }
+.summary-card:nth-child(4) .summary-count { color:#497b55; }
+.stats-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.card-section { min-width:0; display:flex; align-items:center; align-content:flex-start; flex-wrap:wrap; gap:10px; padding:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
+.section-header { width:100%; font-size:15px; font-weight:600; color:var(--mesh-text); padding-bottom:14px; margin:0 0 2px; border-bottom:1px solid var(--mesh-border); }
+.total-count { font-size:12px; color:var(--mesh-muted); margin-right:auto; }
+.chart { width:100%; min-width:0; height:340px; margin-top:8px; }
+#chartModal { display:none; position:fixed; inset:0; background:#17263c99; z-index:9999; justify-content:center; align-items:center; padding:16px; }
+#chartModal > div { position:relative; width:95%; max-width:1200px; height:85%; background:var(--mesh-surface); border-radius:10px; padding:48px 16px 16px; display:flex; flex-direction:column; }
+#chartModal #closeModal { position:absolute; top:10px; right:12px; font-size:22px; padding:0; width:32px; height:32px; line-height:1; }
+#modalChart { flex:1; min-height:0; width:100%; }
+@media(max-width:1000px) { .stats-chart-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:700px) { .summary-container { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .summary-card { padding:16px; } .summary-count { font-size:26px; } .card-section { padding:14px; gap:8px; } .chart { height:320px; } }
 </style>
 {% endblock %}
 
@@ -105,30 +34,29 @@
 
 {% block body %}
 <div class="main-container">
-    <h2 class="main-header" data-translate-lang="mesh_stats_summary">
-        Mesh Statistics - Summary (all available in Database)
-    </h2>
+    <header class="data-heading"><div><span class="mesh-eyebrow">NETWORK ANALYTICS</span><h1>Mesh statistics</h1><p>Explore packet history, device activity, and gateway distribution.</p></div><a class="mesh-secondary-button" href="/top">Top nodes ↗</a></header>
 
     <!-- Summary cards now fully driven by API + JS -->
-    <div class="summary-container" style="display:flex; justify-content:space-between; gap:10px; margin-bottom:20px;">
-        <div class="summary-card" style="flex:1;">
+    <div class="summary-container">
+        <div class="summary-card">
             <p data-translate-lang="total_nodes">Total Nodes</p>
             <div class="summary-count" id="summary_nodes">0</div>
         </div>
-        <div class="summary-card" style="flex:1;">
+        <div class="summary-card">
             <p data-translate-lang="total_packets">Total Packets</p>
             <div class="summary-count" id="summary_packets">0</div>
         </div>
-        <div class="summary-card" style="flex:1;">
+        <div class="summary-card">
             <p data-translate-lang="total_packets_seen">Total Packets Seen</p>
             <div class="summary-count" id="summary_seen">0</div>
         </div>
-        <div class="summary-card" style="flex:1;">
+        <div class="summary-card">
             <p data-translate-lang="total_gateways">Total Gateways</p>
             <div class="summary-count" id="summary_gateways">0</div>
         </div>
     </div>
 
+    <div class="stats-chart-grid">
     <div class="card-section">
         <p class="section-header" data-translate-lang="daily_snapshot_packets_history">
             Daily Packet Snapshot History
@@ -168,7 +96,7 @@
         <p class="section-header" data-translate-lang="packet_types_last_24h">
             Packet Types - Last 24 Hours
         </p>
-        <select id="channelSelect">
+        <select id="channelSelect" aria-label="Packet type channel">
             <option value="" data-translate-lang="all_channels">All Channels</option>
         </select>
         <button class="expand-btn" data-chart="chart_packet_types" data-translate-lang="expand_chart">Expand Chart</button>
@@ -251,17 +179,13 @@
         <div id="chart_gateway_firmware" class="chart"></div>
     </div>
 </div>
+</div>
 
 <!-- Modal for expanded charts -->
-<div id="chartModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-    background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center;">
-    <div style="position:relative; width:80%; max-width:1000px; height:80%;
-        background:#272b2f; border-radius:10px; padding:10px; display:flex; flex-direction:column;">
-
-        <button id="closeModal" style="position:absolute; top:10px; right:10px; z-index:1010;
-            background:#ff4c4c; border:none; color:white; font-size:24px; width:36px; height:36px;
-            border-radius:50%; cursor:pointer;">&times;</button>
-        <div id="modalChart" style="flex:1; width:100%; height:100%;"></div>
+<div id="chartModal" role="dialog" aria-modal="true" aria-label="Expanded chart">
+    <div>
+        <button id="closeModal" type="button" aria-label="Close expanded chart">&times;</button>
+        <div id="modalChart"></div>
     </div>
 </div>
 
@@ -368,23 +292,23 @@ function filterSnapshotsByRange(data, rangeValue){
 function renderChart(domId,data,type,color){
     const el=document.getElementById(domId);
     if(!el) return;
-    const chart=echarts.init(el);
+    const chart=initMeshChart(el);
     const periods=data.map(d=>(d.period??d.period===0)?d.period.toString():'');
     const counts=data.map(d=>d.count??d.packet_count??0);
     chart.setOption({
-        backgroundColor:'#272b2f',
+        backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
         grid:{left:'6%', right:'6%', bottom:'18%'},
         xAxis:{
             type:'category',
             data:periods,
-            axisLine:{lineStyle:{color:'#aaa'}},
-            axisLabel:{rotate:45,color:'#ccc'}
+            axisLine:{lineStyle:{color:'#c3cfdf'}},
+            axisLabel:{rotate:45,color:'#64748b'}
         },
         yAxis:{
             type:'value',
-            axisLine:{lineStyle:{color:'#aaa'}},
-            axisLabel:{color:'#ccc'}
+            axisLine:{lineStyle:{color:'#c3cfdf'}},
+            axisLabel:{color:'#64748b'}
         },
         series:[{
             data:counts,
@@ -400,10 +324,10 @@ function renderChart(domId,data,type,color){
 function renderPieChart(elId,data,name){
     const el=document.getElementById(elId);
     if(!el) return;
-    const chart=echarts.init(el);
+    const chart=initMeshChart(el);
     const top20=prepareTopN(data,20);
     chart.setOption({
-        backgroundColor:"#272b2f",
+        backgroundColor:"#ffffff",
         tooltip:{
             trigger:"item",
             formatter: params=>`${escapeHtml(params.name)}: ${Math.round(params.percent)}% (${params.value})`
@@ -416,13 +340,13 @@ function renderPieChart(elId,data,name){
             avoidLabelOverlap:true,
             itemStyle:{
                 borderRadius:6,
-                borderColor:"#272b2f",
+                borderColor:"#ffffff",
                 borderWidth:2
             },
             label:{
                 show:true,
                 formatter:"{b}\n{d}%",
-                color:"#ccc",
+                color:"#64748b",
                 fontSize:10
             },
             labelLine:{
@@ -471,28 +395,28 @@ function makeTelemetryLine(name, color, seriesData) {
 function renderDailySnapshotPacketsChart(domId,data){
     const el=document.getElementById(domId);
     if(!el) return;
-    const chart=echarts.getInstanceByDom(el) || echarts.init(el);
+    const chart=echarts.getInstanceByDom(el) || initMeshChart(el);
     const labels=data.map(d=>d.date||"");
     const packetCounts=data.map(d=>d.packet_count??0);
 
     chart.setOption({
-        backgroundColor:'#272b2f',
+        backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
         legend:{
             data:['Packets'],
-            textStyle:{color:'#ccc'}
+            textStyle:{color:'#64748b'}
         },
         grid:{left:'6%', right:'6%', bottom:'18%'},
         xAxis:{
             type:'category',
             data:labels,
-            axisLine:{lineStyle:{color:'#aaa'}},
-            axisLabel:{rotate:45,color:'#ccc'}
+            axisLine:{lineStyle:{color:'#c3cfdf'}},
+            axisLabel:{rotate:45,color:'#64748b'}
         },
         yAxis:{
             type:'value',
-            axisLine:{lineStyle:{color:'#aaa'}},
-            axisLabel:{color:'#ccc'}
+            axisLine:{lineStyle:{color:'#c3cfdf'}},
+            axisLabel:{color:'#64748b'}
         },
         series:[
             makeTelemetryLine("Packets", "rgba(255,214,82,1)", packetCounts)
@@ -504,29 +428,29 @@ function renderDailySnapshotPacketsChart(domId,data){
 function renderDailySnapshotNodesGatewaysChart(domId,data){
     const el=document.getElementById(domId);
     if(!el) return;
-    const chart=echarts.getInstanceByDom(el) || echarts.init(el);
+    const chart=echarts.getInstanceByDom(el) || initMeshChart(el);
     const labels=data.map(d=>d.date||"");
     const nodeCounts=data.map(d=>d.node_count??0);
     const gatewayCounts=data.map(d=>d.gateway_count??0);
 
     chart.setOption({
-        backgroundColor:'#272b2f',
+        backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
         legend:{
             data:['Nodes','Gateways'],
-            textStyle:{color:'#ccc'}
+            textStyle:{color:'#64748b'}
         },
         grid:{left:'6%', right:'6%', bottom:'18%'},
         xAxis:{
             type:'category',
             data:labels,
-            axisLine:{lineStyle:{color:'#aaa'}},
-            axisLabel:{rotate:45,color:'#ccc'}
+            axisLine:{lineStyle:{color:'#c3cfdf'}},
+            axisLabel:{rotate:45,color:'#64748b'}
         },
         yAxis:{
             type:'value',
-            axisLine:{lineStyle:{color:'#aaa'}},
-            axisLabel:{color:'#ccc'}
+            axisLine:{lineStyle:{color:'#c3cfdf'}},
+            axisLabel:{color:'#64748b'}
         },
         series:[
             makeTelemetryLine("Nodes", "rgba(79,155,255,1)", nodeCounts),
@@ -602,11 +526,11 @@ async function init(){
     // Hourly all ports
     const hourlyAllData=await fetchStats('hour',24);
     updateTotalCount('total_hourly_all',hourlyAllData);
-    chartHourlyAll=renderChart('chart_hourly_all',hourlyAllData,'bar','#03dac6');
+    chartHourlyAll=renderChart('chart_hourly_all',hourlyAllData,'bar','#168e84');
 
     // Hourly per port
     const portnums=[1,3,4,67,70,71];
-    const colors=['#ff5722','#2196f3','#9c27b0','#ffeb3b','#795548','#4caf50'];
+    const colors=['#ff5722','#2196f3','#9c27b0','#b88a15','#795548','#4caf50'];
     const domIds=['chart_portnum_1','chart_portnum_3','chart_portnum_4','chart_portnum_67','chart_portnum_70','chart_portnum_71'];
     const totalIds=['total_portnum_1','total_portnum_3','total_portnum_4','total_portnum_67','total_portnum_70','total_portnum_71'];
 
@@ -682,26 +606,8 @@ async function init(){
 }
 
 window.addEventListener('resize',()=>{
-    [
-        chartHourlyAll,
-        chartPortnum1,
-        chartPortnum3,
-        chartPortnum4,
-        chartPortnum67,
-        chartPortnum70,
-        chartPortnum71,
-        chartDailySnapshotPackets,
-        chartDailySnapshotNodesGateways,
-        chartDailyAll,
-        chartDailyPortnum1,
-        chartHwModel,
-        chartRole,
-        chartChannel,
-        chartGatewayChannel,
-        chartGatewayRole,
-        chartGatewayFirmware,
-        chartPacketTypes
-    ].forEach(c=>c?.resize());
+    document.querySelectorAll('.chart').forEach(el => echarts.getInstanceByDom(el)?.resize());
+    modalChart?.resize();
 });
 
 const modal=document.getElementById("chartModal");
@@ -714,7 +620,7 @@ document.querySelectorAll(".expand-btn").forEach(btn=>{
         const sourceChart=echarts.getInstanceByDom(document.getElementById(chartId));
         if(!sourceChart)return;
         modal.style.display="flex";
-        modalChart=echarts.init(modalChartEl);
+        modalChart=initMeshChart(modalChartEl);
         modalChart.setOption(sourceChart.getOption());
     });
 });

@@ -1,75 +1,35 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-traceroute-page{% endblock %}
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 {% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-#traceroute-graph {
-    width: 100%;
-    height: calc(100vh - 270px);
-    border: 1px solid #2a2f36;
-    background: linear-gradient(135deg, #0f1216 0%, #171b22 100%);
-    border-radius: 10px;
-}
-
-#traceroute-graph-wrap {
-    position: relative;
-}
-
-#traceroute-legend {
-    position: absolute;
-    right: 16px;
-    bottom: 16px;
-    z-index: 2;
-    display: grid;
-    gap: 8px;
-    padding: 10px 12px;
-    color: #d6dde6;
-    background: rgba(15, 18, 22, 0.88);
-    border: 1px solid #303743;
-    border-radius: 8px;
-    font-size: 13px;
-}
-
-.traceroute-legend-row {
-    display: grid;
-    grid-template-columns: 34px auto;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-}
-
-.traceroute-legend-line {
-    height: 0;
-    border-top: 3px solid var(--line-color);
-}
-
-.traceroute-legend-line.muted {
-    border-top-width: 2px;
-    opacity: 0.55;
-}
-
-.traceroute-legend-line.dashed {
-    border-top-style: dashed;
-}
-
-#traceroute-meta {
-    padding: 12px 16px;
-    color: #c8d0da;
-}
-
-#traceroute-error {
-    color: #ff6b6b;
-}
+#traceroute-graph-wrap { position:relative; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
+#traceroute-graph { width:100%; height:clamp(460px,calc(100dvh - 280px),900px); }
+#traceroute-legend { position:absolute; right:16px; bottom:16px; z-index:2; display:grid; gap:9px; padding:14px 16px; color:var(--mesh-muted); background:#fffffff2; border:1px solid var(--mesh-border); border-radius:7px; font-size:12px; box-shadow:0 2px 8px #17263c08; pointer-events:none; }
+.traceroute-legend-row { display:grid; grid-template-columns:34px auto; align-items:center; gap:10px; }
+.traceroute-legend-line { height:0; border-top:3px solid var(--line-color); }
+.traceroute-legend-line.muted { border-top-width:2px; opacity:.55; }
+.traceroute-legend-line.dashed { border-top-style:dashed; }
+#traceroute-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:14px 18px; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); margin-bottom:18px; color:var(--mesh-muted); font-size:13px; }
+#traceroute-title { color:var(--mesh-primary); font-weight:600; }
+#traceroute-error { color:#b23d2f; }
+.traceroute-help { margin-left:auto; font-size:12px; }
+@media(max-width:700px) { #traceroute-graph { height:500px; } #traceroute-legend { left:12px; right:auto; bottom:12px; font-size:11px; padding:12px; } .traceroute-help { width:100%; margin:0; } }
 </style>
 {% endblock %}
 
 {% block body %}
+<header class="data-heading"><div><span class="mesh-eyebrow">ROUTE EXPLORER</span><h1>Traceroute</h1><p>Explore forward paths, reported return routes, and the nodes along the way.</p></div><a class="mesh-secondary-button" href="/firehose">Live packets ↗</a></header>
 <div id="traceroute-meta">
     <div><b>Traceroute</b> <span id="traceroute-title"></span></div>
-    <div id="traceroute-error"></div>
+    <div id="traceroute-error" role="status"></div>
+    <span class="traceroute-help">Drag nodes to rearrange · Scroll to zoom</span>
 </div>
 <div id="traceroute-graph-wrap">
     <div id="traceroute-graph"></div>
@@ -91,7 +51,7 @@
 
 <script>
 const el = document.getElementById("traceroute-graph");
-const chart = echarts.init(el);
+const chart = initMeshChart(el);
 
 function packetIdFromPath() {
     const parts = window.location.pathname.split("/").filter(Boolean);
@@ -224,7 +184,10 @@ async function loadTraceroute() {
             itemStyle: { color },
             label: {
                 show: true,
-                color: "#e7eef7",
+                color: "#334155",
+                position: "bottom",
+                textBorderColor: "#ffffff",
+                textBorderWidth: 3,
                 fontWeight: "bold"
             },
             tooltip: {
@@ -238,7 +201,7 @@ async function loadTraceroute() {
 
     const option = {
         backgroundColor: "transparent",
-        tooltip: { trigger: "item" },
+        tooltip: { trigger: "item", renderMode: "richText" },
         series: [
             {
                 type: "graph",
@@ -259,7 +222,10 @@ async function loadTraceroute() {
     chart.setOption(option);
 }
 
-loadTraceroute();
+loadTraceroute().catch(error => {
+    console.error("Failed to load traceroute:", error);
+    document.getElementById("traceroute-error").textContent = "Unable to load traceroute. Reload to try again.";
+});
 window.addEventListener("resize", () => chart.resize());
 </script>
 {% endblock %}

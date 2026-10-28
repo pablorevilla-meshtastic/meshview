@@ -1,316 +1,41 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-node-page{% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-{{ super() }}
-
-/* --- Map --- */
-#map {
-    width: 100%;
-    height: 400px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    display: block;
-}
-.leaflet-container {
-    background: #1a1a1a;
-    z-index: 1;
-}
-
-/* --- Node Info --- */
-.node-info {
-    color: #ddd;
-    font-size: 0.88rem;
-    margin-bottom: 14px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(120px, 1fr));
-    grid-column-gap: 12px;
-    grid-row-gap: 12px;
-}
-
-.node-info-col {
-    background-color: #1f2226;
-    border: 1px solid #3a3f44;
-    border-radius: 8px;
-    padding: 12px 14px;
-}
-
-.node-info-col div { padding: 2px 0; }
-.node-info strong {
-    color: #9fd4ff;
-    font-weight: 600;
-}
-
-/* --- Charts --- */
-.chart-container {
-    width: 100%;
-    height: 380px;
-    margin-bottom: 25px;
-    border: 1px solid #3a3f44;
-    border-radius: 8px;
-    overflow: hidden;
-    background-color: #16191d;
-}
-.chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #1f2226;
-    padding: 6px 12px;
-    font-weight: bold;
-    border-bottom: 1px solid #333;
-    font-size: 1rem;
-}
-.chart-actions button {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid #555;
-    border-radius: 4px;
-    color: #ccc;
-    font-size: 0.8rem;
-    padding: 2px 6px;
-    cursor: pointer;
-}
-.chart-actions button:hover {
-    color: #fff;
-    background: rgba(255,255,255,0.15);
-    border-color: #888;
-}
-
-/* --- Packet Table --- */
-.packet-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    color: #e4e9ee;
-}
-.packet-table th, .packet-table td {
-    border: 1px solid #3a3f44;
-    padding: 6px 10px;
-    text-align: left;
-}
-.packet-table th {
-    background-color: #1f2226;
-    font-weight: bold;
-}
-.packet-table tr:nth-of-type(odd) { background-color: #272b2f; }
-.packet-table tr:nth-of-type(even) { background-color: #212529; }
-
-.port-tag {
-    padding: 2px 6px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    color: #fff;
-}
-
-.to-mqtt { font-style: italic; color: #aaa; }
-
-.payload-row { display: none; background-color: #1b1e22; }
-.payload-cell {
-    padding: 8px 12px;
-    font-family: monospace;
-    white-space: pre-wrap;
-    color: #b0bec5;
-}
-.packet-table tr.expanded + .payload-row { display: table-row; }
-.toggle-btn { cursor: pointer; color: #aaa; margin-right: 6px; }
-.toggle-btn:hover { color: #fff; }
-
-/* --- Chart Modal --- */
-#chartModal {
-    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-    background:rgba(0,0,0,0.9); z-index:9999;
-    align-items:center; justify-content:center;
-}
-#chartModal > div {
-    background:#1b1e22; border-radius:8px;
-    width:90%; height:85%; padding:10px;
-}
-
-/* Inline link */
-.inline-link {
-    margin-left: 6px;
-    font-weight: bold;
-    text-decoration: none;
-    color: #9fd4ff;
-}
-.inline-link:hover { color: #c7e6ff; }
-
-/* --- QR Code & Import --- */
-.node-actions {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-}
-.node-actions {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-}
-.node-actions button {
-    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-    border: 1px solid #4a5568;
-    border-radius: 8px;
-    color: #e4e9ee;
-    padding: 8px 16px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-.node-actions button:hover {
-    background: linear-gradient(135deg, #3d4758 0%, #2a303c 100%);
-    border-color: #6a7788;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.node-actions button.copied {
-    background: linear-gradient(135deg, #276749 0%, #22543d 100%);
-    border-color: #48bb78;
-    color: #fff;
-}
-.node-actions .qr-unavailable {
-    align-self: center;
-    color: #b0bec5;
-    font-size: 0.85rem;
-}
-.copy-success {
-    color: #4ade80 !important;
-    transition: opacity 0.3s;
-}
-
-/* --- QR Modal --- */
-#qrModal {
-    display:none;
-    position:fixed;
-    top:0; left:0; width:100%; height:100%;
-    background:rgba(0,0,0,0.95);
-    z-index:10000;
-    align-items:center;
-    justify-content:center;
-    backdrop-filter:blur(4px);
-}
-#qrModal > div {
-    background:linear-gradient(145deg, #1e2228, #16191d);
-    border:1px solid #3a4450;
-    border-radius:16px;
-    padding:28px;
-    max-width:380px;
-    text-align:center;
-    color:#e4e9ee;
-    box-shadow:0 25px 80px rgba(0,0,0,0.6);
-}
-#qrModal .qr-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:16px;
-}
-#qrModal .qr-title {
-    font-size:1.3rem;
-    font-weight:600;
-    margin:0;
-    color:#9fd4ff;
-}
-#qrModal .qr-close {
-    background:rgba(255,255,255,0.05);
-    border:1px solid #4a5568;
-    color:#9ca3af;
-    width:32px;
-    height:32px;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:1.2rem;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    transition:all 0.2s;
-}
-#qrModal .qr-close:hover {
-    background:rgba(255,255,255,0.1);
-    color:#fff;
-    border-color:#6a7788;
-}
-#qrModal .qr-node-name {
-    font-size:1.15rem;
-    color:#fff;
-    margin:12px 0 20px;
-    font-weight:500;
-}
-#qrModal .qr-image {
-    background:#fff;
-    padding:16px;
-    border-radius:12px;
-    display:inline-block;
-    margin-bottom:16px;
-    box-shadow:0 8px 30px rgba(0,0,0,0.4);
-}
-#qrModal .qr-image img {
-    display:block;
-    border-radius:4px;
-}
-#qrModal .qr-url-container {
-    background:rgba(0,0,0,0.4);
-    border-radius:8px;
-    padding:12px;
-    margin-bottom:18px;
-}
-#qrModal .qr-url {
-    font-size:0.65rem;
-    color:#9ca3af;
-    word-break:break-all;
-    font-family:'Monaco', 'Menlo', monospace;
-    line-height:1.4;
-    max-height:48px;
-    overflow-y:auto;
-    display:block;
-}
-#qrModal .qr-actions {
-    display:flex;
-    gap:12px;
-    justify-content:center;
-}
-#qrModal .qr-btn {
-    background:linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-    border:1px solid #4a5568;
-    color:#e4e9ee;
-    padding:12px 24px;
-    border-radius:10px;
-    cursor:pointer;
-    font-size:0.9rem;
-    font-weight:500;
-    transition:all 0.2s;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    min-width:140px;
-    justify-content:center;
-}
-#qrModal .qr-btn:hover {
-    background:linear-gradient(135deg, #3d4758 0%, #2a303c 100%);
-    border-color:#6a7788;
-    transform:translateY(-2px);
-    box-shadow:0 4px 12px rgba(0,0,0,0.3);
-}
-#qrModal .qr-btn.copied {
-    background:linear-gradient(135deg, #276749 0%, #22543d 100%);
-    border-color:#48bb78;
-    color:#fff;
-}
+.node-info { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-bottom:20px; font-size:13px; }
+.node-info-col { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:20px; overflow-wrap:anywhere; }
+.node-info-col > div { padding:5px 0; }
+.node-info strong { color:var(--mesh-muted); font-weight:500; }
+.node-actions .qr-unavailable { align-self:center; color:var(--mesh-muted); font-size:13px; }
+.node-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+.chart-container { width:100%; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:20px; overflow:hidden; }
+.chart-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:16px 20px; border-bottom:1px solid var(--mesh-border); font-size:14px; font-weight:600; }
+.chart-actions { display:flex; gap:6px; }
+.filter-container { display:flex; gap:10px; flex-wrap:wrap; padding:16px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:18px; }
+#chartModal,#qrModal { display:none; position:fixed; inset:0; background:#17263c99; z-index:9999; align-items:center; justify-content:center; padding:16px; }
+#chartModal > div { background:var(--mesh-surface); border-radius:10px; width:95%; height:85%; padding:14px; }
+#qrModal > div { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:12px; padding:24px; width:380px; max-width:100%; text-align:center; }
+.qr-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.qr-title { font-size:18px; margin:0; }
+.qr-node-name { font-size:15px; margin:16px 0; overflow-wrap:anywhere; }
+.qr-image { display:inline-block; padding:16px; background:var(--mesh-surface); margin-bottom:14px; }
+.qr-image img,.qr-image canvas { max-width:100%; }
+.qr-url-container { border:1px solid var(--mesh-border); border-radius:6px; background:var(--mesh-page); padding:12px; margin-bottom:16px; }
+.qr-url { display:block; max-height:80px; overflow:auto; overflow-wrap:anywhere; font:11px/1.6 monospace; color:var(--mesh-muted); }
+.qr-actions { display:flex; justify-content:center; }
+.mesh-data-page .copied { background:#e8f5ee; color:#187346; }
+@media(max-width:900px) { .node-info { grid-template-columns:minmax(0,1fr); gap:10px; } }
+@media(max-width:700px) { .chart-header { padding:12px; } .chart-actions button { padding:6px 8px; } }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="container">
 
-    <h5 class="mb-3">
-        📡 <span data-translate-lang="specifications">Specifications:</span><strong>:</strong>
-        <span id="nodeLabel"></span>
-    </h5>
+<header class="data-heading"><div><span class="mesh-eyebrow">DEVICE INSPECTOR</span><h1><span id="nodeLabel">Node details</span></h1><p>Device information, telemetry, and recent packet activity.</p></div><a class="mesh-secondary-button" href="/nodelist">All nodes ↗</a></header>
 
     <!-- Node Actions -->
     <div class="node-actions" id="nodeActions" style="display:none;">
@@ -433,18 +158,18 @@
 
     <!-- Packet Filters -->
 <div class="filter-container" style="margin-bottom:10px; display:flex; gap:12px; flex-wrap:wrap;">
-    <select id="packet_since">
+    <select id="packet_since" aria-label="Packet time range">
         <option value="">All time</option>
         <option value="3600">Last hour</option>
         <option value="21600">Last 6 hours</option>
         <option value="86400">Last 24 hours</option>
         <option value="172800">Last 2 days</option>
-        <option value="259200">Last 3 days</option>
+        <option value="259200" selected>Last 3 days</option>
         <option value="432000">Last 5 days</option>
         <option value="604800">Last 7 days</option>
     </select>
 
-    <select id="packet_port">
+    <select id="packet_port" aria-label="Packet port">
         <option value="">All ports</option>
     </select>
 
@@ -456,6 +181,7 @@
 
 
     <!-- Packets -->
+    <div class="data-table-wrap" role="region" aria-label="Node packet table" tabindex="0">
     <table class="packet-table">
     <thead>
         <tr>
@@ -470,6 +196,7 @@
 
         <tbody id="packet_list"></tbody>
     </table>
+    </div>
 
 </div>
 
@@ -477,7 +204,7 @@
 <div id="chartModal">
     <div>
         <div style="text-align:right;">
-            <button onclick="closeModal()" style="background:none;border:none;color:#ccc;">✖</button>
+            <button onclick="closeModal()" style="background:none;border:none;color:var(--mesh-muted);">✖</button>
         </div>
         <div id="modalChart" style="width:100%; height:90%;"></div>
     </div>
@@ -679,6 +406,7 @@ async function loadNodeInfo(){
 
         if (!node) {
             document.getElementById("node-info").style.display = "none";
+            document.getElementById("nodeLabel").textContent = "Node unavailable";
             return;
         }
 
@@ -1213,14 +941,14 @@ async function loadTelemetryCharts(){
     // Battery / Voltage chart
     if (hasBattery || hasVoltage) {
         batteryContainer.style.display = "block";
-        chart1 = echarts.init(document.getElementById('chart_battery_voltage'));
+        chart1 = initMeshChart(document.getElementById('chart_battery_voltage'));
         chart1.setOption({
             tooltip: { trigger:'axis' },
-            legend: { data:['Battery Level','Voltage'], textStyle:{ color:'#ccc' } },
-            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#ccc' } },
+            legend: { data:['Battery Level','Voltage'], textStyle:{ color:'#64748b' } },
+            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#64748b' } },
             yAxis: [
-                { type:'value', name:'Battery (%)', axisLabel:{ color:'#ccc' } },
-                { type:'value', name:'Voltage (V)', axisLabel:{ color:'#ccc' } }
+                { type:'value', name:'Battery (%)', axisLabel:{ color:'#64748b' } },
+                { type:'value', name:'Voltage (V)', axisLabel:{ color:'#64748b' } }
             ],
             series: [
                 makeLine('Battery Level', 'rgba(255,214,82,1)', chartData.battery),
@@ -1234,12 +962,12 @@ async function loadTelemetryCharts(){
     // Air / Channel chart
     if (hasAir || hasChan) {
         airContainer.style.display = "block";
-        chart2 = echarts.init(document.getElementById('chart_air_channel'));
+        chart2 = initMeshChart(document.getElementById('chart_air_channel'));
         chart2.setOption({
             tooltip: { trigger:'axis' },
-            legend: { data:['Air Util Tx','Channel Utilization'], textStyle:{ color:'#ccc' } },
-            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#ccc' } },
-            yAxis: { type:'value', name:'%', axisLabel:{ color:'#ccc' } },
+            legend: { data:['Air Util Tx','Channel Utilization'], textStyle:{ color:'#64748b' } },
+            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#64748b' } },
+            yAxis: { type:'value', name:'%', axisLabel:{ color:'#64748b' } },
             series: [
                 makeLine('Air Util Tx', 'rgba(138,255,108,1)', chartData.airUtil),
                 makeLine('Channel Utilization', 'rgba(255,102,204,1)', chartData.chanUtil)
@@ -1252,14 +980,14 @@ async function loadTelemetryCharts(){
     // Environment chart
     if (hasEnv) {
         envContainer.style.display = "block";
-        chart3 = echarts.init(document.getElementById('chart_environment'));
+        chart3 = initMeshChart(document.getElementById('chart_environment'));
         chart3.setOption({
             tooltip: { trigger:'axis' },
-            legend: { data:['Temperature (°C)','Humidity (%)','Pressure (hPa)'], textStyle:{ color:'#ccc' } },
-            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#ccc' } },
+            legend: { data:['Temperature (°C)','Humidity (%)','Pressure (hPa)'], textStyle:{ color:'#64748b' } },
+            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#64748b' } },
             yAxis: [
-                { type:'value', name:'°C / %', axisLabel:{ color:'#ccc' } },
-                { type:'value', name:'hPa', axisLabel:{ color:'#ccc' } }
+                { type:'value', name:'°C / %', axisLabel:{ color:'#64748b' } },
+                { type:'value', name:'hPa', axisLabel:{ color:'#64748b' } }
             ],
             series: [
                 makeLine('Temperature (°C)', 'rgba(255,138,82,1)', chartData.temperature),
@@ -1449,7 +1177,7 @@ async function loadNeighborTimeSeries() {
         .replace("{n}",     kept.length)
         .replace("{total}", ranked.length);
 
-    const chart = echarts.init(chartEl);
+    const chart = initMeshChart(chartEl);
 
     chart.setOption({
         title: {
@@ -1466,13 +1194,13 @@ async function loadNeighborTimeSeries() {
         legend: {
             type: "scroll",
             data: legend,
-            textStyle: { color: "#ccc" }
+            textStyle: { color: "#64748b" }
         },
         xAxis: {
             type: "category",
             data: xTimes,
             axisLabel: {
-                color: "#ccc",
+                color: "#64748b",
                 formatter: value =>
                     new Date(value / 1000).toLocaleString([], {
                         year: "2-digit",
@@ -1486,7 +1214,7 @@ async function loadNeighborTimeSeries() {
         yAxis: {
             type: "value",
             name: "SNR",
-            axisLabel: { color: "#ccc" }
+            axisLabel: { color: "#64748b" }
         },
         series
     });
@@ -1570,22 +1298,22 @@ async function loadPacketHistogram() {
             data: dayKeys.map(d => counts[port]?.[d] || 0)
         }));
 
-    const chart = echarts.init(
+    const chart = initMeshChart(
         document.getElementById("chart_packet_histogram")
     );
 
     chart.setOption({
         animation: false,
         tooltip: { trigger: "axis" },
-        legend: { textStyle: { color: "#ccc" } },
+        legend: { textStyle: { color: "#64748b" } },
         xAxis: {
             type: "category",
             data: dayLabels,
-            axisLabel: { color: "#ccc" }
+            axisLabel: { color: "#64748b" }
         },
         yAxis: {
             type: "value",
-            axisLabel: { color: "#ccc" }
+            axisLabel: { color: "#64748b" }
         },
         series
     });
@@ -1606,7 +1334,7 @@ function expandChart(type){
     if (!sourceChart) return;
 
     const modal = document.getElementById('chartModal');
-    const modalChart = echarts.init(document.getElementById('modalChart'));
+    const modalChart = initMeshChart(document.getElementById('modalChart'));
     modal.style.display = "flex";
     modalChart.setOption(sourceChart.getOption());
     modalChart.resize();
@@ -1694,7 +1422,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             await drawNeighbors(fromNodeId, neighborIds);
         }
 
-        await loadPackets();
+        await reloadPackets();
         initPacketPortFilter();
         await loadTelemetryCharts();
         await loadNeighborTimeSeries();
@@ -1764,7 +1492,7 @@ async function loadNodeStats(nodeId) {
         filters.portnum = portSel;
     }
 
-    loadPackets(filters);
+    return loadPackets(filters);
 }
 
     function exportPacketsCSV() {

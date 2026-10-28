@@ -1,87 +1,49 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-top-page{% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-    body { background-color: #121212; color: #ddd; }
-    h1 { text-align: center; margin-top: 20px; color: #fff; }
-
-    .top-container {
-        max-width: 1100px;
-        margin: 25px auto;
-        padding: 0 15px;
-    }
-
-    .filter-bar {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 20px;
-        margin-bottom: 15px;
-    }
-
-    .filter-bar select {
-        background-color: #1f2327;
-        border: 1px solid #444;
-        color: #ddd;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-
-    table th, table td {
-        padding: 12px;
-        border: 1px solid #444;
-        text-align: left;
-        color: #ddd;
-    }
-
-    table th { background-color: #333; }
-
-    table tbody tr:nth-child(odd)  { background-color: #272b2f; }
-    table tbody tr:nth-child(even) { background-color: #212529; }
-    table tbody tr:hover { background-color: #555; cursor: pointer; }
-
-    .node-link {
-        color: #9fd4ff;
-        text-decoration: none;
-    }
-    .node-link:hover { text-decoration: underline; }
-
-    .good-x { color: #81ff81; font-weight: bold; }
-    .ok-x   { color: #e8e86d; font-weight: bold; }
-    .bad-x  { color: #ff6464; font-weight: bold; }
-
-    .pagination {
-        display: flex;
-        justify-content: center;
-        gap: 12px;
-        margin-top: 15px;
-    }
+.top-container { width:100%; }
+.filter-bar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:18px; }
+.filter-bar > div { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.filter-bar label { color:var(--mesh-muted); font-size:13px; }
+#channelFilter { width:200px; }
+.top-count { color:var(--mesh-muted); font-size:13px; margin-bottom:14px; }
+#node-count { font-weight:650; color:var(--mesh-primary); }
+#nodesTable tbody tr { cursor:pointer; }
+#nodesTable td:nth-child(n+4) { font-variant-numeric:tabular-nums; }
+.good-x,.ok-x,.bad-x { display:inline-block; padding:3px 8px; border-radius:5px; font-weight:600; font-size:12px; }
+.good-x { background:#e8f5ee; color:#187346; }
+.ok-x { background:#fff4d9; color:#8a6200; }
+.bad-x { background:#fff0ed; color:#b23d2f; }
+.pagination { display:flex; align-items:center; justify-content:center; gap:16px; margin:20px 0 0; }
+#pageInfo { font-size:12px; color:var(--mesh-muted); }
+@media(max-width:700px) { #channelFilter { width:180px; } }
 </style>
 {% endblock %}
 
 {% block body %}
 
-<h1 data-translate-lang="top_traffic_nodes">Top Nodes Traffic</h1>
+<header class="data-heading"><div><span class="mesh-eyebrow">TRAFFIC LEADERBOARD</span><h1 data-translate-lang="top_traffic_nodes">Top nodes</h1><p>Compare packets sent and gateway observations over the last 24 hours.</p></div><a class="mesh-secondary-button" href="/stats">View statistics ↗</a></header>
 
 <div class="top-container">
 
     <div class="filter-bar">
         <div>
-            <label data-translate-lang="channel">Channel:</label>
+            <label for="channelFilter" data-translate-lang="channel">Channel:</label>
             <select id="channelFilter"></select>
         </div>
     </div>
 
-    <div style="margin-bottom:10px;font-weight:bold;">
+    <div class="top-count">
         <span data-translate-lang="showing_nodes">Showing</span>
         <span id="node-count">0</span>
         <span data-translate-lang="nodes_suffix">nodes</span>
     </div>
 
+    <div class="data-table-wrap" role="region" aria-label="Top nodes traffic table" tabindex="0">
     <table id="nodesTable">
         <thead>
             <tr>
@@ -95,10 +57,11 @@
         </thead>
         <tbody></tbody>
     </table>
+    </div>
 
-    <div class="pagination">
+    <div class="pagination" aria-label="Leaderboard pagination">
         <button id="prevPage" class="btn btn-sm btn-secondary">Prev</button>
-        <span id="pageInfo"></span>
+        <span id="pageInfo" role="status"></span>
         <button id="nextPage" class="btn btn-sm btn-secondary">Next</button>
     </div>
 
@@ -185,6 +148,15 @@ async function renderTable() {
     const data = await res.json();
 
     totalRows = data.total || 0;
+    if (!(data.nodes || []).length) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 6;
+        cell.className = "data-empty";
+        cell.textContent = "No node traffic found for this channel.";
+        row.append(cell);
+        tbody.append(row);
+    }
 
     for (const n of data.nodes || []) {
         const tr = document.createElement("tr");

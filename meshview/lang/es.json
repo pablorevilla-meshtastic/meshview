@@ -2,7 +2,7 @@
   "base": {
     "chat": "Conversaciones",
     "nodes": "Nodos",
-    "everything": "Mostrar todo",
+    "everything": "Tráfico en vivo",
     "graphs": "Gráficos de la Malla",
     "net": "Red Semanal",
     "map": "Mapa en Vivo",
@@ -175,7 +175,7 @@
   },
 
   "firehose": {
-    "live_feed": "📡 Flujo en vivo",
+    "live_feed": "📡 Tráfico en vivo",
     "pause": "Pausar",
     "resume": "Reanudar",
     "time": "Hora",

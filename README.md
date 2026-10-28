@@ -298,9 +298,6 @@ title = Bay Area Mesh
 # A brief message shown on the homepage.
 message = Real time data from around the bay area and beyond.
 
-# Starting URL when loading the index page.
-starting = /chat
-
 # Enable or disable site features (as strings: "True" or "False").
 nodes = True
 conversations = True
@@ -310,6 +307,8 @@ stats = True
 net = True
 map = True
 top = True
+# Show the API documentation link in the navigation bar (default: True).
+api = True
 
 # Map boundaries (used for the map view).
 # Defaults will show the San Francisco Bay Area
