@@ -157,7 +157,7 @@
 </div>
 
     <!-- Packet Filters -->
-<div class="filter-container" style="margin-bottom:10px; display:flex; gap:12px; flex-wrap:wrap;">
+<div id="node-packets" class="filter-container" style="scroll-margin-top:20px; margin-bottom:10px; display:flex; gap:12px; flex-wrap:wrap;">
     <select id="packet_since" aria-label="Packet time range">
         <option value="">All time</option>
         <option value="3600">Last hour</option>
@@ -502,6 +502,10 @@ function initPacketPortFilter() {
             opt.textContent = `${PORT_LABEL_MAP[p]} (${p})`;
             sel.appendChild(opt);
         });
+    const requestedPort = new URLSearchParams(window.location.search).get("portnum");
+    if ([...sel.options].some(option => option.value === requestedPort)) {
+        sel.value = requestedPort;
+    }
 }
 
 
@@ -1430,8 +1434,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             await drawNeighbors(fromNodeId, neighborIds);
         }
 
-        await reloadPackets();
         initPacketPortFilter();
+        await reloadPackets();
         await loadTelemetryCharts();
         await loadNeighborTimeSeries();
         await loadPacketHistogram();

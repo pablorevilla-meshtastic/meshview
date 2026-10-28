@@ -91,6 +91,16 @@
         <div id="chart_daily_snapshot_nodes_gateways" class="chart"></div>
     </div>
 
+    <div class="card-section">
+        <p class="section-header">Top text senders · main channel</p>
+        <button id="text-nodes-refresh" type="button">Refresh sample</button>
+        <span class="total-count" id="text-nodes-status" role="status">Loading…</span>
+        <button class="expand-btn" data-chart="chart_text_nodes">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_text_nodes">Export CSV</button>
+        <div id="chart_text_nodes" class="chart"></div>
+        <p class="total-count">Top 10 senders from the latest 500 text packets across all channels. Only packets on the sender’s recorded main channel count; unknown channels are excluded.</p>
+    </div>
+
     <!-- Packet Types Pie Chart with Channel Selector -->
     <div class="card-section">
         <p class="section-header" data-translate-lang="packet_types_last_24h">
@@ -192,6 +202,89 @@
 <script>
 const PORTNUM_LABELS = window.PORT_LABEL_MAP;
 
+let statsNodesPromise;
+let textNodeRows = [];
+function rankMainChannelTextSenders(packets, nodes) {
+    const byId = new Map(nodes.map(node => [String(node.node_id), node]));
+    const counts = new Map();
+    const seen = new Set();
+    for (const packet of packets) {
+        if (Number(packet.portnum) !== 1) continue;
+        if (packet.id != null && seen.has(String(packet.id))) continue;
+        if (packet.id != null) seen.add(String(packet.id));
+        const node = byId.get(String(packet.from_node_id));
+        if (!node?.channel || packet.channel !== node.channel) continue;
+        const id = String(node.node_id);
+        if (!counts.has(id)) counts.set(id, {...node, packet_count: 0});
+        counts.get(id).packet_count++;
+    }
+    return [...counts.values()].sort((a, b) =>
+        b.packet_count - a.packet_count || Number(a.node_id) - Number(b.node_id)
+    );
+}
+function openTextSender(params) {
+    if (params.componentType !== "series" || params.seriesType !== "bar") return;
+    const node = textNodeRows[params.dataIndex];
+    if (node) window.location.assign(`/node/${encodeURIComponent(node.node_id)}?portnum=1#node-packets`);
+}
+let textNodesRequest = 0;
+async function loadTextNodes() {
+    const request = ++textNodesRequest;
+    const status = document.getElementById("text-nodes-status");
+    const chart = initMeshChart(document.getElementById("chart_text_nodes"));
+    status.textContent = "Loading…";
+    textNodeRows = [];
+    chart.clear();
+    chart.off("click");
+    chart.on("click", openTextSender);
+    try {
+        const [response, nodes] = await Promise.all([
+            fetch("/api/packets?portnum=1&limit=500"),
+            fetchStatsNodes()
+        ]);
+        if (!response.ok) throw new Error("Unable to load text packets");
+        const data = await response.json();
+        if (!Array.isArray(data.packets)) throw new Error("Invalid packet response");
+        if (request !== textNodesRequest) return;
+        const sample = data.packets.slice(0, 500);
+        const ranked = rankMainChannelTextSenders(sample, nodes);
+        textNodeRows = ranked.slice(0, 10);
+        const matched = ranked.reduce((sum, node) => sum + node.packet_count, 0);
+        status.textContent = matched
+            ? `${matched} of ${sample.length} sampled packets match main channels`
+            : `No main-channel matches in ${sample.length} sampled packets`;
+        chart.setOption({
+            tooltip: {
+                trigger: "axis",
+                axisPointer: {type: "shadow"},
+                formatter: params => {
+                    const row = textNodeRows[params[0]?.dataIndex];
+                    if (!row) return "";
+                    return `${escapeHtml(row.long_name || row.short_name || row.node_id)}<br>` +
+                        `Channel: ${escapeHtml(row.channel)}<br>Text packets: ${row.packet_count.toLocaleString()}<br>Click to view text packets`;
+                }
+            },
+            grid: {left: 10, right: 48, top: 12, bottom: 28, containLabel: true},
+            xAxis: {type: "value", minInterval: 1},
+            yAxis: {
+                type: "category", inverse: true,
+                data: textNodeRows.map(row => row.short_name || row.long_name || String(row.node_id)),
+                axisLabel: {width: 90, overflow: "truncate"}
+            },
+            series: [{name: "Text packets", type: "bar", barMaxWidth: 24,
+                itemStyle: {color: "#2b9961", borderRadius: [0, 4, 4, 0]},
+                label: {show: true, position: "right", color: "#64748b"},
+                data: textNodeRows.map(row => row.packet_count)}]
+        });
+    } catch (error) {
+        if (request !== textNodesRequest) return;
+        status.textContent = "Unable to load text senders. Use Refresh sample to retry.";
+        console.error("Top text senders:", error);
+    }
+}
+document.getElementById("text-nodes-refresh").addEventListener("click", loadTextNodes);
+loadTextNodes();
+
 // --- Fetch & Processing ---
 async function fetchStats(period_type,length,portnum=null,channel=null){
     try{
@@ -214,14 +307,23 @@ async function fetchDailySnapshots(){
     }catch{return [];}
 }
 
-async function fetchNodes(){
-    try{
-        const res=await fetch("/api/nodes");
-        const json=await res.json();
-        return json.nodes||[];
-    }catch{
-        return [];
+function fetchStatsNodes() {
+    if (!statsNodesPromise) {
+        statsNodesPromise = fetch("/api/nodes").then(async response => {
+            if (!response.ok) throw new Error("Unable to load nodes");
+            const data = await response.json();
+            if (!Array.isArray(data.nodes)) throw new Error("Invalid node response");
+            return data.nodes;
+        }).catch(error => {
+            statsNodesPromise = null;
+            throw error;
+        });
     }
+    return statsNodesPromise;
+}
+async function fetchNodes(){
+    try { return await fetchStatsNodes(); }
+    catch { return []; }
 }
 
 async function fetchChannels(){
@@ -622,6 +724,8 @@ document.querySelectorAll(".expand-btn").forEach(btn=>{
         modal.style.display="flex";
         modalChart=initMeshChart(modalChartEl);
         modalChart.setOption(sourceChart.getOption());
+        modalChart.off("click");
+        if (chartId === "chart_text_nodes") modalChart.on("click", openTextSender);
     });
 });
 
@@ -649,6 +753,13 @@ document.querySelectorAll(".export-btn").forEach(btn=>{
         if(!chart)return;
         const option=chart.getOption();
         let rows=[];
+        if (chartId === "chart_text_nodes") {
+            rows = [["Node ID", "Short Name", "Long Name", "Main Channel", "Text Packets"],
+                ...textNodeRows.map(row => [row.node_id, row.short_name || "", row.long_name || "", row.channel, row.packet_count])];
+            downloadCSV(chartId + ".csv", rows);
+            return;
+        }
+        if (!option.series?.length) return;
         if(option.series[0].type==="bar"||option.series[0].type==="line"){
             const xData=option.xAxis[0].data;
             const series = option.series || [];
