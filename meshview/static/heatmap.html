@@ -70,6 +70,10 @@ body { background:var(--mesh-page); color:var(--mesh-text); }
 .mesh-theme-toggle { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #ffffff70; border-radius:6px; background:transparent; color:white; font:22px/1 system-ui,sans-serif; cursor:pointer; }
 .mesh-header .mesh-theme-toggle { margin-left:auto; }
 .mesh-theme-toggle:hover { background:#ffffff20; }
+.mesh-theme-toggle .theme-icon { width:22px; height:22px; flex-shrink:0; }
+.mesh-theme-toggle .theme-icon--sun { display:none; }
+[data-bs-theme="dark"] .mesh-theme-toggle .theme-icon--sun { display:block; }
+[data-bs-theme="dark"] .mesh-theme-toggle .theme-icon--moon { display:none; }
 .mesh-theme-toggle:focus-visible { outline:2px solid white; outline-offset:3px; }
 @media(max-width:1000px) { .mesh-header .mesh-menu-toggle { margin-left:auto; } .mesh-header .mesh-theme-toggle { margin-left:12px; } .mesh-header #site-menu { order:4; } }
 [data-bs-theme="dark"] :is(.chat-status,.chat-details,.chat-channel,.chat-status[data-state="paused"],.chat-status[data-state="loading"],.good-x) { background:var(--mesh-soft); color:var(--mesh-primary); border-color:var(--mesh-border); }
@@ -95,7 +99,7 @@ body { background:var(--mesh-page); color:var(--mesh-text); }
 <!-- mesh-theme:end -->
 </head>
 <body>
-<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#187346" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false">☾</button>
+<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#187346" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
 <div id="map"></div>
 <div id="legend"></div>
 

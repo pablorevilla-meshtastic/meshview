@@ -57,7 +57,6 @@
     function updateButton() {
         document.querySelectorAll('[data-theme-toggle]').forEach(button => {
             const dark = root.dataset.bsTheme === 'dark';
-            button.textContent = dark ? '☀' : '☾';
             button.setAttribute('aria-label',dark ? 'Switch to day mode' : 'Switch to night mode');
             button.setAttribute('aria-pressed',String(dark));
             button.title = dark ? 'Day mode' : 'Night mode';
