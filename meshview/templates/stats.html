@@ -102,13 +102,13 @@
     </div>
 
     <div class="card-section">
-        <p class="section-header">10 highest nodes · altitude</p>
+        <p class="section-header">10 highest routers · altitude</p>
         <button id="altitude-refresh" type="button">Refresh report</button>
         <span class="total-count" id="altitude-status" role="status">Loading…</span>
         <button class="expand-btn" data-chart="chart_altitude">Expand Chart</button>
         <button class="export-btn" data-chart="chart_altitude">Export CSV</button>
         <div id="chart_altitude" class="chart"></div>
-        <p class="total-count">Latest reported altitude in meters above sea level. Nodes without altitude are excluded. Click a bar to view the node.</p>
+        <p class="total-count">Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes with known altitude are included. Click a bar to view the node.</p>
     </div>
 
     <!-- Packet Types Pie Chart with Channel Selector -->
@@ -298,7 +298,8 @@ loadTextNodes();
 let altitudeRows = [];
 function rankAltitudeNodes(nodes) {
     return nodes
-        .filter(node => Number.isFinite(node.last_altitude) && node.node_id != null)
+        .filter(node => Number.isFinite(node.last_altitude) && node.node_id != null
+            && ["ROUTER", "ROUTER_CLIENT", "ROUTER_LATE"].includes((node.role || "").toUpperCase()))
         .sort((a, b) => b.last_altitude - a.last_altitude || a.node_id - b.node_id)
         .slice(0, 10);
 }
@@ -331,7 +332,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
         }, true);
         status.textContent = altitudeRows.length
             ? `Showing ${altitudeRows.length} nodes · highest first`
-            : "No nodes have reported altitude yet.";
+            : "No routers have reported altitude yet.";
     } catch (error) {
         altitudeRows = [];
         chart.clear();
