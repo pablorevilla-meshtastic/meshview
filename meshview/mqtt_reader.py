@@ -130,9 +130,13 @@ def decrypt(packet, key):
     try:
         data = Data()
         data.ParseFromString(raw_proto)
-        packet.decoded.CopyFrom(data)
     except DecodeError:
         return False
+    # AES-CTR has no authentication: a wrong key can still parse as protobuf
+    # containing only unknown fields. Do not let it prevent trying the next key.
+    if data.portnum == 0:
+        return False
+    packet.decoded.CopyFrom(data)
     return True
 
 
@@ -159,15 +163,35 @@ async def get_topic_envelopes(mqtt_server, mqtt_port, topics, mqtt_user, mqtt_pa
                 if start_time is None:
                     start_time = time.time()
 
+                confirmed_secondary_keys = set()
                 async for msg in client.messages:
                     try:
                         envelope = ServiceEnvelope.FromString(msg.payload)
                     except DecodeError:
                         continue
 
-                    for key in keyring:
+                    was_encrypted = envelope.packet.HasField("encrypted")
+                    for key_index, key in enumerate(keyring):
                         if decrypt(envelope.packet, key):
+                            if (
+                                was_encrypted
+                                and key_index > 0
+                                and key_index not in confirmed_secondary_keys
+                            ):
+                                logger.info(
+                                    "Successfully decrypted MQTT packet using secondary key #%d",
+                                    key_index,
+                                )
+                                confirmed_secondary_keys.add(key_index)
                             break
+                    else:
+                        logger.debug(
+                            "Unable to decrypt MQTT packet id=%d channel=%d topic=%r with configured keys",
+                            envelope.packet.id,
+                            envelope.packet.channel,
+                            msg.topic.value,
+                        )
+                        continue
                     if not envelope.packet.decoded:
                         continue
 
