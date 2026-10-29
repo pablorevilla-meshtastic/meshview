@@ -22,6 +22,17 @@
 #chartModal { display:none; position:fixed; inset:0; background:#17263c99; z-index:9999; justify-content:center; align-items:center; padding:16px; }
 #chartModal > div { position:relative; width:95%; max-width:1200px; height:85%; background:var(--mesh-surface); border-radius:10px; padding:48px 16px 16px; display:flex; flex-direction:column; }
 #chartModal #closeModal { position:absolute; top:10px; right:12px; font-size:22px; padding:0; width:32px; height:32px; line-height:1; }
+#altitude-map-button { margin-left:auto; }
+#altitude-map-modal[hidden] { display:none; }
+#altitude-map-modal { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center; padding:16px; background:#17263c99; }
+.altitude-map-dialog { width:min(1100px,100%); height:85dvh; display:flex; flex-direction:column; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:10px; padding:16px; }
+.altitude-map-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.altitude-map-heading h2 { font-size:18px; margin:0; }
+#altitude-map-status { color:var(--mesh-muted); font-size:13px; margin:10px 0; }
+#altitude-router-map { flex:1; min-height:0; border-radius:6px; }
+.altitude-router-icon { background:transparent; border:0; }
+.altitude-router-icon svg { width:32px; height:32px; filter:drop-shadow(0 2px 3px #0005); }
+.altitude-router-label { background:var(--mesh-surface); color:var(--mesh-text); border-color:var(--mesh-border); box-shadow:none; font-size:11px; }
 #modalChart { flex:1; min-height:0; width:100%; }
 @media(max-width:1000px) { .stats-chart-grid { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:700px) { .summary-container { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .summary-card { padding:16px; } .summary-count { font-size:26px; } .card-section { padding:14px; gap:8px; } .chart { height:320px; } }
@@ -29,6 +40,8 @@
 {% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <script src="/static/portmaps.js"></script>
 {% endblock %}
@@ -108,8 +121,9 @@
         <span class="total-count" id="altitude-status" role="status">Loading…</span>
         <button class="expand-btn" data-chart="chart_altitude">Expand Chart</button>
         <button class="export-btn" data-chart="chart_altitude">Export top 50 CSV</button>
+        <button id="altitude-map-button" type="button" disabled>Map top 50</button>
         <div id="chart_altitude" class="chart"></div>
-        <p class="total-count">Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes with known altitude are included. Click a bar to view the node.</p>
+        <p class="total-count">Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes above 25 ft (7.62 m) above sea level are included. Click a bar to view the node.</p>
     </div>
 
     <!-- Packet Types Pie Chart with Channel Selector -->
@@ -200,6 +214,14 @@
         <div id="chart_gateway_firmware" class="chart"></div>
     </div>
 </div>
+</div>
+
+<div id="altitude-map-modal" role="dialog" aria-modal="true" aria-labelledby="altitude-map-title" hidden>
+    <div class="altitude-map-dialog">
+        <div class="altitude-map-heading"><h2 id="altitude-map-title">highest routers · top 50</h2><button id="altitude-map-close" type="button" aria-label="Close router map">&times;</button></div>
+        <p id="altitude-map-status" role="status"></p>
+        <div id="altitude-router-map" aria-label="Map of highest routers and their altitudes"></div>
+    </div>
 </div>
 
 <!-- Modal for expanded charts -->
@@ -303,7 +325,7 @@ let altitudeRows = [];
 let altitudeExportRows = [];
 function rankAltitudeNodes(nodes) {
     return nodes
-        .filter(node => Number.isFinite(node.last_altitude) && node.node_id != null
+        .filter(node => Number.isFinite(node.last_altitude) && node.last_altitude > 25 * 0.3048 && node.node_id != null
             && ["ROUTER", "ROUTER_CLIENT", "ROUTER_LATE"].includes((node.role || "").toUpperCase()))
         .sort((a, b) => b.last_altitude - a.last_altitude || a.node_id - b.node_id);
 }
@@ -319,12 +341,14 @@ async function loadAltitudeNodes(refreshNodes = false) {
     const el = document.getElementById("chart_altitude");
     const chart = echarts.getInstanceByDom(el) || initMeshChart(el);
     refresh.disabled = true;
+    document.getElementById("altitude-map-button").disabled = true;
     status.textContent = "Loading…";
     chart.off("click");
     chart.on("click", openAltitudeNode);
     try {
         altitudeExportRows = rankAltitudeNodes(await fetchStatsNodes(refreshNodes)).slice(0, 50);
         altitudeRows = altitudeExportRows.slice(0, 10);
+        document.getElementById("altitude-map-button").disabled = altitudeExportRows.length === 0;
         chart.setOption({
             tooltip: {trigger:"axis", renderMode:"richText", valueFormatter:value => `${value} m`},
             grid: {left:10, right:20, top:55, bottom:10, containLabel:true},
@@ -338,7 +362,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
         }, true);
         status.textContent = altitudeRows.length
             ? `Showing ${altitudeRows.length} nodes · highest first`
-            : "No routers have reported altitude yet.";
+            : "No routers have reported altitude above 25 ft (7.62 m).";
     } catch (error) {
         altitudeRows = [];
         altitudeExportRows = [];
@@ -351,6 +375,73 @@ async function loadAltitudeNodes(refreshNodes = false) {
 }
 document.getElementById("altitude-refresh").addEventListener("click", () => loadAltitudeNodes(true));
 loadAltitudeNodes();
+
+// Map the same ranked sample used by the top-50 CSV export.
+let altitudeMap;
+let altitudeMarkers;
+const altitudeMapModal = document.getElementById("altitude-map-modal");
+const altitudeMapButton = document.getElementById("altitude-map-button");
+const altitudeMapClose = document.getElementById("altitude-map-close");
+function closeAltitudeMap() {
+    altitudeMapModal.hidden = true;
+    altitudeMapButton.focus();
+}
+altitudeMapClose.addEventListener("click", closeAltitudeMap);
+altitudeMapModal.addEventListener("click", event => {
+    if (event.target === altitudeMapModal) closeAltitudeMap();
+});
+altitudeMapModal.addEventListener("keydown", event => {
+    if (event.key === "Escape") { event.preventDefault(); closeAltitudeMap(); }
+    if (event.key === "Tab") {
+        const controls = [...altitudeMapModal.querySelectorAll('button, a[href], [tabindex="0"]')]
+            .filter(el => el.getClientRects().length);
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+});
+altitudeMapButton.addEventListener("click", () => {
+    altitudeMapModal.hidden = false;
+    altitudeMapClose.focus();
+    if (!altitudeMap) {
+        altitudeMap = L.map("altitude-router-map").setView([0,0], 2);
+        L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+            attribution:'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
+            maxZoom:17
+        }).addTo(altitudeMap);
+        altitudeMarkers = L.layerGroup().addTo(altitudeMap);
+    }
+    altitudeMarkers.clearLayers();
+    const located = altitudeExportRows.filter(node =>
+        Number.isFinite(node.last_lat) && Number.isFinite(node.last_long)
+        && Math.abs(node.last_lat) <= 900000000 && Math.abs(node.last_long) <= 1800000000
+        && (Math.abs(node.last_lat) > 10000000 || Math.abs(node.last_long) > 10000000));
+    const icon = L.divIcon({className:"altitude-router-icon", iconSize:[32,32], iconAnchor:[16,16],
+        html:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#187346" stroke="white" stroke-width="2"/><g fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 21h12v4H10zM16 21v-7m-4 1a6 6 0 0 1 8 0m-11-3a10 10 0 0 1 14 0"/></g><circle cx="16" cy="12" r="1.5" fill="white"/></svg>'});
+    located.forEach(node => {
+        const marker = L.marker([node.last_lat / 1e7,node.last_long / 1e7], {icon}).addTo(altitudeMarkers);
+        const label = document.createElement("span");
+        label.textContent = `${node.short_name || node.long_name || node.id} · ${node.last_altitude.toLocaleString()} m`;
+        marker.bindTooltip(label, {permanent:true, direction:"top", offset:[0,-16], className:"altitude-router-label"});
+        const details = document.createElement("div");
+        const link = document.createElement("a");
+        link.href = `/node/${encodeURIComponent(node.node_id)}`;
+        link.textContent = node.long_name || node.short_name || node.id;
+        const altitude = document.createElement("p");
+        altitude.textContent = `${node.last_altitude.toLocaleString()} m above sea level · ${node.role}`;
+        details.append(link,altitude);
+        marker.bindPopup(details);
+    });
+    const missing = altitudeExportRows.length - located.length;
+    document.getElementById("altitude-map-status").textContent =
+        `Showing ${located.length} of the top ${altitudeExportRows.length} routers · altitude in meters above sea level` +
+        (missing ? ` · ${missing} without a valid location` : '');
+    requestAnimationFrame(() => {
+        altitudeMap.invalidateSize();
+        if (located.length) altitudeMap.fitBounds(located.map(node => [node.last_lat / 1e7,node.last_long / 1e7]), {padding:[60,60], maxZoom:12});
+        else altitudeMap.setView([0,0],2);
+    });
+});
 
 // --- Fetch & Processing ---
 async function fetchStats(period_type,length,portnum=null,channel=null){
