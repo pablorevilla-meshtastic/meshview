@@ -86,8 +86,9 @@
         if (!recentPackets.length) { note(container, 'No recent packets found.'); return; }
         container.replaceChildren();
         for (const packet of recentPackets) {
-            const button = document.createElement('a');
-            button.href = `/packet/${encodeURIComponent(packetId(packet))}`;
+            const hasPacketLink = Number(packet.portnum) !== 73 && Number(packetId(packet)) > 0;
+            const button = document.createElement(hasPacketLink ? 'a' : 'div');
+            if (hasPacketLink) button.href = `/packet/${encodeURIComponent(packetId(packet))}`;
             button.className = 'mesh-inspector-packet';
             const heading = document.createElement('strong');
             heading.textContent = `${portName(packet)} · ${timeText(packet.import_time_us)}`;
