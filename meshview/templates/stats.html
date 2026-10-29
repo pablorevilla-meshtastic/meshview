@@ -97,7 +97,7 @@
         <button id="text-nodes-refresh" type="button">Refresh sample</button>
         <span class="total-count" id="text-nodes-status" role="status">Loading…</span>
         <button class="expand-btn" data-chart="chart_text_nodes">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_text_nodes">Export CSV</button>
+        <button class="export-btn" data-chart="chart_text_nodes">Export top 50 CSV</button>
         <div id="chart_text_nodes" class="chart"></div>
         <p class="total-count">Top 10 senders from the latest 500 text packets across all channels. Only packets on the sender’s recorded main channel count; unknown channels are excluded.</p>
     </div>
@@ -107,7 +107,7 @@
         <button id="altitude-refresh" type="button">Refresh report</button>
         <span class="total-count" id="altitude-status" role="status">Loading…</span>
         <button class="expand-btn" data-chart="chart_altitude">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_altitude">Export CSV</button>
+        <button class="export-btn" data-chart="chart_altitude">Export top 50 CSV</button>
         <div id="chart_altitude" class="chart"></div>
         <p class="total-count">Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes with known altitude are included. Click a bar to view the node.</p>
     </div>
@@ -215,6 +215,7 @@ const PORTNUM_LABELS = window.PORT_LABEL_MAP;
 
 let statsNodesPromise;
 let textNodeRows = [];
+let textNodeExportRows = [];
 function rankMainChannelTextSenders(packets, nodes) {
     const byId = new Map(nodes.map(node => [String(node.node_id), node]));
     const counts = new Map();
@@ -245,6 +246,7 @@ async function loadTextNodes() {
     const chart = initMeshChart(document.getElementById("chart_text_nodes"));
     status.textContent = "Loading…";
     textNodeRows = [];
+    textNodeExportRows = [];
     chart.clear();
     chart.off("click");
     chart.on("click", openTextSender);
@@ -259,7 +261,8 @@ async function loadTextNodes() {
         if (request !== textNodesRequest) return;
         const sample = data.packets.slice(0, 500);
         const ranked = rankMainChannelTextSenders(sample, nodes);
-        textNodeRows = ranked.slice(0, 10);
+        textNodeExportRows = ranked.slice(0, 50);
+        textNodeRows = textNodeExportRows.slice(0, 10);
         const matched = ranked.reduce((sum, node) => sum + node.packet_count, 0);
         status.textContent = matched
             ? `${matched} of ${sample.length} sampled packets match main channels`
@@ -297,12 +300,12 @@ document.getElementById("text-nodes-refresh").addEventListener("click", loadText
 loadTextNodes();
 
 let altitudeRows = [];
+let altitudeExportRows = [];
 function rankAltitudeNodes(nodes) {
     return nodes
         .filter(node => Number.isFinite(node.last_altitude) && node.node_id != null
             && ["ROUTER", "ROUTER_CLIENT", "ROUTER_LATE"].includes((node.role || "").toUpperCase()))
-        .sort((a, b) => b.last_altitude - a.last_altitude || a.node_id - b.node_id)
-        .slice(0, 10);
+        .sort((a, b) => b.last_altitude - a.last_altitude || a.node_id - b.node_id);
 }
 function openAltitudeNode(event) {
     const node = altitudeRows[event.dataIndex];
@@ -320,7 +323,8 @@ async function loadAltitudeNodes(refreshNodes = false) {
     chart.off("click");
     chart.on("click", openAltitudeNode);
     try {
-        altitudeRows = rankAltitudeNodes(await fetchStatsNodes(refreshNodes));
+        altitudeExportRows = rankAltitudeNodes(await fetchStatsNodes(refreshNodes)).slice(0, 50);
+        altitudeRows = altitudeExportRows.slice(0, 10);
         chart.setOption({
             tooltip: {trigger:"axis", renderMode:"richText", valueFormatter:value => `${value} m`},
             grid: {left:10, right:20, top:55, bottom:10, containLabel:true},
@@ -337,6 +341,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
             : "No routers have reported altitude yet.";
     } catch (error) {
         altitudeRows = [];
+        altitudeExportRows = [];
         chart.clear();
         status.textContent = "Unable to load altitudes. Use Refresh report to retry.";
         console.error(error);
@@ -824,13 +829,13 @@ document.querySelectorAll(".export-btn").forEach(btn=>{
         let rows=[];
         if (chartId === "chart_altitude") {
             rows = [["Node ID", "Short Name", "Long Name", "Altitude (m above sea level)"],
-                ...altitudeRows.map(node => [node.node_id, node.short_name || "", node.long_name || "", node.last_altitude])];
+                ...altitudeExportRows.map(node => [node.node_id, node.short_name || "", node.long_name || "", node.last_altitude])];
             downloadCSV(chartId + ".csv", rows);
             return;
         }
         if (chartId === "chart_text_nodes") {
             rows = [["Node ID", "Short Name", "Long Name", "Main Channel", "Text Packets"],
-                ...textNodeRows.map(row => [row.node_id, row.short_name || "", row.long_name || "", row.channel, row.packet_count])];
+                ...textNodeExportRows.map(row => [row.node_id, row.short_name || "", row.long_name || "", row.channel, row.packet_count])];
             downloadCSV(chartId + ".csv", rows);
             return;
         }
