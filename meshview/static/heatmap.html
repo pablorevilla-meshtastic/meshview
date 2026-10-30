@@ -24,47 +24,47 @@
 <style>
 :root {
     color-scheme:light;
-    --mesh-primary:#187346;
-    --mesh-primary-dark:#0f5132;
-    --mesh-primary-rgb:24,115,70;
-    --mesh-brand:#187346;
-    --mesh-brand-deep:#0f5132;
+    --mesh-primary:#245ea8;
+    --mesh-primary-dark:#19467f;
+    --mesh-primary-rgb:36,94,168;
+    --mesh-brand:#245ea8;
+    --mesh-brand-deep:#19467f;
     --mesh-surface:#ffffff;
     --mesh-text:#243247;
-    --mesh-soft:#eaf5ee;
-    --mesh-hover:#dceee2;
-    --mesh-border:#dce7df;
-    --mesh-page:#f5f9f6;
-    --mesh-stripe:#f7faf8;
+    --mesh-soft:#eaf1fb;
+    --mesh-hover:#dce8f8;
+    --mesh-border:#dce4ef;
+    --mesh-page:#f5f8fc;
+    --mesh-stripe:#f7f9fc;
     --mesh-muted:#64748b;
-    --mesh-chat-stripe:#eef6f0;
-    --mesh-pulse-soft:#edf8f0;
-    --mesh-pulse-peak:#ccebd7;
-    --mesh-pulse-mid:#e2f3e8;
+    --mesh-chat-stripe:#eef3fb;
+    --mesh-pulse-soft:#edf4ff;
+    --mesh-pulse-peak:#c9defa;
+    --mesh-pulse-mid:#deebfc;
 }
 [data-bs-theme="dark"] {
     color-scheme:dark;
-    --mesh-primary:#80cfa3;
-    --mesh-primary-dark:#a3e3be;
-    --mesh-primary-rgb:128,207,163;
-    --mesh-brand:#14532d;
-    --mesh-brand-deep:#0c3a1f;
-    --mesh-surface:#18231e;
-    --mesh-text:#e2ece5;
-    --mesh-soft:#203c2b;
-    --mesh-hover:#294c36;
-    --mesh-border:#34483c;
-    --mesh-page:#101914;
-    --mesh-stripe:#1c2a22;
-    --mesh-muted:#9faea6;
-    --mesh-chat-stripe:#203227;
-    --mesh-pulse-soft:#203c2b;
-    --mesh-pulse-peak:#356b49;
-    --mesh-pulse-mid:#294c36;
+    --mesh-primary:#8bbcff;
+    --mesh-primary-dark:#b6d5ff;
+    --mesh-primary-rgb:139,188,255;
+    --mesh-brand:#193d69;
+    --mesh-brand-deep:#112b4b;
+    --mesh-surface:#182335;
+    --mesh-text:#e2eaf6;
+    --mesh-soft:#203653;
+    --mesh-hover:#29486c;
+    --mesh-border:#34465f;
+    --mesh-page:#101925;
+    --mesh-stripe:#1c2a3d;
+    --mesh-muted:#a0aec2;
+    --mesh-chat-stripe:#20314a;
+    --mesh-pulse-soft:#203653;
+    --mesh-pulse-peak:#355d8e;
+    --mesh-pulse-mid:#29486c;
     --bs-link-color:var(--mesh-primary);
     --bs-link-color-rgb:var(--mesh-primary-rgb);
     --bs-link-hover-color:var(--mesh-primary-dark);
-    --bs-link-hover-color-rgb:163,227,190;
+    --bs-link-hover-color-rgb:182,213,255;
 }
 body { background:var(--mesh-page); color:var(--mesh-text); }
 .mesh-theme-toggle { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #ffffff70; border-radius:6px; background:transparent; color:white; font:22px/1 system-ui,sans-serif; cursor:pointer; }
@@ -99,7 +99,7 @@ body { background:var(--mesh-page); color:var(--mesh-text); }
 <!-- mesh-theme:end -->
 </head>
 <body>
-<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#187346" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
+<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#245ea8" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
 <div id="map"></div>
 <div id="legend"></div>
 

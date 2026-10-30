@@ -98,6 +98,7 @@
                 <th data-translate-lang="role">Role <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_lat">Last Latitude <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_long">Last Longitude <span class="sort-icon"></span></th>
+                <th>Altitude (m) <span class="sort-icon"></span></th>
                 <th data-translate-lang="channel">Channel <span class="sort-icon"></span></th>
                 <th data-translate-lang="mqtt_gateway">MQTT <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_seen">Last Seen <span class="sort-icon"></span></th>
@@ -106,7 +107,7 @@
         </thead>
         <tbody id="node-table-body">
             <tr>
-                <td colspan="11" style="text-align:center; color:var(--mesh-muted);" data-translate-lang="loading_nodes">
+                <td colspan="12" style="text-align:center; color:var(--mesh-muted);" data-translate-lang="loading_nodes">
                     Loading nodes...
                 </td>
             </tr>
@@ -169,7 +170,7 @@ const minStatusMs = 300;
 const headers = document.querySelectorAll("thead th");
 const keyMap = [
     "short_name","long_name","hw_model","firmware","role",
-    "last_lat","last_long","channel","is_mqtt_gateway","last_seen_us"
+    "last_lat","last_long","last_altitude","channel","is_mqtt_gateway","last_seen_us"
 ];
 
 function debounce(fn, delay = 250) {
@@ -300,7 +301,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         await loadNodesForActiveDays();
     } catch (err) {
         tbody.innerHTML = `<tr>
-            <td colspan="11" style="text-align:center; color:red;">
+            <td colspan="12" style="text-align:center; color:red;">
                 ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
             </td></tr>`;
         setStatus("");
@@ -326,7 +327,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         } catch (err) {
             console.error("Failed to reload nodes:", err);
             tbody.innerHTML = `<tr>
-                <td colspan="11" style="text-align:center; color:red;">
+                <td colspan="12" style="text-align:center; color:red;">
                     ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
                 </td></tr>`;
             mobileList.innerHTML = "";
@@ -474,7 +475,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (!nodes.length) {
             if (shouldRenderTable) {
                 tbody.innerHTML = `<tr>
-                    <td colspan="11" style="text-align:center; color:var(--mesh-muted);">
+                    <td colspan="12" style="text-align:center; color:var(--mesh-muted);">
                         ${nodelistTranslations.no_nodes_found || "No nodes found"}
                     </td>
                 </tr>`;
@@ -503,6 +504,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                     <td>${escapeHtml(node.role || "N/A")}</td>
                     <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
                     <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
+                    <td>${node.last_altitude != null ? escapeHtml(String(node.last_altitude)) : "N/A"}</td>
                     <td>${escapeHtml(node.channel || "N/A")}</td>
                     <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || "Yes") : (nodelistTranslations.no || "No")}</td>
                     <td>${timeAgoFromMs(node.last_seen_ms)}</td>
@@ -534,6 +536,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                         ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : "N/A"},
                         ${node.last_long ? (node.last_long / 1e7).toFixed(5) : "N/A"}
                     </div>
+                    <div class="node-card-field"><b>Altitude:</b> ${node.last_altitude != null ? `${escapeHtml(String(node.last_altitude))} m above sea level` : "N/A"}</div>
                     <div class="node-card-field"><b>Channel:</b> ${escapeHtml(node.channel || "N/A")}</div>
                     <div class="node-card-field"><b>Last Seen:</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
 
@@ -584,6 +587,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 node.firmware || "N/A", node.role || "N/A",
                 node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A",
                 node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A",
+                node.last_altitude ?? "N/A",
                 node.channel || "N/A",
                 node.is_mqtt_gateway ? (nodelistTranslations.yes || "Yes") : (nodelistTranslations.no || "No"),
                 timeAgoFromMs(node.last_seen_ms), isFavorite(node.node_id) ? "★" : "☆"
@@ -603,6 +607,12 @@ document.addEventListener("DOMContentLoaded", async function() {
         return [...nodes].sort((a, b) => {
             let A = a[key];
             let B = b[key];
+
+            if (key === "last_altitude") {
+                if (A == null && B == null) return 0;
+                if (A == null) return 1;
+                if (B == null) return -1;
+            }
 
             if (key === "last_seen_us") {
                 A = A || 0;

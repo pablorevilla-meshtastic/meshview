@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="396" height="88" viewBox="0 0 396 88" role="img" aria-labelledby="title desc">
   <title id="title">Meshview</title>
-  <desc id="desc">Connected mesh nodes inside a green magnifying glass, alongside the Meshview wordmark.</desc>
+  <desc id="desc">Connected mesh nodes inside a blue magnifying glass, alongside the Meshview wordmark.</desc>
   <g transform="translate(4 8) scale(1.125)">
-    <rect width="64" height="64" rx="15" fill="#eaf5ee"/>
-    <path d="M43 43 55 55" fill="none" stroke="#187346" stroke-width="7" stroke-linecap="round"/>
-    <circle cx="28" cy="28" r="19" fill="none" stroke="#187346" stroke-width="4"/>
-    <path d="m17 29 12-11 9 14-15 6-6-9 21 3" fill="none" stroke="#369361" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <g fill="#187346" stroke="#eaf5ee" stroke-width="1.5">
+    <rect width="64" height="64" rx="15" fill="#eaf1fb"/>
+    <path d="M43 43 55 55" fill="none" stroke="#245ea8" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="28" cy="28" r="19" fill="none" stroke="#245ea8" stroke-width="4"/>
+    <path d="m17 29 12-11 9 14-15 6-6-9 21 3" fill="none" stroke="#5287cb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <g fill="#245ea8" stroke="#eaf1fb" stroke-width="1.5">
       <circle cx="17" cy="29" r="3.8"/>
       <circle cx="29" cy="18" r="3.8"/>
       <circle cx="38" cy="32" r="3.8"/>
       <circle cx="23" cy="38" r="3.8"/>
     </g>
   </g>
-  <text x="94" y="61" fill="#143b29" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="51" font-weight="700" letter-spacing="-1.8">Meshview</text>
+  <text x="94" y="61" fill="#193d69" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="51" font-weight="700" letter-spacing="-1.8">Meshview</text>
 </svg>

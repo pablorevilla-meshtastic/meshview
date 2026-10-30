@@ -32,7 +32,7 @@
 #altitude-router-map { flex:1; min-height:0; border-radius:6px; }
 .altitude-router-icon { background:transparent; border:0; }
 .altitude-router-icon svg { width:32px; height:32px; filter:drop-shadow(0 2px 3px #0005); }
-.altitude-router-label { background:var(--mesh-surface); color:var(--mesh-text); border-color:var(--mesh-border); box-shadow:none; font-size:11px; }
+.altitude-router-label { background:var(--mesh-surface); color:var(--mesh-text); border-color:var(--mesh-border); box-shadow:none; font-size:9px; line-height:1.2; padding:2px 4px; }
 #modalChart { flex:1; min-height:0; width:100%; }
 @media(max-width:1000px) { .stats-chart-grid { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:700px) { .summary-container { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .summary-card { padding:16px; } .summary-count { font-size:26px; } .card-section { padding:14px; gap:8px; } .chart { height:320px; } }
@@ -123,7 +123,7 @@
         <button class="export-btn" data-chart="chart_altitude">Export top 50 CSV</button>
         <button id="altitude-map-button" type="button" disabled>Map top 50</button>
         <div id="chart_altitude" class="chart"></div>
-        <p class="total-count">Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes at least 50 m above sea level are included. Click a bar to view the node.</p>
+        <p class="total-count">Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes at least 100 m above sea level are included. Click a bar to view the node.</p>
     </div>
 
     <!-- Packet Types Pie Chart with Channel Selector -->
@@ -325,7 +325,7 @@ let altitudeRows = [];
 let altitudeExportRows = [];
 function rankAltitudeNodes(nodes) {
     return nodes
-        .filter(node => Number.isFinite(node.last_altitude) && node.last_altitude >= 50 && node.node_id != null
+        .filter(node => Number.isFinite(node.last_altitude) && node.last_altitude >= 100 && node.node_id != null
             && ["ROUTER", "ROUTER_CLIENT", "ROUTER_LATE"].includes((node.role || "").toUpperCase()))
         .sort((a, b) => b.last_altitude - a.last_altitude || a.node_id - b.node_id);
 }
@@ -362,7 +362,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
         }, true);
         status.textContent = altitudeRows.length
             ? `Showing ${altitudeRows.length} nodes · highest first`
-            : "No routers have reported altitude of 50 m or more.";
+            : "No routers have reported altitude of 100 m or more.";
     } catch (error) {
         altitudeRows = [];
         altitudeExportRows = [];

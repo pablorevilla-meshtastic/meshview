@@ -16,7 +16,7 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 .chat-filter { width:170px; font-size:12px; border-color:var(--mesh-border); }
 .chat-search { width:210px; font-size:12px; border-color:var(--mesh-border); }
 .chat-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
-.chat-status { border-radius:20px; padding:4px 9px; background:#e8f5ee; color:#187346; font-size:11px; white-space:nowrap; }
+.chat-status { border-radius:20px; padding:4px 9px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:11px; white-space:nowrap; }
 .chat-status[data-state="error"] { background:#fff0ed; color:#b23d2f; }
 .chat-status[data-state="paused"],.chat-status[data-state="loading"] { background:#eef2f7; color:var(--mesh-muted); }
 .chat-control { font-size:12px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:5px; padding:5px 9px; color:var(--mesh-text); }
@@ -33,8 +33,8 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 .chat-message { min-width:0; color:var(--mesh-text); overflow-wrap:anywhere; white-space:pre-wrap; }
 .chat-meta { display:flex; align-items:center; gap:10px; font:11px system-ui,sans-serif; }
 .chat-channel { background:#edf1f7; color:var(--mesh-muted); border-radius:4px; padding:2px 6px; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.chat-details { display:inline-flex; align-items:center; padding:4px 8px; border:1px solid #9dceb0; border-radius:5px; background:#e8f5ee; color:#187346; font-weight:600; text-decoration:none; white-space:nowrap; }
-.chat-details:hover { color:#0f5132; background:#d1e7dd; border-color:#69aa85; }
+.chat-details { display:inline-flex; align-items:center; padding:4px 8px; border:1px solid var(--mesh-border); border-radius:5px; background:var(--mesh-soft); color:var(--mesh-primary); font-weight:600; text-decoration:none; white-space:nowrap; }
+.chat-details:hover { color:var(--mesh-primary-dark); background:var(--mesh-hover); border-color:var(--mesh-primary); }
 .chat-details:focus-visible { outline:2px solid #198754; outline-offset:2px; }
 .replying-to { display:block; border-left:2px solid var(--mesh-border); margin:4px 0; padding:2px 9px; color:var(--mesh-muted); font-size:11px; white-space:normal; }
 .chat-empty { text-align:center; color:var(--mesh-muted); padding:48px 20px; font:13px system-ui,sans-serif; }

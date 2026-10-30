@@ -20,9 +20,9 @@
     // Neutral chart colors follow the theme; packet/route/series colors stay intact.
     function chartOption(option) {
         const palette = colors();
-        const text = new Set(['#333','#334155','#243247','#26364a','#e7eef7','#e2ece5']);
-        const muted = new Set(['#ccc','#64748b','#888','#9faea6','#8190a5']);
-        const border = new Set(['#aaa','#c3cfdf','#34483c','#dce7df']);
+        const text = new Set(['#333','#334155','#243247','#26364a','#e7eef7','#e2ece5','#e2eaf6']);
+        const muted = new Set(['#ccc','#64748b','#888','#9faea6','#8190a5','#a0aec2']);
+        const border = new Set(['#aaa','#c3cfdf','#34483c','#dce7df','#dce4ef','#34465f']);
         function visit(value, key) {
             if (Array.isArray(value)) return value.map(item => visit(item,key));
             if (value && Object.getPrototypeOf(value) === Object.prototype) {
@@ -30,8 +30,8 @@
             }
             if (typeof value !== 'string') return value;
             const hex = value.toLowerCase();
-            if (key === 'backgroundColor' && ['#fff','#ffffff','#18231e'].includes(hex)) return palette.surface;
-            if (['borderColor','textBorderColor'].includes(key) && ['#fff','#ffffff','#000','#18231e'].includes(hex)) return palette.surface;
+            if (key === 'backgroundColor' && ['#fff','#ffffff','#18231e','#182335'].includes(hex)) return palette.surface;
+            if (['borderColor','textBorderColor'].includes(key) && ['#fff','#ffffff','#000','#18231e','#182335'].includes(hex)) return palette.surface;
             if (key === 'color' && text.has(hex)) return palette.text;
             if (key === 'color' && muted.has(hex)) return palette.muted;
             if (key === 'color' && border.has(hex)) return palette.border;

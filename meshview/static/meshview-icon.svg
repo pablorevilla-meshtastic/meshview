@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-labelledby="title">
   <title id="title">Meshview: a mesh network through a magnifying glass</title>
-  <rect width="64" height="64" rx="15" fill="#eaf5ee"/>
-  <path d="M43 43 55 55" fill="none" stroke="#187346" stroke-width="7" stroke-linecap="round"/>
-  <circle cx="28" cy="28" r="19" fill="none" stroke="#187346" stroke-width="4"/>
-  <path d="m17 29 12-11 9 14-15 6-6-9 21 3" fill="none" stroke="#369361" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <g fill="#187346" stroke="#eaf5ee" stroke-width="1.5">
+  <rect width="64" height="64" rx="15" fill="#eaf1fb"/>
+  <path d="M43 43 55 55" fill="none" stroke="#245ea8" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="28" cy="28" r="19" fill="none" stroke="#245ea8" stroke-width="4"/>
+  <path d="m17 29 12-11 9 14-15 6-6-9 21 3" fill="none" stroke="#5287cb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#245ea8" stroke="#eaf1fb" stroke-width="1.5">
     <circle cx="17" cy="29" r="3.8"/>
     <circle cx="29" cy="18" r="3.8"/>
     <circle cx="38" cy="32" r="3.8"/>
