@@ -1,0 +1,67 @@
+{
+  "leaflet": {
+    "version": "1.9.4",
+    "source": "https://registry.npmjs.org/leaflet/-/leaflet-1.9.4.tgz",
+    "archive_sha256": "84c65a256e50657896f54c33bd857b6849ebe94c817803be818bf32a3dde0b77",
+    "files": [
+      "dist/leaflet.js",
+      "dist/leaflet.js.map",
+      "dist/leaflet.css",
+      "dist/images/layers.png",
+      "dist/images/layers-2x.png",
+      "dist/images/marker-icon.png",
+      "dist/images/marker-icon-2x.png",
+      "dist/images/marker-shadow.png",
+      "LICENSE"
+    ]
+  },
+  "leaflet.heat": {
+    "version": "0.2.0",
+    "source": "https://registry.npmjs.org/leaflet.heat/-/leaflet.heat-0.2.0.tgz",
+    "archive_sha256": "6d980bce16b6bbe8e3b124d200dfd12964ff8f6bfff44eb3a47344f97dfc5c7f",
+    "files": [
+      "dist/leaflet-heat.js",
+      "LICENSE"
+    ]
+  },
+  "leaflet-polylinedecorator": {
+    "version": "1.6.0",
+    "source": "https://registry.npmjs.org/leaflet-polylinedecorator/-/leaflet-polylinedecorator-1.6.0.tgz",
+    "archive_sha256": "7d15a32c38cb294d24b932a6487e85e2bb3fd233777793f81754ef2258ef5518",
+    "files": [
+      "dist/leaflet.polylineDecorator.js",
+      "LICENSE"
+    ]
+  },
+  "echarts": {
+    "version": "5.5.0",
+    "source": "https://registry.npmjs.org/echarts/-/echarts-5.5.0.tgz",
+    "archive_sha256": "9e5771738a966d74ca027b0987499cddafe24f5271767b23cee6badb010bf058",
+    "files": [
+      "dist/echarts.min.js",
+      "LICENSE",
+      "NOTICE"
+    ]
+  },
+  "bootstrap": {
+    "version": "5.3.3",
+    "source": "https://registry.npmjs.org/bootstrap/-/bootstrap-5.3.3.tgz",
+    "archive_sha256": "38cee936dbd80138de6775683149f22e9226fc2d654392337a921f53000c789e",
+    "files": [
+      "dist/js/bootstrap.bundle.min.js",
+      "dist/js/bootstrap.bundle.min.js.map",
+      "dist/css/bootstrap.min.css",
+      "dist/css/bootstrap.min.css.map",
+      "LICENSE"
+    ]
+  },
+  "qrcodejs": {
+    "version": "1.0.0",
+    "source": "https://registry.npmjs.org/qrcodejs/-/qrcodejs-1.0.0.tgz",
+    "archive_sha256": "0b2132a6debfbcf389dc2601b513788fb1e6ec304c87a37917c9ba6e591502c3",
+    "files": [
+      "qrcode.min.js",
+      "LICENSE"
+    ]
+  }
+}
