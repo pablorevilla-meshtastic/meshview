@@ -4,6 +4,16 @@
 
 The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
 
+### Version 3.0.9.1 — November 4, 2026 — Out-of-band map fix
+
+This out-of-band update fixes maps failing to load after an upstream `leaflet.heat`
+release changed the JavaScript format served by the unversioned CDN URL. The browser
+could no longer load the plugin, leaving the map blank and breaking the heatmap page.
+
+- Pin `leaflet.heat` to the compatible `0.2.0` release on the map, node, and heatmap pages, with an integrity hash to verify the downloaded script ([PR #188](https://github.com/pablorevilla-meshtastic/meshview/pull/188)).
+- This patch contains the map dependency fix and version metadata updates; no database migration or configuration changes are required.
+- Docker installations must pull the updated image and recreate the container to apply the fix; restarting the existing container alone does not update its image.
+
 ### Version 3.0.9 — October 2026
 
 - Live map: added animated packet traces from senders to reporting gateways and configurable channel colors through the optional `[map_channel_colors]` section in `config.ini`.

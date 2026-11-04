@@ -4,6 +4,8 @@ meshview/__pycache__/*
 alembic/__pycache__/*
 
 # Database files
+packet.db1
+packets.db1
 packets.db
 packets*.db
 *.db
