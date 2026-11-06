@@ -704,3 +704,10 @@ Check the log file to see it the script run at the specific time.
 ## Technical Documentation
 
 For more detailed technical documentation including database migrations, architecture details, and advanced topics, see the [docs/](docs/) directory.
+
+### Fullscreen kiosk map
+
+Open `/static/kiosk.html` or `/map?kiosk=1` for a fullscreen live map without the
+site header or footer. Kiosk mode shares the live map's layers, channel filters,
+packet activity, and compact node inspector. Map position parameters (`lat`, `lng`,
+and `zoom`) also work with kiosk mode.
