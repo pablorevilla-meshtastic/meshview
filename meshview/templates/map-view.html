@@ -136,6 +136,17 @@
     .mesh-explorer .mesh-node-list { flex:1; min-height:0; max-height:none; }
     .mesh-explorer .mesh-node-inspector { max-height:100%; }
 }
+/* Compact live-map node card. */
+.mesh-map-only .mesh-content { max-width:none; }
+.mesh-map-only .mesh-explorer { display:block; }
+.mesh-map-only .mesh-node-panel { position:absolute; right:10px; top:var(--inspector-top,60px); width:280px; max-width:calc(100% - 20px); max-height:calc(100% - var(--inspector-top,60px) - 12px); overflow:auto; z-index:800; contain:none; padding:14px; box-shadow:0 4px 20px #0003; }
+.mesh-map-only .mesh-node-panel[hidden] { display:none; }
+.mesh-map-only .mesh-panel-close { float:right; margin-left:8px; }
+.mesh-map-only .mesh-inspector-name { font-size:15px; margin:8px 0 4px; }
+.mesh-map-only .mesh-inspector-meta { margin-bottom:10px; }
+.mesh-map-only .mesh-inspector-facts { grid-template-columns:70px minmax(0,1fr); gap:5px; margin:0; }
+.mesh-map-only .mesh-inspector-short-name { font-size:14px; font-weight:650; }
+.mesh-map-actions { display:flex; align-items:center; gap:8px; }
 /* Map-side inspection and shared live packet stream. */
 .mesh-node-browser[hidden],.mesh-node-inspector[hidden] { display:none; }
 .mesh-node-inspector { max-height:690px; overflow:auto; }
@@ -201,7 +212,8 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 <section class="mesh-page-heading"><div><span class="mesh-eyebrow">NETWORK EXPLORER</span><h1>Network map</h1><p>Explore node locations and network connections.</p></div><a class="mesh-secondary-button" href="/">Home ↗</a></section>
 {% endif %}
 <div class="mesh-explorer">
-<aside class="mesh-node-panel" aria-label="Node explorer">
+{% if dashboard %}
+<aside id="mesh-node-panel" class="mesh-node-panel" aria-label="Node explorer"{% if not dashboard %} hidden{% endif %}>
     <div id="mesh-node-browser" class="mesh-node-browser">
     <div class="mesh-panel-title"><h2>Network nodes</h2><span id="node-result-count" class="mesh-count">—</span></div>
     <label class="mesh-search-label" for="node-search">Search nodes</label>
@@ -222,13 +234,23 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
         </div>
     </section>
 </aside>
+{% endif %}
 
 <section class="mesh-map-panel" aria-label="Network map">
-<div class="mesh-panel-title"><h2>Network map</h2><button class="mesh-fit-button" type="button" id="fit-network">Fit network</button></div>
+<div class="mesh-panel-title"><h2>Network map</h2><div class="mesh-map-actions"><button class="mesh-fit-button" type="button" id="fit-network">Fit network</button></div></div>
 <p id="map-load-status" role="status" style="margin:0; color:#b23d2f;"></p>
 
 <div id="map-wrapper">
     <div id="map"></div>
+    {% if not dashboard %}
+    <aside id="mesh-node-panel" class="mesh-node-panel" aria-label="Selected node" hidden>
+        <button id="map-panel-close" class="mesh-inspector-back mesh-panel-close" type="button" aria-label="Close node inspector">Close</button>
+        <a id="inspector-node-link" class="mesh-inspector-short-name" href="/nodelist" title="View full node details"></a>
+        <h3 id="inspector-name" class="mesh-inspector-name"></h3>
+        <p id="inspector-node-meta" class="mesh-inspector-meta"></p>
+        <dl id="inspector-facts" class="mesh-inspector-facts"></dl>
+    </aside>
+    {% endif %}
 
     <div id="unmapped-packets">
         <h3 data-translate-lang="unmapped_packets_title">Unmapped Packets</h3>  

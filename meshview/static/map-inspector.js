@@ -1,6 +1,56 @@
 /* Shared node inspector for Home and Map, using existing APIs and packet events. */
 (() => {
     const byId = id => document.getElementById(id);
+    const panel = byId('mesh-node-panel');
+    const closeButton = byId('map-panel-close');
+    if (closeButton) {
+        const layers = map.getContainer().querySelector('.leaflet-control-layers');
+        const positionPanel = () => {
+            if (!layers) return;
+            const top = layers.getBoundingClientRect().bottom - byId('map-wrapper').getBoundingClientRect().top + 10;
+            panel.style.setProperty('--inspector-top', `${top}px`);
+        };
+        if (layers) new ResizeObserver(positionPanel).observe(layers);
+        positionPanel();
+        let returnFocus = null;
+        const close = () => {
+            panel.hidden = true;
+            (returnFocus?.isConnected ? returnFocus : byId('map')).focus({preventScroll:true});
+        };
+        closeButton.addEventListener('click', close);
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !panel.hidden) {
+                event.preventDefault();
+                close();
+            }
+        });
+        // The live map uses its existing node snapshot, without packet-detail requests.
+        window.openMapNodeInspector = node => {
+            if (panel.hidden) returnFocus = document.activeElement;
+            const id = node.key ?? node.node_id;
+            const link = byId('inspector-node-link');
+            link.textContent = node.short_name || String(id);
+            link.href = `/node/${encodeURIComponent(id)}`;
+            byId('inspector-name').textContent = node.long_name || node.short_name || `Node ${id}`;
+            byId('inspector-node-meta').textContent = `Node ${id}`;
+            const facts = byId('inspector-facts');
+            facts.replaceChildren();
+            for (const [label, value] of [
+                ['Role', node.role || 'Unknown'],
+                ['Channel', node.channel || 'Unknown'],
+                ['Last seen', node.last_seen_us ? new Date(Number(node.last_seen_us) / 1000).toLocaleString() : 'Unknown']
+            ]) {
+                const dt = document.createElement('dt'); dt.textContent = label;
+                const dd = document.createElement('dd'); dd.textContent = value;
+                facts.append(dt, dd);
+            }
+            panel.hidden = false;
+            closeButton.focus({preventScroll:true});
+        };
+        L.DomEvent.disableClickPropagation(panel);
+        L.DomEvent.disableScrollPropagation(panel);
+        return;
+    }
     let nodeRequest = null;
     let inspectedNodeId = null;
     let recentPackets = [];

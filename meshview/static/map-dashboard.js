@@ -10,7 +10,9 @@ function initializeNodeExplorer() {
 }
 
 function renderNodeExplorer() {
-    const query = document.getElementById('node-search').value.trim().toLowerCase();
+    const search = document.getElementById('node-search');
+    if (!search) return;
+    const query = search.value.trim().toLowerCase();
     const matches = nodes.filter(n => `${n.long_name} ${n.short_name} ${n.key} ${Number(n.key).toString(16)}`.toLowerCase().includes(query));
     matches.sort((a, b) => (b.last_seen_us || 0) - (a.last_seen_us || 0));
     const list = document.getElementById('mesh-node-list');
@@ -44,7 +46,7 @@ function renderNodeExplorer() {
     }
 }
 
-document.getElementById('node-search').addEventListener('input', renderNodeExplorer);
+document.getElementById('node-search')?.addEventListener('input', renderNodeExplorer);
 document.getElementById('fit-network').addEventListener('click', () => {
     const points = Object.values(markerById).filter(marker => nodeLayer.hasLayer(marker)).map(marker => marker.getLatLng());
     if (points.length) map.fitBounds(L.latLngBounds(points), { padding: [35, 35], maxZoom: 13 });

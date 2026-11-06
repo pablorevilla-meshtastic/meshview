@@ -101,32 +101,32 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
     .packet-arrival-glow > td { animation:none; background:var(--mesh-soft); }
 }
 .mesh-header { background:var(--mesh-brand); color:white; box-shadow:0 2px 8px #193d6918; }
-.mesh-header-inner { max-width:1600px; margin:auto; padding:0 28px; min-height:56px; display:flex; align-items:center; gap:32px; }
-.mesh-brand { display:flex; align-items:center; gap:10px; font-size:19px; font-weight:700; color:white; text-decoration:none; flex-shrink:0; }
+.mesh-header-inner { max-width:1600px; margin:auto; padding:0 20px; min-height:48px; display:flex; align-items:center; gap:20px; }
+.mesh-brand { display:flex; align-items:center; gap:8px; font-size:17px; font-weight:700; color:white; text-decoration:none; flex-shrink:0; }
 .mesh-brand:hover { color:white; }
-.mesh-brand-icon { width:32px; height:32px; display:block; flex-shrink:0; }
-#site-menu { display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
-#site-menu a { color:#e6effb; text-decoration:none; padding:10px 12px; border-radius:6px; font-size:14px; text-transform:capitalize; }
+.mesh-brand-icon { width:28px; height:28px; display:block; flex-shrink:0; }
+#site-menu { display:flex; align-items:center; flex-wrap:wrap; gap:2px; }
+#site-menu a { color:#e6effb; text-decoration:none; padding:6px 8px; border-radius:5px; font-size:14px; line-height:20px; white-space:nowrap; text-transform:capitalize; }
 #site-menu a:hover, #site-menu a.active { color:white; background:#ffffff26; }
-.mesh-menu-toggle { display:none; color:white; background:none; border:1px solid #ffffff70; border-radius:5px; font-size:22px; }
-.mesh-content { max-width:1600px; margin:0 auto; padding:28px; }
+.mesh-menu-toggle { display:none; color:white; background:none; border:1px solid #ffffff70; border-radius:5px; width:36px; height:36px; padding:0; font-size:22px; line-height:1; }
+.mesh-content { max-width:1600px; margin:0 auto; padding:16px 28px; }
 .mesh-announcement { text-align:center; padding:10px 20px; background:var(--mesh-soft); color:var(--mesh-text); font-size:14px; }
 .mesh-announcement:empty { display:none; }
 .mesh-footer { display:flex; justify-content:space-between; gap:16px; padding:20px 28px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:12px; }
-.mesh-page-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:24px; }
+.mesh-page-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:10px; }
 .mesh-eyebrow { font-size:10px; letter-spacing:1.6px; font-weight:700; color:var(--mesh-primary); }
-.mesh-page-heading h1 { font-size:28px; font-weight:650; margin:5px 0 7px; }
+.mesh-page-heading h1 { font-size:28px; font-weight:650; margin:2px 0 3px; }
 .mesh-page-heading p { color:var(--mesh-muted); font-size:14px; margin:0; }
 .mesh-secondary-button,.mesh-fit-button { border:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); padding:9px 14px; border-radius:6px; text-decoration:none; font-size:13px; }
 .mesh-secondary-button:hover,.mesh-fit-button:hover { background:var(--mesh-soft); }
-.mesh-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-bottom:24px; }
+.mesh-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
 .mesh-metric { padding:20px 24px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; box-shadow:0 2px 4px var(--mesh-text)04; display:flex; flex-direction:column; gap:5px; }
 .mesh-metric>span { font-size:13px; font-weight:500; color:var(--mesh-muted); }
 .mesh-metric strong { font-size:30px; font-weight:650; color:var(--mesh-primary); font-variant-numeric:tabular-nums; }
 .mesh-metric:nth-child(2) strong { color:var(--mesh-primary); }
 .mesh-metric:nth-child(3) strong { color:var(--mesh-primary); }
 .mesh-metric small { font-size:11px; color:var(--mesh-muted); }
-.mesh-explorer { display:grid; grid-template-columns:290px minmax(0,1fr); gap:20px; }
+.mesh-explorer { display:grid; grid-template-columns:290px minmax(0,1fr); gap:12px; }
 .mesh-node-panel,.mesh-map-panel { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; min-width:0; }
 .mesh-panel-title { display:flex; justify-content:space-between; align-items:center; padding:16px 18px; border-bottom:1px solid var(--mesh-border); gap:8px; min-height:64px; }
 .mesh-panel-title h2 { font-size:15px; font-weight:650; margin:0; }
@@ -153,9 +153,8 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-map-panel #map-legend { bottom:80px!important; left:12px; right:auto!important; box-shadow:0 2px 8px #0001; font-size:11px; }
 .mesh-map-panel #unmapped-packets { bottom:25px; right:10px; width:190px; }
 .mesh-map-panel .leaflet-control-layers { font-size:11px; border:1px solid var(--mesh-border); box-shadow:0 2px 8px #0001; }
-@media(min-width:1000px) { .mesh-header-inner { gap:20px; } #site-menu a { padding:9px; } }
-@media(max-width:1000px) { .mesh-header-inner { flex-wrap:wrap; gap:0; padding:8px 20px; justify-content:space-between; } .mesh-menu-toggle { display:block; } #site-menu { display:none; width:100%; padding-top:14px; } #site-menu.is-open { display:flex; } .mesh-explorer { grid-template-columns:240px minmax(0,1fr); } }
-@media(max-width:700px) { .mesh-content { padding:20px 14px; } .mesh-page-heading { align-items:flex-start; } .mesh-page-heading h1 { font-size:24px; } .mesh-secondary-button { white-space:nowrap; font-size:11px; padding:8px; } .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .mesh-metric { padding:14px; } .mesh-metric strong { font-size:26px; } .mesh-explorer { display:flex; flex-direction:column-reverse; gap:16px; } .mesh-map-panel #map-wrapper { height:440px; } .mesh-node-list { max-height:300px; } .mesh-map-panel #unmapped-packets { width:155px; font-size:10px; } .mesh-footer { flex-direction:column; } }
+@media(max-width:1000px) { .mesh-header-inner { flex-wrap:wrap; gap:0; padding:6px 16px; justify-content:space-between; } .mesh-menu-toggle { display:block; } #site-menu { display:none; width:100%; padding-top:6px; } #site-menu.is-open { display:flex; } .mesh-explorer { grid-template-columns:240px minmax(0,1fr); } }
+@media(max-width:700px) { .mesh-content { padding:16px 14px; } .mesh-page-heading { align-items:flex-start; } .mesh-page-heading h1 { font-size:24px; } .mesh-secondary-button { white-space:nowrap; font-size:11px; padding:8px; } .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .mesh-metric { padding:14px; } .mesh-metric strong { font-size:26px; } .mesh-explorer { display:flex; flex-direction:column-reverse; gap:16px; } .mesh-map-panel #map-wrapper { height:440px; } .mesh-node-list { max-height:300px; } .mesh-map-panel #unmapped-packets { width:155px; font-size:10px; } .mesh-footer { flex-direction:column; } }
     </style>
 {% include "theme-styles.html" %}
 </head>
@@ -163,7 +162,7 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 <body class="{% block body_class %}{% endblock %}">
 <header class="mesh-header">
     <div class="mesh-header-inner">
-        <a class="mesh-brand" href="/"><img class="mesh-brand-icon" src="/static/meshview-icon.svg" width="32" height="32" alt=""> <span id="site-header">Meshview</span></a>
+        <a class="mesh-brand" href="/"><img class="mesh-brand-icon" src="/static/meshview-icon.svg" width="28" height="28" alt=""> <span id="site-header">Meshview</span></a>
         <button class="mesh-menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-menu">☰</button>
         <nav id="site-menu" aria-label="Main navigation"></nav>
         <button class="mesh-theme-toggle" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false" title="Night mode"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
