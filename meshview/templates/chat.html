@@ -63,7 +63,7 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 {% endblock %}
 
 {% block body %}
-<section id="chat-container" aria-label="Mesh chat">
+<section id="chat-container" aria-label="{{ tr("Mesh chat") }}">
     <div class="chat-toolbar">
         <h1 class="chat-heading"><span aria-hidden="true">#</span> <span data-chat-translate="chat_title">Mesh chat</span></h1>
         <div class="chat-channel-control">
@@ -71,17 +71,17 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
             <span aria-hidden="true">#</span>
             <select id="channel-filter" class="form-select form-select-sm chat-filter"><option value="" data-chat-translate="all_channels">All channels</option></select>
         </div>
-        <label for="chat-search" class="visually-hidden">Search messages or nodes</label>
-        <input id="chat-search" class="form-control form-control-sm chat-search" type="search" placeholder="Search messages or nodes…" autocomplete="off">
+        <label for="chat-search" class="visually-hidden">{{ tr("Search messages or nodes") }}</label>
+        <input id="chat-search" class="form-control form-control-sm chat-search" type="search" placeholder="{{ tr("Search messages or nodes…") }}" autocomplete="off">
         <div class="chat-actions">
-            <span id="chat-count" class="text-secondary small">0 messages</span>
-            <span id="chat-status" class="chat-status" data-state="loading" role="status">Connecting…</span>
-            <button id="chat-pause" class="chat-control" type="button" aria-pressed="false">Pause</button>
-            <button id="chat-latest" class="chat-control" type="button">↓ Latest</button>
+            <span id="chat-count" class="text-secondary small">{{ tr("0 messages") }}</span>
+            <span id="chat-status" class="chat-status" data-state="loading" role="status">{{ tr("Connecting…") }}</span>
+            <button id="chat-pause" class="chat-control" type="button" aria-pressed="false">{{ tr("Pause") }}</button>
+            <button id="chat-latest" class="chat-control" type="button">{{ tr("↓ Latest") }}</button>
         </div>
     </div>
-    <div id="chat-log" class="chat-messages" role="region" aria-label="Messages, oldest to newest" tabindex="0"><p class="chat-empty">Loading messages…</p></div>
-    <div class="chat-bottom"><p>Received text messages · updates every 5 seconds</p><span id="chat-updated" role="status"></span></div>
+    <div id="chat-log" class="chat-messages" role="region" aria-label="{{ tr("Messages, oldest to newest") }}" tabindex="0"><p class="chat-empty">{{ tr("Loading messages…") }}</p></div>
+    <div class="chat-bottom"><p>{{ tr("Received text messages · updates every 5 seconds") }}</p><span id="chat-updated" role="status"></span></div>
 </section>
 <script src="/static/chat-dashboard.js"></script>
 {% endblock %}

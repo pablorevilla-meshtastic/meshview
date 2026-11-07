@@ -10,20 +10,27 @@ const themeStyles = readFileSync(new URL('../meshview/templates/theme-styles.htm
 const escape = text => text.replace(/[&<>"']/g, char => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
 }[char]));
+// Mark prose fragments, keeping code samples, routes, and identifiers unchanged.
+const copy = text => {
+    const value = text.trim().replace(/\s+/g, ' ');
+    if (!/[a-z]{2}/i.test(value)) return escape(text);
+    const leading = text.match(/^\s*/)[0], trailing = text.match(/\s*$/)[0];
+    return `${leading}<span data-i18n="${escape(value)}">${escape(value)}</span>${trailing}`;
+};
 const slug = text => text.toLowerCase().replace(/`/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 function inline(text) {
     const tokens = /`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*/g;
     let html = '', cursor = 0;
     for (const match of text.matchAll(tokens)) {
-        html += escape(text.slice(cursor, match.index));
+        html += copy(text.slice(cursor, match.index));
         if (match[1] !== undefined) html += `<code>${escape(match[1])}</code>`;
         else if (match[2] !== undefined && /^(#|\/|https?:\/\/)/.test(match[3])) {
-            html += `<a href="${escape(match[3])}">${escape(match[2])}</a>`;
-        } else if (match[4] !== undefined) html += `<strong>${escape(match[4])}</strong>`;
-        else html += escape(match[0]);
+            html += `<a href="${escape(match[3])}">${copy(match[2])}</a>`;
+        } else if (match[4] !== undefined) html += `<strong>${copy(match[4])}</strong>`;
+        else html += copy(match[0]);
         cursor = match.index + match[0].length;
     }
-    return html + escape(text.slice(cursor));
+    return html + copy(text.slice(cursor));
 }
 
 const endpoints = [];
@@ -74,6 +81,7 @@ writeFileSync(output, `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Meshview API Reference</title>
+<script src="/static/i18n.js"></script>
 <script src="/static/theme.js"></script>
 <link rel="icon" type="image/svg+xml" href="/static/meshview-icon.svg">
 <style>
@@ -111,25 +119,25 @@ footer { border-top:1px solid var(--border); padding:20px 24px; text-align:cente
 ${themeStyles}
 </head>
 <body>
-<header><div class="header-inner"><a class="brand" href="/"><img src="/static/meshview-icon.svg" alt="" width="32" height="32">Meshview</a><span>API reference</span><a class="home-link" href="/">Home ↗</a><button class="mesh-theme-toggle" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false">☾</button></div></header>
+<header><div class="header-inner"><a class="brand" href="/"><img src="/static/meshview-icon.svg" alt="" width="32" height="32">Meshview</a><span data-i18n="API reference">API reference</span><a class="home-link" href="/">${copy("Home ↗")}</a><button class="mesh-theme-toggle" type="button" data-theme-toggle data-i18n-aria-label="Switch to night mode" aria-label="Switch to night mode" aria-pressed="false">☾</button></div></header>
 <main>
-<details class="api-index"><summary>Browse all ${endpoints.length} endpoints</summary><nav aria-label="API endpoints"><ul>${index}</ul></nav></details>
+<details class="api-index"><summary>${copy(`Browse all ${endpoints.length} endpoints`)}</summary><nav data-i18n-aria-label="API endpoints" aria-label="API endpoints"><ul>${index}</ul></nav></details>
 ${blocks.join('\n')}
 </main>
-<footer>Source: docs/API_Documentation.md · Generated with node scripts/build-api-docs.mjs</footer>
+<footer>${copy("Source: docs/API_Documentation.md · Generated with node scripts/build-api-docs.mjs")}</footer>
 </body>
 </html>
 `);
 console.log(`Built ${endpoints.length} endpoint sections: ${fileURLToPath(output)}`);
 
 // The legacy chat reference and standalone maps use the same saved preference.
-for (const filename of ['api-chat.html','kiosk.html','heatmap.html']) {
+for (const filename of ['api-chat.html','heatmap.html']) {
     const path = new URL('../meshview/static/' + filename, import.meta.url);
     let html = readFileSync(path,'utf8');
     const themeBlock = '<!-- mesh-theme:start -->\n' + themeStyles + '\n<!-- mesh-theme:end -->';
     if (!html.includes('/static/theme.js')) html = html.replace('<style>','<script src="/static/theme.js"></script>\n<style>');
     if (html.includes('<!-- mesh-theme:start -->')) html = html.replace(/<!-- mesh-theme:start -->[\s\S]*?<!-- mesh-theme:end -->/,themeBlock);
     else html = html.replace('</head>',themeBlock + '\n</head>');
-    if (!html.includes('data-theme-toggle')) html = html.replace('<body>','<body>\n<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#187346" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false">☾</button>');
+    if (!html.includes('data-theme-toggle')) html = html.replace('<body>','<body>\n<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#187346" type="button" data-theme-toggle data-i18n-aria-label="Switch to night mode" aria-label="Switch to night mode" aria-pressed="false">☾</button>');
     writeFileSync(path,html);
 }

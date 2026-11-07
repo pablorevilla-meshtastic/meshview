@@ -23,6 +23,7 @@ from meshview.__version__ import (
     __version_string__,
 )
 from meshview.deps import check_optional_deps
+from meshview.i18n import load_catalogs
 from meshview.web_api import api
 
 logging.basicConfig(
@@ -44,6 +45,7 @@ check_optional_deps()
 
 BASE_DIR = os.path.dirname(__file__)
 LANG_DIR = os.path.join(BASE_DIR, "lang")
+env.globals.update(ui_translations={}, ui_language="en", tr=lambda source: source)
 
 with open(os.path.join(os.path.dirname(__file__), '1x1.png'), 'rb') as png:
     empty_png = png.read()
@@ -504,6 +506,15 @@ async def run_server():
         raise RuntimeError("Database schema version mismatch - migrations not complete")
 
     logger.info("Database schema verified - starting web server")
+
+    language = CONFIG.get("site", {}).get("language", "en")
+    catalog = await load_catalogs(LANG_DIR, language)
+    ui_translations = catalog.get("ui", {})
+    env.globals.update(
+        ui_translations=ui_translations,
+        ui_language=language,
+        tr=lambda source: ui_translations.get(source, source),
+    )
 
     app = web.Application()
     app.router.add_static("/static/", pathlib.Path(__file__).parent / "static")

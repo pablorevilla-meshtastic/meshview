@@ -25,26 +25,26 @@
 {% endblock %}
 
 {% block body %}
-<header class="data-heading"><div><span class="mesh-eyebrow">ROUTE EXPLORER</span><h1>Traceroute</h1><p>Explore forward paths, reported return routes, and the nodes along the way.</p></div><a class="mesh-secondary-button" href="/firehose">Live packets ↗</a></header>
+<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("ROUTE EXPLORER") }}</span><h1>{{ tr("Traceroute") }}</h1><p>{{ tr("Explore forward paths, reported return routes, and the nodes along the way.") }}</p></div><a class="mesh-secondary-button" href="/firehose">{{ tr("Live packets ↗") }}</a></header>
 <div id="traceroute-meta">
-    <div><b>Traceroute</b> <span id="traceroute-title"></span></div>
+    <div><b>{{ tr("Traceroute") }}</b> <span id="traceroute-title"></span></div>
     <div id="traceroute-error" role="status"></div>
-    <span class="traceroute-help">Drag nodes to rearrange · Scroll to zoom</span>
+    <span class="traceroute-help">{{ tr("Drag nodes to rearrange · Scroll to zoom") }}</span>
 </div>
 <div id="traceroute-graph-wrap">
     <div id="traceroute-graph"></div>
-    <div id="traceroute-legend" aria-label="Traceroute edge legend">
+    <div id="traceroute-legend" aria-label="{{ tr("Traceroute edge legend") }}">
         <div class="traceroute-legend-row">
             <span class="traceroute-legend-line" style="--line-color: #34c759"></span>
-            <span>Winning forward</span>
+            <span>{{ tr("Winning forward") }}</span>
         </div>
         <div class="traceroute-legend-row">
             <span class="traceroute-legend-line dashed" style="--line-color: #ff3b30"></span>
-            <span>Reported reverse</span>
+            <span>{{ tr("Reported reverse") }}</span>
         </div>
         <div class="traceroute-legend-row">
             <span class="traceroute-legend-line muted" style="--line-color: #7c858f"></span>
-            <span>Reported route</span>
+            <span>{{ tr("Reported route") }}</span>
         </div>
     </div>
 </div>
@@ -106,7 +106,7 @@ async function loadTraceroute() {
         fetch("/api/nodes"),
     ]);
     if (!res.ok) {
-        document.getElementById("traceroute-error").textContent = "Traceroute not found.";
+        document.getElementById("traceroute-error").textContent = MeshI18n.t("Traceroute not found.");
         return;
     }
 
@@ -224,7 +224,7 @@ async function loadTraceroute() {
 
 loadTraceroute().catch(error => {
     console.error("Failed to load traceroute:", error);
-    document.getElementById("traceroute-error").textContent = "Unable to load traceroute. Reload to try again.";
+    document.getElementById("traceroute-error").textContent = MeshI18n.t("Unable to load traceroute. Reload to try again.");
 });
 window.addEventListener("resize", () => chart.resize());
 </script>

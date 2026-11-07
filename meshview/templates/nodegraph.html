@@ -93,26 +93,26 @@
 
 <!-- SEARCH + FILTER -->
 <div class="search-container">
-    <label style="color:var(--mesh-text);">Channel:</label>
+    <label style="color:var(--mesh-text);">{{ tr("Channel:") }}</label>
     <select id="channel-select" onchange="filterByChannel()"></select>
 
-    <input type="text" id="node-search" placeholder="Search node...">
-    <button onclick="searchNode()">Search</button>
+    <input type="text" id="node-search" placeholder="{{ tr("Search node...") }}">
+    <button onclick="searchNode()">{{ tr("Search") }}</button>
 </div>
 
 <!-- INFO BOX -->
 <div id="node-info">
-    <b>Long Name:</b> <span id="node-long-name"></span><br>
-    <b>Short Name:</b> <span id="node-short-name"></span><br>
-    <b>Role:</b> <span id="node-role"></span><br>
-    <b>Hardware Model:</b> <span id="node-hw-model"></span>
+    <b>{{ tr("Long Name:") }}</b> <span id="node-long-name"></span><br>
+    <b>{{ tr("Short Name:") }}</b> <span id="node-short-name"></span><br>
+    <b>{{ tr("Role:") }}</b> <span id="node-role"></span><br>
+    <b>{{ tr("Hardware Model:") }}</b> <span id="node-hw-model"></span>
 </div>
 
 <!-- LEGEND -->
 <div id="legend">
     <div class="legend-category">
-        <div><span class="legend-box" style="background-color: #ff5733"></span>Traceroute</div>
-        <div><span class="legend-box" style="background-color: #049acd"></span>Neighbor</div>
+        <div><span class="legend-box" style="background-color: #ff5733"></span>{{ tr("Traceroute") }}</div>
+        <div><span class="legend-box" style="background-color: #049acd"></span>{{ tr("Neighbor") }}</div>
     </div>
     <div class="legend-category">
         <div><span class="legend-box circle" style="background-color: #ff5733"></span><code>ROUTER</code></div>
@@ -124,10 +124,10 @@
     </div>
     <div class="legend-category">
         <div><span class="legend-box circle" style="background-color: #049acd"></span><code>CLIENT_BASE</code></div>
-        <div><span class="legend-box circle" style="background-color: #ffbf00"></span>Other</div>
+        <div><span class="legend-box circle" style="background-color: #ffbf00"></span>{{ tr("Other") }}</div>
     </div>
     <div class="legend-category">
-        <div><span class="legend-box circle" style="background-color: #6c757d"></span>Unknown</div>
+        <div><span class="legend-box circle" style="background-color: #6c757d"></span>{{ tr("Unknown") }}</div>
     </div>
 </div>
 
@@ -376,7 +376,7 @@ function searchNode() {
     );
 
     if (found) updateSelectedNode(found.name);
-    else alert("Node not found in current channel!");
+    else alert(MeshI18n.t("Node not found in current channel!"));
 }
 
 // -----------------------------------

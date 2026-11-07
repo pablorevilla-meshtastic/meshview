@@ -216,53 +216,53 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 {% block body %}
 {% if dashboard %}
 <section class="mesh-page-heading">
-    <div><span class="mesh-eyebrow">NETWORK EXPLORER</span><h1>Mesh overview</h1><p>Explore your nodes, connections, and live network activity.</p></div>
-    <a class="mesh-secondary-button" href="/stats">View statistics ↗</a>
+    <div><span class="mesh-eyebrow">{{ tr("NETWORK EXPLORER") }}</span><h1>{{ tr("Mesh overview") }}</h1><p>{{ tr("Explore your nodes, connections, and live network activity.") }}</p></div>
+    <a class="mesh-secondary-button" href="/stats">{{ tr("View statistics ↗") }}</a>
 </section>
-<section class="mesh-metrics" aria-label="Network summary">
-    <div class="mesh-metric"><span>Recent nodes</span><strong id="metric-nodes">—</strong><small>Seen in the last 3 days</small></div>
-    <div class="mesh-metric"><span>Active nodes</span><strong id="metric-active">—</strong><small>Seen in the last 24 hours</small></div>
-    <div class="mesh-metric"><span>MQTT gateways</span><strong id="metric-gateways">—</strong><small>Among recent nodes</small></div>
-    <div class="mesh-metric"><span>Total packets</span><strong id="metric-packets">—</strong><small id="metric-status" role="status">Loading network totals…</small></div>
+<section class="mesh-metrics" aria-label="{{ tr("Network summary") }}">
+    <div class="mesh-metric"><span>{{ tr("Recent nodes") }}</span><strong id="metric-nodes">—</strong><small>{{ tr("Seen in the last 3 days") }}</small></div>
+    <div class="mesh-metric"><span>{{ tr("Active nodes") }}</span><strong id="metric-active">—</strong><small>{{ tr("Seen in the last 24 hours") }}</small></div>
+    <div class="mesh-metric"><span>{{ tr("MQTT gateways") }}</span><strong id="metric-gateways">—</strong><small>{{ tr("Among recent nodes") }}</small></div>
+    <div class="mesh-metric"><span>{{ tr("Total packets") }}</span><strong id="metric-packets">—</strong><small id="metric-status" role="status">{{ tr("Loading network totals…") }}</small></div>
 </section>
 {% else %}
-<section class="mesh-page-heading"><div><span class="mesh-eyebrow">NETWORK EXPLORER</span><h1>Network map</h1><p>Explore node locations and network connections.</p></div><a class="mesh-secondary-button" href="/">Home ↗</a></section>
+<section class="mesh-page-heading"><div><span class="mesh-eyebrow">{{ tr("NETWORK EXPLORER") }}</span><h1>{{ tr("Network map") }}</h1><p>{{ tr("Explore node locations and network connections.") }}</p></div><a class="mesh-secondary-button" href="/">{{ tr("Home ↗") }}</a></section>
 {% endif %}
 <div class="mesh-explorer">
 {% if dashboard %}
-<aside id="mesh-node-panel" class="mesh-node-panel" aria-label="Node explorer"{% if not dashboard %} hidden{% endif %}>
+<aside id="mesh-node-panel" class="mesh-node-panel" aria-label="{{ tr("Node explorer") }}"{% if not dashboard %} hidden{% endif %}>
     <div id="mesh-node-browser" class="mesh-node-browser">
-    <div class="mesh-panel-title"><h2>Network nodes</h2><span id="node-result-count" class="mesh-count">—</span></div>
-    <label class="mesh-search-label" for="node-search">Search nodes</label>
-    <input id="node-search" class="mesh-search" type="search" placeholder="Name or node ID…" autocomplete="off">
-    <div id="mesh-node-list" class="mesh-node-list" aria-live="polite"><p class="mesh-empty">Loading nodes…</p></div>
+    <div class="mesh-panel-title"><h2>{{ tr("Network nodes") }}</h2><span id="node-result-count" class="mesh-count">—</span></div>
+    <label class="mesh-search-label" for="node-search">{{ tr("Search nodes") }}</label>
+    <input id="node-search" class="mesh-search" type="search" placeholder="{{ tr("Name or node ID…") }}" autocomplete="off">
+    <div id="mesh-node-list" class="mesh-node-list" aria-live="polite"><p class="mesh-empty">{{ tr("Loading nodes…") }}</p></div>
     </div>
-    <section id="mesh-node-inspector" class="mesh-node-inspector" aria-label="Selected node" hidden>
-        <div class="mesh-panel-title"><h2>Node inspector</h2><button id="inspector-back" class="mesh-inspector-back" type="button">← Nodes</button></div>
+    <section id="mesh-node-inspector" class="mesh-node-inspector" aria-label="{{ tr("Selected node") }}" hidden>
+        <div class="mesh-panel-title"><h2>{{ tr("Node inspector") }}</h2><button id="inspector-back" class="mesh-inspector-back" type="button">{{ tr("← Nodes") }}</button></div>
         <div class="mesh-inspector-body">
             <h3 id="inspector-name" class="mesh-inspector-name"></h3>
             <p id="inspector-node-meta" class="mesh-inspector-meta"></p>
             <dl id="inspector-facts" class="mesh-inspector-facts"></dl>
-            <div class="mesh-inspector-actions"><a id="inspector-node-link" href="/nodelist">Full node details ↗</a><a id="inspector-reliability-link" href="/reliability">Reliability ↗</a><button id="inspector-refresh" class="mesh-inspector-back" type="button">Refresh data</button></div>
-            <h3 class="mesh-inspector-section">Latest device telemetry</h3>
+            <div class="mesh-inspector-actions"><a id="inspector-node-link" href="/nodelist">{{ tr("Full node details ↗") }}</a><a id="inspector-reliability-link" href="/reliability">{{ tr("Reliability ↗") }}</a><button id="inspector-refresh" class="mesh-inspector-back" type="button">{{ tr("Refresh data") }}</button></div>
+            <h3 class="mesh-inspector-section">{{ tr("Latest device telemetry") }}</h3>
             <div id="inspector-telemetry" aria-live="polite"></div>
-            <h3 class="mesh-inspector-section">Recent packets · sent &amp; received</h3>
+            <h3 class="mesh-inspector-section">{{ tr("Recent packets · sent & received") }}</h3>
             <div id="inspector-recent" aria-live="polite"></div>
         </div>
     </section>
 </aside>
 {% endif %}
 
-<section class="mesh-map-panel" aria-label="Network map">
-<div class="mesh-panel-title"><h2>Network map</h2><div class="mesh-map-actions"><button class="mesh-fit-button" type="button" id="fit-network">Fit network</button></div></div>
+<section class="mesh-map-panel" aria-label="{{ tr("Network map") }}">
+<div class="mesh-panel-title"><h2>{{ tr("Network map") }}</h2><div class="mesh-map-actions"><button class="mesh-fit-button" type="button" id="fit-network">{{ tr("Fit network") }}</button></div></div>
 <p id="map-load-status" role="status" style="margin:0; color:#b23d2f;"></p>
 
 <div id="map-wrapper">
     <div id="map"></div>
     {% if not dashboard %}
-    <aside id="mesh-node-panel" class="mesh-node-panel" aria-label="Selected node" hidden>
-        <button id="map-panel-close" class="mesh-inspector-back mesh-panel-close" type="button" aria-label="Close node inspector">Close</button>
-        <a id="inspector-node-link" class="mesh-inspector-short-name" href="/nodelist" title="View full node details"></a>
+    <aside id="mesh-node-panel" class="mesh-node-panel" aria-label="{{ tr("Selected node") }}" hidden>
+        <button id="map-panel-close" class="mesh-inspector-back mesh-panel-close" type="button" aria-label="{{ tr("Close node inspector") }}">{{ tr("Close") }}</button>
+        <a id="inspector-node-link" class="mesh-inspector-short-name" href="/nodelist" title="{{ tr("View full node details") }}"></a>
         <h3 id="inspector-name" class="mesh-inspector-name"></h3>
         <p id="inspector-node-meta" class="mesh-inspector-meta"></p>
         <dl id="inspector-facts" class="mesh-inspector-facts"></dl>
@@ -299,9 +299,9 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 </div>
 
 <div id="filter-container">
-    <input type="checkbox" class="filter-checkbox" id="filter-routers-only" aria-label="Show routers only">
+    <input type="checkbox" class="filter-checkbox" id="filter-routers-only" aria-label="{{ tr("Show routers only") }}">
     <span data-translate-lang="show_routers_only">Show Routers Only</span>
-    <input type="checkbox" class="filter-checkbox" id="filter-mqtt-only" aria-label="Show MQTT gateways only">
+    <input type="checkbox" class="filter-checkbox" id="filter-mqtt-only" aria-label="{{ tr("Show MQTT gateways only") }}">
     <span data-translate-lang="show_mqtt_only">Show MQTT Gateways Only</span>
 </div>
 
@@ -321,12 +321,12 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 </section>
 </div>
 {% if dashboard %}
-<section class="mesh-traffic" aria-label="Live network traffic">
-    <div class="mesh-panel-title"><h2>Live traffic</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">Channel</label><select id="map-traffic-channel"><option value="">All channels</option></select><span id="map-traffic-status" class="mesh-traffic-status" role="status">Loading packets…</span><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="Pause the traffic list; map animations continue">Pause feed</button><button id="map-traffic-refresh" class="mesh-traffic-control" type="button">Refresh</button></div></div>
-    <div id="map-traffic-list" class="mesh-traffic-list" role="region" aria-label="Live packet table" tabindex="0">
-        <table class="mesh-traffic-table"><thead><tr><th>Time</th><th>Packet ID</th><th>From</th><th>To</th><th>Channel</th><th>Port</th></tr></thead><tbody id="map-traffic-body"><tr><td colspan="6" class="mesh-empty">Loading recent network traffic…</td></tr></tbody></table>
+<section class="mesh-traffic" aria-label="{{ tr("Live network traffic") }}">
+    <div class="mesh-panel-title"><h2>{{ tr("Live traffic") }}</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">{{ tr("Channel") }}</label><select id="map-traffic-channel"><option value="">{{ tr("All channels") }}</option></select><span id="map-traffic-status" class="mesh-traffic-status" role="status">{{ tr("Loading packets…") }}</span><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="{{ tr("Pause the traffic list; map animations continue") }}">{{ tr("Pause feed") }}</button><button id="map-traffic-refresh" class="mesh-traffic-control" type="button">{{ tr("Refresh") }}</button></div></div>
+    <div id="map-traffic-list" class="mesh-traffic-list" role="region" aria-label="{{ tr("Live packet table") }}" tabindex="0">
+        <table class="mesh-traffic-table"><thead><tr><th>{{ tr("Time") }}</th><th>{{ tr("Packet ID") }}</th><th>{{ tr("From") }}</th><th>{{ tr("To") }}</th><th>{{ tr("Channel") }}</th><th>{{ tr("Port") }}</th></tr></thead><tbody id="map-traffic-body"><tr><td colspan="6" class="mesh-empty">{{ tr("Loading recent network traffic…") }}</td></tr></tbody></table>
     </div>
-    <p class="mesh-traffic-note">Latest 30 packets · expand the arrow to view payloads · follow packet IDs or node names for details.</p>
+    <p class="mesh-traffic-note">{{ tr("Latest 30 packets · expand the arrow to view payloads · follow packet IDs or node names for details.") }}</p>
 </section>
 
 {% endif %}
@@ -461,11 +461,11 @@ function timeAgoFromUs(us){
 }
 
 function normalizeChannelName(str){
-    return String(str || "Unknown").toLowerCase().replace(/[\s_-]+/g, "");
+    return String(str || MeshI18n.t("Unknown")).toLowerCase().replace(/[\s_-]+/g, "");
 }
 
 function hashToColor(str){
-    const channel = String(str || "Unknown");
+    const channel = String(str || MeshI18n.t("Unknown"));
     if(colorMap.has(channel)) return colorMap.get(channel);
 
     const override = channelColorOverrides.get(normalizeChannelName(channel));
@@ -719,7 +719,7 @@ fetch('/api/nodes?days_active=3')
     .catch(error => {
         console.error(error);
         const status = document.getElementById("mesh-node-list") || document.getElementById("map-load-status");
-        status.textContent = "Unable to load nodes. Reload to try again.";
+        status.textContent = MeshI18n.t("Unable to load nodes. Reload to try again.");
     });
 
 /* ======================================================
@@ -852,7 +852,7 @@ function renderUnmappedPackets(){
         const empty = document.createElement("li");
         empty.className = "unmapped-empty";
         empty.dataset.translateLang = "unmapped_packets_empty";
-        empty.textContent = "No recent unmapped packets.";
+        empty.textContent = MeshI18n.t("No recent unmapped packets.");
         list.appendChild(empty);
         return;
     }
@@ -862,8 +862,8 @@ function renderUnmappedPackets(){
 
         const node = document.createElement("span");
         node.className = "unmapped-node";
-        const type = portMap[p.portnum] || `Port ${p.portnum ?? "?"}`;
-        const name = p.long_name || `Node ${p.from_node_id ?? "?"}`;
+        const type = portMap[p.portnum] || MeshI18n.t("Port {port}", {port: p.portnum ?? "?"});
+        const name = p.long_name || MeshI18n.t("Node {id}", {id: p.from_node_id ?? "?"});
         node.textContent = `${name} (${type})`;
 
         li.appendChild(node);
@@ -1075,7 +1075,7 @@ function blinkNode(marker,longName,portnum,payload){
     const fastBlinkStartMs = blinkDurationMs - 3000;
     const blinkColor = "yellow";
     const safeName = escapeHtml(longName);
-    const portLabel = portMap[portnum] || `Port ${portnum ?? "?"}`;
+    const portLabel = portMap[portnum] || MeshI18n.t("Port {port}", {port: portnum ?? "?"});
     const payloadText = (payload || "").trim();
     const showPayload = isTextPort(portnum) && payloadText && payloadText !== "Did not decode";
     const shortPayload = showPayload && payloadText.length > 80
@@ -1220,7 +1220,7 @@ function shareCurrentView() {
         const btn = document.getElementById('share-button');
         if (!btn.classList.contains('is-copied')) btn.dataset.shareLabel = btn.textContent;
         clearTimeout(shareViewResetTimer);
-        btn.textContent = '✓ ' + (mapTranslations.link_copied || 'Link Copied!');
+        btn.textContent = '✓ ' + (mapTranslations.link_copied || MeshI18n.t("Link Copied!"));
         btn.classList.add('is-copied');
 
         shareViewResetTimer = setTimeout(()=>{

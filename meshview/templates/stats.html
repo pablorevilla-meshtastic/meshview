@@ -48,7 +48,7 @@
 
 {% block body %}
 <div class="main-container">
-    <header class="data-heading"><div><span class="mesh-eyebrow">NETWORK ANALYTICS</span><h1>Mesh statistics</h1><p>Explore packet history, device activity, and gateway distribution.</p></div><a class="mesh-secondary-button" href="/top">Top nodes ↗</a></header>
+    <header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("NETWORK ANALYTICS") }}</span><h1>{{ tr("Mesh statistics") }}</h1><p>{{ tr("Explore packet history, device activity, and gateway distribution.") }}</p></div><a class="mesh-secondary-button" href="/top">{{ tr("Top nodes ↗") }}</a></header>
 
     <!-- Summary cards now fully driven by API + JS -->
     <div class="summary-container">
@@ -75,13 +75,13 @@
         <p class="section-header" data-translate-lang="daily_snapshot_packets_history">
             Daily Packet Snapshot History
         </p>
-        <select id="snapshotPacketsRange" class="chart-filter" aria-label="Snapshot packet timeframe">
-            <option value="7">7 days</option>
-            <option value="14">14 days</option>
-            <option value="30">1 month</option>
-            <option value="183">6 months</option>
-            <option value="365">1 year</option>
-            <option value="all" selected>All</option>
+        <select id="snapshotPacketsRange" class="chart-filter" aria-label="{{ tr("Snapshot packet timeframe") }}">
+            <option value="7">{{ tr("7 days") }}</option>
+            <option value="14">{{ tr("14 days") }}</option>
+            <option value="30">{{ tr("1 month") }}</option>
+            <option value="183">{{ tr("6 months") }}</option>
+            <option value="365">{{ tr("1 year") }}</option>
+            <option value="all" selected>{{ tr("All") }}</option>
         </select>
         <button class="expand-btn" data-chart="chart_daily_snapshot_packets" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_daily_snapshot_packets" data-translate-lang="export_csv">Export CSV</button>
@@ -92,13 +92,13 @@
         <p class="section-header" data-translate-lang="daily_snapshot_nodes_gateways_history">
             Daily Node/Gateway Snapshot History
         </p>
-        <select id="snapshotNodesGatewaysRange" class="chart-filter" aria-label="Snapshot node and gateway timeframe">
-            <option value="7">7 days</option>
-            <option value="14">14 days</option>
-            <option value="30">1 month</option>
-            <option value="183">6 months</option>
-            <option value="365">1 year</option>
-            <option value="all" selected>All</option>
+        <select id="snapshotNodesGatewaysRange" class="chart-filter" aria-label="{{ tr("Snapshot node and gateway timeframe") }}">
+            <option value="7">{{ tr("7 days") }}</option>
+            <option value="14">{{ tr("14 days") }}</option>
+            <option value="30">{{ tr("1 month") }}</option>
+            <option value="183">{{ tr("6 months") }}</option>
+            <option value="365">{{ tr("1 year") }}</option>
+            <option value="all" selected>{{ tr("All") }}</option>
         </select>
         <button class="expand-btn" data-chart="chart_daily_snapshot_nodes_gateways" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_daily_snapshot_nodes_gateways" data-translate-lang="export_csv">Export CSV</button>
@@ -106,24 +106,24 @@
     </div>
 
     <div class="card-section">
-        <p class="section-header">Top text senders · main channel</p>
-        <button id="text-nodes-refresh" type="button">Refresh sample</button>
-        <span class="total-count" id="text-nodes-status" role="status">Loading…</span>
-        <button class="expand-btn" data-chart="chart_text_nodes">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_text_nodes">Export top 50 CSV</button>
+        <p class="section-header" data-translate-lang="text_senders_title">Top text senders · main channel</p>
+        <button id="text-nodes-refresh" type="button" data-translate-lang="refresh_sample">Refresh sample</button>
+        <span class="total-count" id="text-nodes-status" role="status" data-translate-lang="loading">Loading…</span>
+        <button class="expand-btn" data-chart="chart_text_nodes" data-translate-lang="expand_chart">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_text_nodes" data-translate-lang="export_top_50">Export top 50 CSV</button>
         <div id="chart_text_nodes" class="chart"></div>
-        <p class="total-count">Top 10 senders from the latest 500 text packets across all channels. Only packets on the sender’s recorded main channel count; unknown channels are excluded.</p>
+        <p class="total-count" data-translate-lang="text_senders_description">Top 10 senders from the latest 500 text packets across all channels. Only packets on the sender’s recorded main channel count; unknown channels are excluded.</p>
     </div>
 
     <div class="card-section">
-        <p class="section-header">10 highest routers · altitude</p>
-        <button id="altitude-refresh" type="button">Refresh report</button>
-        <span class="total-count" id="altitude-status" role="status">Loading…</span>
-        <button class="expand-btn" data-chart="chart_altitude">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_altitude">Export top 50 CSV</button>
-        <button id="altitude-map-button" type="button" disabled>Map top 50</button>
+        <p class="section-header" data-translate-lang="altitude_title">10 highest routers · altitude</p>
+        <button id="altitude-refresh" type="button" data-translate-lang="refresh_report">Refresh report</button>
+        <span class="total-count" id="altitude-status" role="status" data-translate-lang="loading">Loading…</span>
+        <button class="expand-btn" data-chart="chart_altitude" data-translate-lang="expand_chart">Expand Chart</button>
+        <button class="export-btn" data-chart="chart_altitude" data-translate-lang="export_top_50">Export top 50 CSV</button>
+        <button id="altitude-map-button" type="button" disabled data-translate-lang="map_top_50">Map top 50</button>
         <div id="chart_altitude" class="chart"></div>
-        <p class="total-count">Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes at least 100 m above sea level are included. Click a bar to view the node.</p>
+        <p class="total-count" data-translate-lang="altitude_description">Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes at least 100 m above sea level are included. Click a bar to view the node.</p>
     </div>
 
     <!-- Packet Types Pie Chart with Channel Selector -->
@@ -131,7 +131,7 @@
         <p class="section-header" data-translate-lang="packet_types_last_24h">
             Packet Types - Last 24 Hours
         </p>
-        <select id="channelSelect" aria-label="Packet type channel">
+        <select id="channelSelect" aria-label="{{ tr("Packet type channel") }}">
             <option value="" data-translate-lang="all_channels">All Channels</option>
         </select>
         <button class="expand-btn" data-chart="chart_packet_types" data-translate-lang="expand_chart">Expand Chart</button>
@@ -143,7 +143,7 @@
         <p class="section-header" data-translate-lang="packets_per_day_text">
             Packets per Day - Text Messages (Port 1, Last 14 Days)
         </p>
-        <div id="total_daily_portnum_1" class="total-count">Total: 0</div>
+        <div id="total_daily_portnum_1" class="total-count">{{ tr("Total: 0") }}</div>
         <button class="expand-btn" data-chart="chart_daily_portnum_1" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_daily_portnum_1" data-translate-lang="export_csv">Export CSV</button>
         <div id="chart_daily_portnum_1" class="chart"></div>
@@ -154,7 +154,7 @@
         <p class="section-header" data-translate-lang="packets_per_hour_all">
             Packets per Hour - All Ports
         </p>
-        <div id="total_hourly_all" class="total-count">Total: 0</div>
+        <div id="total_hourly_all" class="total-count">{{ tr("Total: 0") }}</div>
         <button class="expand-btn" data-chart="chart_hourly_all" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_hourly_all" data-translate-lang="export_csv">Export CSV</button>
         <div id="chart_hourly_all" class="chart"></div>
@@ -164,7 +164,7 @@
         <p class="section-header" data-translate-lang="packets_per_hour_text">
             Packets per Hour - Text Messages (Port 1)
         </p>
-        <div id="total_portnum_1" class="total-count">Total: 0</div>
+        <div id="total_portnum_1" class="total-count">{{ tr("Total: 0") }}</div>
         <button class="expand-btn" data-chart="chart_portnum_1" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_portnum_1" data-translate-lang="export_csv">Export CSV</button>
         <div id="chart_portnum_1" class="chart"></div>
@@ -218,22 +218,63 @@
 
 <div id="altitude-map-modal" role="dialog" aria-modal="true" aria-labelledby="altitude-map-title" hidden>
     <div class="altitude-map-dialog">
-        <div class="altitude-map-heading"><h2 id="altitude-map-title">highest routers · top 50</h2><button id="altitude-map-close" type="button" aria-label="Close router map">&times;</button></div>
+        <div class="altitude-map-heading"><h2 id="altitude-map-title" data-translate-lang="altitude_map_title">highest routers · top 50</h2><button id="altitude-map-close" type="button" data-translate-aria-label="close_router_map" aria-label="Close router map">&times;</button></div>
         <p id="altitude-map-status" role="status"></p>
-        <div id="altitude-router-map" aria-label="Map of highest routers and their altitudes"></div>
+        <div id="altitude-router-map" data-translate-aria-label="router_map_label" aria-label="Map of highest routers and their altitudes"></div>
     </div>
 </div>
 
 <!-- Modal for expanded charts -->
-<div id="chartModal" role="dialog" aria-modal="true" aria-label="Expanded chart">
+<div id="chartModal" role="dialog" aria-modal="true" aria-label="{{ tr("Expanded chart") }}">
     <div>
-        <button id="closeModal" type="button" aria-label="Close expanded chart">&times;</button>
+        <button id="closeModal" type="button" aria-label="{{ tr("Close expanded chart") }}">&times;</button>
         <div id="modalChart"></div>
     </div>
 </div>
 
 <script>
 const PORTNUM_LABELS = window.PORT_LABEL_MAP;
+
+
+// Named placeholders let translators reorder dynamic values without changing code.
+function statsText(key, values = {}) {
+    const template = window.statsTranslations?.[key] || statsReportFallback[key] || key;
+    return template.replace(/\{(\w+)\}/g, (match, name) =>
+        Object.hasOwn(values, name) ? String(values[name]) : match);
+}
+const statsReportFallback = {
+    "node_id": MeshI18n.t("Node ID"),
+    "text_senders_title": MeshI18n.t("Top text senders · main channel"),
+    "refresh_sample": MeshI18n.t("Refresh sample"),
+    "loading": MeshI18n.t("Loading…"),
+    "export_top_50": MeshI18n.t("Export top 50 CSV"),
+    "text_senders_description": MeshI18n.t("Top 10 senders from the latest 500 text packets across all channels. Only packets on the sender’s recorded main channel count; unknown channels are excluded."),
+    "altitude_title": MeshI18n.t("10 highest routers · altitude"),
+    "refresh_report": MeshI18n.t("Refresh report"),
+    "map_top_50": MeshI18n.t("Map top 50"),
+    "altitude_description": MeshI18n.t("Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes at least 100 m above sea level are included. Click a bar to view the node."),
+    "altitude_map_title": MeshI18n.t("highest routers · top 50"),
+    "close_router_map": MeshI18n.t("Close router map"),
+    "router_map_label": MeshI18n.t("Map of highest routers and their altitudes"),
+    "sample_matches": MeshI18n.t("{matched} of {sample} sampled packets match main channels"),
+    "sample_no_matches": MeshI18n.t("No main-channel matches in {sample} sampled packets"),
+    "channel_label": MeshI18n.t("Channel"),
+    "text_packets": MeshI18n.t("Text packets"),
+    "view_text_packets": MeshI18n.t("Click to view text packets"),
+    "text_senders_error": MeshI18n.t("Unable to load text senders. Use Refresh sample to retry."),
+    "altitude_axis": MeshI18n.t("Altitude (m above sea level)"),
+    "altitude": MeshI18n.t("Altitude"),
+    "altitude_count": MeshI18n.t("Showing {count} nodes · highest first"),
+    "altitude_empty": MeshI18n.t("No routers have reported altitude of 100 m or more."),
+    "altitude_error": MeshI18n.t("Unable to load altitudes. Use Refresh report to retry."),
+    "altitude_popup": MeshI18n.t("{altitude} m above sea level · {role}"),
+    "altitude_map_count": MeshI18n.t("Showing {located} of the top {total} routers · altitude in meters above sea level"),
+    "altitude_map_missing": MeshI18n.t(" · {missing} without a valid location"),
+    "short_name": MeshI18n.t("Short Name"),
+    "long_name": MeshI18n.t("Long Name"),
+    "main_channel": MeshI18n.t("Main Channel"),
+    "meters": MeshI18n.t("{value} m")
+};
 
 let statsNodesPromise;
 let textNodeRows = [];
@@ -266,7 +307,7 @@ async function loadTextNodes() {
     const request = ++textNodesRequest;
     const status = document.getElementById("text-nodes-status");
     const chart = initMeshChart(document.getElementById("chart_text_nodes"));
-    status.textContent = "Loading…";
+    status.textContent = statsText("loading");
     textNodeRows = [];
     textNodeExportRows = [];
     chart.clear();
@@ -287,8 +328,8 @@ async function loadTextNodes() {
         textNodeRows = textNodeExportRows.slice(0, 10);
         const matched = ranked.reduce((sum, node) => sum + node.packet_count, 0);
         status.textContent = matched
-            ? `${matched} of ${sample.length} sampled packets match main channels`
-            : `No main-channel matches in ${sample.length} sampled packets`;
+            ? statsText("sample_matches", {matched, sample: sample.length})
+            : statsText("sample_no_matches", {sample: sample.length});
         chart.setOption({
             tooltip: {
                 trigger: "axis",
@@ -297,7 +338,7 @@ async function loadTextNodes() {
                     const row = textNodeRows[params[0]?.dataIndex];
                     if (!row) return "";
                     return `${escapeHtml(row.long_name || row.short_name || row.node_id)}<br>` +
-                        `Channel: ${escapeHtml(row.channel)}<br>Text packets: ${row.packet_count.toLocaleString()}<br>Click to view text packets`;
+                        `${escapeHtml(statsText("channel_label"))}: ${escapeHtml(row.channel)}<br>${escapeHtml(statsText("text_packets"))}: ${row.packet_count.toLocaleString(MeshI18n.language)}<br>${escapeHtml(statsText("view_text_packets"))}`;
                 }
             },
             grid: {left: 10, right: 48, top: 12, bottom: 28, containLabel: true},
@@ -307,19 +348,18 @@ async function loadTextNodes() {
                 data: textNodeRows.map(row => row.short_name || row.long_name || String(row.node_id)),
                 axisLabel: {width: 90, overflow: "truncate"}
             },
-            series: [{name: "Text packets", type: "bar", barMaxWidth: 24,
+            series: [{name: statsText("text_packets"), type: "bar", barMaxWidth: 24,
                 itemStyle: {color: "#2b9961", borderRadius: [0, 4, 4, 0]},
                 label: {show: true, position: "right", color: "#64748b"},
                 data: textNodeRows.map(row => row.packet_count)}]
         });
     } catch (error) {
         if (request !== textNodesRequest) return;
-        status.textContent = "Unable to load text senders. Use Refresh sample to retry.";
+        status.textContent = statsText("text_senders_error");
         console.error("Top text senders:", error);
     }
 }
 document.getElementById("text-nodes-refresh").addEventListener("click", loadTextNodes);
-loadTextNodes();
 
 let altitudeRows = [];
 let altitudeExportRows = [];
@@ -342,7 +382,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
     const chart = echarts.getInstanceByDom(el) || initMeshChart(el);
     refresh.disabled = true;
     document.getElementById("altitude-map-button").disabled = true;
-    status.textContent = "Loading…";
+    status.textContent = statsText("loading");
     chart.off("click");
     chart.on("click", openAltitudeNode);
     try {
@@ -350,31 +390,30 @@ async function loadAltitudeNodes(refreshNodes = false) {
         altitudeRows = altitudeExportRows.slice(0, 10);
         document.getElementById("altitude-map-button").disabled = altitudeExportRows.length === 0;
         chart.setOption({
-            tooltip: {trigger:"axis", renderMode:"richText", valueFormatter:value => `${value} m`},
+            tooltip: {trigger:"axis", renderMode:"richText", valueFormatter:value => statsText("meters", {value})},
             grid: {left:10, right:20, top:55, bottom:10, containLabel:true},
             xAxis: {type:"category", data:altitudeRows.map(node => node.long_name || node.short_name || node.id),
                 axisLabel:{interval:0, rotate:35, width:85, overflow:"truncate"}},
-            yAxis: {type:"value", name:"Altitude (m above sea level)", nameGap:30},
-            series: [{type:"bar", name:"Altitude", barMaxWidth:45,
+            yAxis: {type:"value", name:statsText("altitude_axis"), nameGap:30},
+            series: [{type:"bar", name:statsText("altitude"), barMaxWidth:45,
                 itemStyle:{color:"#187346"},
-                label:{show:true, position:"top", formatter:"{c} m", color:"#243247", textBorderWidth:0},
+                label:{show:true, position:"top", formatter:params => statsText("meters", {value: params.value}), color:"#243247", textBorderWidth:0},
                 data:altitudeRows.map(node => node.last_altitude)}]
         }, true);
         status.textContent = altitudeRows.length
-            ? `Showing ${altitudeRows.length} nodes · highest first`
-            : "No routers have reported altitude of 100 m or more.";
+            ? statsText("altitude_count", {count: altitudeRows.length})
+            : statsText("altitude_empty");
     } catch (error) {
         altitudeRows = [];
         altitudeExportRows = [];
         chart.clear();
-        status.textContent = "Unable to load altitudes. Use Refresh report to retry.";
+        status.textContent = statsText("altitude_error");
         console.error(error);
     } finally {
         refresh.disabled = false;
     }
 }
 document.getElementById("altitude-refresh").addEventListener("click", () => loadAltitudeNodes(true));
-loadAltitudeNodes();
 
 // Map the same ranked sample used by the top-50 CSV export.
 let altitudeMap;
@@ -421,21 +460,21 @@ altitudeMapButton.addEventListener("click", () => {
     located.forEach(node => {
         const marker = L.marker([node.last_lat / 1e7,node.last_long / 1e7], {icon}).addTo(altitudeMarkers);
         const label = document.createElement("span");
-        label.textContent = `${node.short_name || node.long_name || node.id} · ${node.last_altitude.toLocaleString()} m`;
+        label.textContent = `${node.short_name || node.long_name || node.id} · ${statsText("meters", {value: node.last_altitude.toLocaleString(MeshI18n.language)})}`;
         marker.bindTooltip(label, {permanent:true, direction:"top", offset:[0,-16], className:"altitude-router-label"});
         const details = document.createElement("div");
         const link = document.createElement("a");
         link.href = `/node/${encodeURIComponent(node.node_id)}`;
         link.textContent = node.long_name || node.short_name || node.id;
         const altitude = document.createElement("p");
-        altitude.textContent = `${node.last_altitude.toLocaleString()} m above sea level · ${node.role}`;
+        altitude.textContent = statsText("altitude_popup", {altitude: node.last_altitude.toLocaleString(MeshI18n.language), role: node.role});
         details.append(link,altitude);
         marker.bindPopup(details);
     });
     const missing = altitudeExportRows.length - located.length;
     document.getElementById("altitude-map-status").textContent =
-        `Showing ${located.length} of the top ${altitudeExportRows.length} routers · altitude in meters above sea level` +
-        (missing ? ` · ${missing} without a valid location` : '');
+        statsText("altitude_map_count", {located: located.length, total: altitudeExportRows.length}) +
+        (missing ? statsText("altitude_map_missing", {missing}) : '');
     requestAnimationFrame(() => {
         altitudeMap.invalidateSize();
         if (located.length) altitudeMap.fitBounds(located.map(node => [node.last_lat / 1e7,node.last_long / 1e7]), {padding:[60,60], maxZoom:12});
@@ -510,7 +549,7 @@ function buildPacketTypeBreakdownFromSeries(allData, perPortSeries){
 function processCountField(nodes,field){
     const counts=new Map();  // keys are mesh-provided strings, e.g. a channel called "constructor"
     nodes.forEach(n=>{
-        const key=n[field]||"Unknown";
+        const key=n[field]||MeshI18n.t("Unknown");
         counts.set(key,(counts.get(key)||0)+1);
     });
     return Array.from(counts,([name,value])=>({name,value}));
@@ -520,7 +559,7 @@ function updateTotalCount(domId,data){
     const el=document.getElementById(domId);
     if(!el||!data.length) return;
     const total=data.reduce((acc,d)=>acc+(d.count??d.packet_count??0),0);
-    el.textContent=`Total: ${total.toLocaleString()}`;
+    el.textContent=MeshI18n.t("Total: {count}", {count: total.toLocaleString(MeshI18n.language)});
 }
 
 function prepareTopN(data,n=20){
@@ -528,7 +567,7 @@ function prepareTopN(data,n=20){
     let top=data.slice(0,n);
     if(data.length>n){
         const otherValue=data.slice(n).reduce((sum,item)=>sum+item.value,0);
-        top.push({name:"Other", value:otherValue});
+        top.push({name:MeshI18n.t("Other"), value:otherValue});
     }
     return top;
 }
@@ -703,7 +742,7 @@ function renderDailySnapshotNodesGatewaysChart(domId,data){
         backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
         legend:{
-            data:['Nodes','Gateways'],
+            data:[MeshI18n.t("Nodes"),'Gateways'],
             textStyle:{color:'#64748b'}
         },
         grid:{left:'6%', right:'6%', bottom:'18%'},
@@ -719,7 +758,7 @@ function renderDailySnapshotNodesGatewaysChart(domId,data){
             axisLabel:{color:'#64748b'}
         },
         series:[
-            makeTelemetryLine("Nodes", "rgba(79,155,255,1)", nodeCounts),
+            makeTelemetryLine(MeshI18n.t("Nodes"), "rgba(79,155,255,1)", nodeCounts),
             makeTelemetryLine("Gateways", "rgba(138,255,108,1)", gatewayCounts)
         ]
     });
@@ -809,33 +848,33 @@ async function init(){
     // Nodes for breakdown + summary node count
     const nodes=await fetchNodes();
     chartHwModel=renderPieChart("chart_hw_model",processCountField(nodes,"hw_model"),"Hardware");
-    chartRole=renderPieChart("chart_role",processCountField(nodes,"role"),"Role");
-    chartChannel=renderPieChart("chart_channel",processCountField(nodes,"channel"),"Channel");
+    chartRole=renderPieChart("chart_role",processCountField(nodes,"role"),MeshI18n.t("Role"));
+    chartChannel=renderPieChart("chart_channel",processCountField(nodes,"channel"),MeshI18n.t("Channel"));
 
     const gateways = nodes.filter(n => n.is_mqtt_gateway);
     chartGatewayChannel = renderPieChart(
         "chart_gateway_channel",
         processCountField(gateways, "channel"),
-        "Gateway Channel"
+        MeshI18n.t("Gateway Channel")
     );
     chartGatewayRole = renderPieChart(
         "chart_gateway_role",
         processCountField(gateways, "role"),
-        "Gateway Role"
+        MeshI18n.t("Gateway Role")
     );
     chartGatewayFirmware = renderPieChart(
         "chart_gateway_firmware",
         processCountField(gateways, "firmware"),
-        "Gateway Firmware"
+        MeshI18n.t("Gateway Firmware")
     );
 
     const summaryNodesEl = document.getElementById("summary_nodes");
     if (summaryNodesEl) {
-        summaryNodesEl.textContent = nodes.length.toLocaleString();
+        summaryNodesEl.textContent = nodes.length.toLocaleString(MeshI18n.language);
     }
     const summaryGatewaysEl = document.getElementById("summary_gateways");
     if (summaryGatewaysEl) {
-        summaryGatewaysEl.textContent = gateways.length.toLocaleString();
+        summaryGatewaysEl.textContent = gateways.length.toLocaleString(MeshI18n.language);
     }
 
     // Packet types pie
@@ -846,11 +885,11 @@ async function init(){
         .filter(d=>d.count>0)
         .map(d=>({
             name: d.portnum==="other"
-                ? "Other"
-                : (PORTNUM_LABELS[d.portnum]||`Port ${d.portnum}`),
+                ? MeshI18n.t("Other")
+                : (PORTNUM_LABELS[d.portnum]||MeshI18n.t("Port {port}", {port: d.portnum})),
             value: d.count
         }));
-    chartPacketTypes = renderPieChart("chart_packet_types",formatted,"Packet Types (Last 24h)");
+    chartPacketTypes = renderPieChart("chart_packet_types",formatted,MeshI18n.t("Packet Types (Last 24h)"));
 
     // Total packet + total seen from /api/stats/count
     try {
@@ -860,10 +899,10 @@ async function init(){
             const elPackets = document.getElementById("summary_packets");
             const elSeen = document.getElementById("summary_seen");
             if (elPackets) {
-                elPackets.textContent = (countsJson.total_packets || 0).toLocaleString();
+                elPackets.textContent = (countsJson.total_packets || 0).toLocaleString(MeshI18n.language);
             }
             if (elSeen) {
-                elSeen.textContent = (countsJson.total_seen || 0).toLocaleString();
+                elSeen.textContent = (countsJson.total_seen || 0).toLocaleString(MeshI18n.language);
             }
         }
     } catch (err) {
@@ -919,13 +958,13 @@ document.querySelectorAll(".export-btn").forEach(btn=>{
         const option=chart.getOption();
         let rows=[];
         if (chartId === "chart_altitude") {
-            rows = [["Node ID", "Short Name", "Long Name", "Altitude (m above sea level)"],
+            rows = [[statsText("node_id"), statsText("short_name"), statsText("long_name"), statsText("altitude_axis")],
                 ...altitudeExportRows.map(node => [node.node_id, node.short_name || "", node.long_name || "", node.last_altitude])];
             downloadCSV(chartId + ".csv", rows);
             return;
         }
         if (chartId === "chart_text_nodes") {
-            rows = [["Node ID", "Short Name", "Long Name", "Main Channel", "Text Packets"],
+            rows = [[statsText("node_id"), statsText("short_name"), statsText("long_name"), statsText("main_channel"), statsText("text_packets")],
                 ...textNodeExportRows.map(row => [row.node_id, row.short_name || "", row.long_name || "", row.channel, row.packet_count])];
             downloadCSV(chartId + ".csv", rows);
             return;
@@ -935,7 +974,7 @@ document.querySelectorAll(".export-btn").forEach(btn=>{
             const xData=option.xAxis[0].data;
             const series = option.series || [];
             if(series.length > 1){
-                const headers = ["Period", ...series.map(s => s.name || "Series")];
+                const headers = [MeshI18n.t("Period"), ...series.map(s => s.name || MeshI18n.t("Series"))];
                 rows.push(headers);
                 for(let i=0;i<xData.length;i++){
                     const row=[xData[i]];
@@ -945,13 +984,13 @@ document.querySelectorAll(".export-btn").forEach(btn=>{
                     rows.push(row);
                 }
             }else{
-                rows.push(["Period","Count"]);
+                rows.push([MeshI18n.t("Period"),MeshI18n.t("Count")]);
                 const yData=series[0].data;
                 for(let i=0;i<xData.length;i++) rows.push([xData[i],yData[i]]);
             }
         }
         if(option.series[0].type==="pie"){
-            rows.push(["Name","Value","Percentage"]);
+            rows.push([MeshI18n.t("Name"),MeshI18n.t("Value"),MeshI18n.t("Percentage")]);
             const total=option.series[0].data.reduce((sum,d)=>sum+d.value,0);
             option.series[0].data.forEach(d=>{
                 const percent=Math.round((d.value/total)*100);
@@ -969,12 +1008,12 @@ document.getElementById("channelSelect").addEventListener("change", async (e)=>{
         .filter(d=>d.count>0)
         .map(d=>({
             name: d.portnum==="other"
-                ? "Other"
-                : (PORTNUM_LABELS[d.portnum]||`Port ${d.portnum}`),
+                ? MeshI18n.t("Other")
+                : (PORTNUM_LABELS[d.portnum]||MeshI18n.t("Port {port}", {port: d.portnum})),
             value: d.count
         }));
     chartPacketTypes?.dispose();
-    chartPacketTypes = renderPieChart("chart_packet_types",formatted,"Packet Types (Last 24h)");
+    chartPacketTypes = renderPieChart("chart_packet_types",formatted,MeshI18n.t("Packet Types (Last 24h)"));
 });
 
 document.getElementById("snapshotPacketsRange")?.addEventListener("change", renderSnapshotCharts);
@@ -1008,6 +1047,10 @@ async function loadConfigAndTranslations() {
         window.statsTranslations = {};
     }
 
+    document.querySelectorAll("[data-translate-aria-label]").forEach(el => {
+        el.setAttribute("aria-label", statsText(el.dataset.translateAriaLabel));
+    });
+
     // Apply translations
     const t = window.statsTranslations || {};
     document.querySelectorAll("[data-translate-lang]").forEach(el=>{
@@ -1017,6 +1060,9 @@ async function loadConfigAndTranslations() {
 }
 
 // Call after init
-loadConfigAndTranslations();
+loadConfigAndTranslations().then(() => {
+    loadTextNodes();
+    loadAltitudeNodes();
+});
 </script>
 {% endblock %}

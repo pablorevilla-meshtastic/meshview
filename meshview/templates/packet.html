@@ -32,7 +32,7 @@
 
 {% block body %}
 <div class="container packet-container">
-<header class="data-heading"><div><span class="mesh-eyebrow">PACKET INSPECTOR</span><h1>Packet details</h1><p>Inspect the payload, route, and gateways that received this packet.</p></div><a class="mesh-secondary-button" href="/firehose">Live packets ↗</a></header>
+<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("PACKET INSPECTOR") }}</span><h1>{{ tr("Packet details") }}</h1><p>{{ tr("Inspect the payload, route, and gateways that received this packet.") }}</p></div><a class="mesh-secondary-button" href="/firehose">{{ tr("Live packets ↗") }}</a></header>
 
     <div id="loading" data-translate-lang="loading">Loading packet information...</div>
     <div id="packet-card" class="packet-card d-none"></div>
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ----------------------------------------------*/
     const match = window.location.pathname.match(/\/packet\/(\d+)/);
     if (!match) {
-        loading.textContent = packetTranslations.invalid_url || "Invalid packet URL";
+        loading.textContent = packetTranslations.invalid_url || MeshI18n.t("Invalid packet URL");
         return;
     }
     const packetId = match[1];
@@ -123,7 +123,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const packetRes = await fetch(`/api/packets?packet_id=${packetId}`);
     const packetData = await packetRes.json();
     if (!packetData.packets.length) {
-        loading.textContent = packetTranslations.not_found || "Packet not found.";
+        loading.textContent = packetTranslations.not_found || MeshI18n.t("Packet not found.");
         return;
     }
     const p = packetData.packets[0];
@@ -143,7 +143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const toNodeLabel =
         p.to_node_id == 4294967295
-            ? (packetTranslations.all_broadcast || "All")
+            ? (packetTranslations.all_broadcast || MeshI18n.t("All"))
             : escapeHtml(toNodeObj?.long_name || p.to_node_id);
 
     /* ---------------------------------------------
@@ -167,7 +167,7 @@ document.addEventListener("DOMContentLoaded", async () => {
        Render card
     ----------------------------------------------*/
     const time = p.import_time_us
-        ? new Date(p.import_time_us / 1000).toLocaleString()
+        ? new Date(p.import_time_us / 1000).toLocaleString(MeshI18n.language)
         : "—";
 
     const telemetryExtras = [];
@@ -179,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     packetCard.innerHTML = `
         <div class="card-header">
             <span>
-                <span data-translate-lang="packet_id_label">${packetTranslations.packet_id_label || "Packet ID:"}</span>
+                <span data-translate-lang="packet_id_label">${packetTranslations.packet_id_label || MeshI18n.t("Packet ID:")}</span>
                 <i>${p.id}</i>
             </span>
             <small>${time}</small>
@@ -187,37 +187,37 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         <div class="card-body">
             <dl>
-                <dt data-translate-lang="from_node">${packetTranslations.from_node || "From Node"}:</dt>
+                <dt data-translate-lang="from_node">${packetTranslations.from_node || MeshI18n.t("From Node")}:</dt>
                 <dd><a href="/node/${p.from_node_id}">${fromNodeLabel}</a></dd>
 
-                <dt data-translate-lang="to_node">${packetTranslations.to_node || "To Node"}:</dt>
+                <dt data-translate-lang="to_node">${packetTranslations.to_node || MeshI18n.t("To Node")}:</dt>
                 <dd>${
                     p.to_node_id === 4294967295
-                        ? `<i data-translate-lang="all_broadcast">${packetTranslations.all_broadcast || "All"}</i>`
+                        ? `<i data-translate-lang="all_broadcast">${packetTranslations.all_broadcast || MeshI18n.t("All")}</i>`
                         : p.to_node_id === 1
-                            ? `<i data-translate-lang="direct_to_mqtt">${packetTranslations.direct_to_mqtt || "Direct to MQTT"}</i>`
+                            ? `<i data-translate-lang="direct_to_mqtt">${packetTranslations.direct_to_mqtt || MeshI18n.t("Direct to MQTT")}</i>`
                             : `<a href="/node/${p.to_node_id}">${toNodeLabel}</a>`
                 }</dd>
 
-                <dt data-translate-lang="channel">${packetTranslations.channel || "Channel"}:</dt>
+                <dt data-translate-lang="channel">${packetTranslations.channel || MeshI18n.t("Channel")}:</dt>
                 <dd>${escapeHtml(p.channel ?? "—")}</dd>
 
-                <dt data-translate-lang="port">${packetTranslations.port || "Port"}:</dt>
-                <dd><i>${PORT_NAMES[p.portnum] || "UNKNOWN APP"}</i> (${p.portnum})</dd>
+                <dt data-translate-lang="port">${packetTranslations.port || MeshI18n.t("Port")}:</dt>
+                <dd><i>${PORT_NAMES[p.portnum] || MeshI18n.t("UNKNOWN APP")}</i> (${p.portnum})</dd>
 
-                <dt data-translate-lang="raw_payload">${packetTranslations.raw_payload || "From Raw Payload"}:</dt>
+                <dt data-translate-lang="raw_payload">${packetTranslations.raw_payload || MeshI18n.t("From Raw Payload")}:</dt>
                 <dd><pre>${escapeHtml(p.payload ?? "—")}</pre></dd>
 
                 ${
                     telemetryExtras.length
-                    ? `<dt data-translate-lang="decoded_telemetry">${packetTranslations.decoded_telemetry || "Decoded Telemetry"}</dt>
+                    ? `<dt data-translate-lang="decoded_telemetry">${packetTranslations.decoded_telemetry || MeshI18n.t("Decoded Telemetry")}</dt>
                        <dd><pre>${escapeHtml(telemetryExtras.join("\n"))}</pre></dd>`
                     : ""
                 }
 
                 ${
                     lat && lon
-                    ? `<dt data-translate-lang="location">${packetTranslations.location || "Location:"}</dt>
+                    ? `<dt data-translate-lang="location">${packetTranslations.location || MeshI18n.t("Location:")}</dt>
                        <dd>${lat.toFixed(6)}, ${lon.toFixed(6)}</dd>`
                     : ""
                 }
@@ -267,11 +267,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         sourceMarker.bindPopup(`
             <div style="font-size:0.9em">
-                <b data-translate-lang="packet_source">${packetTranslations.packet_source || "Packet Source"}</b><br>
-                Lat: ${srcLat.toFixed(6)}<br>
-                Lon: ${srcLon.toFixed(6)}<br>
-                <span data-translate-lang="from_node">${packetTranslations.from_node || "From Node:"}</span> ${fromNodeLabel}<br>
-                <span data-translate-lang="channel">${packetTranslations.channel || "Channel:"}</span> ${escapeHtml(p.channel ?? "—")}<br>
+                <b data-translate-lang="packet_source">${packetTranslations.packet_source || MeshI18n.t("Packet Source")}</b><br>
+                ${MeshI18n.h("Lat:")} ${srcLat.toFixed(6)}<br>
+                ${MeshI18n.h("Lon:")} ${srcLon.toFixed(6)}<br>
+                <span data-translate-lang="from_node">${packetTranslations.from_node || MeshI18n.t("From Node:")}</span> ${fromNodeLabel}<br>
+                <span data-translate-lang="channel">${packetTranslations.channel || MeshI18n.t("Channel:")}</span> ${escapeHtml(p.channel ?? "—")}<br>
                 <span data-translate-lang="port">${packetTranslations.port || "Port:"}</span> ${PORT_NAMES[p.portnum] || "UNKNOWN"} (${p.portnum})
             </div>
         `);
@@ -404,24 +404,24 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                 marker.bindPopup(`
                 <div style="font-size:0.9em">
                     <b>${label}</b><br>
-                    <span data-translate-lang="node_id_short">Node ID</span>:
+                    <span data-translate-lang="node_id_short">${MeshI18n.h("Node ID")}</span>:
                     <a href="/node/${s.node_id}">${s.node_id}</a><br>
-                    HW: ${escapeHtml(node?.hw_model ?? "—")}<br>
-                    <span data-translate-lang="channel">Channel</span>: ${escapeHtml(s.channel ?? "—")}<br>
+                    ${MeshI18n.h("HW:")} ${escapeHtml(node?.hw_model ?? "—")}<br>
+                    <span data-translate-lang="channel">${MeshI18n.h("Channel")}</span>: ${escapeHtml(s.channel ?? "—")}<br>
                     ${
                         distanceKm !== null
-                            ? `<span data-translate-lang="distance">Distance</span>:
+                            ? `<span data-translate-lang="distance">${MeshI18n.h("Distance")}</span>:
                                ${distanceKm.toFixed(1)} km / ${distanceMi.toFixed(1)} mi<br>`
                             : ""
                     }
 
                     <br>
 
-                    <b data-translate-lang="signal">Signal</b><br>
+                    <b data-translate-lang="signal">${MeshI18n.h("Signal")}</b><br>
                     RSSI: ${s.rx_rssi ?? "—"}<br>
                     SNR: ${s.rx_snr ?? "—"}<br><br>
 
-                    <b data-translate-lang="hops">Hops</b>: ${hopDisplay}
+                    <b data-translate-lang="hops">${MeshI18n.h("Hops")}</b>: ${hopDisplay}
                 </div>
             `);
 

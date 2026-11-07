@@ -16,10 +16,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const colors = ['#b54136', '#2563b4', '#23824d', '#8553af', '#a65d19', '#15817b', '#b63b79'];
     const timeOf = p => Number(p.import_time_us) || Date.parse(p.import_time) * 1000 || 0;
     const atBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 60;
-    const nodeName = p => (p.long_name || '').trim() || `Node ${p.from_node_id}`;
+    const nodeName = p => (p.long_name || '').trim() || MeshI18n.t("Node {id}", {id: p.from_node_id});
     const packetUrl = id => `/packet/${encodeURIComponent(id)}`;
     function setStatus(text, state) { status.textContent = text; status.dataset.state = state; }
-    function goLatest() { log.scrollTop = log.scrollHeight; unread = 0; latest.textContent = '↓ Latest'; }
+    function goLatest() { log.scrollTop = log.scrollHeight; unread = 0; latest.textContent = MeshI18n.t("↓ Latest"); }
 
     function render(scrollToBottom = false, highlights = new Set()) {
         const query = search.value.trim().toLowerCase();
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const parents = new Map(sorted.map(p => [String(p.packet_id ?? p.id), p]));
         for (const packet of visible) {
             const date = new Date(timeOf(packet) / 1000);
-            const day = date.toLocaleDateString([], { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+            const day = date.toLocaleDateString(MeshI18n.language, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
             if (day !== lastDay) {
                 const separator = document.createElement('div');
                 separator.className = 'chat-date-sep'; separator.textContent = day;
@@ -43,8 +43,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             let hash = 0;
             for (const char of String(packet.from_node_id)) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
             const time = document.createElement('time');
-            time.className = 'chat-time'; time.dateTime = date.toISOString(); time.title = date.toLocaleString();
-            time.textContent = date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false});
+            time.className = 'chat-time'; time.dateTime = date.toISOString(); time.title = date.toLocaleString(MeshI18n.language);
+            time.textContent = date.toLocaleTimeString(MeshI18n.language, {hour:'2-digit', minute:'2-digit', hour12:false});
             const nick = document.createElement('a');
             nick.className = 'chat-nick'; nick.href = `/node/${encodeURIComponent(packet.from_node_id)}`;
             nick.textContent = nodeName(packet); nick.title = nodeName(packet); nick.style.color = colors[hash % colors.length];
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (packet.reply_id) {
                 const reply = document.createElement('span'); reply.className = 'replying-to';
                 const parent = parents.get(String(packet.reply_id)) || packets.get(String(packet.reply_id));
-                reply.append(`${chatLang.replying_to || 'Replying to:'} `);
+                reply.append(`${chatLang.replying_to || MeshI18n.t("Replying to:")} `);
                 if (parent) reply.append(`${nodeName(parent)}: ${parent.payload || ''}`);
                 else {
                     const link = document.createElement('a'); link.href = packetUrl(packet.reply_id);
@@ -64,20 +64,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             const meta = document.createElement('span'); meta.className = 'chat-meta';
             const tag = document.createElement('span'); tag.className = 'chat-channel';
-            tag.textContent = packet.channel ? `# ${packet.channel}` : 'Unknown channel'; tag.title = packet.channel || 'Unknown channel';
+            tag.textContent = packet.channel ? `# ${packet.channel}` : MeshI18n.t("Unknown channel"); tag.title = packet.channel || MeshI18n.t("Unknown channel");
             const details = document.createElement('a'); details.className = 'chat-details'; details.href = packetUrl(packet.id);
-            details.textContent = 'Details ↗'; details.title = chatLang.view_packet_details || 'View packet details';
+            details.textContent = MeshI18n.t("Details ↗"); details.title = chatLang.view_packet_details || MeshI18n.t("View packet details");
             details.setAttribute('aria-label', details.title);
             meta.append(tag, details); row.append(time, nick, message, meta); fragment.append(row);
         }
         if (!visible.length) {
             const empty = document.createElement('p'); empty.className = 'chat-empty';
-            empty.textContent = packets.size ? 'No messages match your filters.' : 'No text messages received yet.';
+            empty.textContent = packets.size ? MeshI18n.t("No messages match your filters.") : MeshI18n.t("No text messages received yet.");
             fragment.append(empty);
         }
         const previousTop = log.scrollTop;
         log.replaceChildren(fragment);
-        document.getElementById('chat-count').textContent = `${visible.length} message${visible.length === 1 ? '' : 's'}`;
+        document.getElementById('chat-count').textContent = MeshI18n.t(visible.length === 1 ? MeshI18n.t("{count} message") : MeshI18n.t("{count} messages"), {count: visible.length});
         if (scrollToBottom) goLatest(); else log.scrollTop = previousTop;
     }
 
@@ -113,27 +113,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return p && (!channel.value || p.channel === channel.value) &&
                         `${nodeName(p)} ${p.payload || ''} ${p.from_node_id} ${p.channel || ''}`.toLowerCase().includes(search.value.trim().toLowerCase());
                 }).length;
-                latest.textContent = unread ? `↓ Latest (${unread})` : '↓ Latest';
+                latest.textContent = unread ? MeshI18n.t("↓ Latest ({count})", {count: unread}) : MeshI18n.t("↓ Latest");
             }
             lastTime = data.latest_import_time || lastTime;
             loaded = true;
-            setStatus(paused ? 'Paused' : 'Live', paused ? 'paused' : 'live');
-            document.getElementById('chat-updated').textContent = `Updated ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+            setStatus(paused ? MeshI18n.t("Paused") : MeshI18n.t("Live"), paused ? 'paused' : 'live');
+            document.getElementById('chat-updated').textContent = MeshI18n.t("Updated {time}", {time: new Date().toLocaleTimeString(MeshI18n.language, {hour:"2-digit",minute:"2-digit"})});
         } catch (error) {
             console.error('Chat fetch:', error);
-            if (!paused) setStatus('Retrying…', 'error');
-            if (!loaded) log.innerHTML = '<p class="chat-empty">Unable to load messages. Retrying automatically…</p>';
+            if (!paused) setStatus(MeshI18n.t("Retrying…"), 'error');
+            if (!loaded) log.innerHTML = `<p class="chat-empty">${MeshI18n.h("Unable to load messages. Retrying automatically…")}</p>`;
         } finally { busy = false; }
     }
 
     channel.addEventListener('change', () => render(true));
     search.addEventListener('input', () => render(true));
     latest.addEventListener('click', goLatest);
-    log.addEventListener('scroll', () => { if (atBottom()) { unread = 0; latest.textContent = '↓ Latest'; } });
+    log.addEventListener('scroll', () => { if (atBottom()) { unread = 0; latest.textContent = MeshI18n.t("↓ Latest"); } });
     pause.addEventListener('click', () => {
         paused = !paused; pause.setAttribute('aria-pressed', String(paused));
-        pause.textContent = paused ? 'Resume' : 'Pause';
-        setStatus(paused ? 'Paused' : 'Connecting…', paused ? 'paused' : 'loading');
+        pause.textContent = paused ? MeshI18n.t("Resume") : MeshI18n.t("Pause");
+        setStatus(paused ? MeshI18n.t("Paused") : MeshI18n.t("Connecting…"), paused ? 'paused' : 'loading');
         if (!paused) fetchMessages();
     });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) fetchMessages(); });

@@ -26,7 +26,7 @@
 
 {% block body %}
 
-<header class="data-heading"><div><span class="mesh-eyebrow">TRAFFIC LEADERBOARD</span><h1 data-translate-lang="top_traffic_nodes">Top nodes</h1><p>Compare packets sent and gateway observations over the last 24 hours.</p></div><a class="mesh-secondary-button" href="/stats">View statistics ↗</a></header>
+<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("TRAFFIC LEADERBOARD") }}</span><h1 data-translate-lang="top_traffic_nodes">Top nodes</h1><p>{{ tr("Compare packets sent and gateway observations over the last 24 hours.") }}</p></div><a class="mesh-secondary-button" href="/stats">{{ tr("View statistics ↗") }}</a></header>
 
 <div class="top-container">
 
@@ -43,7 +43,7 @@
         <span data-translate-lang="nodes_suffix">nodes</span>
     </div>
 
-    <div class="data-table-wrap" role="region" aria-label="Top nodes traffic table" tabindex="0">
+    <div class="data-table-wrap" role="region" aria-label="{{ tr("Top nodes traffic table") }}" tabindex="0">
     <table id="nodesTable">
         <thead>
             <tr>
@@ -59,10 +59,10 @@
     </table>
     </div>
 
-    <div class="pagination" aria-label="Leaderboard pagination">
-        <button id="prevPage" class="btn btn-sm btn-secondary">Prev</button>
+    <div class="pagination" aria-label="{{ tr("Leaderboard pagination") }}">
+        <button id="prevPage" class="btn btn-sm btn-secondary">{{ tr("Prev") }}</button>
         <span id="pageInfo" role="status"></span>
-        <button id="nextPage" class="btn btn-sm btn-secondary">Next</button>
+        <button id="nextPage" class="btn btn-sm btn-secondary">{{ tr("Next") }}</button>
     </div>
 
 </div>
@@ -116,7 +116,7 @@ async function loadChannels() {
     sel.innerHTML = "";
     const allOpt = document.createElement("option");
     allOpt.value = "";
-    allOpt.textContent = topTranslations.all_channels || "All channels";
+    allOpt.textContent = topTranslations.all_channels || MeshI18n.t("All channels");
     sel.appendChild(allOpt);
 
     for (const ch of data.channels || []) {
@@ -153,7 +153,7 @@ async function renderTable() {
         const cell = document.createElement("td");
         cell.colSpan = 6;
         cell.className = "data-empty";
-        cell.textContent = "No node traffic found for this channel.";
+        cell.textContent = MeshI18n.t("No node traffic found for this channel.");
         row.append(cell);
         tbody.append(row);
     }
@@ -182,7 +182,7 @@ async function renderTable() {
 
     document.getElementById("node-count").textContent = totalRows;
     document.getElementById("pageInfo").textContent =
-        `Page ${currentPage + 1} / ${totalPages}`;
+        MeshI18n.t("Page {page} / {total}", {page: currentPage + 1, total: totalPages});
 
     document.getElementById("prevPage").disabled = currentPage === 0;
     document.getElementById("nextPage").disabled = currentPage >= totalPages - 1;

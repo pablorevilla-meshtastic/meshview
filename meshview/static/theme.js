@@ -57,9 +57,9 @@
     function updateButton() {
         document.querySelectorAll('[data-theme-toggle]').forEach(button => {
             const dark = root.dataset.bsTheme === 'dark';
-            button.setAttribute('aria-label',dark ? 'Switch to day mode' : 'Switch to night mode');
+            button.setAttribute('aria-label',dark ? MeshI18n.t("Switch to day mode") : MeshI18n.t("Switch to night mode"));
             button.setAttribute('aria-pressed',String(dark));
-            button.title = dark ? 'Day mode' : 'Night mode';
+            button.title = dark ? MeshI18n.t("Day mode") : MeshI18n.t("Night mode");
         });
     }
     function apply(theme) {
@@ -73,6 +73,7 @@
         }
         document.dispatchEvent(new CustomEvent('meshview:themechange',{detail:theme}));
     }
+    document.addEventListener('meshview:languagechange', updateButton);
     document.addEventListener('DOMContentLoaded',() => {
         updateButton();
         document.querySelectorAll('[data-theme-toggle]').forEach(button => {

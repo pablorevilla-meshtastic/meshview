@@ -464,6 +464,8 @@ Unknown or invalid language codes fall back to the English file. An unknown sect
 returns HTTP 404. The response has no wrapper: it is either the full translation
 object or the requested section. Translation-file failures can return HTTP 500.
 
+Missing translation keys fall back to English within each section.
+
 ## 8. Packets Seen API
 
 ### GET `/api/packets_seen/{packet_id}`

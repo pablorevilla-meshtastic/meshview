@@ -26,7 +26,7 @@
 
 {% block body %}
 <div class="container">
-<header class="data-heading"><div><span class="mesh-eyebrow">COMMUNITY NET</span><h1><span data-translate-lang="net_title">Network check-in</span></h1><p>Weekly check-ins and reports from your mesh.</p></div><a class="mesh-secondary-button" href="/map">View map ↗</a></header>
+<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("COMMUNITY NET") }}</span><h1><span data-translate-lang="net_title">Network check-in</span></h1><p>{{ tr("Weekly check-ins and reports from your mesh.") }}</p></div><a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a></header>
 
     <!-- Weekly network message -->
     <div id="weekly-message"></div>
@@ -43,7 +43,7 @@
     </div>
 
     <div id="net-note">
-        Only the earliest report from each device is listed.
+        {{ tr("Only the earliest report from each device is listed.") }}
     </div>
 </div>
 
@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const date = new Date(packet.import_time_us / 1000);
 
-        const timeStr = date.toLocaleTimeString([], {
+        const timeStr = date.toLocaleTimeString(MeshI18n.language, {
             hour: "numeric",
             minute: "2-digit",
             second: "2-digit",
@@ -120,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const fromName =
             (packet.long_name || "").trim() ||
-            `${netTranslations.node_fallback || "Node"} ${packet.from_node_id}`;
+            `${netTranslations.node_fallback || MeshI18n.t("Node")} ${packet.from_node_id}`;
 
         const div = document.createElement("div");
         div.className = "row chat-packet";
@@ -197,7 +197,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         } catch (err) {
             console.error("Initial fetch error:", err);
-            chatContainer.innerHTML = '<p class="data-empty">Unable to load check-ins. Reload to try again.</p>';
+            chatContainer.innerHTML = `<p class="data-empty">${MeshI18n.h("Unable to load check-ins. Reload to try again.")}</p>`;
         }
     }
 
@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!chatContainer.children.length) {
             const empty = document.createElement("p");
             empty.className = "data-empty";
-            empty.textContent = netTag ? "No check-ins received in the last six days." : "No network check-in tag configured.";
+            empty.textContent = netTag ? MeshI18n.t("No check-ins received in the last six days.") : MeshI18n.t("No network check-in tag configured.");
             chatContainer.append(empty);
         }
 
@@ -241,7 +241,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         weeklyMessageEl.textContent =
             netTranslations.failed_to_load_site_config ||
-            "Failed to load site config.";
+            MeshI18n.t("Failed to load site config.");
     }
 
 });

@@ -30,7 +30,7 @@
 {% endblock %}
 
 {% block body %}
-<header class="data-heading"><div><span class="mesh-eyebrow">NODE DIRECTORY</span><h1>Network nodes</h1><p>Find devices, inspect their activity, and manage your favorites.</p></div><a class="mesh-secondary-button" href="/map">View map ↗</a></header>
+<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("NODE DIRECTORY") }}</span><h1>{{ tr("Network nodes") }}</h1><p>{{ tr("Find devices, inspect their activity, and manage your favorites.") }}</p></div><a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a></header>
 <div class="filter-container">
 
     <input
@@ -41,19 +41,19 @@
         placeholder="Search by name or ID or HEX ID..."
     />
 
-    <select id="role-filter" aria-label="Filter by role">
+    <select id="role-filter" aria-label="{{ tr("Filter by role") }}">
         <option value="" data-translate-lang="all_roles">All Roles</option>
     </select>
 
-    <select id="channel-filter" aria-label="Filter by channel">
+    <select id="channel-filter" aria-label="{{ tr("Filter by channel") }}">
         <option value="" data-translate-lang="all_channels">All Channels</option>
     </select>
 
-    <select id="hw-filter" aria-label="Filter by hardware">
+    <select id="hw-filter" aria-label="{{ tr("Filter by hardware") }}">
         <option value="" data-translate-lang="all_hw">All HW Models</option>
     </select>
 
-    <select id="firmware-filter" aria-label="Filter by firmware">
+    <select id="firmware-filter" aria-label="{{ tr("Filter by firmware") }}">
         <option value="" data-translate-lang="all_firmware">All Firmware</option>
     </select>
 
@@ -77,13 +77,13 @@
     <span id="node-status" class="node-status" aria-live="polite"></span>
 </div>
 <div class="node-list-note">
-    <span>Showing nodes active in the last</span>
-    <select id="days-active-filter" aria-label="Days active">
+    <span>{{ tr("Showing nodes active in the last") }}</span>
+    <select id="days-active-filter" aria-label="{{ tr("Days active") }}">
         {% for day in range(1, 15) %}
         <option value="{{ day }}" {% if day == 3 %}selected{% endif %}>{{ day }}</option>
         {% endfor %}
     </select>
-    <span>days.</span>
+    <span>{{ tr("days.") }}</span>
 </div>
 
 <!-- Desktop table -->
@@ -98,7 +98,7 @@
                 <th data-translate-lang="role">Role <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_lat">Last Latitude <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_long">Last Longitude <span class="sort-icon"></span></th>
-                <th>Altitude (m) <span class="sort-icon"></span></th>
+                <th>{{ tr("Altitude (m)") }} <span class="sort-icon"></span></th>
                 <th data-translate-lang="channel">Channel <span class="sort-icon"></span></th>
                 <th data-translate-lang="mqtt_gateway">MQTT <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_seen">Last Seen <span class="sort-icon"></span></th>
@@ -117,10 +117,10 @@
 
 <!-- Mobile Card View -->
 <div id="mobile-node-list" style="display:none;"></div>
-<nav class="node-pagination" aria-label="Node list pages">
+<nav class="node-pagination" aria-label="{{ tr("Node list pages") }}">
     <span id="node-page-range" class="reach-muted" aria-live="polite"></span>
-    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-previous" disabled>Previous</button>
-    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-next" disabled>Next</button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-previous" disabled>{{ tr("Previous") }}</button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-next" disabled>{{ tr("Next") }}</button>
 </nav>
 
 <script>
@@ -136,7 +136,7 @@ function applyTranslationsNodelist() {
             if (el.tagName === "INPUT" && el.placeholder) {
                 el.placeholder = nodelistTranslations[key];
             } else {
-                el.textContent = nodelistTranslations[key];
+                MeshI18n.label(el, nodelistTranslations[key]);
             }
         }
     });
@@ -216,16 +216,16 @@ function isFavorite(nodeId) {
 }
 
 function timeAgoFromMs(msTimestamp) {
-    if (!msTimestamp) return "N/A";
+    if (!msTimestamp) return MeshI18n.t("N/A");
     const diff = Date.now() - msTimestamp;
 
-    if (diff < 60000) return "just now";
+    if (diff < 60000) return MeshI18n.t("just now");
     const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins} min ago`;
+    if (mins < 60) return MeshI18n.t("{count} min ago", {count: mins});
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs} hr ago`;
+    if (hrs < 24) return MeshI18n.t("{count} hr ago", {count: hrs});
     const days = Math.floor(hrs / 24);
-    return `${days} days ago`;
+    return MeshI18n.t("{count} days ago", {count: days});
 }
 
 // =====================================================
@@ -261,7 +261,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     async function loadNodesForActiveDays() {
         const daysActive = Number(daysActiveFilter.value) || 3;
-        setStatus("Loading nodes…");
+        setStatus(MeshI18n.t("Loading nodes…"));
         await nextFrame();
         const res = await fetch(`/api/nodes?days_active=${encodeURIComponent(daysActive)}`);
         if (!res.ok) throw new Error("Failed to fetch nodes");
@@ -302,7 +302,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     } catch (err) {
         tbody.innerHTML = `<tr>
             <td colspan="12" style="text-align:center; color:red;">
-                ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
+                ${nodelistTranslations.error_loading_nodes || MeshI18n.t("Error loading nodes")}
             </td></tr>`;
         setStatus("");
         return;
@@ -328,7 +328,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             console.error("Failed to reload nodes:", err);
             tbody.innerHTML = `<tr>
                 <td colspan="12" style="text-align:center; color:red;">
-                    ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
+                    ${nodelistTranslations.error_loading_nodes || MeshI18n.t("Error loading nodes")}
                 </td></tr>`;
             mobileList.innerHTML = "";
             countSpan.textContent = 0;
@@ -418,7 +418,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             return;
         }
         showOnlyFavorites = true;
-        favoritesBtn.textContent = "Show All";
+        favoritesBtn.textContent = MeshI18n.t("Show All");
         favoritesBtn.classList.add("active");
         favoritesBtn.setAttribute("aria-pressed", "true");
         applyFilters();
@@ -456,7 +456,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         currentPage = Math.max(1, Math.min(currentPage, Math.ceil(total / pageSize)));
         const start = (currentPage - 1) * pageSize;
         document.getElementById("node-page-range").textContent = total
-            ? `${start + 1}–${Math.min(start + pageSize, total)} of ${total} nodes` : "0 nodes";
+            ? MeshI18n.t("{start}–{end} of {total} nodes", {start: start + 1, end: Math.min(start + pageSize, total), total}) : MeshI18n.t("0 nodes");
         previousPage.disabled = currentPage === 1;
         nextPage.disabled = start + pageSize >= total;
         nodes = nodes.slice(start, start + pageSize);
@@ -476,12 +476,12 @@ document.addEventListener("DOMContentLoaded", async function() {
             if (shouldRenderTable) {
                 tbody.innerHTML = `<tr>
                     <td colspan="12" style="text-align:center; color:var(--mesh-muted);">
-                        ${nodelistTranslations.no_nodes_found || "No nodes found"}
+                        ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
                     </td>
                 </tr>`;
             } else {
                 mobileList.innerHTML = `<div style="text-align:center; color:var(--mesh-muted);">
-                    ${nodelistTranslations.no_nodes_found || "No nodes found"}
+                    ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
                 </div>`;
             }
 
@@ -497,16 +497,16 @@ document.addEventListener("DOMContentLoaded", async function() {
                 // DESKTOP TABLE ROW
                 const row = document.createElement("tr");
                 row.innerHTML = `
-                    <td>${escapeHtml(node.short_name || "N/A")}</td>
-                    <td><a href="/node/${node.node_id}">${escapeHtml(node.long_name || "N/A")}</a></td>
-                    <td>${escapeHtml(node.hw_model || "N/A")}</td>
-                    <td>${escapeHtml(node.firmware || "N/A")}</td>
-                    <td>${escapeHtml(node.role || "N/A")}</td>
-                    <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
-                    <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
-                    <td>${node.last_altitude != null ? escapeHtml(String(node.last_altitude)) : "N/A"}</td>
-                    <td>${escapeHtml(node.channel || "N/A")}</td>
-                    <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || "Yes") : (nodelistTranslations.no || "No")}</td>
+                    <td>${escapeHtml(node.short_name || MeshI18n.t("N/A"))}</td>
+                    <td><a href="/node/${node.node_id}">${escapeHtml(node.long_name || MeshI18n.t("N/A"))}</a></td>
+                    <td>${escapeHtml(node.hw_model || MeshI18n.t("N/A"))}</td>
+                    <td>${escapeHtml(node.firmware || MeshI18n.t("N/A"))}</td>
+                    <td>${escapeHtml(node.role || MeshI18n.t("N/A"))}</td>
+                    <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : MeshI18n.t("N/A")}</td>
+                    <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : MeshI18n.t("N/A")}</td>
+                    <td>${node.last_altitude != null ? escapeHtml(String(node.last_altitude)) : MeshI18n.t("N/A")}</td>
+                    <td>${escapeHtml(node.channel || MeshI18n.t("N/A"))}</td>
+                    <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No"))}</td>
                     <td>${timeAgoFromMs(node.last_seen_ms)}</td>
                     <td style="text-align:center;">
                         <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
@@ -528,20 +528,20 @@ document.addEventListener("DOMContentLoaded", async function() {
                     </div>
 
                     <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
-                    <div class="node-card-field"><b>Name:</b> ${escapeHtml(node.long_name || "N/A")}</div>
-                    <div class="node-card-field"><b>HW:</b> ${escapeHtml(node.hw_model || "N/A")}</div>
-                    <div class="node-card-field"><b>Firmware:</b> ${escapeHtml(node.firmware || "N/A")}</div>
-                    <div class="node-card-field"><b>Role:</b> ${escapeHtml(node.role || "N/A")}</div>
-                    <div class="node-card-field"><b>Location:</b>
-                        ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : "N/A"},
-                        ${node.last_long ? (node.last_long / 1e7).toFixed(5) : "N/A"}
+                    <div class="node-card-field"><b>${MeshI18n.h("Name:")}</b> ${escapeHtml(node.long_name || MeshI18n.t("N/A"))}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("HW:")}</b> ${escapeHtml(node.hw_model || MeshI18n.t("N/A"))}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Firmware:")}</b> ${escapeHtml(node.firmware || MeshI18n.t("N/A"))}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Role:")}</b> ${escapeHtml(node.role || MeshI18n.t("N/A"))}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Location:")}</b>
+                        ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : MeshI18n.t("N/A")},
+                        ${node.last_long ? (node.last_long / 1e7).toFixed(5) : MeshI18n.t("N/A")}
                     </div>
-                    <div class="node-card-field"><b>Altitude:</b> ${node.last_altitude != null ? `${escapeHtml(String(node.last_altitude))} m above sea level` : "N/A"}</div>
-                    <div class="node-card-field"><b>Channel:</b> ${escapeHtml(node.channel || "N/A")}</div>
-                    <div class="node-card-field"><b>Last Seen:</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Altitude:")}</b> ${node.last_altitude != null ? MeshI18n.h("{altitude} m above sea level", {altitude: node.last_altitude}) : MeshI18n.t("N/A")}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Channel:")}</b> ${escapeHtml(node.channel || MeshI18n.t("N/A"))}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Last Seen:")}</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
 
                     <a href="/node/${node.node_id}" style="color:var(--mesh-primary); text-decoration:none; margin-top:10px; display:block;">
-                        View Node →
+                        ${MeshI18n.h("View Node →")}
                     </a>
                 `;
                 mobileFrag.appendChild(card);
@@ -571,7 +571,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         sortAsc = true;
         showOnlyFavorites = false;
 
-        favoritesBtn.textContent = nodelistTranslations.show_favorites || "⭐ Show Favorites";
+        favoritesBtn.textContent = nodelistTranslations.show_favorites || MeshI18n.t("⭐ Show Favorites");
         favoritesBtn.classList.remove("active");
         favoritesBtn.setAttribute("aria-pressed", "false");
 
@@ -583,13 +583,13 @@ document.addEventListener("DOMContentLoaded", async function() {
         const rows = [Array.from(headers).map(h => h.innerText.replace(/▲|▼/g,''))];
         filteredNodes.forEach(node => {
             rows.push([
-                node.short_name || "N/A", node.long_name || "N/A", node.hw_model || "N/A",
-                node.firmware || "N/A", node.role || "N/A",
-                node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A",
-                node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A",
-                node.last_altitude ?? "N/A",
-                node.channel || "N/A",
-                node.is_mqtt_gateway ? (nodelistTranslations.yes || "Yes") : (nodelistTranslations.no || "No"),
+                node.short_name || MeshI18n.t("N/A"), node.long_name || MeshI18n.t("N/A"), node.hw_model || MeshI18n.t("N/A"),
+                node.firmware || MeshI18n.t("N/A"), node.role || MeshI18n.t("N/A"),
+                node.last_lat ? (node.last_lat / 1e7).toFixed(7) : MeshI18n.t("N/A"),
+                node.last_long ? (node.last_long / 1e7).toFixed(7) : MeshI18n.t("N/A"),
+                node.last_altitude ?? MeshI18n.t("N/A"),
+                node.channel || MeshI18n.t("N/A"),
+                node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No")),
                 timeAgoFromMs(node.last_seen_ms), isFavorite(node.node_id) ? "★" : "☆"
             ]);
         });

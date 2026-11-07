@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <script src="/static/i18n.js"></script>
 <meta charset="utf-8" />
-<title>Mesh Nodes Population Heatmap</title>
+<title data-i18n="Mesh Nodes Population Heatmap">Mesh Nodes Population Heatmap</title>
 <link rel="stylesheet" href="/static/vendor/leaflet-1.9.4/dist/leaflet.css" />
 <script src="/static/theme.js"></script>
 <style>
@@ -99,7 +100,7 @@ body { background:var(--mesh-page); color:var(--mesh-text); }
 <!-- mesh-theme:end -->
 </head>
 <body>
-<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#245ea8" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
+<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#245ea8" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false" data-i18n-aria-label="Switch to night mode"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
 <div id="map"></div>
 <div id="legend"></div>
 
@@ -108,6 +109,8 @@ body { background:var(--mesh-page); color:var(--mesh-text); }
         integrity="sha384-mFKkGiGvT5vo1fEyGCD3hshDdKmW3wzXW/x+fWriYJArD0R3gawT6lMvLboM22c0"
         crossorigin="anonymous"></script>
 <script>
+(async () => {
+await MeshI18n.ready;
 const map = L.map("map");
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
@@ -125,12 +128,12 @@ let hoverTooltip = L.tooltip({
 // --- Legend ---
 const legend = document.getElementById("legend");
 const legendItems = [
-  { color: "#0000ff", label: "Low" },
-  { color: "#8000ff", label: "Moderate" },
-  { color: "#00ffff", label: "Elevated" },
-  { color: "#00ff00", label: "High" },
-  { color: "#ffff00", label: "Very High" },
-  { color: "#ff0000", label: "Congested?" }
+  { color: "#0000ff", label: MeshI18n.t("Low") },
+  { color: "#8000ff", label: MeshI18n.t("Moderate") },
+  { color: "#00ffff", label: MeshI18n.t("Elevated") },
+  { color: "#00ff00", label: MeshI18n.t("High") },
+  { color: "#ffff00", label: MeshI18n.t("Very High") },
+  { color: "#ff0000", label: MeshI18n.t("Congested?") }
 ];
 legendItems.forEach(item => {
   const div = document.createElement("div");
@@ -232,7 +235,7 @@ map.on("mousemove", e => {
   if (count > 0) {
     hoverTooltip
       .setLatLng(e.latlng)
-      .setContent(`${count} nodes nearby (${radiusMeters.toFixed(0)}m radius)`)
+      .setContent(MeshI18n.h("{count} nodes nearby ({radius}m radius)", {count, radius: radiusMeters.toFixed(0)}))
       .addTo(map);
   } else {
     map.closeTooltip(hoverTooltip);
@@ -240,6 +243,7 @@ map.on("mousemove", e => {
 });
 
 loadNodes();
+})();
 </script>
 </body>
 </html>

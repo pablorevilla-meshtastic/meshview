@@ -15,6 +15,7 @@ from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import database, decode_payload, store, traceroute
 from meshview.__version__ import __version__, _git_revision_short, get_version_info
 from meshview.config import CONFIG
+from meshview.i18n import load_catalogs
 from meshview.models import DailySnapshot, Node
 from meshview.models import Packet as PacketModel
 from meshview.models import PacketSeen as PacketSeenModel
@@ -858,20 +859,15 @@ async def api_lang(request):
     if not os.path.exists(lang_file):
         lang_file = os.path.join(LANG_DIR, "en.json")
 
-    # Cache by file + mtime to avoid re-reading on every request
-    try:
-        mtime = os.path.getmtime(lang_file)
-    except OSError:
-        mtime = None
-
-    cache_key = lang_file
-    cached = _LANG_CACHE.get(cache_key)
-    if cached and cached.get("mtime") == mtime:
+    # Invalidate when either the selected catalog or its English fallback changes.
+    paths = (lang_file, os.path.join(LANG_DIR, "en.json"))
+    mtimes = await asyncio.to_thread(lambda: tuple(os.path.getmtime(path) for path in paths))
+    cached = _LANG_CACHE.get(lang_file)
+    if cached and cached.get("mtimes") == mtimes:
         translations = cached["translations"]
     else:
-        with open(lang_file, encoding="utf-8") as f:
-            translations = json.load(f)
-        _LANG_CACHE[cache_key] = {"mtime": mtime, "translations": translations}
+        translations = await load_catalogs(LANG_DIR, lang_code)
+        _LANG_CACHE[lang_file] = {"mtimes": mtimes, "translations": translations}
 
     if section:
         section = section.lower()

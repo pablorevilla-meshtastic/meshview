@@ -11,12 +11,12 @@
     const findNode = id => nodeMap.get(Number(id)) || nodeMap.get(id);
     const nodeName = (id, fallback) => {
         const node = findNode(id);
-        return node?.long_name || node?.short_name || fallback || `Node ${id}`;
+        return node?.long_name || node?.short_name || fallback || MeshI18n.t("Node {id}", {id});
     };
     const packetTime = packet => Number(packet.import_time_us) || 0;
     const packetId = packet => packet.storage_id ?? packet.id;
-    const portName = packet => window.PORT_LABEL_MAP[packet.portnum] || `Port ${packet.portnum ?? '?'}`;
-    const dateText = us => us ? new Date(Number(us) / 1000).toLocaleString() : 'Unknown time';
+    const portName = packet => window.PORT_LABEL_MAP[packet.portnum] || MeshI18n.t("Port {port}", {port: packet.portnum ?? "?"});
+    const dateText = us => us ? new Date(Number(us) / 1000).toLocaleString(MeshI18n.language) : MeshI18n.t("Unknown time");
 
 
     function renderTraffic() {
@@ -33,15 +33,15 @@
         if (!packets.length) {
             const row = document.createElement('tr'); const cell = document.createElement('td');
             cell.colSpan = 6; cell.className = 'mesh-empty';
-            cell.textContent = trafficState === 'error' ? 'Unable to load traffic. Use Refresh to try again.' :
-                channel ? 'No packets for this channel in the latest sample.' : 'No packets received yet.';
+            cell.textContent = trafficState === 'error' ? MeshI18n.t("Unable to load traffic. Use Refresh to try again.") :
+                channel ? MeshI18n.t("No packets for this channel in the latest sample.") : MeshI18n.t("No packets received yet.");
             row.append(cell); body.append(row);
         }
         function nodeCell(id, label, isDestination = false) {
             const cell = document.createElement('td');
             if (Number(id) === 4294967295 || (isDestination && Number(id) === 1)) {
                 const muted = document.createElement('span'); muted.className = 'mesh-inspector-note';
-                muted.textContent = Number(id) === 4294967295 ? 'All' : 'Direct to MQTT'; cell.append(muted);
+                muted.textContent = Number(id) === 4294967295 ? MeshI18n.t("All") : MeshI18n.t("Direct to MQTT"); cell.append(muted);
             } else {
                 const link = document.createElement('a'); link.href = `/node/${encodeURIComponent(id)}`;
                 link.textContent = nodeName(id,label); cell.append(link);
@@ -52,17 +52,17 @@
             const id = String(packetId(packet));
             const row = document.createElement('tr'); row.className = 'mesh-traffic-row'; row.dataset.packetId = id;
             const time = document.createElement('td'); time.className = 'mesh-traffic-time';
-            time.textContent = packet.import_time_us ? new Date(Number(packet.import_time_us)/1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) : '—';
+            time.textContent = packet.import_time_us ? new Date(Number(packet.import_time_us)/1000).toLocaleTimeString(MeshI18n.language, {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) : '—';
             time.title = dateText(packet.import_time_us);
             const packetCell = document.createElement('td');
             const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'mesh-traffic-toggle';
             toggle.dataset.trafficFocus = 'toggle';
-            toggle.setAttribute('aria-label', `Toggle payload for packet ${id}`);
+            toggle.setAttribute('aria-label', MeshI18n.t("Toggle payload for packet {id}", {id}));
             toggle.setAttribute('aria-expanded',String(expandedPackets.has(id)));
             toggle.textContent = expandedPackets.has(id) ? '▼' : '▶';
             const details = document.createElement('a'); details.href = `/packet/${encodeURIComponent(id)}`;
-            details.dataset.trafficFocus = 'details'; details.title = 'View packet details';
-            details.textContent = packet.packet_id == null ? 'Details' : String(packet.packet_id);
+            details.dataset.trafficFocus = 'details'; details.title = MeshI18n.t("View packet details");
+            details.textContent = packet.packet_id == null ? MeshI18n.t("Details") : String(packet.packet_id);
             packetCell.append(toggle,details);
             const channelCell = document.createElement('td'); channelCell.textContent = packet.channel || '—';
             const port = document.createElement('td');
@@ -75,7 +75,7 @@
             const payloadRow = document.createElement('tr'); payloadRow.className = 'mesh-traffic-payload';
             payloadRow.hidden = !expandedPackets.has(id);
             const payloadCell = document.createElement('td'); payloadCell.colSpan = 6;
-            const payload = document.createElement('pre'); payload.textContent = packet.payload || '(No decoded payload)';
+            const payload = document.createElement('pre'); payload.textContent = packet.payload || MeshI18n.t("(No decoded payload)");
             payloadCell.append(payload); payloadRow.append(payloadCell);
             toggle.addEventListener('click', () => {
                 if (expandedPackets.has(id)) expandedPackets.delete(id); else expandedPackets.add(id);
@@ -99,8 +99,8 @@
     function renderTrafficStatus() {
         const el = byId('map-traffic-status');
         el.dataset.state = trafficState;
-        el.textContent = paused ? 'Feed paused' : trafficState === 'error' ? 'Traffic unavailable' :
-            trafficState === 'loading' ? 'Loading packets…' : mapInterval > 0 ? `Live · every ${mapInterval}s` : 'Snapshot · auto-refresh off';
+        el.textContent = paused ? MeshI18n.t("Feed paused") : trafficState === 'error' ? MeshI18n.t("Traffic unavailable") :
+            trafficState === 'loading' ? MeshI18n.t("Loading packets…") : mapInterval > 0 ? MeshI18n.t("Live · every {seconds}s", {seconds: mapInterval}) : MeshI18n.t("Snapshot · auto-refresh off");
     }
     document.addEventListener('mesh:traffic-status', event => {
         trafficState = event.detail; renderTrafficStatus();
@@ -129,7 +129,7 @@
     byId('map-traffic-channel').addEventListener('change', () => renderTraffic());
     byId('map-traffic-pause').addEventListener('click', () => {
         paused = !paused;
-        byId('map-traffic-pause').textContent = paused ? 'Resume feed' : 'Pause feed';
+        byId('map-traffic-pause').textContent = paused ? MeshI18n.t("Resume feed") : MeshI18n.t("Pause feed");
         byId('map-traffic-pause').setAttribute('aria-pressed',String(paused));
         if (!paused) renderTraffic();
         renderTrafficStatus();

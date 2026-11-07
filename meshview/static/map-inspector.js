@@ -31,14 +31,14 @@
             const link = byId('inspector-node-link');
             link.textContent = node.short_name || String(id);
             link.href = `/node/${encodeURIComponent(id)}`;
-            byId('inspector-name').textContent = node.long_name || node.short_name || `Node ${id}`;
-            byId('inspector-node-meta').textContent = `Node ${id}`;
+            byId('inspector-name').textContent = node.long_name || node.short_name || MeshI18n.t("Node {id}", {id});
+            byId('inspector-node-meta').textContent = MeshI18n.t("Node {id}", {id});
             const facts = byId('inspector-facts');
             facts.replaceChildren();
             for (const [label, value] of [
-                ['Role', node.role || 'Unknown'],
-                ['Channel', node.channel || 'Unknown'],
-                ['Last seen', node.last_seen_us ? new Date(Number(node.last_seen_us) / 1000).toLocaleString() : 'Unknown']
+                [MeshI18n.t("Role"), node.role || MeshI18n.t("Unknown")],
+                [MeshI18n.t("Channel"), node.channel || MeshI18n.t("Unknown")],
+                [MeshI18n.t("Last seen"), node.last_seen_us ? new Date(Number(node.last_seen_us) / 1000).toLocaleString(MeshI18n.language) : MeshI18n.t("Unknown")]
             ]) {
                 const dt = document.createElement('dt'); dt.textContent = label;
                 const dd = document.createElement('dd'); dd.textContent = value;
@@ -59,13 +59,13 @@
     const findNode = id => nodeMap.get(Number(id)) || nodeMap.get(id);
     const nodeName = (id, fallback) => {
         const node = findNode(id);
-        return node?.long_name || node?.short_name || fallback || `Node ${id}`;
+        return node?.long_name || node?.short_name || fallback || MeshI18n.t("Node {id}", {id});
     };
     const packetTime = packet => Number(packet.import_time_us) || 0;
     const packetId = packet => packet.storage_id ?? packet.id;
-    const portName = packet => window.PORT_LABEL_MAP[packet.portnum] || `Port ${packet.portnum ?? '?'}`;
-    const dateText = us => us ? new Date(Number(us) / 1000).toLocaleString() : 'Unknown time';
-    const timeText = us => us ? new Date(Number(us) / 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false}) : '—';
+    const portName = packet => window.PORT_LABEL_MAP[packet.portnum] || MeshI18n.t("Port {port}", {port: packet.portnum ?? "?"});
+    const dateText = us => us ? new Date(Number(us) / 1000).toLocaleString(MeshI18n.language) : MeshI18n.t("Unknown time");
+    const timeText = us => us ? new Date(Number(us) / 1000).toLocaleTimeString(MeshI18n.language, {hour:'2-digit', minute:'2-digit', hour12:false}) : '—';
 
 
     async function fetchJson(url, signal) {
@@ -79,15 +79,15 @@
         container.replaceChildren(p);
     }
     function facts(node) {
-        byId('inspector-name').textContent = node.long_name || node.short_name || `Node ${nodeKey(node)}`;
-        byId('inspector-node-meta').textContent = `${node.short_name || 'Node'} · ${nodeKey(node)}`;
+        byId('inspector-name').textContent = node.long_name || node.short_name || MeshI18n.t("Node {id}", {id: nodeKey(node)});
+        byId('inspector-node-meta').textContent = `${node.short_name || MeshI18n.t("Node")} · ${nodeKey(node)}`;
         const container = byId('inspector-facts'); container.replaceChildren();
         for (const [label, value] of [
-            ['Role', node.role || 'Unknown'], ['Hardware', node.hw_model || 'Unknown'],
-            ['Firmware', node.firmware || 'Unknown'], ['Channel', node.channel || 'Unknown'],
-            ['Gateway', node.is_mqtt_gateway == null ? 'Unknown' : node.is_mqtt_gateway ? 'Yes' : 'No'],
-            ['Last seen', dateText(node.last_seen_us)],
-            ['Location', isInvalidCoord(node) ? 'No reported position' : `${node.lat.toFixed(5)}, ${node.long.toFixed(5)}`]
+            [MeshI18n.t("Role"), node.role || MeshI18n.t("Unknown")], ['Hardware', node.hw_model || MeshI18n.t("Unknown")],
+            [MeshI18n.t("Firmware"), node.firmware || MeshI18n.t("Unknown")], [MeshI18n.t("Channel"), node.channel || MeshI18n.t("Unknown")],
+            [MeshI18n.t("Gateway"), node.is_mqtt_gateway == null ? MeshI18n.t("Unknown") : node.is_mqtt_gateway ? MeshI18n.t("Yes") : MeshI18n.t("No")],
+            [MeshI18n.t("Last seen"), dateText(node.last_seen_us)],
+            [MeshI18n.t("Location"), isInvalidCoord(node) ? MeshI18n.t("No reported position") : `${node.lat.toFixed(5)}, ${node.long.toFixed(5)}`]
         ]) {
             const dt = document.createElement('dt'); dt.textContent = label;
             const dd = document.createElement('dd'); dd.textContent = value;
@@ -102,7 +102,7 @@
         if (packet && packetTime(packet) < telemetryTime) return;
         if (packet) telemetryTime = packetTime(packet);
         if (!packet && telemetryTime >= 0) return;
-        if (!packet) { note(container, 'No telemetry packets found.'); return; }
+        if (!packet) { note(container, MeshI18n.t("No telemetry packets found.")); return; }
         const payload = String(packet.payload || '');
         const value = field => {
             const match = payload.match(new RegExp(`(?:^|[\\s{])${field}:\\s*(-?\\d+(?:\\.\\d+)?)`));
@@ -113,12 +113,12 @@
         const channelUtil = value('channel_utilization');
         const airUtil = value('air_util_tx');
         const values = [
-            ['Battery', battery === null ? null : battery > 100 ? 'Powered' : `${battery}%`],
-            ['Voltage', voltage === null ? null : `${voltage.toFixed(2)} V`],
-            ['Channel utilization', channelUtil === null ? null : `${channelUtil.toFixed(1)}%`],
-            ['Air utilization TX', airUtil === null ? null : `${airUtil.toFixed(1)}%`]
+            [MeshI18n.t("Battery"), battery === null ? null : battery > 100 ? MeshI18n.t("Powered") : `${battery}%`],
+            [MeshI18n.t("Voltage"), voltage === null ? null : `${voltage.toFixed(2)} V`],
+            [MeshI18n.t("Channel utilization"), channelUtil === null ? null : `${channelUtil.toFixed(1)}%`],
+            [MeshI18n.t("Air utilization TX"), airUtil === null ? null : `${airUtil.toFixed(1)}%`]
         ].filter(([, value]) => value !== null);
-        if (!values.length) { note(container, 'No device metrics in the latest telemetry packet.'); return; }
+        if (!values.length) { note(container, MeshI18n.t("No device metrics in the latest telemetry packet.")); return; }
         container.replaceChildren();
         const grid = document.createElement('div'); grid.className = 'mesh-inspector-telemetry';
         for (const [label, value] of values) {
@@ -128,12 +128,12 @@
             cell.append(strong, span); grid.append(cell);
         }
         const stamp = document.createElement('p'); stamp.className = 'mesh-inspector-note';
-        stamp.textContent = `Reported ${dateText(packet.import_time_us)}`;
+        stamp.textContent = MeshI18n.t("Reported {time}", {time: dateText(packet.import_time_us)});
         container.append(grid, stamp);
     }
     function renderRecent() {
         const container = byId('inspector-recent');
-        if (!recentPackets.length) { note(container, 'No recent packets found.'); return; }
+        if (!recentPackets.length) { note(container, MeshI18n.t("No recent packets found.")); return; }
         container.replaceChildren();
         for (const packet of recentPackets) {
             const hasPacketLink = Number(packet.portnum) !== 73 && Number(packetId(packet)) > 0;
@@ -143,7 +143,7 @@
             const heading = document.createElement('strong');
             heading.textContent = `${portName(packet)} · ${timeText(packet.import_time_us)}`;
             const preview = document.createElement('small');
-            preview.textContent = packet.payload || `From ${nodeName(packet.from_node_id, packet.long_name)}`;
+            preview.textContent = packet.payload || MeshI18n.t("From {name}", {name: nodeName(packet.from_node_id, packet.long_name)});
             button.append(heading, preview);
             container.append(button);
         }
@@ -159,8 +159,8 @@
         byId('inspector-node-link').href = `/node/${encodeURIComponent(id)}`;
         byId('inspector-reliability-link').href = `/reliability?node_id=${encodeURIComponent(id)}`;
         facts(node);
-        note(byId('inspector-telemetry'), 'Loading telemetry…');
-        note(byId('inspector-recent'), 'Loading recent packets…');
+        note(byId('inspector-telemetry'), MeshI18n.t("Loading telemetry…"));
+        note(byId('inspector-recent'), MeshI18n.t("Loading recent packets…"));
         if (matchMedia('(max-width: 700px)').matches) byId('mesh-node-inspector').scrollIntoView({block:'nearest'});
         // A sender/gateway may be outside the map's recent-node snapshot.
         if (force || !findNode(id)) {
@@ -169,9 +169,9 @@
                 const raw = data.nodes?.[0];
                 if (raw) {
                     const complete = normalizeNode(raw); nodeMap.set(Number(id), complete); facts(complete);
-                } else byId('inspector-node-meta').textContent = `Node ${id} · no node information available`;
+                } else byId('inspector-node-meta').textContent = MeshI18n.t("Node {id} · no node information available", {id});
             }).catch(error => {
-                if (error.name !== 'AbortError') byId('inspector-node-meta').textContent = `Node ${id} · details unavailable`;
+                if (error.name !== 'AbortError') byId('inspector-node-meta').textContent = MeshI18n.t("Node {id} · details unavailable", {id});
             });
         }
         await Promise.all([
@@ -180,7 +180,7 @@
                 if (!Array.isArray(data.packets)) throw new Error('Invalid telemetry response');
                 renderTelemetry(data.packets[0]);
             }).catch(error => {
-                if (error.name !== 'AbortError') note(byId('inspector-telemetry'), 'Telemetry unavailable. Use Refresh data to retry.');
+                if (error.name !== 'AbortError') note(byId('inspector-telemetry'), MeshI18n.t("Telemetry unavailable. Use Refresh data to retry."));
             }),
             fetchJson(`/api/packets?node_id=${encodeURIComponent(id)}&limit=8`, request.signal).then(data => {
                 if (request.signal.aborted) return;
@@ -189,7 +189,7 @@
                 recentPackets = [...merged.values()].sort((a,b) => packetTime(b)-packetTime(a)).slice(0,8);
                 renderRecent();
             }).catch(error => {
-                if (error.name !== 'AbortError') note(byId('inspector-recent'), 'Recent packets unavailable. Use Refresh data to retry.');
+                if (error.name !== 'AbortError') note(byId('inspector-recent'), MeshI18n.t("Recent packets unavailable. Use Refresh data to retry."));
             })
         ]);
     };

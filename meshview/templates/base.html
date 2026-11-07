@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-bs-theme="{% block theme %}dark{% endblock %}">
+<html lang="{{ ui_language }}" data-bs-theme="{% block theme %}dark{% endblock %}">
 <head>
     <title>Meshview</title>
     <meta charset="utf-8">
@@ -9,6 +9,11 @@
     <link rel="icon" type="image/svg+xml" sizes="any" href="/static/meshview-icon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
 
+    <script>
+        window.meshTranslations = {{ ui_translations|tojson }};
+        window.meshLanguage = {{ ui_language|tojson }};
+    </script>
+    <script src="/static/i18n.js"></script>
     <script src="/static/theme.js"></script>
 
     <!-- Scripts -->
@@ -163,9 +168,9 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 <header class="mesh-header">
     <div class="mesh-header-inner">
         <a class="mesh-brand" href="/"><img class="mesh-brand-icon" src="/static/meshview-icon.svg" width="28" height="28" alt=""> <span id="site-header">Meshview</span></a>
-        <button class="mesh-menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-menu">☰</button>
-        <nav id="site-menu" aria-label="Main navigation"></nav>
-        <button class="mesh-theme-toggle" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false" title="Night mode"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
+        <button class="mesh-menu-toggle" type="button" aria-label="{{ tr("Toggle navigation") }}" aria-expanded="false" aria-controls="site-menu">☰</button>
+        <nav id="site-menu" aria-label="{{ tr("Main navigation") }}"></nav>
+        <button class="mesh-theme-toggle" type="button" data-theme-toggle aria-label="{{ tr("Switch to night mode") }}" aria-pressed="false" title="{{ tr("Night mode") }}"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
     </div>
 </header>
 <div id="site-message" class="mesh-announcement"></div>
@@ -247,7 +252,7 @@ function fillPortnumSelect(dict, selectedValue) {
 
     const allOption = document.createElement("option");
     allOption.value = "";
-    allOption.textContent = dict.all || "All";
+    allOption.textContent = dict.all || MeshI18n.t("All");
     if (!selectedValue) allOption.selected = true;
     sel.appendChild(allOption);
 
@@ -284,14 +289,14 @@ async function initializePage() {
         // Menu
         const menu = document.getElementById("site-menu");
         if (menu) {
-            const items = ['<a href="/"' + (["/", "/index", "/index.html"].includes(location.pathname) ? ' class="active" aria-current="page"' : "") + '>Home</a>'];
+            const items = ['<a href="/"' + (["/", "/index", "/index.html"].includes(location.pathname) ? ' class="active" aria-current="page"' : "") + '>' + escapeHtml(MeshI18n.t("Home")) + '</a>'];
             const keys = ["nodes", "chat", "everything", "graphs", "net", "map", "stats", "top"];
             const urls = ["/nodelist", "/chat", "/firehose", "/nodegraph", "/net", "/map", "/stats", "/top"];
 
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
                 if (site[key] === "true" || site[key] === true) {
-                    items.push(`<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || (key === "everything" ? "Live Traffic" : key))}</a>`);
+                    items.push(`<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || (key === "everything" ? MeshI18n.t("Live Traffic") : key))}</a>`);
                 }
             }
             if (site.api !== "false" && site.api !== false) {

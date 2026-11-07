@@ -2,9 +2,9 @@
 function initializeNodeExplorer() {
     const activeSince = Date.now() - 24 * 60 * 60 * 1000;
     if (document.getElementById('metric-nodes')) {
-        document.getElementById('metric-nodes').textContent = nodes.length.toLocaleString();
-        document.getElementById('metric-active').textContent = nodes.filter(n => n.last_seen_us / 1000 >= activeSince).length.toLocaleString();
-        document.getElementById('metric-gateways').textContent = nodes.filter(n => n.is_mqtt_gateway).length.toLocaleString();
+        document.getElementById('metric-nodes').textContent = nodes.length.toLocaleString(MeshI18n.language);
+        document.getElementById('metric-active').textContent = nodes.filter(n => n.last_seen_us / 1000 >= activeSince).length.toLocaleString(MeshI18n.language);
+        document.getElementById('metric-gateways').textContent = nodes.filter(n => n.is_mqtt_gateway).length.toLocaleString(MeshI18n.language);
     }
     renderNodeExplorer();
 }
@@ -21,7 +21,7 @@ function renderNodeExplorer() {
     if (!matches.length) {
         const empty = document.createElement('p');
         empty.className = 'mesh-empty';
-        empty.textContent = query ? 'No nodes match your search.' : 'No nodes seen in the last 3 days.';
+        empty.textContent = query ? MeshI18n.t("No nodes match your search.") : MeshI18n.t("No nodes seen in the last 3 days.");
         list.append(empty);
     }
     for (const node of matches) {
@@ -29,7 +29,7 @@ function renderNodeExplorer() {
         row.type = 'button';
         row.className = 'mesh-node-row';
         const active = node.last_seen_us / 1000 >= Date.now() - 86400000;
-        row.innerHTML = `<span class="mesh-node-dot${active ? '' : ' offline'}" aria-hidden="true"></span><span class="mesh-node-copy"><strong>${escapeHtml(node.long_name || node.short_name || String(node.key))}</strong><small>${escapeHtml(node.short_name || 'Node')} · ${active ? 'Seen within 24h' : 'Seen within 3 days'}</small></span><span class="mesh-node-role">${markerById[node.key] ? '↗' : 'No GPS'}</span>`;
+        row.innerHTML = `<span class="mesh-node-dot${active ? '' : ' offline'}" aria-hidden="true"></span><span class="mesh-node-copy"><strong>${escapeHtml(node.long_name || node.short_name || String(node.key))}</strong><small>${escapeHtml(node.short_name || MeshI18n.t("Node"))} · ${active ? MeshI18n.t("Seen within 24h") : MeshI18n.t("Seen within 3 days")}</small></span><span class="mesh-node-role">${markerById[node.key] ? '↗' : MeshI18n.t("No GPS")}</span>`;
         row.addEventListener('click', () => {
             const marker = markerById[node.key];
             if (!marker) {
@@ -58,10 +58,10 @@ document.getElementById('fit-network').addEventListener('click', () => {
         const response = await fetch('/api/stats/count');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const counts = await response.json();
-        document.getElementById('metric-packets').textContent = Number(counts.total_packets || 0).toLocaleString();
-        document.getElementById('metric-status').textContent = 'All packets in database';
+        document.getElementById('metric-packets').textContent = Number(counts.total_packets || 0).toLocaleString(MeshI18n.language);
+        document.getElementById('metric-status').textContent = MeshI18n.t("All packets in database");
     } catch (error) {
-        document.getElementById('metric-status').textContent = 'Packet totals unavailable';
+        document.getElementById('metric-status').textContent = MeshI18n.t("Packet totals unavailable");
         console.error('Dashboard totals:', error);
     }
 })();

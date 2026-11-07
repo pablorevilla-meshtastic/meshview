@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+    <script src="/static/i18n.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Meshview Chat API</title>
@@ -92,11 +93,11 @@ body { background:var(--mesh-page); color:var(--mesh-text); }
 <!-- mesh-theme:end -->
 </head>
 <body>
-<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#245ea8" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button><main>
-<h1>Chat messages API</h1>
-<p>Chat uses <code>GET /api/packets?portnum=1</code>. There is no separate <code>/api/chat</code> endpoint.</p>
-<p>Use <code>limit</code> and <code>since</code> for incremental polling. Direct port-1 text messages are returned as <code>&lt;redacted&gt;</code>.</p>
-<p><a href="/api.html#get-api-packets">Read the complete packets API reference ↗</a></p>
-<p><a href="/">Return to Meshview</a></p>
+<button class="mesh-theme-toggle" style="position:fixed;top:12px;right:12px;z-index:2000;background:#245ea8" type="button" data-theme-toggle aria-label="Switch to night mode" aria-pressed="false" data-i18n-aria-label="Switch to night mode"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button><main>
+<h1><span data-i18n="Chat messages API">Chat messages API</span></h1>
+<p><span data-i18n="Chat uses">Chat uses</span> <code>GET /api/packets?portnum=1</code><span data-i18n=". There is no separate">. There is no separate</span> <code>/api/chat</code> <span data-i18n="endpoint.">endpoint.</span></p>
+<p><span data-i18n="Use">Use</span> <code>limit</code> <span data-i18n="and">and</span> <code>since</code> <span data-i18n="for incremental polling. Direct port-1 text messages are returned as">for incremental polling. Direct port-1 text messages are returned as</span> <code>&lt;redacted&gt;</code>.</p>
+<p><a href="/api.html#get-api-packets"><span data-i18n="Read the complete packets API reference ↗">Read the complete packets API reference ↗</span></a></p>
+<p><a href="/"><span data-i18n="Return to Meshview">Return to Meshview</span></a></p>
 </main></body>
 </html>

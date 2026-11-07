@@ -48,34 +48,29 @@
 
 {% block body %}
 <section class="reach-page">
-    <header class="data-heading"><div><span class="mesh-eyebrow">GATEWAY DIAGNOSTICS</span><h1>Reliability</h1><p>See how consistently gateways hear packets from a selected node.</p></div><a class="mesh-secondary-button" href="/nodelist">All nodes ↗</a></header>
-    <details class="reach-description"><summary>How reliability is calculated</summary><p>Review how often each gateway hears packets from a selected node. The report uses the
-            latest selected packet sample on the node’s recorded main channel and calculates reliability as heard packets divided by packets
-            reviewed. The range table groups gateways by reliability bands, while the gateway list
-            shows each gateway's heard count and percentage for the same sample. Reliability is
-            calculated only from Text, Position, Node Info, and Telemetry packets; other packet types
-            are shown in packet details but skipped from the calculation.</p></details>
+    <header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("GATEWAY DIAGNOSTICS") }}</span><h1>{{ tr("Reliability") }}</h1><p>{{ tr("See how consistently gateways hear packets from a selected node.") }}</p></div><a class="mesh-secondary-button" href="/nodelist">{{ tr("All nodes ↗") }}</a></header>
+    <details class="reach-description"><summary>{{ tr("How reliability is calculated") }}</summary><p>{{ tr("Review how often each gateway hears packets from a selected node. The report uses the latest selected packet sample on the node’s recorded main channel and calculates reliability as heard packets divided by packets reviewed. The range table groups gateways by reliability bands, while the gateway list shows each gateway's heard count and percentage for the same sample. Reliability is calculated only from Text, Position, Node Info, and Telemetry packets; other packet types are shown in packet details but skipped from the calculation.") }}</p></details>
 
     <section class="reach-panel">
         <form class="reach-controls" id="reach-search-form">
-            <label class="reach-search-label" for="reach-node-search">Search</label>
+            <label class="reach-search-label" for="reach-node-search">{{ tr("Search") }}</label>
             <input
                 class="form-control reach-search"
                 id="reach-node-search"
                 list="reach-node-options"
-                placeholder="Search node name or enter node ID"
+                placeholder="{{ tr("Search node name or enter node ID") }}"
                 autocomplete="off"
             >
             <datalist id="reach-node-options"></datalist>
-            <label class="reach-limit-label" for="reliability-packet-type">Packet type</label>
+            <label class="reach-limit-label" for="reliability-packet-type">{{ tr("Packet type") }}</label>
             <select class="form-select" id="reliability-packet-type" style="max-width:150px;">
-                <option value="">All</option>
-                <option value="1" selected>Text</option>
-                <option value="3">Position</option>
-                <option value="4">Node Info</option>
-                <option value="67">Telemetry</option>
+                <option value="">{{ tr("All") }}</option>
+                <option value="1" selected>{{ tr("Text") }}</option>
+                <option value="3">{{ tr("Position") }}</option>
+                <option value="4">{{ tr("Node Info") }}</option>
+                <option value="67">{{ tr("Telemetry") }}</option>
             </select>
-            <label class="reach-limit-label" for="reach-packet-limit">Packets to review</label>
+            <label class="reach-limit-label" for="reach-packet-limit">{{ tr("Packets to review") }}</label>
             <select class="form-select" id="reach-packet-limit" style="max-width:110px;">
                 <option value="10">10</option>
                 <option value="20" selected>20</option>
@@ -88,35 +83,35 @@
                 <option value="90">90</option>
                 <option value="100">100</option>
             </select>
-            <button class="btn btn-primary" type="submit">Load</button>
+            <button class="btn btn-primary" type="submit">{{ tr("Load") }}</button>
             <a class="btn btn-outline-secondary reach-node-link" id="reach-node-link" href="/node/3530776522">
-                Back to Node
+                {{ tr("Back to Node") }}
             </a>
         </form>
 
         <p class="reach-muted" id="reach-channel" role="status"></p>
         <div class="reach-summary">
             <div class="reach-metric">
-                <div class="text-secondary">Latest Packets</div>
+                <div class="text-secondary">{{ tr("Latest Packets") }}</div>
                 <div class="reach-metric-value" id="reach-packet-count">...</div>
             </div>
             <div class="reach-metric">
-                <div class="text-secondary">Unique Gateways</div>
+                <div class="text-secondary">{{ tr("Unique Gateways") }}</div>
                 <div class="reach-metric-value" id="reach-gateway-count">...</div>
             </div>
         </div>
 
-        <div class="reach-table-wrap" role="region" aria-label="Reliability report table" tabindex="0">
+        <div class="reach-table-wrap" role="region" aria-label="{{ tr("Reliability report table") }}" tabindex="0">
             <table class="table table-sm reach-table">
                 <thead>
                     <tr>
-                        <th>Reliability Bands</th>
-                        <th>Gateway Count</th>
+                        <th>{{ tr("Reliability Bands") }}</th>
+                        <th>{{ tr("Gateway Count") }}</th>
                     </tr>
                 </thead>
                 <tbody id="reach-bucket-body">
                     <tr>
-                        <td colspan="2" class="reach-muted">Loading statistics...</td>
+                        <td colspan="2" class="reach-muted">{{ tr("Loading statistics...") }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -125,36 +120,36 @@
         <div id="reach-gateway-map" class="reach-map"></div>
 
         <div class="reach-gateway-panels">
-            <div class="reach-gateway-panel" role="region" aria-label="Gateway reliability table" tabindex="0">
+            <div class="reach-gateway-panel" role="region" aria-label="{{ tr("Gateway reliability table") }}" tabindex="0">
                 <table class="table table-sm reach-table reach-gateway-table">
                     <thead>
                         <tr>
-                            <th>Gateway</th>
-                            <th>Heard</th>
-                            <th>Avg Hops</th>
-                            <th>Reliability</th>
+                            <th>{{ tr("Gateway") }}</th>
+                            <th>{{ tr("Heard") }}</th>
+                            <th>{{ tr("Avg Hops") }}</th>
+                            <th>{{ tr("Reliability") }}</th>
                         </tr>
                     </thead>
                     <tbody id="reach-packet-body-left">
                         <tr>
-                            <td colspan="4" class="reach-muted">Loading packets...</td>
+                            <td colspan="4" class="reach-muted">{{ tr("Loading packets...") }}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <div class="reach-gateway-panel" role="region" aria-label="Gateway reliability table" tabindex="0">
+            <div class="reach-gateway-panel" role="region" aria-label="{{ tr("Gateway reliability table") }}" tabindex="0">
                 <table class="table table-sm reach-table reach-gateway-table">
                     <thead>
                         <tr>
-                            <th>Gateway</th>
-                            <th>Heard</th>
-                            <th>Avg Hops</th>
-                            <th>Reliability</th>
+                            <th>{{ tr("Gateway") }}</th>
+                            <th>{{ tr("Heard") }}</th>
+                            <th>{{ tr("Avg Hops") }}</th>
+                            <th>{{ tr("Reliability") }}</th>
                         </tr>
                     </thead>
                     <tbody id="reach-packet-body-right">
                         <tr>
-                            <td colspan="4" class="reach-muted">Loading packets...</td>
+                            <td colspan="4" class="reach-muted">{{ tr("Loading packets...") }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -166,23 +161,23 @@
 <div class="reliability-modal" id="gateway-packet-modal" role="dialog" aria-modal="true" aria-labelledby="gateway-packet-title">
     <div class="reliability-modal-panel">
         <div class="reliability-modal-header">
-            <div class="reliability-modal-title" id="gateway-packet-title">Packet Details</div>
-            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="closeGatewayPacketModal()">Close</button>
+            <div class="reliability-modal-title" id="gateway-packet-title">{{ tr("Packet Details") }}</div>
+            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="closeGatewayPacketModal()">{{ tr("Close") }}</button>
         </div>
-        <div class="reach-table-wrap" role="region" aria-label="Reliability report table" tabindex="0">
+        <div class="reach-table-wrap" role="region" aria-label="{{ tr("Reliability report table") }}" tabindex="0">
             <table class="table table-sm reach-table">
                 <thead>
                     <tr>
-                        <th>Packet</th>
-                        <th>Time</th>
-                        <th>Type</th>
-                        <th>Hops</th>
-                        <th>Status</th>
+                        <th>{{ tr("Packet") }}</th>
+                        <th>{{ tr("Time") }}</th>
+                        <th>{{ tr("Type") }}</th>
+                        <th>{{ tr("Hops") }}</th>
+                        <th>{{ tr("Status") }}</th>
                     </tr>
                 </thead>
                 <tbody id="gateway-packet-body">
                     <tr>
-                        <td colspan="5" class="reach-muted">No packet selected.</td>
+                        <td colspan="5" class="reach-muted">{{ tr("No packet selected.") }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -232,17 +227,17 @@ function nodeLink(nodeId, nodesById) {
 }
 
 function nodeSearchLabel(node) {
-    const name = node.long_name || node.short_name || "Unnamed";
+    const name = node.long_name || node.short_name || MeshI18n.t("Unnamed");
     return `${name} (${node.node_id})`;
 }
 
 function formatPacketTime(us) {
-    if (!us) return "N/A";
-    return new Date(us / 1000).toLocaleString();
+    if (!us) return MeshI18n.t("N/A");
+    return new Date(us / 1000).toLocaleString(MeshI18n.language);
 }
 
 function packetTypeTag(portnum) {
-    const name = window.PORT_MAP?.[portnum] || "Unknown";
+    const name = window.PORT_MAP?.[portnum] || MeshI18n.t("Unknown");
     const color = window.PORT_COLORS?.[portnum] || "#6c757d";
     return `
         <span class="port-tag" style="background-color:${color}">
@@ -332,7 +327,7 @@ function renderReliabilityMap(gatewayRows, nodesById) {
     if (sourceLatLng) {
         L.marker(sourceLatLng, {
             icon: reachMapIcon("TX", "#111827", "reach-map-marker-source"),
-        }).bindPopup(`<b>${escapeHtml(gatewayLabel(reachNodeId, nodesById))}</b><br>Selected Node`)
+        }).bindPopup(`<b>${escapeHtml(gatewayLabel(reachNodeId, nodesById))}</b><br>${MeshI18n.h("Selected Node")}`)
             .addTo(reliabilityMapLayer);
         bounds.push(sourceLatLng);
     }
@@ -349,8 +344,8 @@ function renderReliabilityMap(gatewayRows, nodesById) {
             icon: reachMapIcon(`${Math.round(row.percent)}%`, bucket.color),
         }).bindPopup(`
             <b>${nodeLink(row.nodeId, nodesById)}</b><br>
-            Reliability: ${row.percent.toFixed(1)}% · Avg. hops ${formatAverageHopCountWithActual(row.avgHopCount)}<br>
-            Heard:
+            ${MeshI18n.h("Reliability:")} ${row.percent.toFixed(1)}% · ${MeshI18n.h("Avg. hops")} ${formatAverageHopCountWithActual(row.avgHopCount)}<br>
+            ${MeshI18n.h("Heard:")}
             <button class="reach-heard-link" type="button" onclick="openGatewayPacketModal(${row.nodeId})">
                 ${row.heardCount}
             </button>
@@ -379,12 +374,12 @@ function openGatewayPacketModal(nodeId) {
 
     if (!details) return;
 
-    titleEl.textContent = `${details.label}: ${details.heardCount} (${details.total}) packets heard`;
+    titleEl.textContent = MeshI18n.t("{label}: {heard} ({total}) packets heard", {label: details.label, heard: details.heardCount, total: details.total});
     bodyEl.innerHTML = details.packets.map(packet => {
         const statusClass = packet.skipped
             ? "reliability-status-skipped"
             : packet.heard ? "reliability-status-heard" : "reliability-status-missed";
-        const statusText = packet.heard ? "Heard" : "Missed";
+        const statusText = packet.heard ? MeshI18n.t("Heard") : MeshI18n.t("Missed");
 
         return `
         <tr class="${packet.skipped ? "reliability-row-skipped" : ""}">
@@ -462,20 +457,20 @@ async function loadReachReport(nodeId = reachNodeId) {
     gatewayCountEl.textContent = "...";
     reliabilityGatewayDetails = new Map();
     nodeLinkEl.href = `/node/${encodeURIComponent(reachNodeId)}`;
-    bucketBodyEl.innerHTML = '<tr><td colspan="2" class="reach-muted">Loading statistics...</td></tr>';
-    setGatewayTables('<tr><td colspan="4" class="reach-muted">Loading packets...</td></tr>');
+    bucketBodyEl.innerHTML = `<tr><td colspan="2" class="reach-muted">${MeshI18n.h("Loading statistics...")}</td></tr>`;
+    setGatewayTables(`<tr><td colspan="4" class="reach-muted">${MeshI18n.h("Loading packets...")}</td></tr>`);
     resetReliabilityMap();
 
     try {
         const nodesById = new Map(reachNodes.map(node => [Number(node.node_id), node]));
         const mainChannel = nodesById.get(reachNodeId)?.channel;
         document.getElementById("reach-channel").textContent = mainChannel
-            ? `Main channel: ${mainChannel}` : "Main channel unknown — no report available yet.";
+            ? MeshI18n.t("Main channel: {channel}", {channel: mainChannel}) : MeshI18n.t("Main channel unknown — no report available yet.");
         if (!mainChannel) {
             packetCountEl.textContent = "0";
             gatewayCountEl.textContent = "0";
-            bucketBodyEl.innerHTML = '<tr><td colspan="2" class="reach-muted">The node’s main channel is unknown.</td></tr>';
-            setGatewayTables('<tr><td colspan="4" class="reach-muted">The node’s main channel is unknown.</td></tr>');
+            bucketBodyEl.innerHTML = `<tr><td colspan="2" class="reach-muted">${MeshI18n.h("The node’s main channel is unknown.")}</td></tr>`;
+            setGatewayTables(`<tr><td colspan="4" class="reach-muted">${MeshI18n.h("The node’s main channel is unknown.")}</td></tr>`);
             return;
         }
         const packetUrl = new URL("/api/packets", window.location.origin);
@@ -494,8 +489,8 @@ async function loadReachReport(nodeId = reachNodeId) {
 
         if (packets.length === 0) {
             gatewayCountEl.textContent = "0";
-            bucketBodyEl.innerHTML = '<tr><td colspan="2" class="reach-muted">No packets found.</td></tr>';
-            setGatewayTables('<tr><td colspan="4" class="reach-muted">No packets found.</td></tr>');
+            bucketBodyEl.innerHTML = `<tr><td colspan="2" class="reach-muted">${MeshI18n.h("No packets found.")}</td></tr>`;
+            setGatewayTables(`<tr><td colspan="4" class="reach-muted">${MeshI18n.h("No packets found.")}</td></tr>`);
             resetReliabilityMap();
             return;
         }
@@ -574,7 +569,7 @@ async function loadReachReport(nodeId = reachNodeId) {
                     <td>${row.percent.toFixed(1)}%</td>
                 </tr>
             `).join("")
-            : '<tr><td colspan="4" class="reach-muted">No gateways heard these packets.</td></tr>';
+            : `<tr><td colspan="4" class="reach-muted">${MeshI18n.h("No gateways heard these packets.")}</td></tr>`;
         reliabilityGatewayDetails = new Map(gatewayRows.map(row => [
             Number(row.nodeId),
             {
@@ -598,14 +593,14 @@ async function loadReachReport(nodeId = reachNodeId) {
         bodyEls[0].innerHTML = renderGatewayRows(gatewayRows.slice(0, splitIndex));
         bodyEls[1].innerHTML = gatewayRows.length > 1
             ? renderGatewayRows(gatewayRows.slice(splitIndex))
-            : '<tr><td colspan="4" class="reach-muted">No additional gateways.</td></tr>';
+            : `<tr><td colspan="4" class="reach-muted">${MeshI18n.h("No additional gateways.")}</td></tr>`;
         renderReliabilityMap(gatewayRows, nodesById);
     } catch (err) {
         console.error("Failed to load reach report:", err);
         packetCountEl.textContent = "!";
         gatewayCountEl.textContent = "!";
-        bucketBodyEl.innerHTML = '<tr><td colspan="2" class="text-danger">Failed to load statistics.</td></tr>';
-        setGatewayTables('<tr><td colspan="4" class="text-danger">Failed to load report.</td></tr>');
+        bucketBodyEl.innerHTML = `<tr><td colspan="2" class="text-danger">${MeshI18n.h("Failed to load statistics.")}</td></tr>`;
+        setGatewayTables(`<tr><td colspan="4" class="text-danger">${MeshI18n.h("Failed to load report.")}</td></tr>`);
         resetReliabilityMap();
     }
 }
@@ -621,11 +616,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         const nodeId = parseNodeSearchValue(document.getElementById("reach-node-search").value);
         if (!nodeId) {
             document.getElementById("reach-bucket-body").innerHTML =
-                '<tr><td colspan="2" class="text-warning">Enter a valid node ID or select a node.</td></tr>';
+                `<tr><td colspan="2" class="text-warning">${MeshI18n.h("Enter a valid node ID or select a node.")}</td></tr>`;
             document.getElementById("reach-packet-body-left").innerHTML =
-                '<tr><td colspan="4" class="text-warning">Enter a valid node ID or select a node.</td></tr>';
+                `<tr><td colspan="4" class="text-warning">${MeshI18n.h("Enter a valid node ID or select a node.")}</td></tr>`;
             document.getElementById("reach-packet-body-right").innerHTML =
-                '<tr><td colspan="4" class="text-warning">Enter a valid node ID or select a node.</td></tr>';
+                `<tr><td colspan="4" class="text-warning">${MeshI18n.h("Enter a valid node ID or select a node.")}</td></tr>`;
             return;
         }
 
@@ -642,7 +637,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const searchEl = document.getElementById("reach-node-search");
     searchEl.value = nodeSearchLabel(
         reachNodes.find(node => Number(node.node_id) === initialReachNodeId) ||
-        { node_id: initialReachNodeId, long_name: "Node" }
+        { node_id: initialReachNodeId, long_name: MeshI18n.t("Node") }
     );
     loadReachReport(initialReachNodeId);
 });
