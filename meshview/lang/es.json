@@ -114,7 +114,11 @@
     "no": "No",
     "link_copied": "¡Enlace copiado!",
     "legend_traceroute": "Ruta de traceroute (flechas de dirección)",
-    "legend_neighbor": "Vínculo de vecinos"
+    "legend_neighbor": "Vínculo de vecinos",
+    "layer_nodes": "Nodos",
+    "layer_packets_reach": "Alcance de paquetes",
+    "layer_traffic_heatmap": "Mapa de calor del tráfico",
+    "map_layers": "Capas del mapa"
   },
   "stats": {
     "node_id": "ID de Nodo",
@@ -593,6 +597,7 @@
     "Main channel: {channel}": "Canal principal: {channel}",
     "Main navigation": "Navegación principal",
     "Map Report": "Informe de mapa",
+    "Map layers": "Capas del mapa",
     "Map of highest routers and their altitudes": "Mapa de los routers más altos y sus altitudes",
     "Map top 50": "Ver los 50 primeros en el mapa",
     "Mesh Nodes Population Heatmap": "Mapa de calor de densidad de nodos mesh",
@@ -685,6 +690,7 @@
     "Packet totals unavailable": "Totales de paquetes no disponibles",
     "Packet type": "Tipo de paquete",
     "Packet type channel": "Canal para tipos de paquetes",
+    "Packets Reach": "Alcance de paquetes",
     "Packets sent": "Paquetes enviados",
     "Packets to review": "Paquetes que revisar",
     "Page {page} / {total}": "Página {page} / {total}",
@@ -824,6 +830,7 @@
     "Traceroute": "Trazado de ruta",
     "Traceroute edge legend": "Leyenda de enlaces de trazado de ruta",
     "Traceroute not found.": "No se encontró el trazado de ruta.",
+    "Traffic HeatMap": "Mapa de calor del tráfico",
     "Traffic unavailable": "Tráfico no disponible",
     "Type": "Tipo",
     "UNKNOWN APP": "APLICACIÓN DESCONOCIDA",

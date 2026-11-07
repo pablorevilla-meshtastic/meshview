@@ -79,3 +79,74 @@ test('failed static catalog request leaves English copy available', async () => 
     await api.ready;
     assert.equal(api.t('Search'),'Search');
 });
+
+test('map layer registration translates labels while preserving providers and overlay objects', () => {
+    const path = require('node:path');
+    const template = fs.readFileSync(path.join(__dirname, '../meshview/templates/map-view.html'), 'utf8');
+    const registration = template.slice(template.indexOf('var overlayLayers ='), template.indexOf('// Data structures'));
+    for (const language of ['en', 'es', 'ru']) {
+        const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, `../meshview/lang/${language}.json`))).ui;
+        const {api} = boot({catalog, language});
+        const nodeLayer = {}, packetSeenLayer = {}, trafficHeatLayer = {};
+        const baseLayers = {OpenStreetMap: {}, OpenTopoMap: {}};
+        const toggle = {setAttribute(key, value) {this[key] = value;}};
+        let registered;
+        vm.runInNewContext(registration, {
+            MeshI18n: api, nodeLayer, packetSeenLayer, trafficHeatLayer, baseLayers, map: {},
+            window: {matchMedia: () => ({matches: false})},
+            L: {control: {layers(bases, overlays, options) {
+                registered = {bases, overlays, options};
+                return {addTo: () => ({getContainer: () => ({querySelector: () => toggle})})};
+            }}}
+        });
+        assert.equal(registered.bases, baseLayers);
+        assert.deepEqual(Object.keys(registered.overlays), [catalog.Nodes, catalog['Packets Reach'], catalog['Traffic HeatMap']]);
+        assert.equal(registered.overlays[catalog.Nodes], nodeLayer);
+        assert.equal(registered.overlays[catalog['Packets Reach']], packetSeenLayer);
+        assert.equal(registered.overlays[catalog['Traffic HeatMap']], trafficHeatLayer);
+        assert.equal(toggle.title, catalog['Map layers']);
+        assert.equal(toggle['aria-label'], catalog['Map layers']);
+    }
+});
+
+test('fresh map catalog replaces layer labels missing from the startup catalog', async () => {
+    const path = require('node:path');
+    const template = fs.readFileSync(path.join(__dirname, '../meshview/templates/map-view.html'), 'utf8');
+    const loader = template.slice(template.indexOf('let mapTranslations = {};'), template.indexOf('var map = L.map'));
+    const registration = template.slice(template.indexOf('var overlayLayers ='), template.indexOf('// Data structures'));
+    for (const language of ['en', 'es', 'ru']) {
+        const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, `../meshview/lang/${language}.json`)));
+        const {api} = boot({catalog: {Nodes: catalog.ui.Nodes}, language});
+        const nodeLayer = {}, packetSeenLayer = {}, trafficHeatLayer = {};
+        const overlays = new Map();
+        const toggle = {setAttribute(key, value) {this[key] = value;}};
+        const control = {
+            addTo() {return this;},
+            getContainer: () => ({querySelector: () => toggle}),
+            removeLayer(layer) {overlays.delete(layer);},
+            addOverlay(layer, label) {overlays.set(layer, label);}
+        };
+        const window = {matchMedia: () => ({matches: false}), _siteConfigPromise: Promise.resolve({site:{language}})};
+        const context = vm.createContext({
+            MeshI18n: api, nodeLayer, packetSeenLayer, trafficHeatLayer, baseLayers: {}, map: {}, window,
+            document: {querySelectorAll: () => []},
+            fetch: async () => ({json: async () => catalog.map}),
+            console,
+            L: {control: {layers(bases, labels) {
+                for (const [label, layer] of Object.entries(labels)) overlays.set(layer, label);
+                return control;
+            }}}
+        });
+        vm.runInContext(fs.readFileSync(path.join(__dirname, '../meshview/static/html-escape.js'), 'utf8'), context);
+        context.escapeHtml = window.escapeHtml;
+        vm.runInContext(loader + registration, context);
+        assert.equal(overlays.get(packetSeenLayer), 'Packets Reach');
+        assert.equal(overlays.get(trafficHeatLayer), 'Traffic HeatMap');
+        await vm.runInContext('loadTranslationsMap()', context);
+        assert.equal(overlays.size, 3);
+        assert.equal(overlays.get(nodeLayer), catalog.ui.Nodes);
+        assert.equal(overlays.get(packetSeenLayer), catalog.ui['Packets Reach']);
+        assert.equal(overlays.get(trafficHeatLayer), catalog.ui['Traffic HeatMap']);
+        assert.equal(toggle.title, catalog.ui['Map layers']);
+    }
+});

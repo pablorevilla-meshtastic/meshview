@@ -356,6 +356,7 @@ async function loadTranslationsMap() {
         const res  = await fetch(`/api/lang?lang=${lang}&section=map`);
         mapTranslations = await res.json();
         applyTranslationsMap();
+        updateMapLayerTranslations();
     } catch (err) {
         console.error("Map translation load failed:", err);
     }
@@ -412,13 +413,33 @@ var trafficHeatLayer = L.heatLayer([], {
     }
 });
 var overlayLayers = {
-    "Nodes": nodeLayer,
-    "Packets Reach": packetSeenLayer,
-    "Traffic HeatMap": trafficHeatLayer
+    [MeshI18n.h("Nodes")]: nodeLayer,
+    [MeshI18n.h("Packets Reach")]: packetSeenLayer,
+    [MeshI18n.h("Traffic HeatMap")]: trafficHeatLayer
 };
-L.control.layers(baseLayers, overlayLayers, {
+var mapLayerControl = L.control.layers(baseLayers, overlayLayers, {
     collapsed: window.matchMedia("(max-width: 700px)").matches
 }).addTo(map);
+const layerToggle = mapLayerControl.getContainer().querySelector('.leaflet-control-layers-toggle');
+layerToggle.title = MeshI18n.t("Map layers");
+layerToggle.setAttribute('aria-label', MeshI18n.t("Map layers"));
+
+function updateMapLayerTranslations() {
+    // The page catalog refreshes independently of the server's startup UI catalog.
+    const layers = [
+        [nodeLayer, mapTranslations.layer_nodes || MeshI18n.t("Nodes")],
+        [packetSeenLayer, mapTranslations.layer_packets_reach || MeshI18n.t("Packets Reach")],
+        [trafficHeatLayer, mapTranslations.layer_traffic_heatmap || MeshI18n.t("Traffic HeatMap")]
+    ];
+    layers.forEach(([layer, label]) => {
+        // Removing a layer from the control leaves its visibility on the map intact.
+        mapLayerControl.removeLayer(layer);
+        mapLayerControl.addOverlay(layer, escapeHtml(label));
+    });
+    const title = mapTranslations.map_layers || MeshI18n.t("Map layers");
+    layerToggle.title = title;
+    layerToggle.setAttribute('aria-label', title);
+}
 
 // Data structures
 var nodes = [], markers = {}, markerById = {}, nodeMap = new Map();

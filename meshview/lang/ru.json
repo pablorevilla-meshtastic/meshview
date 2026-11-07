@@ -111,7 +111,11 @@
     "no": "Нет",
     "link_copied": "Ссылка скопирована!",
     "legend_traceroute": "Трассировка (со стрелками)",
-    "legend_neighbor": "Сосед"
+    "legend_neighbor": "Сосед",
+    "layer_nodes": "Ноды",
+    "layer_packets_reach": "Достижимость пакетов",
+    "layer_traffic_heatmap": "Тепловая карта трафика",
+    "map_layers": "Слои карты"
   },
   "stats": {
     "text_senders_title": "Топ отправителей текста · основной канал",
@@ -585,6 +589,7 @@
     "Main channel: {channel}": "Основной канал: {channel}",
     "Main navigation": "Основная навигация",
     "Map Report": "Отчёт карты",
+    "Map layers": "Слои карты",
     "Map of highest routers and their altitudes": "Карта самых высоких роутеров и их высот",
     "Map top 50": "Топ-50 на карте",
     "Mesh Nodes Population Heatmap": "Тепловая карта плотности mesh-узлов",
@@ -677,6 +682,7 @@
     "Packet totals unavailable": "Итоги пакетов недоступны",
     "Packet type": "Тип пакета",
     "Packet type channel": "Канал типов пакетов",
+    "Packets Reach": "Достижимость пакетов",
     "Packets sent": "Отправлено пакетов",
     "Packets to review": "Пакетов для проверки",
     "Page {page} / {total}": "Страница {page} / {total}",
@@ -816,6 +822,7 @@
     "Traceroute": "Трассировка",
     "Traceroute edge legend": "Легенда связей трассировки",
     "Traceroute not found.": "Трассировка не найдена.",
+    "Traffic HeatMap": "Тепловая карта трафика",
     "Traffic unavailable": "Трафик недоступен",
     "Type": "Тип",
     "UNKNOWN APP": "НЕИЗВ-НОЕ ПРИЛОЖ",

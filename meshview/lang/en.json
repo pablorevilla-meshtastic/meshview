@@ -111,7 +111,11 @@
     "no": "No",
     "link_copied": "Link Copied!",
     "legend_traceroute": "Traceroute (with arrows)",
-    "legend_neighbor": "Neighbor"
+    "legend_neighbor": "Neighbor",
+    "layer_nodes": "Nodes",
+    "layer_packets_reach": "Packets Reach",
+    "layer_traffic_heatmap": "Traffic HeatMap",
+    "map_layers": "Map layers"
   },
   "stats": {
     "text_senders_title": "Top text senders · main channel",
@@ -585,6 +589,7 @@
     "Main channel: {channel}": "Main channel: {channel}",
     "Main navigation": "Main navigation",
     "Map Report": "Map Report",
+    "Map layers": "Map layers",
     "Map of highest routers and their altitudes": "Map of highest routers and their altitudes",
     "Map top 50": "Map top 50",
     "Mesh Nodes Population Heatmap": "Mesh Nodes Population Heatmap",
@@ -677,6 +682,7 @@
     "Packet totals unavailable": "Packet totals unavailable",
     "Packet type": "Packet type",
     "Packet type channel": "Packet type channel",
+    "Packets Reach": "Packets Reach",
     "Packets sent": "Packets sent",
     "Packets to review": "Packets to review",
     "Page {page} / {total}": "Page {page} / {total}",
@@ -816,6 +822,7 @@
     "Traceroute": "Traceroute",
     "Traceroute edge legend": "Traceroute edge legend",
     "Traceroute not found.": "Traceroute not found.",
+    "Traffic HeatMap": "Traffic HeatMap",
     "Traffic unavailable": "Traffic unavailable",
     "Type": "Type",
     "UNKNOWN APP": "UNKNOWN APP",
