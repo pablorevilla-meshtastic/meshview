@@ -139,6 +139,18 @@
         <div id="chart_environment" style="height:380px;"></div>
     </div>
 
+    <!-- Power Metrics -->
+    <div id="power_chart_container" class="chart-container" style="display:none;">
+        <div class="chart-header">
+            ⚡ <span data-translate-lang="power">Power Metrics</span>
+            <div class="chart-actions">
+                <button onclick="expandChart('power')" data-translate-lang="expand">Expand</button>
+                <button onclick="exportCSV('power')" data-translate-lang="export_csv">Export CSV</button>
+            </div>
+        </div>
+        <div id="chart_power" style="height:380px;"></div>
+    </div>
+
     <!-- Neighbor chart -->
 <!-- Neighbor Time-Series Chart -->
 <div id="neighbor_chart_container" class="chart-container">
@@ -874,8 +886,18 @@ async function loadTelemetryCharts(){
         times: [],
         battery: [], voltage: [],
         airUtil: [], chanUtil: [],
-        temperature: [], humidity: [], pressure: []
+        temperature: [], humidity: [], pressure: [],
+        // power_metrics channels (ch1..ch8) plus the legacy voltage/current
+        // that INA sensors report inside environment_metrics.
+        power: {}, powerSeries: []
     };
+    const POWER_CHANNELS = [1, 2, 3, 4, 5, 6, 7, 8];
+    for (const ch of POWER_CHANNELS) {
+        chartData.power[`ch${ch}_voltage`] = [];
+        chartData.power[`ch${ch}_current`] = [];
+    }
+    chartData.power.env_voltage = [];
+    chartData.power.env_current = [];
 
     // Return the body of a "name { ... }" block from the text-format payload.
     // Several telemetry variants share field names (voltage, temperature...),
@@ -899,6 +921,14 @@ async function loadTelemetryCharts(){
 
         const dev = metricsBlock(pl, "device_metrics");
         const env = metricsBlock(pl, "environment_metrics");
+        const pwr = metricsBlock(pl, "power_metrics");
+
+        for (const ch of POWER_CHANNELS) {
+            chartData.power[`ch${ch}_voltage`].push(metricField(pwr, `ch${ch}_voltage`));
+            chartData.power[`ch${ch}_current`].push(metricField(pwr, `ch${ch}_current`));
+        }
+        chartData.power.env_voltage.push(metricField(env, "voltage"));
+        chartData.power.env_current.push(metricField(env, "current"));
 
         chartData.battery.push(metricField(dev, "battery_level"));
         chartData.voltage.push(metricField(dev, "voltage"));
@@ -1016,9 +1046,73 @@ async function loadTelemetryCharts(){
         envContainer.style.display = "none";
     }
 
+    // Power chart: one voltage (left axis) and one current (right axis) series
+    // per channel that reported data. Current is dashed and unfilled so up to
+    // 18 series stay readable.
+    const POWER_COLORS = [
+        'rgba(79,155,255,1)', 'rgba(255,214,82,1)', 'rgba(138,255,108,1)',
+        'rgba(255,102,204,1)', 'rgba(255,138,82,1)', 'rgba(0,212,212,1)',
+        'rgba(178,132,255,1)', 'rgba(200,200,200,1)'
+    ];
+    const ENV_POWER_COLOR = 'rgba(255,80,80,1)';
+    const powerSources = [
+        ...POWER_CHANNELS.map(ch => ({
+            key: `ch${ch}`,
+            color: POWER_COLORS[ch - 1],
+            voltageLabel: MeshI18n.t("Ch{n} voltage (V)", {n: ch}),
+            currentLabel: MeshI18n.t("Ch{n} current (mA)", {n: ch})
+        })),
+        {
+            key: "env",
+            color: ENV_POWER_COLOR,
+            voltageLabel: MeshI18n.t("Environment voltage (V)"),
+            currentLabel: MeshI18n.t("Environment current (mA)")
+        }
+    ];
+    const hasData = values => values.some(v => !isNaN(v));
+    for (const src of powerSources) {
+        const voltage = chartData.power[`${src.key}_voltage`];
+        const current = chartData.power[`${src.key}_current`];
+        if (hasData(voltage))
+            chartData.powerSeries.push({ label: src.voltageLabel, color: src.color, data: voltage, axis: 0 });
+        if (hasData(current))
+            chartData.powerSeries.push({ label: src.currentLabel, color: src.color, data: current, axis: 1 });
+    }
+
+    const powerContainer = document.getElementById("power_chart_container");
+    let chart4 = null;
+    if (chartData.powerSeries.length) {
+        powerContainer.style.display = "block";
+        chart4 = initMeshChart(document.getElementById('chart_power'));
+        chart4.setOption({
+            tooltip: { trigger:'axis' },
+            legend: {
+                type: 'scroll',
+                data: chartData.powerSeries.map(s => s.label),
+                textStyle:{ color:'#64748b' }
+            },
+            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#64748b' } },
+            yAxis: [
+                { type:'value', name:'Voltage (V)', axisLabel:{ color:'#64748b' } },
+                { type:'value', name:'Current (mA)', axisLabel:{ color:'#64748b' } }
+            ],
+            series: chartData.powerSeries.map(s => {
+                const line = makeLine(s.label, s.color, s.data, s.axis);
+                if (s.axis === 1) {
+                    delete line.areaStyle;
+                    line.lineStyle = { ...line.lineStyle, type: 'dashed' };
+                    line.symbol = 'triangle';
+                }
+                return line;
+            })
+        });
+    } else {
+        powerContainer.style.display = "none";
+    }
+
     // Resize charts that exist
     window.addEventListener("resize", () => {
-        [chart1, chart2, chart3].forEach(c => { if (c) c.resize(); });
+        [chart1, chart2, chart3, chart4].forEach(c => { if (c) c.resize(); });
     });
 }
 
@@ -1390,6 +1484,11 @@ function exportCSV(type){
                 chartData.humidity[i],
                 chartData.pressure[i]
             ]);
+    }
+    else if (type === "power") {
+        rows[0].push(...chartData.powerSeries.map(s => s.label));
+        for (let i = 0; i < chartData.times.length; i++)
+            rows.push([chartData.times[i], ...chartData.powerSeries.map(s => isNaN(s.data[i]) ? null : s.data[i])]);
     }
     else if (type === "neighbors") {
         rows[0] = [MeshI18n.t("Neighbor Node ID"), MeshI18n.t("Neighbor Name"), "SNR (dB)"];
