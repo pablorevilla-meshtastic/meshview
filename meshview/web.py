@@ -23,6 +23,7 @@ from meshview.__version__ import (
     __version_string__,
 )
 from meshview.deps import check_optional_deps
+from meshview.i18n import load_catalogs
 from meshview.web_api import api
 
 logging.basicConfig(
@@ -44,6 +45,7 @@ check_optional_deps()
 
 BASE_DIR = os.path.dirname(__file__)
 LANG_DIR = os.path.join(BASE_DIR, "lang")
+env.globals.update(ui_translations={}, ui_language="en", tr=lambda source: source)
 
 with open(os.path.join(os.path.dirname(__file__), '1x1.png'), 'rb') as png:
     empty_png = png.read()
@@ -91,7 +93,7 @@ class Packet:
             text_payload = (
                 "ACK"
                 if payload.error_reason == Routing.Error.NONE
-                else f"NAK: {Routing.Error.Name(payload.error_reason)}"
+                else f"NAK: {decode_payload.enum_name(Routing.Error, payload.error_reason)}"
             )
         elif isinstance(payload, Message):
             text_payload = text_format.MessageToString(payload)
@@ -214,14 +216,14 @@ routes = web.RouteTableDef()
 
 
 @routes.get("/")
+@routes.get("/index")
+@routes.get("/index.html")
 async def index(request):
-    """
-    Redirect root URL '/' to the page specified in CONFIG['site']['starting'].
-    Defaults to '/map' if not set.
-    """
-    # Get the starting page from config
-    starting_url = CONFIG["site"].get("starting", "/map")  # default to /map if not set
-    raise web.HTTPFound(location=starting_url)
+    """Render the network dashboard as the home page."""
+    return web.Response(
+        text=env.get_template("index.html").render(),
+        content_type="text/html",
+    )
 
 
 # redirect for backwards compatibility
@@ -232,7 +234,6 @@ async def redirect_packet_list(request):
 
 
 # Generic static HTML route
-@routes.get("/{page}")
 async def serve_page(request):
     """Serve static HTML pages from meshview/static."""
     page = request.match_info["page"]
@@ -275,6 +276,7 @@ async def net(request):
 
 
 @routes.get("/map")
+@routes.get("/map.html")
 async def map(request):
     template = env.get_template("map.html")
     return web.Response(text=template.render(), content_type="text/html")
@@ -369,7 +371,10 @@ async def traceroute_page(request):
 # Keep !!
 @routes.get("/graph/traceroute/{packet_id}")
 async def graph_traceroute(request):
-    packet_id = int(request.match_info['packet_id'])
+    try:
+        packet_id = api.parse_db_int(request.match_info['packet_id'])
+    except ValueError:
+        raise web.HTTPBadRequest(text="packet_id must be an integer") from None
     traceroutes = list(await store.get_traceroute(packet_id))
 
     packet = await store.get_packet(packet_id)
@@ -481,6 +486,10 @@ async def graph_traceroute(request):
     )
 
 
+# Register the static-page fallback after named pages so it cannot shadow them.
+routes.get("/{page}")(serve_page)
+
+
 async def run_server():
     """Start the aiohttp web server after migrations are complete."""
     # Wait for database migrations to complete before starting web server
@@ -497,6 +506,15 @@ async def run_server():
         raise RuntimeError("Database schema version mismatch - migrations not complete")
 
     logger.info("Database schema verified - starting web server")
+
+    language = CONFIG.get("site", {}).get("language", "en")
+    catalog = await load_catalogs(LANG_DIR, language)
+    ui_translations = catalog.get("ui", {})
+    env.globals.update(
+        ui_translations=ui_translations,
+        ui_language=language,
+        tr=lambda source: ui_translations.get(source, source),
+    )
 
     app = web.Application()
     app.router.add_static("/static/", pathlib.Path(__file__).parent / "static")

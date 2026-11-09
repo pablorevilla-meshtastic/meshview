@@ -15,6 +15,7 @@ from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import database, decode_payload, store, traceroute
 from meshview.__version__ import __version__, _git_revision_short, get_version_info
 from meshview.config import CONFIG
+from meshview.i18n import load_catalogs
 from meshview.models import DailySnapshot, Node
 from meshview.models import Packet as PacketModel
 from meshview.models import PacketSeen as PacketSeenModel
@@ -170,6 +171,57 @@ COVERAGE_LIMITS = {
 COVERAGE_MAX_STEPS = 4_000  # radius_km / step_km
 
 
+# Longest look-back any stats/channel query may ask for. Larger windows only make the
+# aggregate scan the whole table, which is what an abusive caller would want.
+MAX_PERIOD_LENGTH = 3650
+
+
+def parse_db_int(text, base=10, bits=64):
+    """int(text, base), but a value that does not fit a signed `bits`-bit column raises
+    ValueError too. Without this a long number parses fine and then fails inside the
+    database driver, which answers 500. Node and packet ids are BIGINT (64 bits); portnum
+    is INTEGER (32 bits on PostgreSQL).
+    """
+    value = int(text, base)
+    if not -(2 ** (bits - 1)) <= value < 2 ** (bits - 1):
+        raise ValueError(f"outside the {bits}-bit integer range")
+    return value
+
+
+def _query_int(request, name, default=None, minimum=None, maximum=None):
+    """Read an integer query parameter, answering 400 instead of 500 on bad input.
+
+    Values outside [minimum, maximum] are clamped rather than rejected so existing
+    callers that ask for "everything" keep working within the allowed bounds.
+    """
+    raw = request.query.get(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        value = parse_db_int(raw)
+    except ValueError:
+        raise web.HTTPBadRequest(
+            text=json.dumps({"error": f"{name} must be an integer"}),
+            content_type="application/json",
+        ) from None
+    if minimum is not None:
+        value = max(minimum, value)
+    if maximum is not None:
+        value = min(maximum, value)
+    return value
+
+
+def _match_int(request, name):
+    """Read an integer path segment, answering 400 instead of 500 on bad input."""
+    try:
+        return parse_db_int(request.match_info[name])
+    except (KeyError, ValueError):
+        raise web.HTTPBadRequest(
+            text=json.dumps({"error": f"{name} must be an integer"}),
+            content_type="application/json",
+        ) from None
+
+
 def init_api_module(packet_class, seq_regex, lang_dir):
     """Initialize API module with dependencies from main web module."""
     global Packet, SEQ_REGEX, LANG_DIR
@@ -181,7 +233,7 @@ def init_api_module(packet_class, seq_regex, lang_dir):
 @routes.get("/api/channels")
 async def api_channels(request: web.Request):
     period_type = request.query.get("period_type", "hour")
-    length = int(request.query.get("length", 24))
+    length = _query_int(request, "length", 24, 1, MAX_PERIOD_LENGTH)
 
     try:
         channels = await store.get_channels_in_period(period_type, length)
@@ -225,6 +277,7 @@ async def api_nodes(request):
                     "role": n.role,
                     "last_lat": getattr(n, "last_lat", None),
                     "last_long": getattr(n, "last_long", None),
+                    "last_altitude": n.last_altitude,
                     "channel": n.channel,
                     "is_mqtt_gateway": getattr(n, "is_mqtt_gateway", None),
                     # "last_update": n.last_update.isoformat(),
@@ -249,6 +302,7 @@ async def api_packets(request):
         since_str = request.query.get("since")
         portnum_str = request.query.get("portnum")
         contains = request.query.get("contains")
+        channel = request.query.get("channel")
 
         # NEW — explicit filters
         from_node_id_str = request.query.get("from_node_id")
@@ -258,7 +312,7 @@ async def api_packets(request):
         # --- If a packet_id is provided, return only that packet ---
         if packet_id_str:
             try:
-                packet_id = int(packet_id_str)
+                packet_id = parse_db_int(packet_id_str)
             except ValueError:
                 return web.json_response({"error": "Invalid packet_id format"}, status=400)
 
@@ -291,17 +345,17 @@ async def api_packets(request):
         since = None
         if since_str:
             try:
-                since = int(since_str)
+                since = parse_db_int(since_str)
             except ValueError:
-                logger.warning(f"Invalid 'since' value (expected microseconds): {since_str}")
+                logger.warning("Invalid 'since' value (expected microseconds): %r", since_str)
 
         # --- Parse portnum ---
         portnum = None
         if portnum_str:
             try:
-                portnum = int(portnum_str)
+                portnum = parse_db_int(portnum_str, bits=32)
             except ValueError:
-                logger.warning(f"Invalid portnum: {portnum_str}")
+                logger.warning("Invalid portnum: %r", portnum_str)
 
         # --- Parse node filters ---
         from_node_id = None
@@ -310,21 +364,21 @@ async def api_packets(request):
 
         if from_node_id_str:
             try:
-                from_node_id = int(from_node_id_str, 0)
+                from_node_id = parse_db_int(from_node_id_str, 0)
             except ValueError:
-                logger.warning(f"Invalid from_node_id: {from_node_id_str}")
+                logger.warning("Invalid from_node_id: %r", from_node_id_str)
 
         if to_node_id_str:
             try:
-                to_node_id = int(to_node_id_str, 0)
+                to_node_id = parse_db_int(to_node_id_str, 0)
             except ValueError:
-                logger.warning(f"Invalid to_node_id: {to_node_id_str}")
+                logger.warning("Invalid to_node_id: %r", to_node_id_str)
 
         if node_id_str:
             try:
-                node_id = int(node_id_str, 0)
+                node_id = parse_db_int(node_id_str, 0)
             except ValueError:
-                logger.warning(f"Invalid node_id: {node_id_str}")
+                logger.warning("Invalid node_id: %r", node_id_str)
 
         # --- Fetch packets using explicit filters ---
         contains_for_query = contains
@@ -339,6 +393,7 @@ async def api_packets(request):
             after=since,
             contains=contains_for_query,
             limit=limit,
+            channel=channel,
         )
 
         ui_packets = [Packet.from_model(p) for p in packets]
@@ -417,16 +472,13 @@ async def api_stats(request):
             status=400,
         )
 
-    try:
-        length = int(request.query.get("length", 24))
-    except ValueError:
-        return web.json_response({"error": "length must be an integer"}, status=400)
+    length = _query_int(request, "length", 24, 1, MAX_PERIOD_LENGTH)
 
     # NEW: optional combined node stats
     node_str = request.query.get("node")
     if node_str:
         try:
-            node_id = int(node_str)
+            node_id = parse_db_int(node_str)
         except ValueError:
             return web.json_response({"error": "node must be an integer"}, status=400)
 
@@ -457,11 +509,11 @@ async def api_stats(request):
     # ---- Existing full stats mode (unchanged) ----
     channel = request.query.get("channel")
 
-    def parse_int_param(name):
+    def parse_int_param(name, bits=64):
         value = request.query.get(name)
         if value is not None:
             try:
-                return int(value)
+                return parse_db_int(value, bits=bits)
             except ValueError:
                 raise web.HTTPBadRequest(
                     text=json.dumps({"error": f"{name} must be an integer"}),
@@ -469,7 +521,7 @@ async def api_stats(request):
                 ) from None
         return None
 
-    portnum = parse_int_param("portnum")
+    portnum = parse_int_param("portnum", bits=32)
     to_node = parse_int_param("to_node")
     from_node = parse_int_param("from_node")
 
@@ -499,18 +551,12 @@ async def api_stats_count(request):
     packet_id = None
     if packet_id_str:
         try:
-            packet_id = int(packet_id_str)
+            packet_id = parse_db_int(packet_id_str)
         except ValueError:
             return web.json_response({"error": "packet_id must be integer"}, status=400)
 
     period_type = request.query.get("period_type")
-    length_str = request.query.get("length")
-    length = None
-    if length_str:
-        try:
-            length = int(length_str)
-        except ValueError:
-            return web.json_response({"error": "length must be integer"}, status=400)
+    length = _query_int(request, "length", None, 1, MAX_PERIOD_LENGTH)
 
     channel = request.query.get("channel")
 
@@ -519,7 +565,7 @@ async def api_stats_count(request):
         if value is None:
             return None
         try:
-            return int(value)
+            return parse_db_int(value)
         except ValueError:
             raise web.HTTPBadRequest(
                 text=json.dumps({"error": f"{name} must be integer"}),
@@ -670,6 +716,8 @@ async def api_edges(request):
                 _, neighbor_info = decode_payload.decode(packet)
             except Exception:
                 continue
+            if neighbor_info is None:  # payload did not parse as NeighborInfo
+                continue
 
             for node in neighbor_info.neighbors:
                 edge = (node.node_id, packet.from_node_id)
@@ -730,7 +778,6 @@ async def api_config(request):
             "language": get_str(site, "language", "en"),
             "title": get_str(site, "title", ""),
             "message": get_str(site, "message", ""),
-            "starting": get_str(site, "starting", "/chat"),
             "nodes": get_bool(site, "nodes", True),
             "chat": get_bool(site, "chat", True),
             "everything": get_bool(site, "everything", True),
@@ -739,6 +786,7 @@ async def api_config(request):
             "net": get_bool(site, "net", True),
             "map": get_bool(site, "map", True),
             "top": get_bool(site, "top", True),
+            "api": get_bool(site, "api", True),
             "map_top_left_lat": get_float(site, "map_top_left_lat", 39.0),
             "map_top_left_lon": get_float(site, "map_top_left_lon", -123.0),
             "map_bottom_right_lat": get_float(site, "map_bottom_right_lat", 36.0),
@@ -811,20 +859,15 @@ async def api_lang(request):
     if not os.path.exists(lang_file):
         lang_file = os.path.join(LANG_DIR, "en.json")
 
-    # Cache by file + mtime to avoid re-reading on every request
-    try:
-        mtime = os.path.getmtime(lang_file)
-    except OSError:
-        mtime = None
-
-    cache_key = lang_file
-    cached = _LANG_CACHE.get(cache_key)
-    if cached and cached.get("mtime") == mtime:
+    # Invalidate when either the selected catalog or its English fallback changes.
+    paths = (lang_file, os.path.join(LANG_DIR, "en.json"))
+    mtimes = await asyncio.to_thread(lambda: tuple(os.path.getmtime(path) for path in paths))
+    cached = _LANG_CACHE.get(lang_file)
+    if cached and cached.get("mtimes") == mtimes:
         translations = cached["translations"]
     else:
-        with open(lang_file, encoding="utf-8") as f:
-            translations = json.load(f)
-        _LANG_CACHE[cache_key] = {"mtime": mtime, "translations": translations}
+        translations = await load_catalogs(LANG_DIR, lang_code)
+        _LANG_CACHE[lang_file] = {"mtimes": mtimes, "translations": translations}
 
     if section:
         section = section.lower()
@@ -906,12 +949,19 @@ async def version_endpoint(request):
         return web.json_response({"error": "Failed to fetch version info"}, status=500)
 
 
+def finite_or_none(value):
+    """Map inf/nan to None. json.dumps writes them as Infinity/NaN, which browsers reject."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
+
+
 @routes.get("/api/packets_seen/{packet_id}")
 async def api_packets_seen(request):
     try:
         # --- Validate packet_id ---
         try:
-            packet_id = int(request.match_info["packet_id"])
+            packet_id = parse_db_int(request.match_info["packet_id"])
         except (KeyError, ValueError):
             return web.json_response(
                 {"error": "Invalid or missing packet_id"},
@@ -931,7 +981,7 @@ async def api_packets_seen(request):
                     "hop_limit": row.hop_limit,
                     "hop_start": row.hop_start,
                     "channel": row.channel,
-                    "rx_snr": row.rx_snr,
+                    "rx_snr": finite_or_none(row.rx_snr),
                     "rx_rssi": row.rx_rssi,
                     "topic": row.topic,
                     "import_time_us": row.import_time_us,
@@ -950,7 +1000,7 @@ async def api_packets_seen(request):
 
 @routes.get("/api/traceroute/{packet_id}")
 async def api_traceroute(request):
-    packet_id = int(request.match_info['packet_id'])
+    packet_id = _match_int(request, "packet_id")
 
     traceroutes = list(await store.get_traceroute(packet_id))
     packet = await store.get_packet(packet_id)
@@ -1075,11 +1125,12 @@ async def api_stats_top(request):
     """
 
     period_type = request.query.get("period_type", "day")
-    length = int(request.query.get("length", 1))
+    length = _query_int(request, "length", 1, 1, MAX_PERIOD_LENGTH)
     channel = request.query.get("channel")
 
-    limit = min(int(request.query.get("limit", 20)), 100)
-    offset = int(request.query.get("offset", 0))
+    # SQLite reads a negative LIMIT as "no limit", so the lower bound matters too.
+    limit = _query_int(request, "limit", 20, 1, 100)
+    offset = _query_int(request, "offset", 0, 0, None)
 
     multiplier = 3600 if period_type == "hour" else 86400
     window_us = length * multiplier * 1_000_000
@@ -1163,7 +1214,7 @@ async def api_node_qr(request):
     """
     try:
         node_id_str = request.match_info["node_id"]
-        node_id = int(node_id_str, 0)
+        node_id = parse_db_int(node_id_str, 0)
     except (KeyError, ValueError):
         return web.json_response({"error": "Invalid node_id"}, status=400)
 
@@ -1172,9 +1223,11 @@ async def api_node_qr(request):
         return web.json_response({"error": "Node not found"}, status=404)
 
     try:
+        from google.protobuf.message import DecodeError
+
         from meshtastic.protobuf.admin_pb2 import SharedContact
         from meshtastic.protobuf.config_pb2 import Config
-        from meshtastic.protobuf.mesh_pb2 import User
+        from meshtastic.protobuf.mesh_pb2 import MeshPacket, User
 
         user = User()
         user.id = f"!{node_id:08x}"
@@ -1199,18 +1252,52 @@ async def api_node_qr(request):
             except (AttributeError, TypeError):
                 pass
 
-        contact = SharedContact()
-        contact.node_num = node_id
-        contact.user.CopyFrom(user)
-        contact.manually_verified = False
+        # Meshview does not store public keys, so read them from the node's NODEINFO packets.
+        latest_nodeinfo = None
+        public_keys = set()
+        for payload in await store.get_nodeinfo_payloads(node_id):
+            if not payload:
+                continue
+            try:
+                mesh_packet = MeshPacket.FromString(payload)
+            except DecodeError:
+                continue
+            nodeinfo = decode_payload.decode_payload(
+                PortNum.NODEINFO_APP, mesh_packet.decoded.payload
+            )
+            if not isinstance(nodeinfo, User):
+                continue
+            if latest_nodeinfo is None:
+                latest_nodeinfo = nodeinfo
+            if len(nodeinfo.public_key) == 32:
+                public_keys.add(nodeinfo.public_key)
 
-        contact_bytes = contact.SerializeToString()
+        if latest_nodeinfo is not None:
+            if len(latest_nodeinfo.public_key) == 32:
+                user.public_key = latest_nodeinfo.public_key
+            user.is_licensed = latest_nodeinfo.is_licensed
+            if latest_nodeinfo.HasField("is_unmessagable"):
+                user.is_unmessagable = latest_nodeinfo.is_unmessagable
+
         import base64
 
-        contact_b64 = base64.b64encode(contact_bytes).decode("ascii")
-        contact_b64url = contact_b64.replace("+", "-").replace("/", "_").rstrip("=")
+        # A contact without a public key is refused by current Meshtastic apps and, on older
+        # firmware, erases the key the importing radio already has. Importing a contact also
+        # replaces a key the radio has pinned, so when the node's packets disagree on its key
+        # (one of them may be forged), share neither.
+        public_key_conflict = len(public_keys) > 1
+        meshtastic_url = None
+        if user.public_key and not public_key_conflict:
+            contact = SharedContact()
+            contact.node_num = node_id
+            contact.user.CopyFrom(user)
+            contact.manually_verified = False
 
-        meshtastic_url = f"https://meshtastic.org/v/#{contact_b64url}"
+            contact_bytes = contact.SerializeToString()
+            contact_b64 = base64.b64encode(contact_bytes).decode("ascii")
+            contact_b64url = contact_b64.replace("+", "-").replace("/", "_").rstrip("=")
+
+            meshtastic_url = f"https://meshtastic.org/v/#{contact_b64url}"
 
         return web.json_response(
             {
@@ -1218,6 +1305,10 @@ async def api_node_qr(request):
                 "long_name": node.long_name,
                 "short_name": node.short_name,
                 "role": node.role,
+                "public_key": (
+                    base64.b64encode(user.public_key).decode("ascii") if user.public_key else None
+                ),
+                "public_key_conflict": public_key_conflict,
                 "meshtastic_url": meshtastic_url,
             }
         )
@@ -1232,7 +1323,7 @@ async def api_node_qr(request):
 @routes.get("/api/coverage/{node_id}")
 async def api_coverage(request):
     try:
-        node_id = int(request.match_info["node_id"], 0)
+        node_id = parse_db_int(request.match_info["node_id"], 0)
     except (KeyError, ValueError):
         return web.json_response({"error": "Invalid node_id"}, status=400)
 

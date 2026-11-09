@@ -2,18 +2,18 @@
 
 {% block body %}
 <div class="container mt-4 text-center">
-  <h2>Error</h2>
+  <h2>{{ tr("Error") }}</h2>
   <p>{{ error_message }}</p>
 
   {% if error_details %}
     <details>
-      <summary>Error Details</summary>
+      <summary>{{ tr("Error Details") }}</summary>
       <code style="text-align: start;">
         <pre>{{error_details}}</pre>
       </code>
     </details>
   {% endif %}
 
-  <button class="btn btn-primary mt-3" onclick="window.history.back()">Go Back</button>
+  <button class="btn btn-primary mt-3" onclick="window.history.back()">{{ tr("Go Back") }}</button>
 </div>
 {% endblock %}

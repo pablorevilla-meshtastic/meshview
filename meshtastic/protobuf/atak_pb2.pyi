@@ -1,3 +1,4 @@
+from meshtastic.protobuf import field_metadata_pb2 as _field_metadata_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -301,7 +302,7 @@ class CotGeoPoint(_message.Message):
     def __init__(self, lat_delta_i: _Optional[int] = ..., lon_delta_i: _Optional[int] = ...) -> None: ...
 
 class DrawnShape(_message.Message):
-    __slots__ = ["angle_deg", "bullseye_bearing_ref", "bullseye_distance_dm", "bullseye_flags", "bullseye_uid_ref", "fill_argb", "fill_color", "kind", "labels_on", "major_cm", "minor_cm", "stroke_argb", "stroke_color", "stroke_weight_x10", "style", "truncated", "vertices"]
+    __slots__ = ["angle_deg", "bullseye_bearing_ref", "bullseye_distance_dm", "bullseye_flags", "bullseye_uid_ref", "fill_argb", "fill_color", "kind", "labels_on", "major_cm", "minor_cm", "stroke_argb", "stroke_color", "stroke_weight_x10", "style", "truncated", "vertex_lat_deltas", "vertex_lon_deltas"]
     class Kind(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
     class StyleMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -337,7 +338,8 @@ class DrawnShape(_message.Message):
     StyleMode_StrokeOnly: DrawnShape.StyleMode
     StyleMode_Unspecified: DrawnShape.StyleMode
     TRUNCATED_FIELD_NUMBER: _ClassVar[int]
-    VERTICES_FIELD_NUMBER: _ClassVar[int]
+    VERTEX_LAT_DELTAS_FIELD_NUMBER: _ClassVar[int]
+    VERTEX_LON_DELTAS_FIELD_NUMBER: _ClassVar[int]
     angle_deg: int
     bullseye_bearing_ref: int
     bullseye_distance_dm: int
@@ -354,8 +356,9 @@ class DrawnShape(_message.Message):
     stroke_weight_x10: int
     style: DrawnShape.StyleMode
     truncated: bool
-    vertices: _containers.RepeatedCompositeFieldContainer[CotGeoPoint]
-    def __init__(self, kind: _Optional[_Union[DrawnShape.Kind, str]] = ..., style: _Optional[_Union[DrawnShape.StyleMode, str]] = ..., major_cm: _Optional[int] = ..., minor_cm: _Optional[int] = ..., angle_deg: _Optional[int] = ..., stroke_color: _Optional[_Union[Team, str]] = ..., stroke_argb: _Optional[int] = ..., stroke_weight_x10: _Optional[int] = ..., fill_color: _Optional[_Union[Team, str]] = ..., fill_argb: _Optional[int] = ..., labels_on: bool = ..., vertices: _Optional[_Iterable[_Union[CotGeoPoint, _Mapping]]] = ..., truncated: bool = ..., bullseye_distance_dm: _Optional[int] = ..., bullseye_bearing_ref: _Optional[int] = ..., bullseye_flags: _Optional[int] = ..., bullseye_uid_ref: _Optional[str] = ...) -> None: ...
+    vertex_lat_deltas: _containers.RepeatedScalarFieldContainer[int]
+    vertex_lon_deltas: _containers.RepeatedScalarFieldContainer[int]
+    def __init__(self, kind: _Optional[_Union[DrawnShape.Kind, str]] = ..., style: _Optional[_Union[DrawnShape.StyleMode, str]] = ..., major_cm: _Optional[int] = ..., minor_cm: _Optional[int] = ..., angle_deg: _Optional[int] = ..., stroke_color: _Optional[_Union[Team, str]] = ..., stroke_argb: _Optional[int] = ..., stroke_weight_x10: _Optional[int] = ..., fill_color: _Optional[_Union[Team, str]] = ..., fill_argb: _Optional[int] = ..., labels_on: bool = ..., vertex_lat_deltas: _Optional[_Iterable[int]] = ..., vertex_lon_deltas: _Optional[_Iterable[int]] = ..., truncated: bool = ..., bullseye_distance_dm: _Optional[int] = ..., bullseye_bearing_ref: _Optional[int] = ..., bullseye_flags: _Optional[int] = ..., bullseye_uid_ref: _Optional[str] = ...) -> None: ...
 
 class EmergencyAlert(_message.Message):
     __slots__ = ["authoring_uid", "cancel_reference_uid", "type"]
@@ -443,6 +446,12 @@ class Marker(_message.Message):
     parent_uid: str
     readiness: bool
     def __init__(self, kind: _Optional[_Union[Marker.Kind, str]] = ..., color: _Optional[_Union[Team, str]] = ..., color_argb: _Optional[int] = ..., readiness: bool = ..., parent_uid: _Optional[str] = ..., parent_type: _Optional[str] = ..., parent_callsign: _Optional[str] = ..., iconset: _Optional[str] = ...) -> None: ...
+
+class Marti(_message.Message):
+    __slots__ = ["dest_callsign"]
+    DEST_CALLSIGN_FIELD_NUMBER: _ClassVar[int]
+    dest_callsign: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, dest_callsign: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class PLI(_message.Message):
     __slots__ = ["altitude", "course", "latitude_i", "longitude_i", "speed"]
@@ -580,7 +589,7 @@ class TAKPacket(_message.Message):
     def __init__(self, is_compressed: bool = ..., contact: _Optional[_Union[Contact, _Mapping]] = ..., group: _Optional[_Union[Group, _Mapping]] = ..., status: _Optional[_Union[Status, _Mapping]] = ..., pli: _Optional[_Union[PLI, _Mapping]] = ..., chat: _Optional[_Union[GeoChat, _Mapping]] = ..., detail: _Optional[bytes] = ...) -> None: ...
 
 class TAKPacketV2(_message.Message):
-    __slots__ = ["aircraft", "alt_src", "altitude", "battery", "callsign", "casevac", "chat", "cot_type_id", "cot_type_str", "course", "device_callsign", "emergency", "endpoint", "environment", "geo_src", "how", "latitude_i", "longitude_i", "marker", "phone", "pli", "rab", "raw_detail", "remarks", "role", "route", "sensor_fov", "shape", "speed", "stale_seconds", "tak_device", "tak_os", "tak_platform", "tak_version", "taktalk", "taktalk_room", "task", "team", "uid"]
+    __slots__ = ["aircraft", "alt_src", "altitude", "battery", "callsign", "casevac", "chat", "cot_type_id", "cot_type_str", "course", "device_callsign", "emergency", "endpoint", "environment", "geo_src", "how", "latitude_i", "longitude_i", "marker", "marti", "phone", "rab", "raw_detail", "remarks", "role", "route", "sensor_fov", "shape", "speed", "stale_seconds", "tak_device", "tak_os", "tak_platform", "tak_version", "taktalk", "taktalk_room", "task", "team", "uid"]
     AIRCRAFT_FIELD_NUMBER: _ClassVar[int]
     ALTITUDE_FIELD_NUMBER: _ClassVar[int]
     ALT_SRC_FIELD_NUMBER: _ClassVar[int]
@@ -600,8 +609,8 @@ class TAKPacketV2(_message.Message):
     LATITUDE_I_FIELD_NUMBER: _ClassVar[int]
     LONGITUDE_I_FIELD_NUMBER: _ClassVar[int]
     MARKER_FIELD_NUMBER: _ClassVar[int]
+    MARTI_FIELD_NUMBER: _ClassVar[int]
     PHONE_FIELD_NUMBER: _ClassVar[int]
-    PLI_FIELD_NUMBER: _ClassVar[int]
     RAB_FIELD_NUMBER: _ClassVar[int]
     RAW_DETAIL_FIELD_NUMBER: _ClassVar[int]
     REMARKS_FIELD_NUMBER: _ClassVar[int]
@@ -639,8 +648,8 @@ class TAKPacketV2(_message.Message):
     latitude_i: int
     longitude_i: int
     marker: Marker
+    marti: Marti
     phone: str
-    pli: bool
     rab: RangeAndBearing
     raw_detail: bytes
     remarks: str
@@ -659,7 +668,7 @@ class TAKPacketV2(_message.Message):
     task: TaskRequest
     team: Team
     uid: str
-    def __init__(self, cot_type_id: _Optional[_Union[CotType, str]] = ..., how: _Optional[_Union[CotHow, str]] = ..., callsign: _Optional[str] = ..., team: _Optional[_Union[Team, str]] = ..., role: _Optional[_Union[MemberRole, str]] = ..., latitude_i: _Optional[int] = ..., longitude_i: _Optional[int] = ..., altitude: _Optional[int] = ..., speed: _Optional[int] = ..., course: _Optional[int] = ..., battery: _Optional[int] = ..., geo_src: _Optional[_Union[GeoPointSource, str]] = ..., alt_src: _Optional[_Union[GeoPointSource, str]] = ..., uid: _Optional[str] = ..., device_callsign: _Optional[str] = ..., stale_seconds: _Optional[int] = ..., tak_version: _Optional[str] = ..., tak_device: _Optional[str] = ..., tak_platform: _Optional[str] = ..., tak_os: _Optional[str] = ..., endpoint: _Optional[str] = ..., phone: _Optional[str] = ..., cot_type_str: _Optional[str] = ..., remarks: _Optional[str] = ..., environment: _Optional[_Union[TAKEnvironment, _Mapping]] = ..., sensor_fov: _Optional[_Union[SensorFov, _Mapping]] = ..., pli: bool = ..., chat: _Optional[_Union[GeoChat, _Mapping]] = ..., aircraft: _Optional[_Union[AircraftTrack, _Mapping]] = ..., raw_detail: _Optional[bytes] = ..., shape: _Optional[_Union[DrawnShape, _Mapping]] = ..., marker: _Optional[_Union[Marker, _Mapping]] = ..., rab: _Optional[_Union[RangeAndBearing, _Mapping]] = ..., route: _Optional[_Union[Route, _Mapping]] = ..., casevac: _Optional[_Union[CasevacReport, _Mapping]] = ..., emergency: _Optional[_Union[EmergencyAlert, _Mapping]] = ..., task: _Optional[_Union[TaskRequest, _Mapping]] = ..., taktalk: _Optional[_Union[TakTalkMessage, _Mapping]] = ..., taktalk_room: _Optional[_Union[TakTalkRoomData, _Mapping]] = ...) -> None: ...
+    def __init__(self, cot_type_id: _Optional[_Union[CotType, str]] = ..., how: _Optional[_Union[CotHow, str]] = ..., callsign: _Optional[str] = ..., team: _Optional[_Union[Team, str]] = ..., role: _Optional[_Union[MemberRole, str]] = ..., latitude_i: _Optional[int] = ..., longitude_i: _Optional[int] = ..., altitude: _Optional[int] = ..., speed: _Optional[int] = ..., course: _Optional[int] = ..., battery: _Optional[int] = ..., geo_src: _Optional[_Union[GeoPointSource, str]] = ..., alt_src: _Optional[_Union[GeoPointSource, str]] = ..., uid: _Optional[str] = ..., device_callsign: _Optional[str] = ..., stale_seconds: _Optional[int] = ..., tak_version: _Optional[str] = ..., tak_device: _Optional[str] = ..., tak_platform: _Optional[str] = ..., tak_os: _Optional[str] = ..., endpoint: _Optional[str] = ..., phone: _Optional[str] = ..., cot_type_str: _Optional[str] = ..., remarks: _Optional[str] = ..., environment: _Optional[_Union[TAKEnvironment, _Mapping]] = ..., sensor_fov: _Optional[_Union[SensorFov, _Mapping]] = ..., marti: _Optional[_Union[Marti, _Mapping]] = ..., chat: _Optional[_Union[GeoChat, _Mapping]] = ..., aircraft: _Optional[_Union[AircraftTrack, _Mapping]] = ..., raw_detail: _Optional[bytes] = ..., shape: _Optional[_Union[DrawnShape, _Mapping]] = ..., marker: _Optional[_Union[Marker, _Mapping]] = ..., rab: _Optional[_Union[RangeAndBearing, _Mapping]] = ..., route: _Optional[_Union[Route, _Mapping]] = ..., casevac: _Optional[_Union[CasevacReport, _Mapping]] = ..., emergency: _Optional[_Union[EmergencyAlert, _Mapping]] = ..., task: _Optional[_Union[TaskRequest, _Mapping]] = ..., taktalk: _Optional[_Union[TakTalkMessage, _Mapping]] = ..., taktalk_room: _Optional[_Union[TakTalkRoomData, _Mapping]] = ...) -> None: ...
 
 class TakTalkMessage(_message.Message):
     __slots__ = ["chatroom_id", "from_voice", "lang", "text"]

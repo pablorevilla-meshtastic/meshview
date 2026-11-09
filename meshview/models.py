@@ -21,6 +21,7 @@ class Node(Base):
     role: Mapped[str] = mapped_column(nullable=True)
     last_lat: Mapped[int] = mapped_column(BigInteger, nullable=True)
     last_long: Mapped[int] = mapped_column(BigInteger, nullable=True)
+    last_altitude: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     channel: Mapped[str] = mapped_column(nullable=True)
     is_mqtt_gateway: Mapped[bool] = mapped_column(nullable=True)
     first_seen_us: Mapped[int] = mapped_column(BigInteger, nullable=True)
@@ -59,6 +60,12 @@ class Packet(Base):
         Index("idx_packet_to_node_id", "to_node_id"),
         Index("idx_packet_import_time_us", desc("import_time_us")),
         Index("idx_packet_from_node_time_us", "from_node_id", desc("import_time_us")),
+        Index(
+            "idx_packet_from_node_portnum_time_us",
+            "from_node_id",
+            "portnum",
+            desc("import_time_us"),
+        ),
     )
 
 

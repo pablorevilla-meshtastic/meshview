@@ -1,4 +1,7 @@
 from meshtastic.protobuf import atak_pb2 as _atak_pb2
+from meshtastic.protobuf import channel_pb2 as _channel_pb2
+from meshtastic.protobuf import config_pb2 as _config_pb2
+from meshtastic.protobuf import field_metadata_pb2 as _field_metadata_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -11,7 +14,7 @@ DIGITAL_WRITE: RemoteHardwarePinType
 UNKNOWN: RemoteHardwarePinType
 
 class ModuleConfig(_message.Message):
-    __slots__ = ["ambient_lighting", "audio", "canned_message", "detection_sensor", "external_notification", "mqtt", "neighbor_info", "paxcounter", "range_test", "remote_hardware", "serial", "statusmessage", "store_forward", "tak", "telemetry", "traffic_management"]
+    __slots__ = ["ambient_lighting", "audio", "canned_message", "detection_sensor", "external_notification", "mesh_beacon", "mqtt", "neighbor_info", "paxcounter", "range_test", "remote_hardware", "serial", "statusmessage", "store_forward", "tak", "telemetry", "traffic_management"]
     class AmbientLightingConfig(_message.Message):
         __slots__ = ["blue", "current", "green", "led_state", "red"]
         BLUE_FIELD_NUMBER: _ClassVar[int]
@@ -36,8 +39,10 @@ class ModuleConfig(_message.Message):
         CODEC2_1600: ModuleConfig.AudioConfig.Audio_Baud
         CODEC2_2400: ModuleConfig.AudioConfig.Audio_Baud
         CODEC2_3200: ModuleConfig.AudioConfig.Audio_Baud
+        CODEC2_450: ModuleConfig.AudioConfig.Audio_Baud
         CODEC2_700: ModuleConfig.AudioConfig.Audio_Baud
         CODEC2_700B: ModuleConfig.AudioConfig.Audio_Baud
+        CODEC2_700C: ModuleConfig.AudioConfig.Audio_Baud
         CODEC2_DEFAULT: ModuleConfig.AudioConfig.Audio_Baud
         CODEC2_ENABLED_FIELD_NUMBER: _ClassVar[int]
         I2S_DIN_FIELD_NUMBER: _ClassVar[int]
@@ -182,6 +187,42 @@ class ModuleConfig(_message.Message):
         publish_interval_secs: int
         should_report_location: bool
         def __init__(self, publish_interval_secs: _Optional[int] = ..., position_precision: _Optional[int] = ..., should_report_location: bool = ...) -> None: ...
+    class MeshBeaconConfig(_message.Message):
+        __slots__ = ["broadcast_interval_secs", "broadcast_message", "broadcast_offer_channel", "broadcast_offer_frequency_slot", "broadcast_offer_preset", "broadcast_offer_region", "broadcast_targets", "flags"]
+        class Flags(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+            __slots__ = []
+        class BroadcastTarget(_message.Message):
+            __slots__ = ["channel_index", "frequency_slot", "preset", "region"]
+            CHANNEL_INDEX_FIELD_NUMBER: _ClassVar[int]
+            FREQUENCY_SLOT_FIELD_NUMBER: _ClassVar[int]
+            PRESET_FIELD_NUMBER: _ClassVar[int]
+            REGION_FIELD_NUMBER: _ClassVar[int]
+            channel_index: int
+            frequency_slot: int
+            preset: _config_pb2.Config.LoRaConfig.ModemPreset
+            region: _config_pb2.Config.LoRaConfig.RegionCode
+            def __init__(self, preset: _Optional[_Union[_config_pb2.Config.LoRaConfig.ModemPreset, str]] = ..., region: _Optional[_Union[_config_pb2.Config.LoRaConfig.RegionCode, str]] = ..., channel_index: _Optional[int] = ..., frequency_slot: _Optional[int] = ...) -> None: ...
+        BROADCAST_INTERVAL_SECS_FIELD_NUMBER: _ClassVar[int]
+        BROADCAST_MESSAGE_FIELD_NUMBER: _ClassVar[int]
+        BROADCAST_OFFER_CHANNEL_FIELD_NUMBER: _ClassVar[int]
+        BROADCAST_OFFER_FREQUENCY_SLOT_FIELD_NUMBER: _ClassVar[int]
+        BROADCAST_OFFER_PRESET_FIELD_NUMBER: _ClassVar[int]
+        BROADCAST_OFFER_REGION_FIELD_NUMBER: _ClassVar[int]
+        BROADCAST_TARGETS_FIELD_NUMBER: _ClassVar[int]
+        FLAGS_FIELD_NUMBER: _ClassVar[int]
+        FLAG_BROADCAST_ENABLED: ModuleConfig.MeshBeaconConfig.Flags
+        FLAG_LEGACY_SPLIT: ModuleConfig.MeshBeaconConfig.Flags
+        FLAG_LISTEN_ENABLED: ModuleConfig.MeshBeaconConfig.Flags
+        FLAG_NONE: ModuleConfig.MeshBeaconConfig.Flags
+        broadcast_interval_secs: int
+        broadcast_message: str
+        broadcast_offer_channel: _channel_pb2.ChannelSettings
+        broadcast_offer_frequency_slot: int
+        broadcast_offer_preset: _config_pb2.Config.LoRaConfig.ModemPreset
+        broadcast_offer_region: _config_pb2.Config.LoRaConfig.RegionCode
+        broadcast_targets: _containers.RepeatedCompositeFieldContainer[ModuleConfig.MeshBeaconConfig.BroadcastTarget]
+        flags: int
+        def __init__(self, flags: _Optional[int] = ..., broadcast_offer_frequency_slot: _Optional[int] = ..., broadcast_message: _Optional[str] = ..., broadcast_offer_channel: _Optional[_Union[_channel_pb2.ChannelSettings, _Mapping]] = ..., broadcast_offer_region: _Optional[_Union[_config_pb2.Config.LoRaConfig.RegionCode, str]] = ..., broadcast_offer_preset: _Optional[_Union[_config_pb2.Config.LoRaConfig.ModemPreset, str]] = ..., broadcast_interval_secs: _Optional[int] = ..., broadcast_targets: _Optional[_Iterable[_Union[ModuleConfig.MeshBeaconConfig.BroadcastTarget, _Mapping]]] = ...) -> None: ...
     class NeighborInfoConfig(_message.Message):
         __slots__ = ["enabled", "transmit_over_lora", "update_interval"]
         ENABLED_FIELD_NUMBER: _ClassVar[int]
@@ -251,6 +292,7 @@ class ModuleConfig(_message.Message):
         ENABLED_FIELD_NUMBER: _ClassVar[int]
         LOG: ModuleConfig.SerialConfig.Serial_Mode
         LOGTEXT: ModuleConfig.SerialConfig.Serial_Mode
+        MODBUS: ModuleConfig.SerialConfig.Serial_Mode
         MODE_FIELD_NUMBER: _ClassVar[int]
         MS_CONFIG: ModuleConfig.SerialConfig.Serial_Mode
         NMEA: ModuleConfig.SerialConfig.Serial_Mode
@@ -333,41 +375,24 @@ class ModuleConfig(_message.Message):
         power_update_interval: int
         def __init__(self, device_update_interval: _Optional[int] = ..., environment_update_interval: _Optional[int] = ..., environment_measurement_enabled: bool = ..., environment_screen_enabled: bool = ..., environment_display_fahrenheit: bool = ..., air_quality_enabled: bool = ..., air_quality_interval: _Optional[int] = ..., power_measurement_enabled: bool = ..., power_update_interval: _Optional[int] = ..., power_screen_enabled: bool = ..., health_measurement_enabled: bool = ..., health_update_interval: _Optional[int] = ..., health_screen_enabled: bool = ..., device_telemetry_enabled: bool = ..., air_quality_screen_enabled: bool = ...) -> None: ...
     class TrafficManagementConfig(_message.Message):
-        __slots__ = ["drop_unknown_enabled", "enabled", "exhaust_hop_position", "exhaust_hop_telemetry", "nodeinfo_direct_response", "nodeinfo_direct_response_max_hops", "position_dedup_enabled", "position_min_interval_secs", "position_precision_bits", "rate_limit_enabled", "rate_limit_max_packets", "rate_limit_window_secs", "router_preserve_hops", "unknown_packet_threshold"]
-        DROP_UNKNOWN_ENABLED_FIELD_NUMBER: _ClassVar[int]
-        ENABLED_FIELD_NUMBER: _ClassVar[int]
-        EXHAUST_HOP_POSITION_FIELD_NUMBER: _ClassVar[int]
-        EXHAUST_HOP_TELEMETRY_FIELD_NUMBER: _ClassVar[int]
-        NODEINFO_DIRECT_RESPONSE_FIELD_NUMBER: _ClassVar[int]
+        __slots__ = ["nodeinfo_direct_response_max_hops", "position_min_interval_secs", "rate_limit_max_packets", "rate_limit_window_secs", "unknown_packet_threshold"]
         NODEINFO_DIRECT_RESPONSE_MAX_HOPS_FIELD_NUMBER: _ClassVar[int]
-        POSITION_DEDUP_ENABLED_FIELD_NUMBER: _ClassVar[int]
         POSITION_MIN_INTERVAL_SECS_FIELD_NUMBER: _ClassVar[int]
-        POSITION_PRECISION_BITS_FIELD_NUMBER: _ClassVar[int]
-        RATE_LIMIT_ENABLED_FIELD_NUMBER: _ClassVar[int]
         RATE_LIMIT_MAX_PACKETS_FIELD_NUMBER: _ClassVar[int]
         RATE_LIMIT_WINDOW_SECS_FIELD_NUMBER: _ClassVar[int]
-        ROUTER_PRESERVE_HOPS_FIELD_NUMBER: _ClassVar[int]
         UNKNOWN_PACKET_THRESHOLD_FIELD_NUMBER: _ClassVar[int]
-        drop_unknown_enabled: bool
-        enabled: bool
-        exhaust_hop_position: bool
-        exhaust_hop_telemetry: bool
-        nodeinfo_direct_response: bool
         nodeinfo_direct_response_max_hops: int
-        position_dedup_enabled: bool
         position_min_interval_secs: int
-        position_precision_bits: int
-        rate_limit_enabled: bool
         rate_limit_max_packets: int
         rate_limit_window_secs: int
-        router_preserve_hops: bool
         unknown_packet_threshold: int
-        def __init__(self, enabled: bool = ..., position_dedup_enabled: bool = ..., position_precision_bits: _Optional[int] = ..., position_min_interval_secs: _Optional[int] = ..., nodeinfo_direct_response: bool = ..., nodeinfo_direct_response_max_hops: _Optional[int] = ..., rate_limit_enabled: bool = ..., rate_limit_window_secs: _Optional[int] = ..., rate_limit_max_packets: _Optional[int] = ..., drop_unknown_enabled: bool = ..., unknown_packet_threshold: _Optional[int] = ..., exhaust_hop_telemetry: bool = ..., exhaust_hop_position: bool = ..., router_preserve_hops: bool = ...) -> None: ...
+        def __init__(self, position_min_interval_secs: _Optional[int] = ..., nodeinfo_direct_response_max_hops: _Optional[int] = ..., rate_limit_window_secs: _Optional[int] = ..., rate_limit_max_packets: _Optional[int] = ..., unknown_packet_threshold: _Optional[int] = ...) -> None: ...
     AMBIENT_LIGHTING_FIELD_NUMBER: _ClassVar[int]
     AUDIO_FIELD_NUMBER: _ClassVar[int]
     CANNED_MESSAGE_FIELD_NUMBER: _ClassVar[int]
     DETECTION_SENSOR_FIELD_NUMBER: _ClassVar[int]
     EXTERNAL_NOTIFICATION_FIELD_NUMBER: _ClassVar[int]
+    MESH_BEACON_FIELD_NUMBER: _ClassVar[int]
     MQTT_FIELD_NUMBER: _ClassVar[int]
     NEIGHBOR_INFO_FIELD_NUMBER: _ClassVar[int]
     PAXCOUNTER_FIELD_NUMBER: _ClassVar[int]
@@ -384,6 +409,7 @@ class ModuleConfig(_message.Message):
     canned_message: ModuleConfig.CannedMessageConfig
     detection_sensor: ModuleConfig.DetectionSensorConfig
     external_notification: ModuleConfig.ExternalNotificationConfig
+    mesh_beacon: ModuleConfig.MeshBeaconConfig
     mqtt: ModuleConfig.MQTTConfig
     neighbor_info: ModuleConfig.NeighborInfoConfig
     paxcounter: ModuleConfig.PaxcounterConfig
@@ -395,7 +421,7 @@ class ModuleConfig(_message.Message):
     tak: ModuleConfig.TAKConfig
     telemetry: ModuleConfig.TelemetryConfig
     traffic_management: ModuleConfig.TrafficManagementConfig
-    def __init__(self, mqtt: _Optional[_Union[ModuleConfig.MQTTConfig, _Mapping]] = ..., serial: _Optional[_Union[ModuleConfig.SerialConfig, _Mapping]] = ..., external_notification: _Optional[_Union[ModuleConfig.ExternalNotificationConfig, _Mapping]] = ..., store_forward: _Optional[_Union[ModuleConfig.StoreForwardConfig, _Mapping]] = ..., range_test: _Optional[_Union[ModuleConfig.RangeTestConfig, _Mapping]] = ..., telemetry: _Optional[_Union[ModuleConfig.TelemetryConfig, _Mapping]] = ..., canned_message: _Optional[_Union[ModuleConfig.CannedMessageConfig, _Mapping]] = ..., audio: _Optional[_Union[ModuleConfig.AudioConfig, _Mapping]] = ..., remote_hardware: _Optional[_Union[ModuleConfig.RemoteHardwareConfig, _Mapping]] = ..., neighbor_info: _Optional[_Union[ModuleConfig.NeighborInfoConfig, _Mapping]] = ..., ambient_lighting: _Optional[_Union[ModuleConfig.AmbientLightingConfig, _Mapping]] = ..., detection_sensor: _Optional[_Union[ModuleConfig.DetectionSensorConfig, _Mapping]] = ..., paxcounter: _Optional[_Union[ModuleConfig.PaxcounterConfig, _Mapping]] = ..., statusmessage: _Optional[_Union[ModuleConfig.StatusMessageConfig, _Mapping]] = ..., traffic_management: _Optional[_Union[ModuleConfig.TrafficManagementConfig, _Mapping]] = ..., tak: _Optional[_Union[ModuleConfig.TAKConfig, _Mapping]] = ...) -> None: ...
+    def __init__(self, mqtt: _Optional[_Union[ModuleConfig.MQTTConfig, _Mapping]] = ..., serial: _Optional[_Union[ModuleConfig.SerialConfig, _Mapping]] = ..., external_notification: _Optional[_Union[ModuleConfig.ExternalNotificationConfig, _Mapping]] = ..., store_forward: _Optional[_Union[ModuleConfig.StoreForwardConfig, _Mapping]] = ..., range_test: _Optional[_Union[ModuleConfig.RangeTestConfig, _Mapping]] = ..., telemetry: _Optional[_Union[ModuleConfig.TelemetryConfig, _Mapping]] = ..., canned_message: _Optional[_Union[ModuleConfig.CannedMessageConfig, _Mapping]] = ..., audio: _Optional[_Union[ModuleConfig.AudioConfig, _Mapping]] = ..., remote_hardware: _Optional[_Union[ModuleConfig.RemoteHardwareConfig, _Mapping]] = ..., neighbor_info: _Optional[_Union[ModuleConfig.NeighborInfoConfig, _Mapping]] = ..., ambient_lighting: _Optional[_Union[ModuleConfig.AmbientLightingConfig, _Mapping]] = ..., detection_sensor: _Optional[_Union[ModuleConfig.DetectionSensorConfig, _Mapping]] = ..., paxcounter: _Optional[_Union[ModuleConfig.PaxcounterConfig, _Mapping]] = ..., statusmessage: _Optional[_Union[ModuleConfig.StatusMessageConfig, _Mapping]] = ..., traffic_management: _Optional[_Union[ModuleConfig.TrafficManagementConfig, _Mapping]] = ..., tak: _Optional[_Union[ModuleConfig.TAKConfig, _Mapping]] = ..., mesh_beacon: _Optional[_Union[ModuleConfig.MeshBeaconConfig, _Mapping]] = ...) -> None: ...
 
 class RemoteHardwarePin(_message.Message):
     __slots__ = ["gpio_pin", "name", "type"]

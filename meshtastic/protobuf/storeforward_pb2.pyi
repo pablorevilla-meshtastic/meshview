@@ -6,7 +6,7 @@ from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Opti
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class StoreAndForward(_message.Message):
-    __slots__ = ["heartbeat", "history", "rr", "stats", "text"]
+    __slots__ = ["heartbeat", "history", "original_id", "rr", "stats", "text"]
     class RequestResponse(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
     class Heartbeat(_message.Message):
@@ -54,6 +54,7 @@ class StoreAndForward(_message.Message):
     CLIENT_STATS: StoreAndForward.RequestResponse
     HEARTBEAT_FIELD_NUMBER: _ClassVar[int]
     HISTORY_FIELD_NUMBER: _ClassVar[int]
+    ORIGINAL_ID_FIELD_NUMBER: _ClassVar[int]
     ROUTER_BUSY: StoreAndForward.RequestResponse
     ROUTER_ERROR: StoreAndForward.RequestResponse
     ROUTER_HEARTBEAT: StoreAndForward.RequestResponse
@@ -69,7 +70,8 @@ class StoreAndForward(_message.Message):
     UNSET: StoreAndForward.RequestResponse
     heartbeat: StoreAndForward.Heartbeat
     history: StoreAndForward.History
+    original_id: int
     rr: StoreAndForward.RequestResponse
     stats: StoreAndForward.Statistics
     text: bytes
-    def __init__(self, rr: _Optional[_Union[StoreAndForward.RequestResponse, str]] = ..., stats: _Optional[_Union[StoreAndForward.Statistics, _Mapping]] = ..., history: _Optional[_Union[StoreAndForward.History, _Mapping]] = ..., heartbeat: _Optional[_Union[StoreAndForward.Heartbeat, _Mapping]] = ..., text: _Optional[bytes] = ...) -> None: ...
+    def __init__(self, rr: _Optional[_Union[StoreAndForward.RequestResponse, str]] = ..., stats: _Optional[_Union[StoreAndForward.Statistics, _Mapping]] = ..., history: _Optional[_Union[StoreAndForward.History, _Mapping]] = ..., heartbeat: _Optional[_Union[StoreAndForward.Heartbeat, _Mapping]] = ..., text: _Optional[bytes] = ..., original_id: _Optional[int] = ...) -> None: ...

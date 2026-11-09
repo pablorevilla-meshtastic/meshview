@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block head %}
-<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+<script src="/static/vendor/echarts-5.5.0/dist/echarts.min.js"></script>
 {% endblock %}
 
 {% block css %}
@@ -9,8 +9,8 @@
 #mynetwork {
     width: 100%;
     height: 100vh;
-    border: 1px solid #ddd;
-    background-color: #f8f9fa;
+    border: 1px solid var(--mesh-border);
+    background-color: var(--mesh-surface);
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
@@ -30,15 +30,15 @@
 .search-container button {
     padding: 8px;
     border-radius: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--mesh-border);
 }
 .search-container button {
-    background-color: #007bff;
+    background-color: var(--mesh-brand);
     color: white;
     cursor: pointer;
 }
 .search-container button:hover {
-    background-color: #0056b3;
+    background-color: var(--mesh-brand-deep);
 }
 
 /* Node info box */
@@ -49,10 +49,10 @@
     background-color: rgba(255,255,255,0.95);
     padding: 12px;
     border-radius: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--mesh-border);
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     font-size: 14px;
-    color: #333;
+    color: var(--mesh-text);
     width: 260px;
     max-height: 250px;
     overflow-y: auto;
@@ -66,11 +66,13 @@
     background: rgba(255,255,255,0.9);
     padding: 10px;
     border-radius: 5px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--mesh-border);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     font-size: 14px;
     display: flex;
-    color: #333;
+    flex-wrap: wrap;
+    max-width: calc(100% - 20px);
+    color: var(--mesh-text);
 }
 .legend-category {
     margin-right: 10px;
@@ -91,26 +93,26 @@
 
 <!-- SEARCH + FILTER -->
 <div class="search-container">
-    <label style="color:#333;">Channel:</label>
+    <label style="color:var(--mesh-text);">{{ tr("Channel:") }}</label>
     <select id="channel-select" onchange="filterByChannel()"></select>
 
-    <input type="text" id="node-search" placeholder="Search node...">
-    <button onclick="searchNode()">Search</button>
+    <input type="text" id="node-search" placeholder="{{ tr("Search node...") }}">
+    <button onclick="searchNode()">{{ tr("Search") }}</button>
 </div>
 
 <!-- INFO BOX -->
 <div id="node-info">
-    <b>Long Name:</b> <span id="node-long-name"></span><br>
-    <b>Short Name:</b> <span id="node-short-name"></span><br>
-    <b>Role:</b> <span id="node-role"></span><br>
-    <b>Hardware Model:</b> <span id="node-hw-model"></span>
+    <b>{{ tr("Long Name:") }}</b> <span id="node-long-name"></span><br>
+    <b>{{ tr("Short Name:") }}</b> <span id="node-short-name"></span><br>
+    <b>{{ tr("Role:") }}</b> <span id="node-role"></span><br>
+    <b>{{ tr("Hardware Model:") }}</b> <span id="node-hw-model"></span>
 </div>
 
 <!-- LEGEND -->
 <div id="legend">
     <div class="legend-category">
-        <div><span class="legend-box" style="background-color: #ff5733"></span>Traceroute</div>
-        <div><span class="legend-box" style="background-color: #049acd"></span>Neighbor</div>
+        <div><span class="legend-box" style="background-color: #ff5733"></span>{{ tr("Traceroute") }}</div>
+        <div><span class="legend-box" style="background-color: #049acd"></span>{{ tr("Neighbor") }}</div>
     </div>
     <div class="legend-category">
         <div><span class="legend-box circle" style="background-color: #ff5733"></span><code>ROUTER</code></div>
@@ -122,16 +124,16 @@
     </div>
     <div class="legend-category">
         <div><span class="legend-box circle" style="background-color: #049acd"></span><code>CLIENT_BASE</code></div>
-        <div><span class="legend-box circle" style="background-color: #ffbf00"></span>Other</div>
+        <div><span class="legend-box circle" style="background-color: #ffbf00"></span>{{ tr("Other") }}</div>
     </div>
     <div class="legend-category">
-        <div><span class="legend-box circle" style="background-color: #6c757d"></span>Unknown</div>
+        <div><span class="legend-box circle" style="background-color: #6c757d"></span>{{ tr("Unknown") }}</div>
     </div>
 </div>
 
 <script>
 // Initialize ECharts
-const chart = echarts.init(document.getElementById("mynetwork"));
+const chart = initMeshChart(document.getElementById("mynetwork"));
 
 // -----------------------------------
 // COLOR + ROLE HELPERS
@@ -374,7 +376,7 @@ function searchNode() {
     );
 
     if (found) updateSelectedNode(found.name);
-    else alert("Node not found in current channel!");
+    else alert(MeshI18n.t("Node not found in current channel!"));
 }
 
 // -----------------------------------

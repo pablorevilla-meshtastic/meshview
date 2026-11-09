@@ -58,56 +58,98 @@ class DeviceState(_message.Message):
     def __init__(self, my_node: _Optional[_Union[_mesh_pb2.MyNodeInfo, _Mapping]] = ..., owner: _Optional[_Union[_mesh_pb2.User, _Mapping]] = ..., receive_queue: _Optional[_Iterable[_Union[_mesh_pb2.MeshPacket, _Mapping]]] = ..., version: _Optional[int] = ..., rx_text_message: _Optional[_Union[_mesh_pb2.MeshPacket, _Mapping]] = ..., no_save: bool = ..., did_gps_reset: bool = ..., rx_waypoint: _Optional[_Union[_mesh_pb2.MeshPacket, _Mapping]] = ..., node_remote_hardware_pins: _Optional[_Iterable[_Union[_mesh_pb2.NodeRemoteHardwarePin, _Mapping]]] = ...) -> None: ...
 
 class NodeDatabase(_message.Message):
-    __slots__ = ["nodes", "version"]
+    __slots__ = ["environment", "nodes", "positions", "status", "telemetry", "version"]
+    ENVIRONMENT_FIELD_NUMBER: _ClassVar[int]
     NODES_FIELD_NUMBER: _ClassVar[int]
+    POSITIONS_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    TELEMETRY_FIELD_NUMBER: _ClassVar[int]
     VERSION_FIELD_NUMBER: _ClassVar[int]
+    environment: _containers.RepeatedCompositeFieldContainer[NodeEnvironmentEntry]
     nodes: _containers.RepeatedCompositeFieldContainer[NodeInfoLite]
+    positions: _containers.RepeatedCompositeFieldContainer[NodePositionEntry]
+    status: _containers.RepeatedCompositeFieldContainer[NodeStatusEntry]
+    telemetry: _containers.RepeatedCompositeFieldContainer[NodeTelemetryEntry]
     version: int
-    def __init__(self, version: _Optional[int] = ..., nodes: _Optional[_Iterable[_Union[NodeInfoLite, _Mapping]]] = ...) -> None: ...
+    def __init__(self, version: _Optional[int] = ..., nodes: _Optional[_Iterable[_Union[NodeInfoLite, _Mapping]]] = ..., positions: _Optional[_Iterable[_Union[NodePositionEntry, _Mapping]]] = ..., telemetry: _Optional[_Iterable[_Union[NodeTelemetryEntry, _Mapping]]] = ..., status: _Optional[_Iterable[_Union[NodeStatusEntry, _Mapping]]] = ..., environment: _Optional[_Iterable[_Union[NodeEnvironmentEntry, _Mapping]]] = ...) -> None: ...
+
+class NodeEnvironmentEntry(_message.Message):
+    __slots__ = ["environment_metrics", "num"]
+    ENVIRONMENT_METRICS_FIELD_NUMBER: _ClassVar[int]
+    NUM_FIELD_NUMBER: _ClassVar[int]
+    environment_metrics: _telemetry_pb2.EnvironmentMetrics
+    num: int
+    def __init__(self, num: _Optional[int] = ..., environment_metrics: _Optional[_Union[_telemetry_pb2.EnvironmentMetrics, _Mapping]] = ...) -> None: ...
 
 class NodeInfoLite(_message.Message):
-    __slots__ = ["bitfield", "channel", "device_metrics", "hops_away", "is_favorite", "is_ignored", "last_heard", "next_hop", "num", "position", "snr", "user", "via_mqtt"]
+    __slots__ = ["bitfield", "channel", "hops_away", "hw_model", "last_heard", "long_name", "next_hop", "num", "public_key", "role", "short_name", "snr", "snr_q4"]
     BITFIELD_FIELD_NUMBER: _ClassVar[int]
     CHANNEL_FIELD_NUMBER: _ClassVar[int]
-    DEVICE_METRICS_FIELD_NUMBER: _ClassVar[int]
     HOPS_AWAY_FIELD_NUMBER: _ClassVar[int]
-    IS_FAVORITE_FIELD_NUMBER: _ClassVar[int]
-    IS_IGNORED_FIELD_NUMBER: _ClassVar[int]
+    HW_MODEL_FIELD_NUMBER: _ClassVar[int]
     LAST_HEARD_FIELD_NUMBER: _ClassVar[int]
+    LONG_NAME_FIELD_NUMBER: _ClassVar[int]
     NEXT_HOP_FIELD_NUMBER: _ClassVar[int]
     NUM_FIELD_NUMBER: _ClassVar[int]
-    POSITION_FIELD_NUMBER: _ClassVar[int]
+    PUBLIC_KEY_FIELD_NUMBER: _ClassVar[int]
+    ROLE_FIELD_NUMBER: _ClassVar[int]
+    SHORT_NAME_FIELD_NUMBER: _ClassVar[int]
     SNR_FIELD_NUMBER: _ClassVar[int]
-    USER_FIELD_NUMBER: _ClassVar[int]
-    VIA_MQTT_FIELD_NUMBER: _ClassVar[int]
+    SNR_Q4_FIELD_NUMBER: _ClassVar[int]
     bitfield: int
     channel: int
-    device_metrics: _telemetry_pb2.DeviceMetrics
     hops_away: int
-    is_favorite: bool
-    is_ignored: bool
+    hw_model: _mesh_pb2.HardwareModel
     last_heard: int
+    long_name: str
     next_hop: int
     num: int
-    position: PositionLite
+    public_key: bytes
+    role: _config_pb2.Config.DeviceConfig.Role
+    short_name: str
     snr: float
-    user: UserLite
-    via_mqtt: bool
-    def __init__(self, num: _Optional[int] = ..., user: _Optional[_Union[UserLite, _Mapping]] = ..., position: _Optional[_Union[PositionLite, _Mapping]] = ..., snr: _Optional[float] = ..., last_heard: _Optional[int] = ..., device_metrics: _Optional[_Union[_telemetry_pb2.DeviceMetrics, _Mapping]] = ..., channel: _Optional[int] = ..., via_mqtt: bool = ..., hops_away: _Optional[int] = ..., is_favorite: bool = ..., is_ignored: bool = ..., next_hop: _Optional[int] = ..., bitfield: _Optional[int] = ...) -> None: ...
+    snr_q4: int
+    def __init__(self, num: _Optional[int] = ..., snr: _Optional[float] = ..., last_heard: _Optional[int] = ..., channel: _Optional[int] = ..., hops_away: _Optional[int] = ..., next_hop: _Optional[int] = ..., bitfield: _Optional[int] = ..., long_name: _Optional[str] = ..., short_name: _Optional[str] = ..., hw_model: _Optional[_Union[_mesh_pb2.HardwareModel, str]] = ..., role: _Optional[_Union[_config_pb2.Config.DeviceConfig.Role, str]] = ..., public_key: _Optional[bytes] = ..., snr_q4: _Optional[int] = ...) -> None: ...
+
+class NodePositionEntry(_message.Message):
+    __slots__ = ["num", "position"]
+    NUM_FIELD_NUMBER: _ClassVar[int]
+    POSITION_FIELD_NUMBER: _ClassVar[int]
+    num: int
+    position: PositionLite
+    def __init__(self, num: _Optional[int] = ..., position: _Optional[_Union[PositionLite, _Mapping]] = ...) -> None: ...
+
+class NodeStatusEntry(_message.Message):
+    __slots__ = ["num", "status"]
+    NUM_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    num: int
+    status: _mesh_pb2.StatusMessage
+    def __init__(self, num: _Optional[int] = ..., status: _Optional[_Union[_mesh_pb2.StatusMessage, _Mapping]] = ...) -> None: ...
+
+class NodeTelemetryEntry(_message.Message):
+    __slots__ = ["device_metrics", "num"]
+    DEVICE_METRICS_FIELD_NUMBER: _ClassVar[int]
+    NUM_FIELD_NUMBER: _ClassVar[int]
+    device_metrics: _telemetry_pb2.DeviceMetrics
+    num: int
+    def __init__(self, num: _Optional[int] = ..., device_metrics: _Optional[_Union[_telemetry_pb2.DeviceMetrics, _Mapping]] = ...) -> None: ...
 
 class PositionLite(_message.Message):
-    __slots__ = ["altitude", "latitude_i", "location_source", "longitude_i", "time"]
+    __slots__ = ["altitude", "latitude_i", "location_source", "longitude_i", "precision_bits", "time"]
     ALTITUDE_FIELD_NUMBER: _ClassVar[int]
     LATITUDE_I_FIELD_NUMBER: _ClassVar[int]
     LOCATION_SOURCE_FIELD_NUMBER: _ClassVar[int]
     LONGITUDE_I_FIELD_NUMBER: _ClassVar[int]
+    PRECISION_BITS_FIELD_NUMBER: _ClassVar[int]
     TIME_FIELD_NUMBER: _ClassVar[int]
     altitude: int
     latitude_i: int
     location_source: _mesh_pb2.Position.LocSource
     longitude_i: int
+    precision_bits: int
     time: int
-    def __init__(self, latitude_i: _Optional[int] = ..., longitude_i: _Optional[int] = ..., altitude: _Optional[int] = ..., time: _Optional[int] = ..., location_source: _Optional[_Union[_mesh_pb2.Position.LocSource, str]] = ...) -> None: ...
+    def __init__(self, latitude_i: _Optional[int] = ..., longitude_i: _Optional[int] = ..., altitude: _Optional[int] = ..., time: _Optional[int] = ..., location_source: _Optional[_Union[_mesh_pb2.Position.LocSource, str]] = ..., precision_bits: _Optional[int] = ...) -> None: ...
 
 class UserLite(_message.Message):
     __slots__ = ["hw_model", "is_licensed", "is_unmessagable", "long_name", "macaddr", "public_key", "role", "short_name"]

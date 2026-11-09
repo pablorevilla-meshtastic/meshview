@@ -38,6 +38,7 @@ async def get_packets(
     after=None,
     contains=None,  # substring search
     limit=50,
+    channel=None,
 ):
     async with database.async_session() as session:
         stmt = select(models.Packet)
@@ -59,6 +60,9 @@ async def get_packets(
                     models.Packet.to_node_id == node_id,
                 )
             )
+
+        if channel is not None:
+            conditions.append(models.Packet.channel == channel)
 
         # Port filter
         if portnum is not None:
@@ -113,6 +117,17 @@ async def get_packets_from(node_id=None, portnum=None, since=None, limit=500):
         return result.scalars()
 
 
+async def get_nodeinfo_payloads(node_id):
+    """Return the payloads of every stored NODEINFO_APP packet from a node, newest first."""
+    async with database.async_session() as session:
+        result = await session.execute(
+            select(Packet.payload)
+            .where(Packet.from_node_id == node_id, Packet.portnum == PortNum.NODEINFO_APP)
+            .order_by(Packet.import_time_us.desc().nulls_last())
+        )
+        return result.scalars().all()
+
+
 async def get_packet(packet_id):
     async with database.async_session() as session:
         q = select(Packet).where(Packet.id == packet_id)
@@ -141,12 +156,19 @@ async def has_packets(node_id, portnum):
         )
 
 
+# Every TRACEROUTE message stores a row under its packet id, so anyone who can publish can add
+# thousands. Real ones have a few dozen (one per gateway that heard it; the most seen in 17 days
+# of bay-area traffic was 72), so only the earliest rows are used.
+MAX_TRACEROUTE_ROWS = 200
+
+
 async def get_traceroute(packet_id):
     async with database.async_session() as session:
         result = await session.execute(
             select(Traceroute)
             .where(Traceroute.packet_id == packet_id)
             .order_by(Traceroute.import_time_us)
+            .limit(MAX_TRACEROUTE_ROWS)
         )
         return result.scalars()
 

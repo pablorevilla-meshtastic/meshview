@@ -4,6 +4,19 @@
 
 The project serves as a real-time monitoring and diagnostic tool for the Meshtastic mesh network. It provides detailed insights into network activity, including message traffic, node positions, and telemetry data.
 
+### Version 4.0.0 — November 2026
+
+- Interface: redesigned the dashboard, maps, chat, node directory, packet inspector, and reports, with a shared day/night theme and improved mobile layouts.
+- Maps: added a searchable node explorer, node inspector with telemetry and recent packets, and a live traffic list. The kiosk page now opens the fullscreen live map.
+- Statistics: added top text senders on their recorded main channel and the highest routers by altitude, with CSV exports. The router map uses red markers and an editable minimum altitude, defaulting to **500 m above sea level**.
+- Node data: store the latest reported altitude from position packets and map reports, preserve it when omitted, and display it in the node directory and node details. Added a packet index to speed up node packet lookups.
+- Translations: expanded English, Spanish, and Russian coverage across pages, reports, map layers, controls, and the API reference. Missing translation keys fall back to English. See [the translation guide](docs/Translations.md).
+- Browser assets: serve pinned JavaScript and CSS libraries locally, including Leaflet, ECharts, Bootstrap, and QRCode.js, instead of loading them from CDNs. Map tiles still require access to their providers.
+- Reliability and privacy: improved handling of malformed packets, unknown protobuf enums, invalid numeric API parameters, and secondary MQTT decryption keys; bounded traceroute rendering; escaped chart and telemetry content; and hardened CSV exports.
+- Meshtastic and API: refreshed the protobuf definitions, included available public keys in shared-contact QR codes, and updated the API documentation and generated browser reference.
+
+**Upgrading:** Back up your database, update the application and dependencies, then restart both the database writer and web server (or use `mvrun.py`). The writer applies the new altitude-column and packet-index migrations automatically. Reload browser pages to load the updated assets. See [the migration guide](docs/Database-Changes-With-Alembic.md) and [Docker instructions](README-Docker.md) for your installation.
+
 ### Version 3.0.9.1 — November 4, 2026 — Out-of-band map fix
 
 This out-of-band update fixes maps failing to load after an upstream `leaflet.heat`
@@ -164,7 +177,7 @@ See [README-Docker.md](README-Docker.md) for container deployment and [docs/](do
 
 * **Packet Analysis**: Detailed information on individual data packets transmitted within the network can be accessed, including payload content and transmission paths.
 
-* **Node Statistics**: Users can explore statistics related to network traffic, such as top contributors and message volumes.
+* **Node Statistics**: Users can explore statistics related to network traffic, such as top contributors and message volumes. The highest-router map includes a minimum-altitude field (default 500 m above sea level) that immediately filters the top 50 routers shown.
 
 Samples of currently running instances:
 
@@ -327,9 +340,6 @@ title = Bay Area Mesh
 # A brief message shown on the homepage.
 message = Real time data from around the bay area and beyond.
 
-# Starting URL when loading the index page.
-starting = /chat
-
 # Enable or disable site features (as strings: "True" or "False").
 nodes = True
 conversations = True
@@ -339,6 +349,8 @@ stats = True
 net = True
 map = True
 top = True
+# Show the API documentation link in the navigation bar (default: True).
+api = True
 
 # Map boundaries (used for the map view).
 # Defaults will show the San Francisco Bay Area
@@ -734,3 +746,10 @@ Check the log file to see it the script run at the specific time.
 ## Technical Documentation
 
 For more detailed technical documentation including database migrations, architecture details, and advanced topics, see the [docs/](docs/) directory.
+
+### Fullscreen kiosk map
+
+Open `/static/kiosk.html` or `/map?kiosk=1` for a fullscreen live map without the
+site header or footer. Kiosk mode shares the live map's layers, channel filters,
+packet activity, and compact node inspector. Map position parameters (`lat`, `lng`,
+and `zoom`) also work with kiosk mode.

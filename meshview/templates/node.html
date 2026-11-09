@@ -1,311 +1,42 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-node-page{% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-{{ super() }}
-
-/* --- Map --- */
-#map {
-    width: 100%;
-    height: 400px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    display: block;
-}
-.leaflet-container {
-    background: #1a1a1a;
-    z-index: 1;
-}
-
-/* --- Node Info --- */
-.node-info {
-    color: #ddd;
-    font-size: 0.88rem;
-    margin-bottom: 14px;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(120px, 1fr));
-    grid-column-gap: 12px;
-    grid-row-gap: 12px;
-}
-
-.node-info-col {
-    background-color: #1f2226;
-    border: 1px solid #3a3f44;
-    border-radius: 8px;
-    padding: 12px 14px;
-}
-
-.node-info-col div { padding: 2px 0; }
-.node-info strong {
-    color: #9fd4ff;
-    font-weight: 600;
-}
-
-/* --- Charts --- */
-.chart-container {
-    width: 100%;
-    height: 380px;
-    margin-bottom: 25px;
-    border: 1px solid #3a3f44;
-    border-radius: 8px;
-    overflow: hidden;
-    background-color: #16191d;
-}
-.chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #1f2226;
-    padding: 6px 12px;
-    font-weight: bold;
-    border-bottom: 1px solid #333;
-    font-size: 1rem;
-}
-.chart-actions button {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid #555;
-    border-radius: 4px;
-    color: #ccc;
-    font-size: 0.8rem;
-    padding: 2px 6px;
-    cursor: pointer;
-}
-.chart-actions button:hover {
-    color: #fff;
-    background: rgba(255,255,255,0.15);
-    border-color: #888;
-}
-
-/* --- Packet Table --- */
-.packet-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    color: #e4e9ee;
-}
-.packet-table th, .packet-table td {
-    border: 1px solid #3a3f44;
-    padding: 6px 10px;
-    text-align: left;
-}
-.packet-table th {
-    background-color: #1f2226;
-    font-weight: bold;
-}
-.packet-table tr:nth-of-type(odd) { background-color: #272b2f; }
-.packet-table tr:nth-of-type(even) { background-color: #212529; }
-
-.port-tag {
-    padding: 2px 6px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    color: #fff;
-}
-
-.to-mqtt { font-style: italic; color: #aaa; }
-
-.payload-row { display: none; background-color: #1b1e22; }
-.payload-cell {
-    padding: 8px 12px;
-    font-family: monospace;
-    white-space: pre-wrap;
-    color: #b0bec5;
-}
-.packet-table tr.expanded + .payload-row { display: table-row; }
-.toggle-btn { cursor: pointer; color: #aaa; margin-right: 6px; }
-.toggle-btn:hover { color: #fff; }
-
-/* --- Chart Modal --- */
-#chartModal {
-    display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-    background:rgba(0,0,0,0.9); z-index:9999;
-    align-items:center; justify-content:center;
-}
-#chartModal > div {
-    background:#1b1e22; border-radius:8px;
-    width:90%; height:85%; padding:10px;
-}
-
-/* Inline link */
-.inline-link {
-    margin-left: 6px;
-    font-weight: bold;
-    text-decoration: none;
-    color: #9fd4ff;
-}
-.inline-link:hover { color: #c7e6ff; }
-
-/* --- QR Code & Import --- */
-.node-actions {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-}
-.node-actions {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-}
-.node-actions button {
-    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-    border: 1px solid #4a5568;
-    border-radius: 8px;
-    color: #e4e9ee;
-    padding: 8px 16px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-.node-actions button:hover {
-    background: linear-gradient(135deg, #3d4758 0%, #2a303c 100%);
-    border-color: #6a7788;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.node-actions button.copied {
-    background: linear-gradient(135deg, #276749 0%, #22543d 100%);
-    border-color: #48bb78;
-    color: #fff;
-}
-.copy-success {
-    color: #4ade80 !important;
-    transition: opacity 0.3s;
-}
-
-/* --- QR Modal --- */
-#qrModal {
-    display:none;
-    position:fixed;
-    top:0; left:0; width:100%; height:100%;
-    background:rgba(0,0,0,0.95);
-    z-index:10000;
-    align-items:center;
-    justify-content:center;
-    backdrop-filter:blur(4px);
-}
-#qrModal > div {
-    background:linear-gradient(145deg, #1e2228, #16191d);
-    border:1px solid #3a4450;
-    border-radius:16px;
-    padding:28px;
-    max-width:380px;
-    text-align:center;
-    color:#e4e9ee;
-    box-shadow:0 25px 80px rgba(0,0,0,0.6);
-}
-#qrModal .qr-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:16px;
-}
-#qrModal .qr-title {
-    font-size:1.3rem;
-    font-weight:600;
-    margin:0;
-    color:#9fd4ff;
-}
-#qrModal .qr-close {
-    background:rgba(255,255,255,0.05);
-    border:1px solid #4a5568;
-    color:#9ca3af;
-    width:32px;
-    height:32px;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:1.2rem;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    transition:all 0.2s;
-}
-#qrModal .qr-close:hover {
-    background:rgba(255,255,255,0.1);
-    color:#fff;
-    border-color:#6a7788;
-}
-#qrModal .qr-node-name {
-    font-size:1.15rem;
-    color:#fff;
-    margin:12px 0 20px;
-    font-weight:500;
-}
-#qrModal .qr-image {
-    background:#fff;
-    padding:16px;
-    border-radius:12px;
-    display:inline-block;
-    margin-bottom:16px;
-    box-shadow:0 8px 30px rgba(0,0,0,0.4);
-}
-#qrModal .qr-image img {
-    display:block;
-    border-radius:4px;
-}
-#qrModal .qr-url-container {
-    background:rgba(0,0,0,0.4);
-    border-radius:8px;
-    padding:12px;
-    margin-bottom:18px;
-}
-#qrModal .qr-url {
-    font-size:0.65rem;
-    color:#9ca3af;
-    word-break:break-all;
-    font-family:'Monaco', 'Menlo', monospace;
-    line-height:1.4;
-    max-height:48px;
-    overflow-y:auto;
-    display:block;
-}
-#qrModal .qr-actions {
-    display:flex;
-    gap:12px;
-    justify-content:center;
-}
-#qrModal .qr-btn {
-    background:linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-    border:1px solid #4a5568;
-    color:#e4e9ee;
-    padding:12px 24px;
-    border-radius:10px;
-    cursor:pointer;
-    font-size:0.9rem;
-    font-weight:500;
-    transition:all 0.2s;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    min-width:140px;
-    justify-content:center;
-}
-#qrModal .qr-btn:hover {
-    background:linear-gradient(135deg, #3d4758 0%, #2a303c 100%);
-    border-color:#6a7788;
-    transform:translateY(-2px);
-    box-shadow:0 4px 12px rgba(0,0,0,0.3);
-}
-#qrModal .qr-btn.copied {
-    background:linear-gradient(135deg, #276749 0%, #22543d 100%);
-    border-color:#48bb78;
-    color:#fff;
-}
+.node-info { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:20px; font-size:13px; }
+.node-info-col { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:20px; overflow-wrap:anywhere; }
+.node-info-col > div { padding:5px 0; }
+.node-info-col h2 { margin:0 0 10px; padding-bottom:10px; border-bottom:1px solid var(--mesh-border); color:var(--mesh-text); font-size:15px; font-weight:600; }
+.node-info strong { color:var(--mesh-muted); font-weight:500; }
+.node-actions .qr-unavailable { align-self:center; color:var(--mesh-muted); font-size:13px; }
+.node-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+.chart-container { width:100%; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:20px; overflow:hidden; }
+.chart-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:16px 20px; border-bottom:1px solid var(--mesh-border); font-size:14px; font-weight:600; }
+.chart-actions { display:flex; gap:6px; }
+.filter-container { display:flex; gap:10px; flex-wrap:wrap; padding:16px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:18px; }
+#chartModal,#qrModal { display:none; position:fixed; inset:0; background:#17263c99; z-index:9999; align-items:center; justify-content:center; padding:16px; }
+#chartModal > div { background:var(--mesh-surface); border-radius:10px; width:95%; height:85%; padding:14px; }
+#qrModal > div { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:12px; padding:24px; width:380px; max-width:100%; text-align:center; }
+.qr-header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.qr-title { font-size:18px; margin:0; }
+.qr-node-name { font-size:15px; margin:16px 0; overflow-wrap:anywhere; }
+.qr-image { display:inline-block; padding:16px; background:var(--mesh-surface); margin-bottom:14px; }
+.qr-image img,.qr-image canvas { max-width:100%; }
+.qr-url-container { border:1px solid var(--mesh-border); border-radius:6px; background:var(--mesh-page); padding:12px; margin-bottom:16px; }
+.qr-url { display:block; max-height:80px; overflow:auto; overflow-wrap:anywhere; font:11px/1.6 monospace; color:var(--mesh-muted); }
+.qr-actions { display:flex; justify-content:center; }
+.mesh-data-page .copied { background:#e8f5ee; color:#187346; }
+@media(max-width:900px) { .node-info { grid-template-columns:minmax(0,1fr); gap:10px; } }
+@media(max-width:700px) { .chart-header { padding:12px; } .chart-actions button { padding:6px 8px; } }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="container">
 
-    <h5 class="mb-3">
-        📡 <span data-translate-lang="specifications">Specifications:</span><strong>:</strong>
-        <span id="nodeLabel"></span>
-    </h5>
+<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("DEVICE INSPECTOR") }}</span><h1><span id="nodeLabel">{{ tr("Node details") }}</span></h1><p>{{ tr("Device information, telemetry, and recent packet activity.") }}</p></div><a class="mesh-secondary-button" href="/nodelist">{{ tr("All nodes ↗") }}</a></header>
 
     <!-- Node Actions -->
     <div class="node-actions" id="nodeActions" style="display:none;">
@@ -315,10 +46,16 @@
         <button onclick="showQrCode()" id="showQrBtn">
             <span>🔳</span> <span data-translate-lang="show_qr_code">Show QR Code</span>
         </button>
+        <span class="qr-unavailable" id="qrUnavailable" style="display:none;" data-translate-lang="qr_no_public_key">
+            No public key heard from this node yet, so it cannot be shared as a contact.
+        </span>
+        <span class="qr-unavailable" id="qrKeyConflict" style="display:none;" data-translate-lang="qr_key_conflict">
+            This node has reported more than one public key, so it is not shared as a contact.
+        </span>
         <button onclick="openReachReport()" id="reachReportBtn">
-            <span>📈</span> <span>Reliability</span>
+            <span>📈</span> <span>{{ tr("Reliability") }}</span>
         </button>
-        <button onclick="toggleCoverage()" id="toggleCoverageBtn" disabled title="Location required for coverage">
+        <button onclick="toggleCoverage()" id="toggleCoverageBtn" disabled title="{{ tr("Location required for coverage") }}">
             <span>📡</span> <span data-translate-lang="toggle_coverage">Predicted Coverage</span>
         </button>
         <a class="inline-link" id="coverageHelpLink" href="/docs/COVERAGE.md" target="_blank" rel="noopener" data-translate-lang="coverage_help">
@@ -328,32 +65,39 @@
 
     <!-- Node Info -->
     <div id="node-info" class="node-info">
-        <div class="node-info-col">
-            <div><strong data-translate-lang="node_id">Node ID</strong><strong>: </strong><span id="info-node-id">—</span></div>
-            <div><strong data-translate-lang="id">Hex ID</strong><strong>: </strong><span id="info-id">—</span></div>
-            <div><strong data-translate-lang="short_name">Short Name</strong><strong>: </strong> <span id="info-short-name">—</span></div>
+        <section class="node-info-col" aria-labelledby="node-info-heading-0">
+            <h2 id="node-info-heading-0">{{ tr("Identity") }}</h2>
             <div><strong data-translate-lang="long_name">Long Name</strong><strong>: </strong> <span id="info-long-name">—</span></div>
+            <div><strong data-translate-lang="short_name">Short Name</strong><strong>: </strong> <span id="info-short-name">—</span></div>
+            <div><strong data-translate-lang="id">Hex ID</strong><strong>: </strong><span id="info-id">—</span></div>
+            <div><strong data-translate-lang="node_id">Node ID</strong><strong>: </strong><span id="info-node-id">—</span></div>
+        </section>
+        <section class="node-info-col" aria-labelledby="node-info-heading-1">
+            <h2 id="node-info-heading-1">{{ tr("Device & network") }}</h2>
+            <div><strong data-translate-lang="hw_model">Hardware Model</strong><strong>: </strong> <span id="info-hw-model">—</span></div>
+            <div><strong data-translate-lang="firmware">Firmware</strong><strong>: </strong> <span id="info-firmware">—</span></div>
+            <div><strong data-translate-lang="role">Role</strong><strong>: </strong> <span id="info-role">—</span></div>
             <div><strong data-translate-lang="channel">Channel</strong><strong>: </strong> <span id="info-channel">—</span></div>
-        </div>
-        <div class="node-info-col">
+            <div><strong data-translate-lang="mqtt_gateway">MQTT Gateway</strong><strong>: </strong> <span id="info-mqtt-gateway">—</span></div>
+        </section>
+        <section class="node-info-col" aria-labelledby="node-info-heading-2">
+            <h2 id="node-info-heading-2">{{ tr("Location") }}</h2>
             <div><strong data-translate-lang="latitude">Latitude</strong><strong>: </strong> <span id="info-lat">—</span></div>
             <div><strong data-translate-lang="longitude">Longitude</strong><strong>: </strong> <span id="info-lon">—</span></div>
-            <div><strong data-translate-lang="role">Role</strong><strong>: </strong> <span id="info-role">—</span></div>
-            <div><strong data-translate-lang="hw_model">Hardware Model</strong><strong>: </strong> <span id="info-hw-model">—</span></div>
-            <div><strong data-translate-lang="mqtt_gateway">MQTT Gateway</strong><strong>: </strong> <span id="info-mqtt-gateway">—</span></div>
-        </div>
-        <div class="node-info-col">
+            <div><strong>{{ tr("Altitude (above sea level)") }}</strong><strong>: </strong> <span id="info-altitude">—</span></div>
+        </section>
+        <section class="node-info-col" aria-labelledby="node-info-heading-3">
+            <h2 id="node-info-heading-3">{{ tr("Activity") }}</h2>
             <div><strong data-translate-lang="first_update">First Update</strong><strong>: </strong> <span id="info-first-update">—</span></div>
             <div><strong data-translate-lang="last_update">Last Update</strong><strong>: </strong> <span id="info-last-update">—</span></div>
-            <div><strong data-translate-lang="firmware">Firmware</strong><strong>: </strong> <span id="info-firmware">—</span></div>
             <div>
                 <strong data-translate-lang="statistics">Statistics</strong><strong>: </strong>
                 <span id="info-stats"
                       data-label-24h="24h"
-                      data-label-sent="Packets sent"
-                      data-label-seen="Times seen">—</span>
+                      data-label-sent="{{ tr("Packets sent") }}"
+                      data-label-seen="{{ tr("Times seen") }}">—</span>
             </div>
-        </div>
+        </section>
     </div>
 
     <!-- Map. -->
@@ -421,30 +165,31 @@
 </div>
 
     <!-- Packet Filters -->
-<div class="filter-container" style="margin-bottom:10px; display:flex; gap:12px; flex-wrap:wrap;">
-    <select id="packet_since">
-        <option value="">All time</option>
-        <option value="3600">Last hour</option>
-        <option value="21600">Last 6 hours</option>
-        <option value="86400">Last 24 hours</option>
-        <option value="172800">Last 2 days</option>
-        <option value="259200">Last 3 days</option>
-        <option value="432000">Last 5 days</option>
-        <option value="604800">Last 7 days</option>
+<div id="node-packets" class="filter-container" style="scroll-margin-top:20px; margin-bottom:10px; display:flex; gap:12px; flex-wrap:wrap;">
+    <select id="packet_since" aria-label="{{ tr("Packet time range") }}">
+        <option value="">{{ tr("All time") }}</option>
+        <option value="3600">{{ tr("Last hour") }}</option>
+        <option value="21600">{{ tr("Last 6 hours") }}</option>
+        <option value="86400">{{ tr("Last 24 hours") }}</option>
+        <option value="172800">{{ tr("Last 2 days") }}</option>
+        <option value="259200" selected>{{ tr("Last 3 days") }}</option>
+        <option value="432000">{{ tr("Last 5 days") }}</option>
+        <option value="604800">{{ tr("Last 7 days") }}</option>
     </select>
 
-    <select id="packet_port">
-        <option value="">All ports</option>
+    <select id="packet_port" aria-label="{{ tr("Packet port") }}">
+        <option value="">{{ tr("All ports") }}</option>
     </select>
 
-    <button onclick="reloadPackets()">Apply</button>
-    <button onclick="exportPacketsCSV()">Export CSV</button>
+    <button onclick="reloadPackets()">{{ tr("Apply") }}</button>
+    <button onclick="exportPacketsCSV()">{{ tr("Export CSV") }}</button>
 </div>
 
 
 
 
     <!-- Packets -->
+    <div class="data-table-wrap" role="region" aria-label="{{ tr("Node packet table") }}" tabindex="0">
     <table class="packet-table">
     <thead>
         <tr>
@@ -459,6 +204,7 @@
 
         <tbody id="packet_list"></tbody>
     </table>
+    </div>
 
 </div>
 
@@ -466,7 +212,7 @@
 <div id="chartModal">
     <div>
         <div style="text-align:right;">
-            <button onclick="closeModal()" style="background:none;border:none;color:#ccc;">✖</button>
+            <button onclick="closeModal()" style="background:none;border:none;color:var(--mesh-muted);">✖</button>
         </div>
         <div id="modalChart" style="width:100%; height:90%;"></div>
     </div>
@@ -479,12 +225,12 @@
             <h3 class="qr-title" data-translate-lang="share_contact_qr">Share Contact QR</h3>
             <button class="qr-close" onclick="closeQrModal()">✕</button>
         </div>
-        <div class="qr-node-name" id="qrNodeName">Loading...</div>
+        <div class="qr-node-name" id="qrNodeName">{{ tr("Loading...") }}</div>
         <div class="qr-image">
             <div id="qrCodeContainer"></div>
         </div>
         <div class="qr-url-container">
-            <span class="qr-url" id="qrUrl">Generating...</span>
+            <span class="qr-url" id="qrUrl">{{ tr("Generating...") }}</span>
         </div>
         <div class="qr-actions">
             <button class="qr-btn" onclick="copyQrUrl()" id="copyQrBtn">
@@ -494,9 +240,9 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"
+<script src="/static/vendor/echarts-5.5.0/dist/echarts.min.js"></script>
+<script src="/static/vendor/qrcodejs-1.0.0/qrcode.min.js"></script>
+<script src="/static/vendor/leaflet.heat-0.2.0/dist/leaflet-heat.js"
         integrity="sha384-mFKkGiGvT5vo1fEyGCD3hshDdKmW3wzXW/x+fWriYJArD0R3gawT6lMvLboM22c0"
         crossorigin="anonymous"></script>
 <script src="/static/portmaps.js"></script>
@@ -523,7 +269,7 @@ async function loadTranslationsNode() {
         applyTranslationsNode(nodeTranslations);
 
         // Broadcast label can be set here since translations are now loaded
-        nodeMap[4294967295] = nodeTranslations.all_broadcast || "All";
+        nodeMap[4294967295] = nodeTranslations.all_broadcast || MeshI18n.t("All");
     } catch (err) {
         console.error("Node translation load failed", err);
     }
@@ -556,31 +302,31 @@ function makeNodePopup(node) {
             ${node.short_name ? ` (${escapeHtml(node.short_name)})` : ""}<br>
 
             <b><span data-translate-lang="node_id">
-                ${nodeTranslations.node_id || "Node ID"}:
+                ${nodeTranslations.node_id || MeshI18n.t("Node ID")}:
             </span></b> ${node.node_id}<br>
 
             <b><span data-translate-lang="hw_model">
-                ${nodeTranslations.hw_model || "HW Model"}:
+                ${nodeTranslations.hw_model || MeshI18n.t("HW Model")}:
             </span></b> ${escapeHtml(node.hw_model ?? "—")}<br>
 
             <b><span data-translate-lang="channel">
-                ${nodeTranslations.channel || "Channel"}:
+                ${nodeTranslations.channel || MeshI18n.t("Channel")}:
             </span></b> ${escapeHtml(node.channel ?? "—")}<br>
 
             <b><span data-translate-lang="role">
-                ${nodeTranslations.role || "Role"}:
+                ${nodeTranslations.role || MeshI18n.t("Role")}:
             </span></b> ${escapeHtml(node.role ?? "—")}<br>
 
             <b><span data-translate-lang="firmware">
-                ${nodeTranslations.firmware || "Firmware"}:
+                ${nodeTranslations.firmware || MeshI18n.t("Firmware")}:
             </span></b> ${escapeHtml(node.firmware ?? "—")}<br>
 
             <b><span data-translate-lang="last_update">
-                ${nodeTranslations.last_update || "Last Update"}:
+                ${nodeTranslations.last_update || MeshI18n.t("Last Update")}:
             </span></b> ${formatLastSeen(node.last_seen_us)}
             <br>
             <b><span data-translate-lang="first_update">
-                ${nodeTranslations.first_update || "First Update"}:
+                ${nodeTranslations.first_update || MeshI18n.t("First Update")}:
             </span></b> ${formatLastSeen(node.first_seen_us)}
         </div>
     `;
@@ -589,7 +335,7 @@ function makeNodePopup(node) {
 function formatLastSeen(us) {
     if (!us) return "—";
     const d = new Date(us / 1000);
-    return d.toLocaleString([], {
+    return d.toLocaleString(MeshI18n.language, {
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
@@ -598,7 +344,7 @@ function formatLastSeen(us) {
 }
 
 function formatLocalTime(us){
-    return new Date(us / 1000).toLocaleString([], {
+    return new Date(us / 1000).toLocaleString(MeshI18n.language, {
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
@@ -670,6 +416,7 @@ async function loadNodeInfo(){
 
         if (!node) {
             document.getElementById("node-info").style.display = "none";
+            document.getElementById("nodeLabel").textContent = MeshI18n.t("Node unavailable");
             return;
         }
 
@@ -686,13 +433,15 @@ async function loadNodeInfo(){
         document.getElementById("info-firmware").textContent   = node.firmware ?? "—";
         document.getElementById("info-role").textContent       = node.role ?? "—";
         document.getElementById("info-mqtt-gateway").textContent =
-            node.is_mqtt_gateway ? (nodeTranslations.yes || "Yes") : (nodeTranslations.no || "No");
+            node.is_mqtt_gateway ? (nodeTranslations.yes || MeshI18n.t("Yes")) : (nodeTranslations.no || MeshI18n.t("No"));
         document.getElementById("info-channel").textContent    = node.channel ?? "—";
 
         document.getElementById("info-lat").textContent =
-            node.last_lat ? (node.last_lat / 1e7).toFixed(6) : "—";
+            node.last_lat != null ? (node.last_lat / 1e7).toFixed(6) : "—";
         document.getElementById("info-lon").textContent =
-            node.last_long ? (node.last_long / 1e7).toFixed(6) : "—";
+            node.last_long != null ? (node.last_long / 1e7).toFixed(6) : "—";
+        document.getElementById("info-altitude").textContent =
+            node.last_altitude != null ? `${node.last_altitude} m` : "—";
         const coverageBtn = document.getElementById("toggleCoverageBtn");
         const coverageHelp = document.getElementById("coverageHelpLink");
         if (coverageBtn) {
@@ -700,7 +449,7 @@ async function loadNodeInfo(){
             coverageBtn.disabled = !hasLocation;
             coverageBtn.title = hasLocation
                 ? ""
-                : (nodeTranslations.location_required || "Location required for coverage");
+                : (nodeTranslations.location_required || MeshI18n.t("Location required for coverage"));
             coverageBtn.style.display = hasLocation ? "" : "none";
         }
         if (coverageHelp) {
@@ -733,14 +482,14 @@ function nodeLink(id, labelOverride = null) {
     // Broadcast
     if (id === 4294967295) {
         return `<span class="to-mqtt" data-translate-lang="all_broadcast">
-                    ${nodeTranslations.all_broadcast || "All"}
+                    ${nodeTranslations.all_broadcast || MeshI18n.t("All")}
                 </span>`;
     }
 
     // Direct to MQTT
     if (id === 1) {
         return `<span class="to-mqtt" data-translate-lang="direct_to_mqtt">
-                    ${nodeTranslations.direct_to_mqtt || "Direct to MQTT"}
+                    ${nodeTranslations.direct_to_mqtt || MeshI18n.t("Direct to MQTT")}
                 </span>`;
     }
 
@@ -765,6 +514,10 @@ function initPacketPortFilter() {
             opt.textContent = `${PORT_LABEL_MAP[p]} (${p})`;
             sel.appendChild(opt);
         });
+    const requestedPort = new URLSearchParams(window.location.search).get("portnum");
+    if ([...sel.options].some(option => option.value === requestedPort)) {
+        sel.value = requestedPort;
+    }
 }
 
 
@@ -997,14 +750,14 @@ async function loadTrack(){
             color: 'green',
             fillColor: 'green',
             fillOpacity: 1
-        }).addTo(map).bindPopup(node ? makeNodePopup(node) : "Start");
+        }).addTo(map).bindPopup(node ? makeNodePopup(node) : MeshI18n.t("Start"));
 
         const endMarker = L.circleMarker([last.lat, last.lon], {
             radius: 6,
             color: 'red',
             fillColor: 'red',
             fillOpacity: 1
-        }).addTo(map).bindPopup(node ? makeNodePopup(node) : "Latest");
+        }).addTo(map).bindPopup(node ? makeNodePopup(node) : MeshI18n.t("Latest"));
 
         markers["__track_start"] = startMarker;
         markers["__track_end"]   = endMarker;
@@ -1083,8 +836,8 @@ async function loadPackets(filters = {}) {
                    ${pkt.packet_id}
                </a>`
             : pkt.portnum === 73
-            ? `<span class="text-secondary" title="MQTT map report">Not a Packet</span>`
-            : `<span class="text-secondary" title="No Meshtastic packet ID">—</span>`;
+            ? `<span class="text-secondary" title="${MeshI18n.h("MQTT map report")}">${MeshI18n.h("Not a Packet")}</span>`
+            : `<span class="text-secondary" title="${MeshI18n.h("No Meshtastic packet ID")}">—</span>`;
 
         list.insertAdjacentHTML("afterbegin", `
         <tr class="packet-row">
@@ -1095,7 +848,7 @@ async function loadPackets(filters = {}) {
             <td>${fromCell}</td>
             <td>${toCell}</td>
             <td>${portLabel(pkt.portnum)}${inlineLinks}</td>
-            <td>${sizeBytes.toLocaleString()} B</td>
+            <td>${sizeBytes.toLocaleString(MeshI18n.language)} B</td>
         </tr>
         <tr class="payload-row">
             <td colspan="6" class="payload-cell">${safePayload}</td>
@@ -1128,7 +881,7 @@ async function loadTelemetryCharts(){
         const pl = pkt.payload || "";
         const t  = new Date(pkt.import_time_us / 1000);
         chartData.times.push(
-            t.toLocaleString([], { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" })
+            t.toLocaleString(MeshI18n.language, { month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" })
         );
 
         // Matches your payload exactly (inside device_metrics {})
@@ -1204,18 +957,18 @@ async function loadTelemetryCharts(){
     // Battery / Voltage chart
     if (hasBattery || hasVoltage) {
         batteryContainer.style.display = "block";
-        chart1 = echarts.init(document.getElementById('chart_battery_voltage'));
+        chart1 = initMeshChart(document.getElementById('chart_battery_voltage'));
         chart1.setOption({
             tooltip: { trigger:'axis' },
-            legend: { data:['Battery Level','Voltage'], textStyle:{ color:'#ccc' } },
-            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#ccc' } },
+            legend: { data:[MeshI18n.t("Battery Level"),MeshI18n.t("Voltage")], textStyle:{ color:'#64748b' } },
+            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#64748b' } },
             yAxis: [
-                { type:'value', name:'Battery (%)', axisLabel:{ color:'#ccc' } },
-                { type:'value', name:'Voltage (V)', axisLabel:{ color:'#ccc' } }
+                { type:'value', name:'Battery (%)', axisLabel:{ color:'#64748b' } },
+                { type:'value', name:'Voltage (V)', axisLabel:{ color:'#64748b' } }
             ],
             series: [
-                makeLine('Battery Level', 'rgba(255,214,82,1)', chartData.battery),
-                makeLine('Voltage', 'rgba(79,155,255,1)', chartData.voltage, 1)
+                makeLine(MeshI18n.t("Battery Level"), 'rgba(255,214,82,1)', chartData.battery),
+                makeLine(MeshI18n.t("Voltage"), 'rgba(79,155,255,1)', chartData.voltage, 1)
             ]
         });
     } else {
@@ -1225,15 +978,15 @@ async function loadTelemetryCharts(){
     // Air / Channel chart
     if (hasAir || hasChan) {
         airContainer.style.display = "block";
-        chart2 = echarts.init(document.getElementById('chart_air_channel'));
+        chart2 = initMeshChart(document.getElementById('chart_air_channel'));
         chart2.setOption({
             tooltip: { trigger:'axis' },
-            legend: { data:['Air Util Tx','Channel Utilization'], textStyle:{ color:'#ccc' } },
-            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#ccc' } },
-            yAxis: { type:'value', name:'%', axisLabel:{ color:'#ccc' } },
+            legend: { data:[MeshI18n.t("Air Util Tx"),MeshI18n.t("Channel Utilization")], textStyle:{ color:'#64748b' } },
+            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#64748b' } },
+            yAxis: { type:'value', name:'%', axisLabel:{ color:'#64748b' } },
             series: [
-                makeLine('Air Util Tx', 'rgba(138,255,108,1)', chartData.airUtil),
-                makeLine('Channel Utilization', 'rgba(255,102,204,1)', chartData.chanUtil)
+                makeLine(MeshI18n.t("Air Util Tx"), 'rgba(138,255,108,1)', chartData.airUtil),
+                makeLine(MeshI18n.t("Channel Utilization"), 'rgba(255,102,204,1)', chartData.chanUtil)
             ]
         });
     } else {
@@ -1243,19 +996,19 @@ async function loadTelemetryCharts(){
     // Environment chart
     if (hasEnv) {
         envContainer.style.display = "block";
-        chart3 = echarts.init(document.getElementById('chart_environment'));
+        chart3 = initMeshChart(document.getElementById('chart_environment'));
         chart3.setOption({
             tooltip: { trigger:'axis' },
-            legend: { data:['Temperature (°C)','Humidity (%)','Pressure (hPa)'], textStyle:{ color:'#ccc' } },
-            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#ccc' } },
+            legend: { data:[MeshI18n.t("Temperature (°C)"),MeshI18n.t("Humidity (%)"),MeshI18n.t("Pressure (hPa)")], textStyle:{ color:'#64748b' } },
+            xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#64748b' } },
             yAxis: [
-                { type:'value', name:'°C / %', axisLabel:{ color:'#ccc' } },
-                { type:'value', name:'hPa', axisLabel:{ color:'#ccc' } }
+                { type:'value', name:'°C / %', axisLabel:{ color:'#64748b' } },
+                { type:'value', name:'hPa', axisLabel:{ color:'#64748b' } }
             ],
             series: [
-                makeLine('Temperature (°C)', 'rgba(255,138,82,1)', chartData.temperature),
-                makeLine('Humidity (%)', 'rgba(138,255,108,1)', chartData.humidity),
-                makeLine('Pressure (hPa)', 'rgba(79,155,255,1)', chartData.pressure, 1)
+                makeLine(MeshI18n.t("Temperature (°C)"), 'rgba(255,138,82,1)', chartData.temperature),
+                makeLine(MeshI18n.t("Humidity (%)"), 'rgba(138,255,108,1)', chartData.humidity),
+                makeLine(MeshI18n.t("Pressure (hPa)"), 'rgba(79,155,255,1)', chartData.pressure, 1)
             ]
         });
     } else {
@@ -1431,16 +1184,16 @@ async function loadNeighborTimeSeries() {
     // Say which neighbors are on screen, so a missing line is not a mystery.
     const subtextTemplate = dropped > 0
         ? (nodeTranslations.neighbors_chart_subtitle_capped ||
-           "Last {days} days — the {n} neighbors with the most data points, of {total}")
+           MeshI18n.t("Last {days} days — the {n} neighbors with the most data points, of {total}"))
         : (nodeTranslations.neighbors_chart_subtitle ||
-           "Last {days} days — {n} neighbors");
+           MeshI18n.t("Last {days} days — {n} neighbors"));
 
     const subtext = subtextTemplate
         .replace("{days}",  NEIGHBOR_WINDOW_DAYS)
         .replace("{n}",     kept.length)
         .replace("{total}", ranked.length);
 
-    const chart = echarts.init(chartEl);
+    const chart = initMeshChart(chartEl);
 
     chart.setOption({
         title: {
@@ -1452,20 +1205,28 @@ async function loadNeighborTimeSeries() {
         grid: { bottom: 60 },
         tooltip: {
             trigger: "axis",
-            axisPointer: { type: "line" }
+            axisPointer: { type: "line" },
+            formatter: params => {
+                if (!params.length) return "";
+                const timestamp = Number(params[0].axisValue);
+                const heading = new Date(timestamp / 1000).toLocaleString(MeshI18n.language);
+                return escapeHtml(heading) + "<br>" + params.map(point =>
+                    `${point.marker}${escapeHtml(point.seriesName)}: ${escapeHtml(point.value ?? MeshI18n.t("N/A"))}`
+                ).join("<br>");
+            }
         },
         legend: {
             type: "scroll",
             data: legend,
-            textStyle: { color: "#ccc" }
+            textStyle: { color: "#64748b" }
         },
         xAxis: {
             type: "category",
             data: xTimes,
             axisLabel: {
-                color: "#ccc",
+                color: "#64748b",
                 formatter: value =>
-                    new Date(value / 1000).toLocaleString([], {
+                    new Date(value / 1000).toLocaleString(MeshI18n.language, {
                         year: "2-digit",
                         month: "2-digit",
                         day: "2-digit",
@@ -1477,7 +1238,7 @@ async function loadNeighborTimeSeries() {
         yAxis: {
             type: "value",
             name: "SNR",
-            axisLabel: { color: "#ccc" }
+            axisLabel: { color: "#64748b" }
         },
         series
     });
@@ -1506,7 +1267,7 @@ async function loadPacketHistogram() {
         d.setDate(d.getDate() - i);
         dayKeys.push(dayKeyFromDate(d));
         dayLabels.push(
-            d.toLocaleDateString([], { month: "short", day: "numeric" })
+            d.toLocaleDateString(MeshI18n.language, { month: "short", day: "numeric" })
         );
     }
 
@@ -1561,22 +1322,22 @@ async function loadPacketHistogram() {
             data: dayKeys.map(d => counts[port]?.[d] || 0)
         }));
 
-    const chart = echarts.init(
+    const chart = initMeshChart(
         document.getElementById("chart_packet_histogram")
     );
 
     chart.setOption({
         animation: false,
         tooltip: { trigger: "axis" },
-        legend: { textStyle: { color: "#ccc" } },
+        legend: { textStyle: { color: "#64748b" } },
         xAxis: {
             type: "category",
             data: dayLabels,
-            axisLabel: { color: "#ccc" }
+            axisLabel: { color: "#64748b" }
         },
         yAxis: {
             type: "value",
-            axisLabel: { color: "#ccc" }
+            axisLabel: { color: "#64748b" }
         },
         series
     });
@@ -1597,7 +1358,7 @@ function expandChart(type){
     if (!sourceChart) return;
 
     const modal = document.getElementById('chartModal');
-    const modalChart = echarts.init(document.getElementById('modalChart'));
+    const modalChart = initMeshChart(document.getElementById('modalChart'));
     modal.style.display = "flex";
     modalChart.setOption(sourceChart.getOption());
     modalChart.resize();
@@ -1607,20 +1368,20 @@ function closeModal(){
 }
 
 function exportCSV(type){
-    const rows = [["Time"]];
+    const rows = [[MeshI18n.t("Time")]];
 
     if (type === "battery_voltage") {
-        rows[0].push("Battery Level", "Voltage");
+        rows[0].push(MeshI18n.t("Battery Level"), MeshI18n.t("Voltage"));
         for (let i = 0; i < chartData.times.length; i++)
             rows.push([chartData.times[i], chartData.battery[i], chartData.voltage[i]]);
     }
     else if (type === "air_channel") {
-        rows[0].push("Air Util Tx", "Channel Utilization");
+        rows[0].push(MeshI18n.t("Air Util Tx"), MeshI18n.t("Channel Utilization"));
         for (let i = 0; i < chartData.times.length; i++)
             rows.push([chartData.times[i], chartData.airUtil[i], chartData.chanUtil[i]]);
     }
     else if (type === "environment") {
-        rows[0].push("Temperature", "Humidity", "Pressure");
+        rows[0].push(MeshI18n.t("Temperature"), MeshI18n.t("Humidity"), MeshI18n.t("Pressure"));
         for (let i = 0; i < chartData.times.length; i++)
             rows.push([
                 chartData.times[i],
@@ -1630,7 +1391,7 @@ function exportCSV(type){
             ]);
     }
     else if (type === "neighbors") {
-        rows[0] = ["Neighbor Node ID", "Neighbor Name", "SNR (dB)"];
+        rows[0] = [MeshI18n.t("Neighbor Node ID"), MeshI18n.t("Neighbor Name"), "SNR (dB)"];
         for (let i = 0; i < neighborData.ids.length; i++) {
             rows.push([
                 neighborData.ids[i],
@@ -1640,7 +1401,7 @@ function exportCSV(type){
         }
     }
 
-    const csv  = rows.map(r => r.join(",")).join("\n");
+    const csv  = csvFromRows(rows);
     const blob = new Blob([csv], { type:"text/csv" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -1685,8 +1446,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             await drawNeighbors(fromNodeId, neighborIds);
         }
 
-        await loadPackets();
         initPacketPortFilter();
+        await reloadPackets();
         await loadTelemetryCharts();
         await loadNeighborTimeSeries();
         await loadPacketHistogram();
@@ -1733,7 +1494,7 @@ async function loadNodeStats(nodeId) {
         const seen    = data?.total_seen ?? 0;
 
         document.getElementById("info-stats").textContent =
-            `24h · Packets sent: ${packets.toLocaleString()} · Times seen: ${seen.toLocaleString()} `;
+            MeshI18n.t("24h · Packets sent: {packets} · Times seen: {seen}", {packets: packets.toLocaleString(MeshI18n.language), seen: seen.toLocaleString(MeshI18n.language)});
     } catch (err) {
         console.error("Failed to load node stats:", err);
         document.getElementById("info-stats").textContent = "—";
@@ -1755,17 +1516,17 @@ async function loadNodeStats(nodeId) {
         filters.portnum = portSel;
     }
 
-    loadPackets(filters);
+    return loadPackets(filters);
 }
 
     function exportPacketsCSV() {
     if (!currentPacketRows.length) {
-        alert("No packets to export.");
+        alert(MeshI18n.t("No packets to export."));
         return;
     }
 
     const rows = [
-        ["Time", "Packet ID", "From Node", "To Node", "Port", "Port Name", "Payload"]
+        [MeshI18n.t("Time"), MeshI18n.t("Packet ID"), MeshI18n.t("From Node"), MeshI18n.t("To Node"), MeshI18n.t("Port"), MeshI18n.t("Port Name"), MeshI18n.t("Payload")]
     ];
 
     for (const pkt of currentPacketRows) {
@@ -1773,13 +1534,11 @@ async function loadNodeStats(nodeId) {
             ? new Date(pkt.import_time_us / 1000).toISOString()
             : "";
 
-        const portName = PORT_LABEL_MAP[pkt.portnum] || `Port ${pkt.portnum}`;
-        const displayPacketId = pkt.packet_id || (pkt.portnum === 73 ? "Not a Packet" : "");
+        const portName = PORT_LABEL_MAP[pkt.portnum] || MeshI18n.t("Port {port}", {port: pkt.portnum});
+        const displayPacketId = pkt.packet_id || (pkt.portnum === 73 ? MeshI18n.t("Not a Packet") : "");
 
-        // Escape quotes + line breaks for CSV safety
-        const payload = (pkt.payload || "")
-            .replace(/"/g, '""')
-            .replace(/\r?\n/g, " ");
+        // Keep each packet on one line; csvFromRows() does the quoting.
+        const payload = (pkt.payload || "").replace(/\r?\n/g, " ");
 
         rows.push([
             time,
@@ -1788,11 +1547,11 @@ async function loadNodeStats(nodeId) {
             pkt.to_node_id,
             pkt.portnum,
             portName,
-            `"${payload}"`
+            payload
         ]);
     }
 
-    const csv = rows.map(r => r.join(",")).join("\n");
+    const csv = csvFromRows(rows);
     const blob = new Blob([csv], { type: "text/csv" });
 
      const link = document.createElement("a");
@@ -1813,8 +1572,16 @@ async function loadNodeQr() {
     try {
         const qrRes = await fetch(`/api/node/${fromNodeId}/qr`);
         const qrData = await qrRes.json();
-        if (qrRes.ok && qrData.meshtastic_url) {
-            currentMeshtasticUrl = qrData.meshtastic_url;
+        if (qrRes.ok) {
+            // No URL means no usable public key: none is known, or the node reported several.
+            currentMeshtasticUrl = qrData.meshtastic_url || "";
+            const canShare = Boolean(currentMeshtasticUrl);
+            const keyConflict = Boolean(qrData.public_key_conflict);
+            document.getElementById("copyUrlBtn").style.display = canShare ? "" : "none";
+            document.getElementById("showQrBtn").style.display = canShare ? "" : "none";
+            document.getElementById("qrUnavailable").style.display =
+                canShare || keyConflict ? "none" : "";
+            document.getElementById("qrKeyConflict").style.display = keyConflict ? "" : "none";
             actionsDiv.style.display = "flex";
         } else {
             actionsDiv.style.display = "none";
@@ -1831,7 +1598,7 @@ function copyImportUrl() {
     navigator.clipboard.writeText(currentMeshtasticUrl).then(() => {
         const btn = document.getElementById("copyUrlBtn");
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<span>✅</span> <span data-translate-lang="copied">Copied!</span>';
+        btn.innerHTML = `<span>✅</span> <span data-translate-lang="copied">${MeshI18n.h("Copied!")}</span>`;
         btn.classList.add("copy-success");
         setTimeout(() => {
             btn.innerHTML = originalText;
@@ -1839,7 +1606,7 @@ function copyImportUrl() {
         }, 2000);
     }).catch(err => {
         console.error("Failed to copy:", err);
-        alert("Failed to copy URL to clipboard");
+        alert(MeshI18n.t("Failed to copy URL to clipboard"));
     });
 }
 
@@ -1869,7 +1636,7 @@ function copyQrUrl() {
     navigator.clipboard.writeText(currentMeshtasticUrl).then(() => {
         const btn = document.getElementById("copyQrBtn");
         const originalHTML = btn.innerHTML;
-        btn.innerHTML = '<span>✅</span> <span data-translate-lang="copied">Copied!</span>';
+        btn.innerHTML = `<span>✅</span> <span data-translate-lang="copied">${MeshI18n.h("Copied!")}</span>`;
         btn.classList.add("copied");
         setTimeout(() => {
             btn.innerHTML = originalHTML;
@@ -1897,7 +1664,7 @@ function generateQrCode(text) {
         });
     } catch (e) {
         console.error("QR Code generation error:", e);
-        container.innerHTML = '<div style="padding:20px;color:#f87171;">Failed to generate QR code</div>';
+        container.innerHTML = `<div style="padding:20px;color:#f87171;">${MeshI18n.h("Failed to generate QR code")}</div>`;
     }
 }
 

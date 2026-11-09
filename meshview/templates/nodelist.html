@@ -1,226 +1,36 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-nodelist-page{% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-    html, body {
-    overflow-x: auto !important;
-}
-
-table {
-    /* FIX: allow table to keep natural width so scrolling works */
-    width: max-content;
-    min-width: 100%;
-    border-collapse: collapse;
-    margin: 1em auto;
-}
-
-/* Desktop scroll wrapper */
-#node-list {
-    width: 100%;
-    overflow-x: auto;     /* allows horizontal scroll */
-    overflow-y: hidden;
-    /* !!! removed display:flex because it prevents scrolling */
-}
-
-#node-list table {
-    width: max-content;   /* table keeps its natural width */
-    min-width: 100%;      /* won't shrink smaller than viewport */
-}
-th, td {
-    padding: 10px;
-    border: 1px solid #333;
-    text-align: left;
-}
-
-th {
-    background-color: #1f1f1f;
-    color: white;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    cursor: pointer;
-}
-
-.sort-icon {
-    font-size: 0.7em;
-    margin-left: 4px;
-}
-
-tr:nth-child(even) {
-    background-color: #181818;
-}
-
-tr:nth-child(odd) {
-    background-color: #222;
-}
-
-tr:hover {
-    background-color: #2a2a2a;
-}
-
-.filter-container {
-    width: 80%;
-    margin: 1em auto;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-select, .export-btn, .search-box, .clear-btn {
-    padding: 6px;
-    border-radius: 4px;
-    border: 1px solid #333;
-    cursor: pointer;
-}
-
-.search-box {
-    flex: 1;
-}
-
-.export-btn {
-    background-color: #28a745;
-    color: white;
-    border: none;
-}
-
-.export-btn:hover {
-    background-color: #218838;
-}
-
-.clear-btn {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-}
-
-.clear-btn:hover {
-    background-color: #c82333;
-}
-
-.count-container {
-    width: 80%;
-    margin: 0 auto 10px;
-    font-weight: bold;
-    color: white;
-}
-.node-list-note {
-    width: 80%;
-    margin: -4px auto 10px;
-    color: rgba(255, 255, 255, 0.68);
-    font-size: 0.9em;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.node-list-note select {
-    padding: 3px 6px;
-    min-width: 70px;
-}
-.node-status {
-    margin-left: 10px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    border: 1px solid #2a6a8a;
-    background: #0d2a3a;
-    color: #9fd4ff;
-    font-size: 0.9em;
-    display: inline-block;
-    opacity: 0;
-    transition: opacity 0.15s ease-in-out;
-}
-.node-status.active {
-    opacity: 1;
-}
-
-/* Favorite stars */
-.favorite-star {
-    cursor: pointer;
-    font-size: 1.2em;
-    user-select: none;
-    transition: color 0.2s;
-}
-
-.favorite-star:hover {
-    transform: scale(1.2);
-}
-
-.favorite-star.active {
-    color: #ffd700;
-}
-
-/* Favorite filter button */
-.favorites-btn {
-    background-color: #ffd700;
-    color: #000;
-    border: none;
-}
-
-.favorites-btn:hover {
-    background-color: #ffed4e;
-}
-
-.favorites-btn.active {
-    background-color: #ff6b6b;
-    color: white;
-}
-
-/* --------------------------------------------- */
-/* MOBILE CARD VIEW */
-/* --------------------------------------------- */
-@media (max-width: 768px) {
-
-    /* Hide desktop view */
-    #node-list table {
-        display: none;
-    }
-
-    /* Show mobile cards */
-    #mobile-node-list {
-        display: block !important;
-        width: 100%;
-        padding: 0 10px;
-
-        /* If you want horizontal swiping, uncomment:
-        overflow-x: auto;
-        white-space: nowrap; */
-    }
-
-    .node-card {
-        background: #1e1e1e;
-        border: 1px solid #333;
-        border-radius: 8px;
-        padding: 12px 15px;
-        margin-bottom: 12px;
-        color: white;
-    }
-
-    .node-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 1.2em;
-        font-weight: bold;
-        margin-bottom: 8px;
-    }
-
-    .node-card-field {
-        margin: 4px 0;
-        font-size: 0.9em;
-    }
-
-    .node-card-field b {
-        color: #9fd4ff;
-    }
-
-    .favorite-star {
-        font-size: 1.4em;
-    }
-}
+#node-list { width:100%; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); }
+#node-list table { min-width:1150px; }
+#node-list th { cursor:pointer; }
+.filter-container { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px; padding:16px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
+.search-box { flex:1 1 220px; }
+.count-container { font-size:13px; color:var(--mesh-muted); margin-bottom:10px; }
+#node-count { color:var(--mesh-primary); font-weight:700; }
+.node-list-note { display:flex; align-items:center; gap:8px; color:var(--mesh-muted); font-size:12px; margin-bottom:18px; flex-wrap:wrap; }
+.node-status { opacity:0; padding:3px 8px; border-radius:20px; background:var(--mesh-soft); color:var(--mesh-primary); margin-left:10px; font-size:11px; }
+.node-status.active { opacity:1; }
+.favorite-star { cursor:pointer; font-size:20px; color:#8b98aa; user-select:none; }
+.favorite-star.active { color:#ad7800; }
+.mesh-data-page .favorites-btn.active { background:#fff3d6; border-color:#eacb80; color:#8b6200; }
+.node-pagination { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap; }
+.sort-icon { font-size:10px; }
+#mobile-node-list { display:none; }
+.node-card { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:12px; font-size:13px; overflow-wrap:anywhere; }
+.node-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:16px; font-weight:600; }
+.node-card-field { padding:3px 0; }
+.node-card-field b { color:var(--mesh-muted); font-weight:500; }
+@media(max-width:768px) { #node-list { display:none; } #mobile-node-list { display:block!important; } .filter-container { padding:12px; gap:8px; } .filter-container select { flex:1 1 130px; } }
 </style>
 {% endblock %}
 
 {% block body %}
+<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("NODE DIRECTORY") }}</span><h1>{{ tr("Network nodes") }}</h1><p>{{ tr("Find devices, inspect their activity, and manage your favorites.") }}</p></div><a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a></header>
 <div class="filter-container">
 
     <input
@@ -231,23 +41,23 @@ select, .export-btn, .search-box, .clear-btn {
         placeholder="Search by name or ID or HEX ID..."
     />
 
-    <select id="role-filter">
+    <select id="role-filter" aria-label="{{ tr("Filter by role") }}">
         <option value="" data-translate-lang="all_roles">All Roles</option>
     </select>
 
-    <select id="channel-filter">
+    <select id="channel-filter" aria-label="{{ tr("Filter by channel") }}">
         <option value="" data-translate-lang="all_channels">All Channels</option>
     </select>
 
-    <select id="hw-filter">
+    <select id="hw-filter" aria-label="{{ tr("Filter by hardware") }}">
         <option value="" data-translate-lang="all_hw">All HW Models</option>
     </select>
 
-    <select id="firmware-filter">
+    <select id="firmware-filter" aria-label="{{ tr("Filter by firmware") }}">
         <option value="" data-translate-lang="all_firmware">All Firmware</option>
     </select>
 
-    <button class="favorites-btn" id="favorites-btn" data-translate-lang="show_favorites">
+    <button type="button" class="favorites-btn" id="favorites-btn" aria-pressed="false" data-translate-lang="show_favorites">
         ⭐ Show Favorites
     </button>
 
@@ -267,13 +77,13 @@ select, .export-btn, .search-box, .clear-btn {
     <span id="node-status" class="node-status" aria-live="polite"></span>
 </div>
 <div class="node-list-note">
-    <span>Showing nodes active in the last</span>
-    <select id="days-active-filter" aria-label="Days active">
+    <span>{{ tr("Showing nodes active in the last") }}</span>
+    <select id="days-active-filter" aria-label="{{ tr("Days active") }}">
         {% for day in range(1, 15) %}
         <option value="{{ day }}" {% if day == 3 %}selected{% endif %}>{{ day }}</option>
         {% endfor %}
     </select>
-    <span>days.</span>
+    <span>{{ tr("days.") }}</span>
 </div>
 
 <!-- Desktop table -->
@@ -288,6 +98,7 @@ select, .export-btn, .search-box, .clear-btn {
                 <th data-translate-lang="role">Role <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_lat">Last Latitude <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_long">Last Longitude <span class="sort-icon"></span></th>
+                <th>{{ tr("Altitude (m)") }} <span class="sort-icon"></span></th>
                 <th data-translate-lang="channel">Channel <span class="sort-icon"></span></th>
                 <th data-translate-lang="mqtt_gateway">MQTT <span class="sort-icon"></span></th>
                 <th data-translate-lang="last_seen">Last Seen <span class="sort-icon"></span></th>
@@ -296,7 +107,7 @@ select, .export-btn, .search-box, .clear-btn {
         </thead>
         <tbody id="node-table-body">
             <tr>
-                <td colspan="11" style="text-align:center; color:white;" data-translate-lang="loading_nodes">
+                <td colspan="12" style="text-align:center; color:var(--mesh-muted);" data-translate-lang="loading_nodes">
                     Loading nodes...
                 </td>
             </tr>
@@ -306,6 +117,11 @@ select, .export-btn, .search-box, .clear-btn {
 
 <!-- Mobile Card View -->
 <div id="mobile-node-list" style="display:none;"></div>
+<nav class="node-pagination" aria-label="{{ tr("Node list pages") }}">
+    <span id="node-page-range" class="reach-muted" aria-live="polite"></span>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-previous" disabled>{{ tr("Previous") }}</button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-next" disabled>{{ tr("Next") }}</button>
+</nav>
 
 <script>
 // =====================================================
@@ -320,7 +136,7 @@ function applyTranslationsNodelist() {
             if (el.tagName === "INPUT" && el.placeholder) {
                 el.placeholder = nodelistTranslations[key];
             } else {
-                el.textContent = nodelistTranslations[key];
+                MeshI18n.label(el, nodelistTranslations[key]);
             }
         }
     });
@@ -354,7 +170,7 @@ const minStatusMs = 300;
 const headers = document.querySelectorAll("thead th");
 const keyMap = [
     "short_name","long_name","hw_model","firmware","role",
-    "last_lat","last_long","channel","is_mqtt_gateway","last_seen_us"
+    "last_lat","last_long","last_altitude","channel","is_mqtt_gateway","last_seen_us"
 ];
 
 function debounce(fn, delay = 250) {
@@ -400,16 +216,16 @@ function isFavorite(nodeId) {
 }
 
 function timeAgoFromMs(msTimestamp) {
-    if (!msTimestamp) return "N/A";
+    if (!msTimestamp) return MeshI18n.t("N/A");
     const diff = Date.now() - msTimestamp;
 
-    if (diff < 60000) return "just now";
+    if (diff < 60000) return MeshI18n.t("just now");
     const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins} min ago`;
+    if (mins < 60) return MeshI18n.t("{count} min ago", {count: mins});
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs} hr ago`;
+    if (hrs < 24) return MeshI18n.t("{count} hr ago", {count: hrs});
     const days = Math.floor(hrs / 24);
-    return `${days} days ago`;
+    return MeshI18n.t("{count} days ago", {count: days});
 }
 
 // =====================================================
@@ -417,7 +233,7 @@ function timeAgoFromMs(msTimestamp) {
 // =====================================================
 document.addEventListener("DOMContentLoaded", async function() {
 
-    await loadTranslationsNodelist();
+    const translationsReady = loadTranslationsNodelist();
     loadFavorites();
 
     const tbody = document.getElementById("node-table-body");
@@ -435,16 +251,23 @@ document.addEventListener("DOMContentLoaded", async function() {
     const clearBtn = document.getElementById("clear-btn");
     const favoritesBtn = document.getElementById("favorites-btn");
 
+    const pageSize = 100;
+    let currentPage = 1;
+    let filteredNodes = [];
+    const previousPage = document.getElementById("node-page-previous");
+    const nextPage = document.getElementById("node-page-next");
+
     let lastIsMobile = (window.innerWidth <= 768);
 
     async function loadNodesForActiveDays() {
         const daysActive = Number(daysActiveFilter.value) || 3;
-        setStatus("Loading nodes…");
+        setStatus(MeshI18n.t("Loading nodes…"));
         await nextFrame();
         const res = await fetch(`/api/nodes?days_active=${encodeURIComponent(daysActive)}`);
         if (!res.ok) throw new Error("Failed to fetch nodes");
 
         const data = await res.json();
+        await translationsReady;
 
         allNodes = data.nodes.map(n => {
             const firmware = n.firmware || n.firmware_version || "";
@@ -469,7 +292,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
 
         populateFilters(allNodes);
-        applyFilters(); // ensures initial sort + render uses same path
+        await applyFilters(); // ensures initial sort + render uses same path
         updateSortIcons();
         setStatus("");
     }
@@ -478,12 +301,21 @@ document.addEventListener("DOMContentLoaded", async function() {
         await loadNodesForActiveDays();
     } catch (err) {
         tbody.innerHTML = `<tr>
-            <td colspan="11" style="text-align:center; color:red;">
-                ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
+            <td colspan="12" style="text-align:center; color:red;">
+                ${nodelistTranslations.error_loading_nodes || MeshI18n.t("Error loading nodes")}
             </td></tr>`;
         setStatus("");
         return;
     }
+
+    previousPage.addEventListener("click", () => {
+        currentPage--;
+        applyFilters(false);
+    });
+    nextPage.addEventListener("click", () => {
+        currentPage++;
+        applyFilters(false);
+    });
 
     roleFilter.addEventListener("change", applyFilters);
     channelFilter.addEventListener("change", applyFilters);
@@ -495,8 +327,8 @@ document.addEventListener("DOMContentLoaded", async function() {
         } catch (err) {
             console.error("Failed to reload nodes:", err);
             tbody.innerHTML = `<tr>
-                <td colspan="11" style="text-align:center; color:red;">
-                    ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
+                <td colspan="12" style="text-align:center; color:red;">
+                    ${nodelistTranslations.error_loading_nodes || MeshI18n.t("Error loading nodes")}
                 </td></tr>`;
             mobileList.innerHTML = "";
             countSpan.textContent = 0;
@@ -581,15 +413,19 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function toggleFavoritesFilter() {
-        showOnlyFavorites = !showOnlyFavorites;
-        favoritesBtn.textContent = showOnlyFavorites
-            ? "Show All"
-            : "⭐ Show Favorites";
-        favoritesBtn.classList.toggle("active", showOnlyFavorites);
+        if (showOnlyFavorites) {
+            clearFilters();
+            return;
+        }
+        showOnlyFavorites = true;
+        favoritesBtn.textContent = MeshI18n.t("Show All");
+        favoritesBtn.classList.add("active");
+        favoritesBtn.setAttribute("aria-pressed", "true");
         applyFilters();
     }
 
-    async function applyFilters() {
+    async function applyFilters(resetPage = true) {
+        if (resetPage !== false) currentPage = 1;
         setStatus("Updating…");
         await nextFrame();
         const searchTerm = searchBox.value.trim().toLowerCase();
@@ -609,12 +445,21 @@ document.addEventListener("DOMContentLoaded", async function() {
         // IMPORTANT: Always sort the filtered subset to preserve expected behavior
         filtered = sortNodes(filtered, sortColumn, sortAsc);
 
+        filteredNodes = filtered;
         renderTable(filtered);
         updateSortIcons();
         setStatus("");
     }
 
     function renderTable(nodes) {
+        const total = nodes.length;
+        currentPage = Math.max(1, Math.min(currentPage, Math.ceil(total / pageSize)));
+        const start = (currentPage - 1) * pageSize;
+        document.getElementById("node-page-range").textContent = total
+            ? MeshI18n.t("{start}–{end} of {total} nodes", {start: start + 1, end: Math.min(start + pageSize, total), total}) : MeshI18n.t("0 nodes");
+        previousPage.disabled = currentPage === 1;
+        nextPage.disabled = start + pageSize >= total;
+        nodes = nodes.slice(start, start + pageSize);
         const isMobile = window.innerWidth <= 768;
         const shouldRenderTable = !isMobile;
 
@@ -630,13 +475,13 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (!nodes.length) {
             if (shouldRenderTable) {
                 tbody.innerHTML = `<tr>
-                    <td colspan="11" style="text-align:center; color:white;">
-                        ${nodelistTranslations.no_nodes_found || "No nodes found"}
+                    <td colspan="12" style="text-align:center; color:var(--mesh-muted);">
+                        ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
                     </td>
                 </tr>`;
             } else {
-                mobileList.innerHTML = `<div style="text-align:center; color:white;">
-                    ${nodelistTranslations.no_nodes_found || "No nodes found"}
+                mobileList.innerHTML = `<div style="text-align:center; color:var(--mesh-muted);">
+                    ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
                 </div>`;
             }
 
@@ -652,15 +497,16 @@ document.addEventListener("DOMContentLoaded", async function() {
                 // DESKTOP TABLE ROW
                 const row = document.createElement("tr");
                 row.innerHTML = `
-                    <td>${escapeHtml(node.short_name || "N/A")}</td>
-                    <td><a href="/node/${node.node_id}">${escapeHtml(node.long_name || "N/A")}</a></td>
-                    <td>${escapeHtml(node.hw_model || "N/A")}</td>
-                    <td>${escapeHtml(node.firmware || "N/A")}</td>
-                    <td>${escapeHtml(node.role || "N/A")}</td>
-                    <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
-                    <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
-                    <td>${escapeHtml(node.channel || "N/A")}</td>
-                    <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || "Yes") : (nodelistTranslations.no || "No")}</td>
+                    <td>${escapeHtml(node.short_name || MeshI18n.t("N/A"))}</td>
+                    <td><a href="/node/${node.node_id}">${escapeHtml(node.long_name || MeshI18n.t("N/A"))}</a></td>
+                    <td>${escapeHtml(node.hw_model || MeshI18n.t("N/A"))}</td>
+                    <td>${escapeHtml(node.firmware || MeshI18n.t("N/A"))}</td>
+                    <td>${escapeHtml(node.role || MeshI18n.t("N/A"))}</td>
+                    <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : MeshI18n.t("N/A")}</td>
+                    <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : MeshI18n.t("N/A")}</td>
+                    <td>${node.last_altitude != null ? escapeHtml(String(node.last_altitude)) : MeshI18n.t("N/A")}</td>
+                    <td>${escapeHtml(node.channel || MeshI18n.t("N/A"))}</td>
+                    <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No"))}</td>
                     <td>${timeAgoFromMs(node.last_seen_ms)}</td>
                     <td style="text-align:center;">
                         <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
@@ -682,19 +528,20 @@ document.addEventListener("DOMContentLoaded", async function() {
                     </div>
 
                     <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
-                    <div class="node-card-field"><b>Name:</b> ${escapeHtml(node.long_name || "N/A")}</div>
-                    <div class="node-card-field"><b>HW:</b> ${escapeHtml(node.hw_model || "N/A")}</div>
-                    <div class="node-card-field"><b>Firmware:</b> ${escapeHtml(node.firmware || "N/A")}</div>
-                    <div class="node-card-field"><b>Role:</b> ${escapeHtml(node.role || "N/A")}</div>
-                    <div class="node-card-field"><b>Location:</b>
-                        ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : "N/A"},
-                        ${node.last_long ? (node.last_long / 1e7).toFixed(5) : "N/A"}
+                    <div class="node-card-field"><b>${MeshI18n.h("Name:")}</b> ${escapeHtml(node.long_name || MeshI18n.t("N/A"))}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("HW:")}</b> ${escapeHtml(node.hw_model || MeshI18n.t("N/A"))}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Firmware:")}</b> ${escapeHtml(node.firmware || MeshI18n.t("N/A"))}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Role:")}</b> ${escapeHtml(node.role || MeshI18n.t("N/A"))}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Location:")}</b>
+                        ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : MeshI18n.t("N/A")},
+                        ${node.last_long ? (node.last_long / 1e7).toFixed(5) : MeshI18n.t("N/A")}
                     </div>
-                    <div class="node-card-field"><b>Channel:</b> ${escapeHtml(node.channel || "N/A")}</div>
-                    <div class="node-card-field"><b>Last Seen:</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Altitude:")}</b> ${node.last_altitude != null ? MeshI18n.h("{altitude} m above sea level", {altitude: node.last_altitude}) : MeshI18n.t("N/A")}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Channel:")}</b> ${escapeHtml(node.channel || MeshI18n.t("N/A"))}</div>
+                    <div class="node-card-field"><b>${MeshI18n.h("Last Seen:")}</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
 
-                    <a href="/node/${node.node_id}" style="color:#9fd4ff; text-decoration:underline; margin-top:5px; display:block;">
-                        View Node →
+                    <a href="/node/${node.node_id}" style="color:var(--mesh-primary); text-decoration:none; margin-top:10px; display:block;">
+                        ${MeshI18n.h("View Node →")}
                     </a>
                 `;
                 mobileFrag.appendChild(card);
@@ -704,7 +551,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         // Toggle correct view
         mobileList.style.display = isMobile ? "block" : "none";
 
-        countSpan.textContent = nodes.length;
+        countSpan.textContent = total;
 
         if (shouldRenderTable) {
             tbody.appendChild(tableFrag);
@@ -724,31 +571,34 @@ document.addEventListener("DOMContentLoaded", async function() {
         sortAsc = true;
         showOnlyFavorites = false;
 
-        favoritesBtn.textContent = "⭐ Show Favorites";
+        favoritesBtn.textContent = nodelistTranslations.show_favorites || MeshI18n.t("⭐ Show Favorites");
         favoritesBtn.classList.remove("active");
+        favoritesBtn.setAttribute("aria-pressed", "false");
 
         applyFilters();
         updateSortIcons();
     }
 
     function exportToCSV() {
-        const rows = [];
-        const headerList = Array.from(headers).map(h =>
-            `"${h.innerText.replace(/▲|▼/g,'')}"`
-        );
-        rows.push(headerList.join(","));
-
-        const trs = tbody.querySelectorAll("tr");
-        trs.forEach(tr => {
-            const cells = Array.from(tr.children).map(td =>
-                `"${td.innerText.replace(/"/g,'""')}"`
-            );
-            rows.push(cells.join(","));
+        const rows = [Array.from(headers).map(h => h.innerText.replace(/▲|▼/g,''))];
+        filteredNodes.forEach(node => {
+            rows.push([
+                node.short_name || MeshI18n.t("N/A"), node.long_name || MeshI18n.t("N/A"), node.hw_model || MeshI18n.t("N/A"),
+                node.firmware || MeshI18n.t("N/A"), node.role || MeshI18n.t("N/A"),
+                node.last_lat ? (node.last_lat / 1e7).toFixed(7) : MeshI18n.t("N/A"),
+                node.last_long ? (node.last_long / 1e7).toFixed(7) : MeshI18n.t("N/A"),
+                node.last_altitude ?? MeshI18n.t("N/A"),
+                node.channel || MeshI18n.t("N/A"),
+                node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No")),
+                timeAgoFromMs(node.last_seen_ms), isFavorite(node.node_id) ? "★" : "☆"
+            ]);
         });
 
-        const csv = "data:text/csv;charset=utf-8,\uFEFF" + rows.join("\n");
+        // A Blob, not a data: URL: encodeURI() leaves "#" alone, which cut the file short at
+        // the first "#" in any cell (node names such as "Big Rock Ridge #1").
+        const blob = new Blob(["\uFEFF" + csvFromRows(rows)], { type: "text/csv;charset=utf-8" });
         const a = document.createElement("a");
-        a.href = encodeURI(csv);
+        a.href = URL.createObjectURL(blob);
         a.download = "nodelist.csv";
         a.click();
     }
@@ -757,6 +607,12 @@ document.addEventListener("DOMContentLoaded", async function() {
         return [...nodes].sort((a, b) => {
             let A = a[key];
             let B = b[key];
+
+            if (key === "last_altitude") {
+                if (A == null && B == null) return 0;
+                if (A == null) return 1;
+                if (B == null) return -1;
+            }
 
             if (key === "last_seen_us") {
                 A = A || 0;

@@ -1,104 +1,24 @@
 {% extends "base.html" %}
+{% block theme %}light{% endblock %}
+{% block body_class %}mesh-data-page mesh-firehose-page{% endblock %}
 
 {% block css %}
+{% include "data-page-styles.html" %}
 <style>
-.container {
-    margin: 0 auto;
-    padding: 10px;
-}
-#pause-button {
-    white-space: nowrap;
-    padding: 4px 10px;
-    font-size: 0.9rem;
-    border-radius: 6px;
-}
-.firehose-controls {
-    gap: 12px;
-}
-.firehose-filter {
-    min-width: 220px;
-}
-
-.port-tag {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #fff;
-}
-
-/* Packet table */
-.packet-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-    color: #e4e9ee;
-}
-
-.packet-table th, .packet-table td {
-    border: 1px solid #3a3f44;
-    padding: 6px 10px;
-    text-align: left;
-}
-.packet-table th {
-    background-color: #1f2226;
-    font-weight: bold;
-}
-.packet-table tr:nth-of-type(odd) { background-color: #272b2f; }
-.packet-table tr:nth-of-type(even) { background-color: #212529; }
-
-/* Port tag */
-.port-tag {
-    display: inline-block;
-    padding: 1px 6px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: #fff;
-}
-
-.to-mqtt { font-style: italic; color: #aaa; }
-
-/* Payload rows */
-.payload-row { display: none; background-color: #1b1e22; }
-.payload-cell {
-    padding: 8px 12px;
-    font-family: monospace;
-    white-space: pre-wrap;
-    color: #b0bec5;
-}
-.packet-table tr.expanded + .payload-row {
-    display: table-row;
-}
-
-/* Toggle arrow */
-.toggle-btn {
-    cursor: pointer;
-    color: #aaa;
-    margin-right: 6px;
-    font-weight: bold;
-}
-.toggle-btn:hover { color: #fff; }
-
-/* Inline link next to port tag */
-.inline-link {
-    margin-left: 6px;
-    font-weight: bold;
-    text-decoration: none;
-    color: #9fd4ff;
-}
-.inline-link:hover {
-    color: #c7e6ff;
-}
+.firehose-controls { justify-content:space-between; }
+.firehose-controls h2 { font-size:15px; font-weight:600; }
+.firehose-controls > div { flex-wrap:wrap; }
+.firehose-filter { width:190px; }
+@media(max-width:700px) { .firehose-controls > div { width:100%; } .firehose-filter { flex:1; width:120px; } }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="container">
+<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("NETWORK ACTIVITY") }}</span><h1>{{ tr("Live Traffic") }}</h1><p>{{ tr("Follow packet traffic across your mesh network.") }}</p></div><a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a></header>
 
-    <form class="d-flex align-items-center justify-content-between mb-3 firehose-controls">
-        <h2 class="mb-0" data-translate-lang="live_feed">📡 Live Feed</h2>
+    <form class="data-toolbar firehose-controls">
+        <h2 class="mb-0" data-translate-lang="live_feed">📡 Live Traffic</h2>
 
         <div class="d-flex align-items-center gap-2">
             <label for="channel-filter" class="mb-0" data-translate-lang="channel">Channel</label>
@@ -115,6 +35,7 @@
         </div>
     </form>
 
+    <div class="data-table-wrap" role="region" aria-label="{{ tr("Live packet table") }}" tabindex="0">
     <table class="packet-table">
         <thead>
             <tr>
@@ -128,6 +49,7 @@
         </thead>
         <tbody id="packet_list"></tbody>
     </table>
+    </div>
 
 </div>
 
@@ -181,7 +103,7 @@ async function loadNodes() {
             nodeMap[n.node_id] = n.long_name || n.short_name || n.id || n.node_id;
         }
 
-        nodeMap[4294967295] = firehoseTranslations.all_broadcast || "All";
+        nodeMap[4294967295] = firehoseTranslations.all_broadcast || MeshI18n.t("All");
     } catch (err) {
         console.error("Failed loading nodes:", err);
     }
@@ -198,7 +120,7 @@ const PORT_MAP = window.PORT_MAP || {};
 const PORT_COLORS = window.PORT_COLORS || {};
 
 function portLabel(portnum, payload, linksHtml) {
-    const name = PORT_MAP[portnum] || "Unknown";
+    const name = PORT_MAP[portnum] || MeshI18n.t("Unknown");
     const color = PORT_COLORS[portnum] || "#6c757d";
 
     const safePayload = escapeHtml(payload || "");
@@ -221,13 +143,13 @@ function formatTimes(importTimeUs) {
         return { local: "—", utc: "—", epoch: "—" };
     }
     const date = new Date(ms);
-    const local = date.toLocaleTimeString([], {
+    const local = date.toLocaleTimeString(MeshI18n.language, {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
         timeZoneName: "short"
     });
-    const utc = date.toLocaleTimeString([], {
+    const utc = date.toLocaleTimeString(MeshI18n.language, {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
@@ -252,6 +174,7 @@ function logPacketTimes(packet) {
    FIREHOSE FETCHING
    ====================================================== */
 let lastImportTimeUs = null;
+let firehoseLoaded = false;
 let updatesPaused = false;
 let updateInterval = 3000;
 let selectedChannel = "";
@@ -285,6 +208,7 @@ async function loadChannels() {
 }
 
 function resetFirehose() {
+    firehoseLoaded = false;
     lastImportTimeUs = null;
     document.getElementById("packet_list").innerHTML = "";
 }
@@ -309,6 +233,8 @@ async function fetchUpdates() {
 
         const data = await res.json();
         const packets = data.packets || [];
+        const highlightNewPackets = firehoseLoaded;
+        firehoseLoaded = true;
         if (!packets.length) return;
 
         const list = document.getElementById("packet_list");
@@ -322,7 +248,7 @@ async function fetchUpdates() {
             const from =
                 pkt.from_node_id === 4294967295
                     ? `<span class="to-mqtt" data-translate-lang="all_broadcast">
-                           ${firehoseTranslations.all_broadcast || "All"}
+                           ${firehoseTranslations.all_broadcast || MeshI18n.t("All")}
                        </span>`
                     : `<a href="/node/${pkt.from_node_id}" style="text-decoration:underline; color:inherit;">
                            ${escapeHtml(nodeMap[pkt.from_node_id] || pkt.from_node_id)}
@@ -332,11 +258,11 @@ async function fetchUpdates() {
             const to =
                 pkt.to_node_id === 1
                     ? `<span class="to-mqtt" data-translate-lang="direct_to_mqtt">
-                           ${firehoseTranslations.direct_to_mqtt || "direct to MQTT"}
+                           ${firehoseTranslations.direct_to_mqtt || MeshI18n.t("direct to MQTT")}
                        </span>`
                     : pkt.to_node_id === 4294967295
                     ? `<span class="to-mqtt" data-translate-lang="all_broadcast">
-                           ${firehoseTranslations.all_broadcast || "All"}
+                           ${firehoseTranslations.all_broadcast || MeshI18n.t("All")}
                        </span>`
                     : `<a href="/node/${pkt.to_node_id}" style="text-decoration:underline; color:inherit;">
                            ${escapeHtml(nodeMap[pkt.to_node_id] || pkt.to_node_id)}
@@ -376,8 +302,8 @@ async function fetchUpdates() {
                        ${pkt.packet_id}
                    </a>`
                 : pkt.portnum === 73
-                ? `<span class="text-secondary" title="MQTT map report">Not at Packet</span>`
-                : `<span class="text-secondary" title="No Meshtastic packet ID">—</span>`;
+                ? `<span class="text-secondary" title="${MeshI18n.h("MQTT map report")}">${MeshI18n.h("Not a Packet")}</span>`
+                : `<span class="text-secondary" title="${MeshI18n.h("No Meshtastic packet ID")}">—</span>`;
 
             const html = `
 <tr class="packet-row">
@@ -404,6 +330,7 @@ async function fetchUpdates() {
 `;
 
             list.insertAdjacentHTML("afterbegin", html);
+            if (highlightNewPackets) markNewPacketArrival(list.firstElementChild);
         }
 
         // Limit table size
@@ -426,11 +353,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     pauseBtn.addEventListener("click", () => {
         updatesPaused = !updatesPaused;
+        pauseBtn.setAttribute("aria-pressed", String(updatesPaused));
 
         pauseBtn.textContent =
             updatesPaused
-                ? (firehoseTranslations.resume || "Resume")
-                : (firehoseTranslations.pause || "Pause");
+                ? (firehoseTranslations.resume || MeshI18n.t("Resume"))
+                : (firehoseTranslations.pause || MeshI18n.t("Pause"));
     });
 
     channelFilter.addEventListener("change", async (e) => {

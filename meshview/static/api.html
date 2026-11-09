@@ -1,273 +1,545 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Meshview API Documentation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meshview API Reference</title>
+<script src="/static/i18n.js"></script>
+<script src="/static/theme.js"></script>
+<link rel="icon" type="image/svg+xml" href="/static/meshview-icon.svg">
 <style>
-    body {
-        background: #121212;
-        color: #eee;
-        font-family: monospace;
-        margin: 20px;
-        line-height: 1.5;
-    }
-    h1, h2, h3 { color: #79c0ff; }
-    code {
-        background: #1e1e1e;
-        padding: 3px 6px;
-        border-radius: 4px;
-        color: #ffd479;
-        font-size: 0.95rem;
-    }
-    .endpoint {
-        border: 1px solid #333;
-        padding: 12px;
-        margin-bottom: 18px;
-        border-radius: 8px;
-        background: #1a1a1a;
-    }
-    .method {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 4px;
-        margin-right: 6px;
-        font-weight: bold;
-    }
-    .get { background: #0066cc; }
-    .path { font-weight: bold; color: #fff; }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 8px;
-    }
-    th, td {
-        border: 1px solid #444;
-        padding: 6px 10px;
-    }
-    th {
-        background: #222;
-        color: #9ddcff;
-    }
-    .example {
-        margin-top: 10px;
-        padding: 10px;
-        background: #161616;
-        border-radius: 6px;
-        border: 1px solid #333;
-    }
+:root { color-scheme:light; --primary:var(--mesh-primary); --border:var(--mesh-border); }
+* { box-sizing:border-box; }
+html { scroll-padding-top:80px; }
+body { margin:0; background:var(--mesh-page); color:var(--mesh-text); font:14px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif; }
+a { color:var(--primary); }
+a:hover { color:var(--mesh-primary-dark); }
+header { background:var(--mesh-brand); color:white; position:sticky; top:0; z-index:2; box-shadow:0 2px 8px #174b2d18; }
+.header-inner { max-width:1180px; margin:auto; min-height:56px; display:flex; align-items:center; gap:12px; padding:8px 24px; }
+header img { width:32px; height:32px; }
+header a { color:white; text-decoration:none; }
+header a:hover { color:white; text-decoration:underline; }
+.brand { font-size:18px; font-weight:700; display:flex; align-items:center; gap:10px; }
+.home-link { margin-left:auto; font-size:13px; }
+main { max-width:1180px; margin:auto; padding:28px 24px 60px; min-width:0; }
+h1 { font-size:28px; margin:0 0 16px; } h2 { font-size:21px; margin:32px 0 14px; } h3 { font-size:17px; margin:0 0 16px; }
+p,li { overflow-wrap:anywhere; }
+code { font:12px/1.7 ui-monospace,Consolas,monospace; color:var(--mesh-primary); background:var(--mesh-soft); border-radius:4px; padding:2px 5px; overflow-wrap:anywhere; }
+pre { background:var(--mesh-stripe); border:1px solid var(--border); border-radius:7px; padding:16px; overflow:auto; }
+pre code { background:none; padding:0; white-space:pre; color:var(--mesh-text); }
+h3 code { font-size:15px; }
+.endpoint { background:var(--mesh-surface); border:1px solid var(--border); border-radius:9px; padding:24px; margin-bottom:22px; scroll-margin-top:12px; min-width:0; }
+.method { display:inline-block; background:var(--mesh-brand); color:white; font-size:11px; padding:3px 8px; border-radius:5px; margin-right:5px; }
+hr { border:0; border-top:1px solid var(--border); margin:24px 0; }
+.api-index { background:var(--mesh-surface); border:1px solid var(--border); border-radius:9px; padding:16px 20px; margin-bottom:24px; }
+.api-index summary { color:var(--primary); font-weight:600; cursor:pointer; }
+.api-index ul { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 24px; padding-left:20px; }
+.api-index a { font:12px ui-monospace,monospace; }
+:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
+footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center; color:var(--mesh-muted); font-size:12px; }
+@media(max-width:700px) { main { padding:20px 14px 40px; } .header-inner { padding:8px 14px; } h1 { font-size:24px; } h2 { font-size:19px; } h3 code { font-size:12px; } .endpoint { padding:16px; } .api-index ul { grid-template-columns:minmax(0,1fr); } }
 </style>
+<style>
+:root {
+    color-scheme:light;
+    --mesh-primary:#245ea8;
+    --mesh-primary-dark:#19467f;
+    --mesh-primary-rgb:36,94,168;
+    --mesh-brand:#245ea8;
+    --mesh-brand-deep:#19467f;
+    --mesh-surface:#ffffff;
+    --mesh-text:#243247;
+    --mesh-soft:#eaf1fb;
+    --mesh-hover:#dce8f8;
+    --mesh-border:#dce4ef;
+    --mesh-page:#f5f8fc;
+    --mesh-stripe:#f7f9fc;
+    --mesh-muted:#64748b;
+    --mesh-chat-stripe:#eef3fb;
+    --mesh-pulse-soft:#edf4ff;
+    --mesh-pulse-peak:#c9defa;
+    --mesh-pulse-mid:#deebfc;
+}
+[data-bs-theme="dark"] {
+    color-scheme:dark;
+    --mesh-primary:#8bbcff;
+    --mesh-primary-dark:#b6d5ff;
+    --mesh-primary-rgb:139,188,255;
+    --mesh-brand:#193d69;
+    --mesh-brand-deep:#112b4b;
+    --mesh-surface:#182335;
+    --mesh-text:#e2eaf6;
+    --mesh-soft:#203653;
+    --mesh-hover:#29486c;
+    --mesh-border:#34465f;
+    --mesh-page:#101925;
+    --mesh-stripe:#1c2a3d;
+    --mesh-muted:#a0aec2;
+    --mesh-chat-stripe:#20314a;
+    --mesh-pulse-soft:#203653;
+    --mesh-pulse-peak:#355d8e;
+    --mesh-pulse-mid:#29486c;
+    --bs-link-color:var(--mesh-primary);
+    --bs-link-color-rgb:var(--mesh-primary-rgb);
+    --bs-link-hover-color:var(--mesh-primary-dark);
+    --bs-link-hover-color-rgb:182,213,255;
+}
+body { background:var(--mesh-page); color:var(--mesh-text); }
+.mesh-theme-toggle { flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #ffffff70; border-radius:6px; background:transparent; color:white; font:22px/1 system-ui,sans-serif; cursor:pointer; }
+.mesh-header .mesh-theme-toggle { margin-left:auto; }
+.mesh-theme-toggle:hover { background:#ffffff20; }
+.mesh-theme-toggle .theme-icon { width:22px; height:22px; flex-shrink:0; }
+.mesh-theme-toggle .theme-icon--sun { display:none; }
+[data-bs-theme="dark"] .mesh-theme-toggle .theme-icon--sun { display:block; }
+[data-bs-theme="dark"] .mesh-theme-toggle .theme-icon--moon { display:none; }
+.mesh-theme-toggle:focus-visible { outline:2px solid white; outline-offset:3px; }
+@media(max-width:1000px) { .mesh-header .mesh-menu-toggle { margin-left:auto; } .mesh-header .mesh-theme-toggle { margin-left:12px; } .mesh-header #site-menu { order:4; } }
+[data-bs-theme="dark"] :is(.chat-status,.chat-details,.chat-channel,.chat-status[data-state="paused"],.chat-status[data-state="loading"],.good-x) { background:var(--mesh-soft); color:var(--mesh-primary); border-color:var(--mesh-border); }
+[data-bs-theme="dark"] :is(.chat-status[data-state="error"],.bad-x) { background:#472a24; color:#ffb4a6; }
+[data-bs-theme="dark"] .ok-x { background:#453820; color:#f1d38a; }
+[data-bs-theme="dark"] .chat-details:hover { background:var(--mesh-hover); color:var(--mesh-primary-dark); }
+[data-bs-theme="dark"] .chat-nick { filter:brightness(1.4) saturate(.8); }
+[data-bs-theme="dark"] :is(.summary-card:nth-child(2) .summary-count,.summary-card:nth-child(3) .summary-count,.summary-card:nth-child(4) .summary-count,.mesh-metric:nth-child(2) strong,.mesh-metric:nth-child(3) strong,.reach-metric:nth-child(2) .reach-metric-value) { color:var(--mesh-primary); }
+[data-bs-theme="dark"] :is(.reliability-status-heard) { color:#8fd7aa!important; }
+[data-bs-theme="dark"] .reliability-status-missed { color:#ffb4a6!important; }
+[data-bs-theme="dark"] .reach-count-bar-value span { color:#17263c; }
+[data-bs-theme="dark"] .leaflet-tile-pane { filter:invert(1) hue-rotate(180deg) brightness(.85) saturate(.75); }
+[data-bs-theme="dark"] :is(.leaflet-container,.leaflet-control-layers,.leaflet-bar a,.leaflet-popup-content-wrapper,.leaflet-popup-tip,.leaflet-tooltip,.leaflet-control-attribution,.leaflet-control-scale-line,#unmapped-packets,#legend,#node-info,.legend) { background:var(--mesh-surface); color:var(--mesh-text); border-color:var(--mesh-border); }
+[data-bs-theme="dark"] :is(.leaflet-control-layers label,.leaflet-popup-close-button,#unmapped-packets h3,.unmapped-node,.blinking-tooltip,.legend) { color:var(--mesh-text); }
+[data-bs-theme="dark"] :is(.leaflet-bar a:hover,.leaflet-control-layers-expanded) { background:var(--mesh-stripe); }
+[data-bs-theme="dark"] :is(.unmapped-empty,.reach-muted) { color:var(--mesh-muted); }
+[data-bs-theme="dark"] :is(.source-marker,.reach-map-marker) { color:white; }
+[data-bs-theme="dark"] .qr-image { background:white; }
+[data-bs-theme="dark"] :is(#traceroute-error,#map-load-status,.text-danger) { color:#ffb4a6; }
+[data-bs-theme="dark"] .reach-count-bar-track { background:var(--mesh-soft); }
+</style>
+
 </head>
-
 <body>
-
-<h1>Meshview API Documentation</h1>
-<p>This page describes all REST endpoints provided by Meshview.</p>
-
-
-<!------------------------------ NODES ------------------------------>
-<h2>/api/nodes</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/nodes</span>
-    <p>Returns a list of mesh nodes.</p>
-
-    <h3>Query Parameters</h3>
-    <table>
-        <tr><th>Parameter</th><th>Description</th></tr>
-        <tr><td>role</td><td>Filter by node role</td></tr>
-        <tr><td>channel</td><td>Filter by channel</td></tr>
-        <tr><td>hw_model</td><td>Hardware model filter</td></tr>
-        <tr><td>days_active</td><td>Only nodes seen within X days</td></tr>
-    </table>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/nodes?days_active=3</code>
-    </div>
-</div>
-
-
-<!------------------------------ PACKETS ------------------------------>
-<h2>/api/packets</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/packets</span>
-    <p>Fetch packets with many filters. Returns decoded packet data.</p>
-
-    <h3>Query Parameters</h3>
-    <table>
-        <tr><th>Parameter</th><th>Description</th></tr>
-        <tr><td>packet_id</td><td>Return exactly one packet</td></tr>
-        <tr><td>limit</td><td>Max number of results (1–100)</td></tr>
-        <tr><td>since</td><td>Only packets newer than import_time_us</td></tr>
-        <tr><td>from_node_id</td><td>Filter by sender node</td></tr>
-        <tr><td>to_node_id</td><td>Filter by destination node</td></tr>
-        <tr><td>node_id</td><td>Legacy: match either from or to</td></tr>
-        <tr><td>portnum</td><td>Filter by port number</td></tr>
-        <tr><td>contains</td><td>Substring filter for payload</td></tr>
-    </table>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/packets?from_node_id=123&limit=100</code>
-    </div>
-</div>
-
-
-<!------------------------------ PACKETS SEEN ------------------------------>
-<h2>/api/packets_seen/{packet_id}</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/packets_seen/&lt;packet_id&gt;</span>
-    <p>Returns list of gateways that heard the packet (RSSI/SNR/hops).</p>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/packets_seen/3314808102</code>
-    </div>
-</div>
-
-
-<!------------------------------ STATS ------------------------------>
-<h2>/api/stats</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/stats</span>
-    <p>Returns aggregated packet statistics for a node or globally.</p>
-
-    <h3>Query Parameters</h3>
-    <table>
-        <tr><th>Parameter</th><th>Description</th></tr>
-        <tr><td>period_type</td><td>"hour" or "day"</td></tr>
-        <tr><td>length</td><td>How many hours/days</td></tr>
-        <tr><td>node</td><td>Node ID for combined sent+seen stats</td></tr>
-        <tr><td>from_node</td><td>Filter by sender</td></tr>
-        <tr><td>to_node</td><td>Filter by receiver</td></tr>
-        <tr><td>portnum</td><td>Filter by port</td></tr>
-        <tr><td>channel</td><td>Filter by channel</td></tr>
-    </table>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/stats?node=1128180332&period_type=day&length=1</code>
-    </div>
-</div>
-
-
-<!------------------------------ STATS COUNT ------------------------------>
-<h2>/api/stats/count</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/stats/count</span>
-    <p>
-        Returns <b>total packets</b> and <b>total packet_seen entries</b>.
-        When no filters are provided, it returns global totals.
-        When filters are specified, they narrow the time, channel,
-        direction, or specific packet.
-    </p>
-
-    <h3>Query Parameters</h3>
-    <table>
-        <tr><th>Parameter</th><th>Description</th></tr>
-        <tr><td>period_type</td><td>"hour" or "day"</td></tr>
-        <tr><td>length</td><td>Number of hours or days (depends on period_type)</td></tr>
-        <tr><td>channel</td><td>Filter by channel</td></tr>
-        <tr><td>from_node</td><td>Only packets sent by this node</td></tr>
-        <tr><td>to_node</td><td>Only packets received by this node</td></tr>
-        <tr><td>packet_id</td><td>Filter seen counts for specific packet_id</td></tr>
-    </table>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/stats/count?from_node=1128180332&period_type=day&length=1</code>
-    </div>
-</div>
-
-
-
-<!------------------------------ EDGES ------------------------------>
-<h2>/api/edges</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/edges</span>
-    <p>Returns traceroute and/or neighbor edges for graph rendering.</p>
-
-    <h3>Query Parameters</h3>
-    <table>
-        <tr><th>Parameter</th><th>Description</th></tr>
-        <tr><td>type</td><td>"traceroute", "neighbor", or omitted for both</td></tr>
-    </table>
-
-    <div class="example">
-        <b>Example:</b><br>
-        <code>/api/edges?type=neighbor</code>
-    </div>
-</div>
-
-
-<!------------------------------ CONFIG ------------------------------>
-<h2>/api/config</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/config</span>
-    <p>Returns Meshview configuration (site, MQTT, cleanup, etc.).</p>
-
-    <div class="example">
-        <code>/api/config</code>
-    </div>
-</div>
-
-
-<!------------------------------ LANG ------------------------------>
-<h2>/api/lang</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/api/lang</span>
-    <p>Returns translated text for the UI.</p>
-
-    <h3>Parameters</h3>
-    <table>
-        <tr><th>lang</th><td>Language code (e.g. "en")</td></tr>
-        <tr><th>section</th><td>Optional UI section (firehose, map, top...)</td></tr>
-    </table>
-
-    <div class="example">
-        <code>/api/lang?lang=en&section=firehose</code>
-    </div>
-</div>
-
-
-<!------------------------------ HEALTH ------------------------------>
-<h2>/health</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/health</span>
-    <p>Returns API + database status.</p>
-</div>
-
-
-<!------------------------------ VERSION ------------------------------>
-<h2>/version</h2>
-
-<div class="endpoint">
-    <span class="method get">GET</span>
-    <span class="path">/version</span>
-    <p>Returns Meshview version and Git revision.</p>
-</div>
-
-
-<br><br>
+<header><div class="header-inner"><a class="brand" href="/"><img src="/static/meshview-icon.svg" alt="" width="32" height="32">Meshview</a><span data-i18n="API reference">API reference</span><a class="home-link" href="/"><span data-i18n="Home ↗">Home ↗</span></a><button class="mesh-theme-toggle" type="button" data-theme-toggle data-i18n-aria-label="Switch to night mode" aria-label="Switch to night mode" aria-pressed="false">☾</button></div></header>
+<main>
+<details class="api-index"><summary><span data-i18n="Browse all 16 endpoints">Browse all 16 endpoints</span></summary><nav data-i18n-aria-label="API endpoints" aria-label="API endpoints"><ul><li><a href="#get-api-nodes">GET /api/nodes</a></li><li><a href="#get-api-packets">GET /api/packets</a></li><li><a href="#get-api-channels">GET /api/channels</a></li><li><a href="#get-api-stats">GET /api/stats</a></li><li><a href="#get-api-stats-count">GET /api/stats/count</a></li><li><a href="#get-api-stats-top">GET /api/stats/top</a></li><li><a href="#get-api-edges">GET /api/edges</a></li><li><a href="#get-api-snapshots-daily">GET /api/snapshots/daily</a></li><li><a href="#get-api-config">GET /api/config</a></li><li><a href="#get-api-lang">GET /api/lang</a></li><li><a href="#get-api-packets-seen-packet-id">GET /api/packets_seen/{packet_id}</a></li><li><a href="#get-api-traceroute-packet-id">GET /api/traceroute/{packet_id}</a></li><li><a href="#get-health">GET /health</a></li><li><a href="#get-version">GET /version</a></li><li><a href="#get-api-node-node-id-qr">GET /api/node/{node_id}/qr</a></li><li><a href="#get-api-coverage-node-id">GET /api/coverage/{node_id}</a></li></ul></nav></details>
+<h1 id="api-documentation"><span data-i18n="API Documentation">API Documentation</span></h1>
+<p><span data-i18n="Base URL:">Base URL:</span> <code>http(s)://&lt;host&gt;</code></p>
+<p><span data-i18n="This reference covers all 16 GET routes registered in">This reference covers all 16 GET routes registered in</span> <code>meshview/web_api/api.py</code><span data-i18n=", including">, including</span> <code>/health</code> <span data-i18n="and">and</span> <code>/version</code><span data-i18n=". The browser version is served at">. The browser version is served at</span> <code>/api.html</code><span data-i18n=". Responses below are illustrative examples; actual values depend on stored data. Regenerate the browser reference after editing this file with">. Responses below are illustrative examples; actual values depend on stored data. Regenerate the browser reference after editing this file with</span> <code>node scripts/build-api-docs.mjs</code>.</p>
+<h2 id="conventions"><span data-i18n="Conventions">Conventions</span></h2>
+<ul><li><span data-i18n="Successful API responses are JSON. Explicit validation errors usually return JSON with an">Successful API responses are JSON. Explicit validation errors usually return JSON with an</span> <code>error</code> <span data-i18n="field. Some unhandled errors return HTTP 500 with a plain-text body; check HTTP status and Content-Type before parsing an error response.">field. Some unhandled errors return HTTP 500 with a plain-text body; check HTTP status and Content-Type before parsing an error response.</span></li><li><span data-i18n="All routes are read-only. The application does not require an API token; a reverse proxy may impose authentication. There are no application-level write endpoints.">All routes are read-only. The application does not require an API token; a reverse proxy may impose authentication. There are no application-level write endpoints.</span></li><li><code>*_us</code> <span data-i18n="timestamps and">timestamps and</span> <code>since</code> <span data-i18n="use microseconds since the Unix epoch. Snapshot dates and statistics buckets use UTC. Node latitude/longitude integers must be divided by 10,000,000 to obtain degrees; coverage coordinates are already degrees.">use microseconds since the Unix epoch. Snapshot dates and statistics buckets use UTC. Node latitude/longitude integers must be divided by 10,000,000 to obtain degrees; coverage coordinates are already degrees.</span></li><li><span data-i18n="Packet">Packet</span> <code>id</code> <span data-i18n="and">and</span> <code>storage_id</code> <span data-i18n="are database row IDs. Use these for the">are database row IDs. Use these for the</span> <code>packet_id</code> <span data-i18n="query/path parameters on packet, observation, count, and traceroute endpoints. A response field named">query/path parameters on packet, observation, count, and traceroute endpoints. A response field named</span> <code>packet_id</code> <span data-i18n="on a packet object is instead its over-the-air Meshtastic ID.">on a packet object is instead its over-the-air Meshtastic ID.</span> <code>reply_id</code><span data-i18n=", when present, is also an over-the-air ID. These ID types are not interchangeable. Node IDs are numeric Meshtastic node numbers; the node object&#39;s">, when present, is also an over-the-air ID. These ID types are not interchangeable. Node IDs are numeric Meshtastic node numbers; the node object&#39;s</span> <code>id</code> <span data-i18n="is a separate string identifier.">is a separate string identifier.</span></li><li><span data-i18n="Use decimal node IDs throughout. The packet sender/recipient filters and the QR and coverage paths also accept Python-style">Use decimal node IDs throughout. The packet sender/recipient filters and the QR and coverage paths also accept Python-style</span> <code>0x</code> <span data-i18n="hexadecimal numbers. This is not supported consistently by the other routes.">hexadecimal numbers. This is not supported consistently by the other routes.</span></li><li><span data-i18n="Public broadcast text is readable. Direct text messages on port 1 are returned as">Public broadcast text is readable. Direct text messages on port 1 are returned as</span> <code>&lt;redacted&gt;</code><span data-i18n=". Request chat with">. Request chat with</span> <code>/api/packets?portnum=1</code><span data-i18n="; there is no">; there is no</span> <code>/api/chat</code> <span data-i18n="route. Do not treat a decoded">route. Do not treat a decoded</span> <code>payload</code> <span data-i18n="string as trusted HTML.">string as trusted HTML.</span></li></ul>
+<h2 id="quick-examples"><span data-i18n="Quick examples">Quick examples</span></h2>
+<pre><code class="language-sh">curl &#39;http://localhost:8081/api/nodes?days_active=3&#39;
+curl &#39;http://localhost:8081/api/packets?portnum=1&amp;limit=100&#39;
+curl &#39;http://localhost:8081/api/stats/count&#39;
+curl &#39;http://localhost:8081/api/coverage/1234?mode=perimeter&amp;radius_km=20&#39;</code></pre>
+<h2 id="1-nodes-api"><span data-i18n="1. Nodes API">1. Nodes API</span></h2>
+<section class="endpoint" id="get-api-nodes"><h3><span class="method">GET</span> <code>/api/nodes</code></h3>
+<p><span data-i18n="Returns a list of nodes, with optional filtering.">Returns a list of nodes, with optional filtering.</span></p>
+<p><span data-i18n="Query Parameters">Query Parameters</span></p>
+<ul><li><code>node_id</code> <span data-i18n="(optional, int): Exact node ID.">(optional, int): Exact node ID.</span></li><li><code>role</code> <span data-i18n="(optional, string): Node role.">(optional, string): Node role.</span></li><li><code>channel</code> <span data-i18n="(optional, string): Channel name.">(optional, string): Channel name.</span></li><li><code>hw_model</code> <span data-i18n="(optional, string): Hardware model.">(optional, string): Hardware model.</span></li><li><code>days_active</code> <span data-i18n="(optional, int): Nodes seen within the last N days. Omit for all nodes with a non-null last-seen timestamp; invalid integers are ignored.">(optional, int): Nodes seen within the last N days. Omit for all nodes with a non-null last-seen timestamp; invalid integers are ignored.</span></li></ul>
+<p><span data-i18n="Nodes are sorted by">Nodes are sorted by</span> <code>short_name</code> <span data-i18n="ascending.">ascending.</span> <code>role</code> <span data-i18n="is normalized to uppercase; channel and hardware filters are exact matches. No pagination is implemented.">is normalized to uppercase; channel and hardware filters are exact matches. No pagination is implemented.</span></p>
+<p><span data-i18n="Errors: HTTP 500 with">Errors: HTTP 500 with</span> <code>{&quot;error&quot;:&quot;Failed to fetch nodes&quot;}</code> <span data-i18n="for handler failures; the storage helper may return an empty list for database failures.">for handler failures; the storage helper may return an empty list for database failures.</span></p>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;nodes&quot;: [
+    {
+      &quot;id&quot;: &quot;!000004d2&quot;,
+      &quot;node_id&quot;: 1234,
+      &quot;long_name&quot;: &quot;Alice&quot;,
+      &quot;short_name&quot;: &quot;A&quot;,
+      &quot;hw_model&quot;: &quot;T-Beam&quot;,
+      &quot;firmware&quot;: &quot;1.2.3&quot;,
+      &quot;role&quot;: &quot;client&quot;,
+      &quot;last_lat&quot;: 377749000,
+      &quot;last_long&quot;: -1224194000,
+      &quot;last_altitude&quot;: 125,
+      &quot;channel&quot;: &quot;main&quot;,
+      &quot;is_mqtt_gateway&quot;: true,
+      &quot;first_seen_us&quot;: 1736283723456789,
+      &quot;last_seen_us&quot;: 1736370123456789
+    }
+  ]
+}</code></pre>
+<p><code>last_altitude</code> <span data-i18n="is the latest reported altitude in meters above sea level, or">is the latest reported altitude in meters above sea level, or</span> <code>null</code> <span data-i18n="when unknown. It updates with valid node locations from position packets and map reports. Position packets without altitude preserve the previous value. Map reports lack altitude field presence, so zero values in map reports also preserve the previous value. Existing nodes receive altitude as new reports arrive.">when unknown. It updates with valid node locations from position packets and map reports. Position packets without altitude preserve the previous value. Map reports lack altitude field presence, so zero values in map reports also preserve the previous value. Existing nodes receive altitude as new reports arrive.</span></p>
 <hr>
-<p style="text-align:center; color:#666;">Meshview API — generated documentation</p>
-
+</section>
+<h2 id="2-packets-api"><span data-i18n="2. Packets API">2. Packets API</span></h2>
+<section class="endpoint" id="get-api-packets"><h3><span class="method">GET</span> <code>/api/packets</code></h3>
+<p><span data-i18n="Returns packets with optional filters.">Returns packets with optional filters.</span></p>
+<p><span data-i18n="Query Parameters">Query Parameters</span></p>
+<ul><li><code>packet_id</code> <span data-i18n="(optional, decimal int): Return one packet by database row ID (overrides other filters).">(optional, decimal int): Return one packet by database row ID (overrides other filters).</span></li><li><code>limit</code> <span data-i18n="(optional, int): Max packets to return, clamped 1-1000. Default:">(optional, int): Max packets to return, clamped 1-1000. Default:</span> <code>50</code>.</li><li><code>since</code> <span data-i18n="(optional, int): Only packets imported after this microsecond timestamp.">(optional, int): Only packets imported after this microsecond timestamp.</span></li><li><code>portnum</code> <span data-i18n="(optional, int): Filter by port number.">(optional, int): Filter by port number.</span></li><li><code>contains</code> <span data-i18n="(optional, string): Payload substring filter.">(optional, string): Payload substring filter.</span></li><li><code>from_node_id</code> <span data-i18n="(optional, int): Filter by sender node ID.">(optional, int): Filter by sender node ID.</span></li><li><code>channel</code> <span data-i18n="(optional, string): Filter by exact channel name before applying the packet limit.">(optional, string): Filter by exact channel name before applying the packet limit.</span></li><li><code>to_node_id</code> <span data-i18n="(optional, int): Filter by recipient node ID.">(optional, int): Filter by recipient node ID.</span></li><li><code>node_id</code> <span data-i18n="(optional, int): Legacy filter matching either from or to node ID.">(optional, int): Legacy filter matching either from or to node ID.</span></li></ul>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;packets&quot;: [
+    {
+      &quot;id&quot;: 123,
+      &quot;storage_id&quot;: 123,
+      &quot;packet_id&quot;: 3314808102,
+      &quot;import_time_us&quot;: 1736370123456789,
+      &quot;channel&quot;: &quot;main&quot;,
+      &quot;from_node_id&quot;: 5678,
+      &quot;to_node_id&quot;: 4294967295,
+      &quot;portnum&quot;: 1,
+      &quot;long_name&quot;: &quot;Alice&quot;,
+      &quot;payload&quot;: &quot;Hello, mesh!&quot;,
+      &quot;to_long_name&quot;: null,
+      &quot;reply_id&quot;: 122
+    }
+  ],
+  &quot;latest_import_time&quot;: 1736370123456789
+}</code></pre>
+<p><span data-i18n="Notes">Notes</span></p>
+<ul><li><span data-i18n="For">For</span> <code>portnum=1</code> <span data-i18n="(text messages), packets are filtered to remove sequence-only payloads.">(text messages), packets are filtered to remove sequence-only payloads.</span></li><li><span data-i18n="Results are newest first.">Results are newest first.</span> <code>since</code> <span data-i18n="is strictly greater than the supplied timestamp. Store">is strictly greater than the supplied timestamp. Store</span> <code>latest_import_time</code> <span data-i18n="for the next poll and deduplicate by">for the next poll and deduplicate by</span> <code>id</code><span data-i18n=". A bounded result can omit older records if more packets arrive than the requested limit; this endpoint is not a durable cursor or backfill API.">. A bounded result can omit older records if more packets arrive than the requested limit; this endpoint is not a durable cursor or backfill API.</span></li><li><code>latest_import_time</code> <span data-i18n="is returned only when the list response has a positive import timestamp; it is absent for empty results and single-packet lookups.">is returned only when the list response has a positive import timestamp; it is absent for empty results and single-packet lookups.</span></li><li><code>packet_id</code> <span data-i18n="lookup returns">lookup returns</span> <code>{&quot;packets&quot;:[]}</code> <span data-i18n="with HTTP 200 when missing. Its objects omit">with HTTP 200 when missing. Its objects omit</span> <code>to_long_name</code> <span data-i18n="and">and</span> <code>reply_id</code><span data-i18n="; nullable">; nullable</span> <code>portnum</code> <span data-i18n="is possible in this mode.">is possible in this mode.</span></li><li><code>contains</code> <span data-i18n="is case-insensitive. With">is case-insensitive. With</span> <code>portnum=1</code><span data-i18n=", matching is performed on decoded displayed payload text (including redaction placeholders) after the database limit is applied, so fewer than">, matching is performed on decoded displayed payload text (including redaction placeholders) after the database limit is applied, so fewer than</span> <code>limit</code> <span data-i18n="results may be returned. For other requests, it searches stored payload bytes cast to text; this is not a general search over decoded protobuf fields.">results may be returned. For other requests, it searches stored payload bytes cast to text; this is not a general search over decoded protobuf fields.</span></li><li><span data-i18n="Invalid">Invalid</span> <code>limit</code> <span data-i18n="falls back to 50. Invalid">falls back to 50. Invalid</span> <code>since</code>, <code>portnum</code><span data-i18n=", and node filters are logged and ignored. Invalid single-packet IDs return HTTP 400; handler failures return HTTP 500 with">, and node filters are logged and ignored. Invalid single-packet IDs return HTTP 400; handler failures return HTTP 500 with</span> <code>{&quot;error&quot;:&quot;Failed to fetch packets&quot;}</code>.</li></ul>
+<hr>
+</section>
+<h2 id="3-channels-api"><span data-i18n="3. Channels API">3. Channels API</span></h2>
+<section class="endpoint" id="get-api-channels"><h3><span class="method">GET</span> <code>/api/channels</code></h3>
+<p><span data-i18n="Returns channels seen in a time period.">Returns channels seen in a time period.</span></p>
+<p><span data-i18n="Query Parameters">Query Parameters</span></p>
+<ul><li><code>period_type</code> <span data-i18n="(optional, string):">(optional, string):</span> <code>hour</code> <span data-i18n="or">or</span> <code>day</code><span data-i18n=". Default:">. Default:</span> <code>hour</code>.</li><li><code>length</code> <span data-i18n="(optional, int): Number of periods to look back. Default:">(optional, int): Number of periods to look back. Default:</span> <code>24</code>.</li></ul>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;channels&quot;: [&quot;LongFast&quot;, &quot;MediumFast&quot;, &quot;ShortFast&quot;]
+}</code></pre>
+<hr>
+<p><span data-i18n="Errors: storage/period failures return HTTP 200 with">Errors: storage/period failures return HTTP 200 with</span> <code>channels: []</code> <span data-i18n="and an">and an</span> <code>error</code> <span data-i18n="field. Non-integer">field. Non-integer</span> <code>length</code> <span data-i18n="is parsed outside that handler and can return HTTP 500. Use a positive integer length and the literal">is parsed outside that handler and can return HTTP 500. Use a positive integer length and the literal</span> <code>hour</code> <span data-i18n="or">or</span> <code>day</code>.</p>
+</section>
+<h2 id="4-stats-api"><span data-i18n="4. Stats API">4. Stats API</span></h2>
+<section class="endpoint" id="get-api-stats"><h3><span class="method">GET</span> <code>/api/stats</code></h3>
+<p><span data-i18n="Returns packet statistics aggregated by time periods, with optional filtering.">Returns packet statistics aggregated by time periods, with optional filtering.</span></p>
+<p><span data-i18n="Query Parameters">Query Parameters</span></p>
+<ul><li><code>period_type</code> <span data-i18n="(optional, string):">(optional, string):</span> <code>hour</code> <span data-i18n="or">or</span> <code>day</code><span data-i18n=". Default:">. Default:</span> <code>hour</code>.</li><li><code>length</code> <span data-i18n="(optional, int): Number of periods to include. Default:">(optional, int): Number of periods to include. Default:</span> <code>24</code>.</li><li><code>channel</code> <span data-i18n="(optional, string): Filter by channel (case-insensitive).">(optional, string): Filter by channel (case-insensitive).</span></li><li><code>portnum</code> <span data-i18n="(optional, int): Filter by port number.">(optional, int): Filter by port number.</span></li><li><code>to_node</code> <span data-i18n="(optional, int): Filter by destination node ID.">(optional, int): Filter by destination node ID.</span></li><li><code>from_node</code> <span data-i18n="(optional, int): Filter by source node ID.">(optional, int): Filter by source node ID.</span></li><li><code>node</code> <span data-i18n="(optional, int): If provided, return combined">(optional, int): If provided, return combined</span> <code>sent</code> <span data-i18n="and">and</span> <code>seen</code> <span data-i18n="totals for that node.">totals for that node.</span></li></ul>
+<p><span data-i18n="Response Example (series)">Response Example (series)</span></p>
+<pre><code class="language-json">{
+  &quot;period_type&quot;: &quot;hour&quot;,
+  &quot;length&quot;: 24,
+  &quot;channel&quot;: &quot;LongFast&quot;,
+  &quot;portnum&quot;: 1,
+  &quot;to_node&quot;: 12345678,
+  &quot;from_node&quot;: 87654321,
+  &quot;data&quot;: [
+    { &quot;period&quot;: &quot;2025-08-08 14:00&quot;, &quot;count&quot;: 10 },
+    { &quot;period&quot;: &quot;2025-08-08 15:00&quot;, &quot;count&quot;: 7 }
+  ]
+}</code></pre>
+<p><span data-i18n="Response Example (">Response Example (</span><code>node</code> <span data-i18n="totals)">totals)</span></p>
+<pre><code class="language-json">{
+  &quot;node_id&quot;: 12345678,
+  &quot;period_type&quot;: &quot;hour&quot;,
+  &quot;length&quot;: 24,
+  &quot;sent&quot;: 0,
+  &quot;seen&quot;: 0
+}</code></pre>
+<hr>
+<p><span data-i18n="The series response contains only buckets with records, ordered oldest first; missing hours/days are not filled with zeroes. Periods are UTC strings.">The series response contains only buckets with records, ordered oldest first; missing hours/days are not filled with zeroes. Periods are UTC strings.</span></p>
+<p><span data-i18n="Current">Current</span> <code>node</code><span data-i18n="-mode limitation: the handler reads a">-mode limitation: the handler reads a</span> <code>total</code> <span data-i18n="key that the statistics helper does not provide, so">key that the statistics helper does not provide, so</span> <code>sent</code> <span data-i18n="and">and</span> <code>seen</code> <span data-i18n="currently return zero. It also uses recipient filtering for the second query, rather than gateway observations. This mode ignores the other filters. For usable sent/observation totals, request">currently return zero. It also uses recipient filtering for the second query, rather than gateway observations. This mode ignores the other filters. For usable sent/observation totals, request</span> <code>/api/stats/count?from_node=1234&amp;period_type=day&amp;length=1</code> <span data-i18n="instead.">instead.</span></p>
+<p><span data-i18n="Errors: HTTP 400 for an unsupported">Errors: HTTP 400 for an unsupported</span> <code>period_type</code><span data-i18n=", non-integer">, non-integer</span> <code>length</code>, <code>node</code>, <code>portnum</code>, <code>from_node</code><span data-i18n=", or">, or</span> <code>to_node</code><span data-i18n=". Storage failures can return HTTP 500. Use a positive">. Storage failures can return HTTP 500. Use a positive</span> <code>length</code><span data-i18n="; the handler does not impose a positive lower bound.">; the handler does not impose a positive lower bound.</span></p>
+</section>
+<section class="endpoint" id="get-api-stats-count"><h3><span class="method">GET</span> <code>/api/stats/count</code></h3>
+<p><span data-i18n="Returns total packet counts, optionally filtered.">Returns total packet counts, optionally filtered.</span></p>
+<p><span data-i18n="Query Parameters">Query Parameters</span></p>
+<ul><li><code>packet_id</code> <span data-i18n="(optional, int): Filter packet_seen by packet ID.">(optional, int): Filter packet_seen by packet ID.</span></li><li><code>period_type</code> <span data-i18n="(optional, string):">(optional, string):</span> <code>hour</code> <span data-i18n="or">or</span> <code>day</code>.</li><li><code>length</code> <span data-i18n="(optional, int): Number of periods to include.">(optional, int): Number of periods to include.</span></li><li><code>channel</code> <span data-i18n="(optional, string): Filter by channel.">(optional, string): Filter by channel.</span></li><li><code>from_node</code> <span data-i18n="(optional, int): Filter by source node ID.">(optional, int): Filter by source node ID.</span></li><li><code>to_node</code> <span data-i18n="(optional, int): Filter by destination node ID.">(optional, int): Filter by destination node ID.</span></li></ul>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;total_packets&quot;: 12345,
+  &quot;total_seen&quot;: 67890
+}</code></pre>
+<hr>
+<p><span data-i18n="Without filters, counts cover the whole retained database. With time, channel, or direction filters, omitted time settings default to">Without filters, counts cover the whole retained database. With time, channel, or direction filters, omitted time settings default to</span> <code>period_type=day&amp;length=1</code>. <code>total_seen</code> <span data-i18n="counts observation rows for packets matching the packet import-time window, not distinct gateways. Channel matching is case-insensitive.">counts observation rows for packets matching the packet import-time window, not distinct gateways. Channel matching is case-insensitive.</span></p>
+<p><code>packet_id</code> <span data-i18n="applies only to">applies only to</span> <code>total_seen</code> <span data-i18n="and overrides its other filters: it counts all observations of that database packet ID. It does not narrow">and overrides its other filters: it counts all observations of that database packet ID. It does not narrow</span> <code>total_packets</code><span data-i18n=". In particular,">. In particular,</span> <code>packet_id</code> <span data-i18n="alone leaves">alone leaves</span> <code>total_packets</code> <span data-i18n="as the global packet total.">as the global packet total.</span></p>
+<p><span data-i18n="Errors: HTTP 400 for non-integer ID/length filters. Unsupported">Errors: HTTP 400 for non-integer ID/length filters. Unsupported</span> <code>period_type</code> <span data-i18n="or storage failures can return HTTP 500; use">or storage failures can return HTTP 500; use</span> <code>hour</code> <span data-i18n="or">or</span> <code>day</code> <span data-i18n="and a positive length.">and a positive length.</span></p>
+</section>
+<section class="endpoint" id="get-api-stats-top"><h3><span class="method">GET</span> <code>/api/stats/top</code></h3>
+<p><span data-i18n="Returns nodes sorted by packets seen, with pagination.">Returns nodes sorted by packets seen, with pagination.</span></p>
+<p><span data-i18n="Query Parameters">Query Parameters</span></p>
+<ul><li><code>period_type</code> <span data-i18n="(optional, string):">(optional, string):</span> <code>hour</code> <span data-i18n="or">or</span> <code>day</code><span data-i18n=". Default:">. Default:</span> <code>day</code>.</li><li><code>length</code> <span data-i18n="(optional, int): Number of periods to include. Default:">(optional, int): Number of periods to include. Default:</span> <code>1</code>.</li><li><code>channel</code> <span data-i18n="(optional, string): Filter by channel.">(optional, string): Filter by channel.</span></li><li><code>limit</code> <span data-i18n="(optional, int): Max nodes to return. Default:">(optional, int): Max nodes to return. Default:</span> <code>20</code><span data-i18n=", max">, max</span> <code>100</code>.</li><li><code>offset</code> <span data-i18n="(optional, int): Pagination offset. Default:">(optional, int): Pagination offset. Default:</span> <code>0</code>.</li></ul>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;total&quot;: 250,
+  &quot;limit&quot;: 20,
+  &quot;offset&quot;: 0,
+  &quot;nodes&quot;: [
+    {
+      &quot;node_id&quot;: 1234,
+      &quot;long_name&quot;: &quot;Alice&quot;,
+      &quot;short_name&quot;: &quot;A&quot;,
+      &quot;channel&quot;: &quot;main&quot;,
+      &quot;sent&quot;: 100,
+      &quot;seen&quot;: 240,
+      &quot;avg&quot;: 2.4
+    }
+  ]
+}</code></pre>
+<hr>
+<p><code>sent</code> <span data-i18n="counts packet records from each node;">counts packet records from each node;</span> <code>seen</code> <span data-i18n="counts observation records for that sender&#39;s packets.">counts observation records for that sender&#39;s packets.</span> <code>avg</code> <span data-i18n="is">is</span> <code>round(seen / max(sent, 1), 2)</code><span data-i18n=", not a distinct-gateway count. Windows are anchored to the newest packet and newest observation in the respective tables, not wall-clock time. Nodes with zero activity are included;">, not a distinct-gateway count. Windows are anchored to the newest packet and newest observation in the respective tables, not wall-clock time. Nodes with zero activity are included;</span> <code>total</code> <span data-i18n="counts nodes matching the channel filter, not just active nodes.">counts nodes matching the channel filter, not just active nodes.</span></p>
+<p><span data-i18n="Channel matching is exact. Use positive">Channel matching is exact. Use positive</span> <code>length</code> <span data-i18n="and">and</span> <code>limit</code><span data-i18n=", and a nonnegative">, and a nonnegative</span> <code>offset</code><span data-i18n=". Only the upper limit of 100 is enforced. Invalid numeric strings can return HTTP 500; any">. Only the upper limit of 100 is enforced. Invalid numeric strings can return HTTP 500; any</span> <code>period_type</code> <span data-i18n="other than the literal">other than the literal</span> <code>hour</code> <span data-i18n="is treated as days.">is treated as days.</span></p>
+</section>
+<h2 id="5-edges-api"><span data-i18n="5. Edges API">5. Edges API</span></h2>
+<section class="endpoint" id="get-api-edges"><h3><span class="method">GET</span> <code>/api/edges</code></h3>
+<p><span data-i18n="Returns network edges (connections between nodes) based on traceroutes and neighbor info. Traceroute edges are collected over the last 12 hours. Neighbor edges are based on port 71 packets.">Returns network edges (connections between nodes) based on traceroutes and neighbor info. Traceroute edges are collected over the last 12 hours. Neighbor edges are based on port 71 packets.</span></p>
+<p><span data-i18n="A completed traceroute is observed as a response packet, whose">A completed traceroute is observed as a response packet, whose</span> <code>from</code>/<code>to</code> <span data-i18n="are reversed with respect to the traced path, so edges are built as">are reversed with respect to the traced path, so edges are built as</span> <code>to -&gt; route[] -&gt; from</code>. <code>route[]</code> <span data-i18n="may contain">may contain</span> <code>0xFFFFFFFF</code> <span data-i18n="placeholders for hops the mesh could not identify; the edges on either side of such a placeholder are omitted, because the nodes around an unknown hop are not neighbours.">placeholders for hops the mesh could not identify; the edges on either side of such a placeholder are omitted, because the nodes around an unknown hop are not neighbours.</span></p>
+<p><span data-i18n="Query Parameters">Query Parameters</span></p>
+<ul><li><code>type</code> <span data-i18n="(optional, string):">(optional, string):</span> <code>traceroute</code> <span data-i18n="or">or</span> <code>neighbor</code><span data-i18n=". If omitted, returns both.">. If omitted, returns both.</span></li><li><code>node_id</code> <span data-i18n="(optional, int): Filter edges to only those touching a node.">(optional, int): Filter edges to only those touching a node.</span></li></ul>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;edges&quot;: [
+    { &quot;from&quot;: 12345678, &quot;to&quot;: 87654321, &quot;type&quot;: &quot;traceroute&quot; },
+    { &quot;from&quot;: 11111111, &quot;to&quot;: 22222222, &quot;type&quot;: &quot;neighbor&quot; }
+  ]
+}</code></pre>
+<hr>
+<p><span data-i18n="Unknown">Unknown</span> <code>type</code> <span data-i18n="values return an empty edge list. Invalid">values return an empty edge list. Invalid</span> <code>node_id</code> <span data-i18n="returns HTTP 400; storage failures can return HTTP 500. A missing node is not an error and normally returns an empty list. Neighbor edges come from the latest stored port-71 sample (the storage helper defaults to 50 packets), not the traceroute 12-hour window.">returns HTTP 400; storage failures can return HTTP 500. A missing node is not an error and normally returns an empty list. Neighbor edges come from the latest stored port-71 sample (the storage helper defaults to 50 packets), not the traceroute 12-hour window.</span></p>
+</section>
+<h2 id="6-daily-snapshots-and-configuration"><span data-i18n="6. Daily Snapshots and Configuration">6. Daily Snapshots and Configuration</span></h2>
+<section class="endpoint" id="get-api-snapshots-daily"><h3><span class="method">GET</span> <code>/api/snapshots/daily</code></h3>
+<p><span data-i18n="Returns stored daily snapshots. For new snapshots,">Returns stored daily snapshots. For new snapshots,</span> <code>packet_count</code> <span data-i18n="is the number of packet records imported during">is the number of packet records imported during</span> <code>date</code> <span data-i18n="(00:00 UTC inclusive to the next midnight exclusive). The scheduled capture records the previous complete UTC day. Repeated observations of the same packet are not counted separately.">(00:00 UTC inclusive to the next midnight exclusive). The scheduled capture records the previous complete UTC day. Repeated observations of the same packet are not counted separately.</span> <code>node_count</code> <span data-i18n="counts distinct packet senders whose packets were imported or observed during that UTC day (including observations of previously imported packets).">counts distinct packet senders whose packets were imported or observed during that UTC day (including observations of previously imported packets).</span> <code>gateway_count</code> <span data-i18n="counts distinct MQTT gateways with packet observations imported during that day. These are activity counts, not database totals; recipients alone do not count as active nodes. Activity uses local import timestamps, not device timestamps. Older snapshots retain their originally stored counts and are not automatically converted. Counts depend on the packet and observation history still retained at capture time.">counts distinct MQTT gateways with packet observations imported during that day. These are activity counts, not database totals; recipients alone do not count as active nodes. Activity uses local import timestamps, not device timestamps. Older snapshots retain their originally stored counts and are not automatically converted. Counts depend on the packet and observation history still retained at capture time.</span></p>
+<p><span data-i18n="Query Parameters">Query Parameters</span></p>
+<ul><li><code>length</code> <span data-i18n="(optional, int): Return the latest N snapshot records, clamped to 1-3650. Omit for all stored snapshots. Results are always ordered by date ascending. This is a record limit, not a guarantee of consecutive calendar dates.">(optional, int): Return the latest N snapshot records, clamped to 1-3650. Omit for all stored snapshots. Results are always ordered by date ascending. This is a record limit, not a guarantee of consecutive calendar dates.</span></li></ul>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{&quot;data&quot;:[{&quot;date&quot;:&quot;2026-10-24&quot;,&quot;node_count&quot;:143,&quot;packet_count&quot;:28465,&quot;gateway_count&quot;:17,&quot;captured_at_us&quot;:1792886400000000}]}</code></pre>
+<p><span data-i18n="No stored snapshots returns">No stored snapshots returns</span> <code>{&quot;data&quot;:[]}</code><span data-i18n=". Invalid">. Invalid</span> <code>length</code> <span data-i18n="returns HTTP 400; storage failures return HTTP 500.">returns HTTP 400; storage failures return HTTP 500.</span> <code>captured_at_us</code> <span data-i18n="is the capture time, which may be later than the day summarized by">is the capture time, which may be later than the day summarized by</span> <code>date</code>.</p>
+</section>
+<section class="endpoint" id="get-api-config"><h3><span class="method">GET</span> <code>/api/config</code></h3>
+<p><span data-i18n="Returns a safe subset of server configuration.">Returns a safe subset of server configuration.</span></p>
+<p><code>site.map_channel_colors</code> <span data-i18n="contains channel color overrides from the optional">contains channel color overrides from the optional</span> <code>[map_channel_colors]</code> <span data-i18n="INI section. Each entry is">INI section. Each entry is</span> <code>channel = #RRGGBB</code><span data-i18n="; invalid colors are omitted. Channel matching on the map ignores case, spaces, hyphens, and underscores. Unlisted channels use generated colors. For example:">; invalid colors are omitted. Channel matching on the map ignores case, spaces, hyphens, and underscores. Unlisted channels use generated colors. For example:</span></p>
+<pre><code class="language-ini">[map_channel_colors]
+LongFast = #4363d8
+LocalChat = #18aa18</code></pre>
+<p><span data-i18n="No query parameters are supported. Only the">No query parameters are supported. Only the</span> <code>site</code><span data-i18n=", MQTT server/topics, and cleanup fields shown here are exposed; credentials and the database connection string are not returned. Feature flags and cleanup booleans are lowercase strings (">, MQTT server/topics, and cleanup fields shown here are exposed; credentials and the database connection string are not returned. Feature flags and cleanup booleans are lowercase strings (</span><code>&quot;true&quot;</code> / <code>&quot;false&quot;</code><span data-i18n="), not JSON booleans. Cleanup scheduling values are strings; map bounds are numbers and refresh intervals are integers. The removed">), not JSON booleans. Cleanup scheduling values are strings; map bounds are numbers and refresh intervals are integers. The removed</span> <code>starting</code> <span data-i18n="option is not returned:">option is not returned:</span> <code>/</code> <span data-i18n="always serves the dashboard.">always serves the dashboard.</span> <code>site.api</code> <span data-i18n="controls visibility of the API documentation link in the navigation bar, defaults to">controls visibility of the API documentation link in the navigation bar, defaults to</span> <code>&quot;true&quot;</code><span data-i18n=", and can be disabled with">, and can be disabled with</span> <code>api = False</code> <span data-i18n="in">in</span> <code>[site]</code><span data-i18n=". This setting does not disable documentation or API routes. Restart the web server and reload the page after changing it. Handler failures return HTTP 500.">. This setting does not disable documentation or API routes. Restart the web server and reload the page after changing it. Handler failures return HTTP 500.</span></p>
+<p><span data-i18n="Restart the web server and reload the map after changing these settings. Omitting the section uses generated colors for every channel.">Restart the web server and reload the map after changing these settings. Omitting the section uses generated colors for every channel.</span></p>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;site&quot;: {
+    &quot;domain&quot;: &quot;example.com&quot;,
+    &quot;language&quot;: &quot;en&quot;,
+    &quot;title&quot;: &quot;Meshview&quot;,
+    &quot;message&quot;: &quot;&quot;,
+    &quot;nodes&quot;: &quot;true&quot;,
+    &quot;chat&quot;: &quot;true&quot;,
+    &quot;everything&quot;: &quot;true&quot;,
+    &quot;graphs&quot;: &quot;true&quot;,
+    &quot;stats&quot;: &quot;true&quot;,
+    &quot;net&quot;: &quot;true&quot;,
+    &quot;map&quot;: &quot;true&quot;,
+    &quot;top&quot;: &quot;true&quot;,
+    &quot;api&quot;: &quot;true&quot;,
+    &quot;map_top_left_lat&quot;: 39.0,
+    &quot;map_top_left_lon&quot;: -123.0,
+    &quot;map_bottom_right_lat&quot;: 36.0,
+    &quot;map_bottom_right_lon&quot;: -121.0,
+    &quot;map_interval&quot;: 3,
+    &quot;map_channel_colors&quot;: {&quot;LongFast&quot;:&quot;#4363d8&quot;},
+    &quot;firehose_interval&quot;: 3,
+    &quot;weekly_net_message&quot;: &quot;Weekly Mesh check-in message.&quot;,
+    &quot;net_tag&quot;: &quot;#BayMeshNet&quot;,
+    &quot;version&quot;: &quot;3.0.0&quot;
+  },
+  &quot;mqtt&quot;: {
+    &quot;server&quot;: &quot;mqtt.example.com&quot;,
+    &quot;topics&quot;: [&quot;msh/region/#&quot;]
+  },
+  &quot;cleanup&quot;: {
+    &quot;enabled&quot;: &quot;false&quot;,
+    &quot;days_to_keep&quot;: &quot;14&quot;,
+    &quot;hour&quot;: &quot;2&quot;,
+    &quot;minute&quot;: &quot;0&quot;,
+    &quot;vacuum&quot;: &quot;false&quot;
+  }
+}</code></pre>
+<hr>
+</section>
+<h2 id="7-language-api"><span data-i18n="7. Language API">7. Language API</span></h2>
+<section class="endpoint" id="get-api-lang"><h3><span class="method">GET</span> <code>/api/lang</code></h3>
+<p><span data-i18n="Returns translation strings.">Returns translation strings.</span></p>
+<p><span data-i18n="Query Parameters">Query Parameters</span></p>
+<ul><li><code>lang</code> <span data-i18n="(optional, string): Language code (e.g.,">(optional, string): Language code (e.g.,</span> <code>en</code>, <code>es</code><span data-i18n="). Default from config or">). Default from config or</span> <code>en</code>.</li><li><code>section</code> <span data-i18n="(optional, string): Return only one section (e.g.,">(optional, string): Return only one section (e.g.,</span> <code>nodelist</code>, <code>firehose</code>).</li></ul>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;title&quot;: &quot;Meshview&quot;,
+  &quot;search_placeholder&quot;: &quot;Search...&quot;
+}</code></pre>
+<hr>
+<p><span data-i18n="Unknown or invalid language codes fall back to the English file. An unknown section returns HTTP 404. The response has no wrapper: it is either the full translation object or the requested section. Translation-file failures can return HTTP 500.">Unknown or invalid language codes fall back to the English file. An unknown section returns HTTP 404. The response has no wrapper: it is either the full translation object or the requested section. Translation-file failures can return HTTP 500.</span></p>
+<p><span data-i18n="Missing translation keys fall back to English within each section.">Missing translation keys fall back to English within each section.</span></p>
+</section>
+<h2 id="8-packets-seen-api"><span data-i18n="8. Packets Seen API">8. Packets Seen API</span></h2>
+<section class="endpoint" id="get-api-packets-seen-packet-id"><h3><span class="method">GET</span> <code>/api/packets_seen/{packet_id}</code></h3>
+<p><span data-i18n="Returns packet_seen entries for a packet.">Returns packet_seen entries for a packet.</span></p>
+<p><span data-i18n="Path Parameters">Path Parameters</span></p>
+<ul><li><code>packet_id</code> <span data-i18n="(required, int): Packet ID.">(required, int): Packet ID.</span></li></ul>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;seen&quot;: [
+    {
+      &quot;packet_id&quot;: 123,
+      &quot;node_id&quot;: 456,
+      &quot;rx_time&quot;: 1753188300,
+      &quot;hop_limit&quot;: 7,
+      &quot;hop_start&quot;: 0,
+      &quot;channel&quot;: &quot;main&quot;,
+      &quot;rx_snr&quot;: 5.0,
+      &quot;rx_rssi&quot;: -90,
+      &quot;topic&quot;: &quot;msh/region/#&quot;,
+      &quot;import_time_us&quot;: 1736370123456789
+    }
+  ]
+}</code></pre>
+<hr>
+<p><code>node_id</code> <span data-i18n="identifies the observing MQTT gateway.">identifies the observing MQTT gateway.</span> <code>rx_time</code> <span data-i18n="is the device-provided receive time in Unix seconds, while">is the device-provided receive time in Unix seconds, while</span> <code>import_time_us</code> <span data-i18n="is local import time in microseconds. Signal fields can be null. Multiple rows can describe the same gateway; consumers wanting unique gateways must deduplicate them. Hop count is usually">is local import time in microseconds. Signal fields can be null. Multiple rows can describe the same gateway; consumers wanting unique gateways must deduplicate them. Hop count is usually</span> <code>max(0, hop_start - hop_limit)</code> <span data-i18n="when both values are known. Observations do not by themselves prove a direct radio link from the sender to that gateway.">when both values are known. Observations do not by themselves prove a direct radio link from the sender to that gateway.</span></p>
+<p><span data-i18n="No observations, including for an unknown packet, returns">No observations, including for an unknown packet, returns</span> <code>{&quot;seen&quot;:[]}</code> <span data-i18n="with HTTP 200. Invalid path IDs return HTTP 400; handler failures return HTTP 500.">with HTTP 200. Invalid path IDs return HTTP 400; handler failures return HTTP 500.</span></p>
+</section>
+<h2 id="9-traceroute-api"><span data-i18n="9. Traceroute API">9. Traceroute API</span></h2>
+<section class="endpoint" id="get-api-traceroute-packet-id"><h3><span class="method">GET</span> <code>/api/traceroute/{packet_id}</code></h3>
+<p><span data-i18n="Returns traceroute details and derived paths for a packet.">Returns traceroute details and derived paths for a packet.</span></p>
+<p><span data-i18n="Path Parameters">Path Parameters</span></p>
+<ul><li><code>packet_id</code> <span data-i18n="(required, int): Packet ID.">(required, int): Packet ID.</span></li></ul>
+<p><span data-i18n="A completed traceroute is observed as a response packet, whose">A completed traceroute is observed as a response packet, whose</span> <code>from</code>/<code>to</code> <span data-i18n="are reversed with respect to the traced path.">are reversed with respect to the traced path.</span> <code>initiator</code> <span data-i18n="and">and</span> <code>target</code> <span data-i18n="resolve this: the forward path runs">resolve this: the forward path runs</span> <code>initiator -&gt; forward_hops -&gt; target</code> <span data-i18n="and the return path runs">and the return path runs</span> <code>target -&gt; reverse_hops -&gt; initiator</code><span data-i18n=", in both directions of travel.">, in both directions of travel.</span> <code>forward_hops</code> <span data-i18n="and">and</span> <code>reverse_hops</code> <span data-i18n="contain only the intermediate hops, never the endpoints.">contain only the intermediate hops, never the endpoints.</span></p>
+<p><span data-i18n="A gateway usually reports a response that is still travelling home, so">A gateway usually reports a response that is still travelling home, so</span> <code>reverse_hops</code> <span data-i18n="is often incomplete.">is often incomplete.</span> <code>reverse_complete</code> <span data-i18n="says whether that observation had reached the initiator; only then does the corresponding">says whether that observation had reached the initiator; only then does the corresponding</span> <code>winning_paths.reverse</code> <span data-i18n="entry end at the initiator.">entry end at the initiator.</span></p>
+<p><code>winning_paths</code> <span data-i18n="is built from response observations, since a response proves the request reached the target.">is built from response observations, since a response proves the request reached the target.</span> <code>complete</code> <span data-i18n="on a">on a</span> <code>unique_forward_paths</code> <span data-i18n="entry says whether some response reported that hop list, and so whether it is known to end at the target.">entry says whether some response reported that hop list, and so whether it is known to end at the target.</span></p>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;packet&quot;: {
+    &quot;id&quot;: 123,
+    &quot;from&quot;: 222,
+    &quot;to&quot;: 111,
+    &quot;initiator&quot;: 111,
+    &quot;target&quot;: 222,
+    &quot;channel&quot;: &quot;main&quot;
+  },
+  &quot;traceroute_packets&quot;: [
+    {
+      &quot;index&quot;: 0,
+      &quot;gateway_node_id&quot;: 333,
+      &quot;done&quot;: true,
+      &quot;forward_hops&quot;: [444, 555],
+      &quot;reverse_hops&quot;: [555, 444],
+      &quot;reverse_complete&quot;: true
+    }
+  ],
+  &quot;unique_forward_paths&quot;: [
+    { &quot;path&quot;: [444, 555], &quot;count&quot;: 2, &quot;complete&quot;: true }
+  ],
+  &quot;unique_reverse_paths&quot;: [
+    [555, 444]
+  ],
+  &quot;winning_paths&quot;: {
+    &quot;forward&quot;: [[111, 444, 555, 222]],
+    &quot;reverse&quot;: [[222, 555, 444, 111]]
+  }
+}</code></pre>
+<hr>
+<p><code>traceroute_packets</code> <span data-i18n="can be empty even when the packet exists. Unknown database packet IDs return HTTP 404. Invalid integer IDs and storage failures can return HTTP 500; this handler does not implement a separate HTTP 400 validation branch.">can be empty even when the packet exists. Unknown database packet IDs return HTTP 404. Invalid integer IDs and storage failures can return HTTP 500; this handler does not implement a separate HTTP 400 validation branch.</span></p>
+</section>
+<h2 id="10-health-api"><span data-i18n="10. Health API">10. Health API</span></h2>
+<section class="endpoint" id="get-health"><h3><span class="method">GET</span> <code>/health</code></h3>
+<p><span data-i18n="Returns service health and database status.">Returns service health and database status.</span></p>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;status&quot;: &quot;healthy&quot;,
+  &quot;timestamp&quot;: &quot;2025-07-22T12:45:00+00:00&quot;,
+  &quot;version&quot;: &quot;3.0.3&quot;,
+  &quot;git_revision&quot;: &quot;abc1234&quot;,
+  &quot;cleanup&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;days_to_keep&quot;: 14,
+    &quot;scheduled_time&quot;: &quot;02:00&quot;,
+    &quot;vacuum&quot;: false,
+    &quot;status&quot;: &quot;ok&quot;,
+    &quot;status_file&quot;: &quot;dbcleanup.status.json&quot;,
+    &quot;last_run&quot;: {
+      &quot;status&quot;: &quot;ok&quot;,
+      &quot;started_at&quot;: &quot;2026-06-04T09:00:00+00:00&quot;,
+      &quot;completed_at&quot;: &quot;2026-06-04T09:00:03+00:00&quot;,
+      &quot;cutoff_at&quot;: &quot;2026-05-21T09:00:00+00:00&quot;,
+      &quot;days_to_keep&quot;: 14,
+      &quot;vacuum_requested&quot;: false,
+      &quot;vacuum_completed&quot;: false,
+      &quot;rows_deleted&quot;: {
+        &quot;packet&quot;: 1200,
+        &quot;packet_seen&quot;: 3400,
+        &quot;traceroute&quot;: 42,
+        &quot;node&quot;: 3
+      },
+      &quot;error&quot;: null
+    }
+  },
+  &quot;backup&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;backup_dir&quot;: &quot;./backups&quot;,
+    &quot;scheduled_time&quot;: &quot;02:00&quot;,
+    &quot;status&quot;: &quot;ok&quot;,
+    &quot;status_file&quot;: &quot;dbbackup.status.json&quot;,
+    &quot;last_run&quot;: {
+      &quot;status&quot;: &quot;ok&quot;,
+      &quot;started_at&quot;: &quot;2026-06-04T09:00:00+00:00&quot;,
+      &quot;completed_at&quot;: &quot;2026-06-04T09:00:02+00:00&quot;,
+      &quot;backup_dir&quot;: &quot;./backups&quot;,
+      &quot;database_path&quot;: &quot;packets.db&quot;,
+      &quot;backup_file&quot;: &quot;backups/packets_backup_20260604_090000.db.gz&quot;,
+      &quot;original_size_bytes&quot;: 12939444,
+      &quot;compressed_size_bytes&quot;: 4211560,
+      &quot;compression_percent&quot;: 67.5,
+      &quot;error&quot;: null
+    }
+  },
+  &quot;database&quot;: &quot;connected&quot;,
+  &quot;database_size&quot;: &quot;12.34 MB&quot;,
+  &quot;database_size_bytes&quot;: 12939444
+}</code></pre>
+<hr>
+<p><span data-i18n="No query parameters. HTTP 200 reports">No query parameters. HTTP 200 reports</span> <code>status: &quot;healthy&quot;</code> <span data-i18n="with database connectivity. A database failure returns HTTP 503 with">with database connectivity. A database failure returns HTTP 503 with</span> <code>status: &quot;unhealthy&quot;</code> <span data-i18n="and">and</span> <code>database: &quot;disconnected&quot;</code>. <code>seconds_since_last_message</code> <span data-i18n="is included only when a latest imported packet exists; SQLite size fields appear only when available. Cleanup and backup reports include configured schedules and status-file contents when present. Their status may be">is included only when a latest imported packet exists; SQLite size fields appear only when available. Cleanup and backup reports include configured schedules and status-file contents when present. Their status may be</span> <code>disabled</code>, <code>unknown</code>, <code>error</code><span data-i18n=", or the last job&#39;s recorded status; a failed backup/cleanup does not itself change the top-level HTTP status. The optional">, or the last job&#39;s recorded status; a failed backup/cleanup does not itself change the top-level HTTP status. The optional</span> <code>last_run</code> <span data-i18n="objects depend on the job&#39;s stored report.">objects depend on the job&#39;s stored report.</span></p>
+</section>
+<h2 id="11-version-api"><span data-i18n="11. Version API">11. Version API</span></h2>
+<section class="endpoint" id="get-version"><h3><span class="method">GET</span> <code>/version</code></h3>
+<p><span data-i18n="Returns version metadata.">Returns version metadata.</span></p>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;version&quot;: &quot;3.0.3&quot;,
+  &quot;release_date&quot;: &quot;2026-1-15&quot;,
+  &quot;git_revision&quot;: &quot;abc1234&quot;,
+  &quot;git_revision_short&quot;: &quot;abc1234&quot;
+}</code></pre>
+<p><span data-i18n="No query parameters. HTTP 500 with an">No query parameters. HTTP 500 with an</span> <code>error</code> <span data-i18n="field if version metadata cannot be retrieved. A revision may be">field if version metadata cannot be retrieved. A revision may be</span> <code>unknown</code> <span data-i18n="if Git metadata is unavailable.">if Git metadata is unavailable.</span></p>
+</section>
+<h2 id="12-node-contact-url"><span data-i18n="12. Node Contact URL">12. Node Contact URL</span></h2>
+<section class="endpoint" id="get-api-node-node-id-qr"><h3><span class="method">GET</span> <code>/api/node/{node_id}/qr</code></h3>
+<p><span data-i18n="Returns a Meshtastic shared-contact URL as JSON, not a PNG or SVG image. The client can encode">Returns a Meshtastic shared-contact URL as JSON, not a PNG or SVG image. The client can encode</span> <code>meshtastic_url</code> <span data-i18n="in a QR code. No query parameters are supported.">in a QR code. No query parameters are supported.</span></p>
+<p><span data-i18n="Path Parameters">Path Parameters</span></p>
+<ul><li><code>node_id</code> <span data-i18n="(required, int): Node number in decimal or">(required, int): Node number in decimal or</span> <code>0x</code> <span data-i18n="hexadecimal form.">hexadecimal form.</span></li></ul>
+<p><span data-i18n="Response Example">Response Example</span></p>
+<pre><code class="language-json">{
+  &quot;node_id&quot;:1234,
+  &quot;long_name&quot;:&quot;Alice&quot;,
+  &quot;short_name&quot;:&quot;A&quot;,
+  &quot;role&quot;:&quot;CLIENT&quot;,
+  &quot;meshtastic_url&quot;:&quot;https://meshtastic.org/v/#BASE64URL_CONTACT&quot;
+}</code></pre>
+<p><span data-i18n="The example contact payload is a placeholder, not an importable contact. The URL encodes node identity and available user metadata as a base64url SharedContact protobuf, with">The example contact payload is a placeholder, not an importable contact. The URL encodes node identity and available user metadata as a base64url SharedContact protobuf, with</span> <code>manually_verified</code> <span data-i18n="false. Metadata can be null.">false. Metadata can be null.</span></p>
+<p><span data-i18n="Errors: HTTP 400 for invalid IDs; HTTP 404 when the node is absent; HTTP 500 for contact serialization failures or unhandled storage errors.">Errors: HTTP 400 for invalid IDs; HTTP 404 when the node is absent; HTTP 500 for contact serialization failures or unhandled storage errors.</span></p>
+</section>
+<h2 id="13-predicted-radio-coverage"><span data-i18n="13. Predicted Radio Coverage">13. Predicted Radio Coverage</span></h2>
+<section class="endpoint" id="get-api-coverage-node-id"><h3><span class="method">GET</span> <code>/api/coverage/{node_id}</code></h3>
+<p><span data-i18n="Computes an ITM area-model prediction centered on the node&#39;s last stored position. This is a model prediction, not a measured coverage boundary or terrain profile. The optional">Computes an ITM area-model prediction centered on the node&#39;s last stored position. This is a model prediction, not a measured coverage boundary or terrain profile. The optional</span> <code>pyitm</code> <span data-i18n="dependency is required. Calculations run off the event loop and reuse cached model results. All parameters are optional except the node ID.">dependency is required. Calculations run off the event loop and reuse cached model results. All parameters are optional except the node ID.</span></p>
+<p><span data-i18n="Path Parameters">Path Parameters</span></p>
+<ul><li><code>node_id</code> <span data-i18n="(required, int): Node number in decimal or">(required, int): Node number in decimal or</span> <code>0x</code> <span data-i18n="hexadecimal form.">hexadecimal form.</span></li></ul>
+<p><span data-i18n="Query Parameters">Query Parameters</span></p>
+<ul><li><code>mode</code> <span data-i18n="(string, default">(string, default</span> <code>perimeter</code>): <code>perimeter</code> <span data-i18n="or">or</span> <code>heatmap</code><span data-i18n=". Currently every value other than the exact string">. Currently every value other than the exact string</span> <code>perimeter</code> <span data-i18n="selects the heatmap branch.">selects the heatmap branch.</span></li><li><code>freq_mhz</code> <span data-i18n="(number, default">(number, default</span> <code>907</code><span data-i18n="): Frequency in MHz; range 1-10000.">): Frequency in MHz; range 1-10000.</span></li><li><code>tx_dbm</code> <span data-i18n="(number, default">(number, default</span> <code>20</code><span data-i18n="): Transmit power in dBm; range -50 to 60.">): Transmit power in dBm; range -50 to 60.</span></li><li><code>tx_height_m</code> <span data-i18n="(number, default">(number, default</span> <code>5</code><span data-i18n="): Transmit antenna height in meters; range 0-1000.">): Transmit antenna height in meters; range 0-1000.</span></li><li><code>rx_height_m</code> <span data-i18n="(number, default">(number, default</span> <code>1.5</code><span data-i18n="): Receive antenna height in meters; range 0-1000.">): Receive antenna height in meters; range 0-1000.</span></li><li><code>radius_km</code> <span data-i18n="(number, default">(number, default</span> <code>40</code><span data-i18n="): Maximum distance in kilometers; range 1-200.">): Maximum distance in kilometers; range 1-200.</span></li><li><code>step_km</code> <span data-i18n="(number, default">(number, default</span> <code>0.25</code><span data-i18n="): Radial sample spacing in kilometers; range 0.05-50.">): Radial sample spacing in kilometers; range 0.05-50.</span></li><li><code>reliability</code> <span data-i18n="(number, default">(number, default</span> <code>0.5</code><span data-i18n="): ITM time fraction; range 0.01-0.99.">): ITM time fraction; range 0.01-0.99.</span></li><li><code>threshold_dbm</code> <span data-i18n="(number, default">(number, default</span> <code>-120</code><span data-i18n="): Perimeter received-power threshold in dBm; range -200 to 0. Ignored by heatmap computation, although still validated.">): Perimeter received-power threshold in dBm; range -200 to 0. Ignored by heatmap computation, although still validated.</span></li></ul>
+<p><span data-i18n="Numeric bounds are inclusive, values must be finite, and">Numeric bounds are inclusive, values must be finite, and</span> <code>radius_km / step_km</code> <span data-i18n="must not exceed 4000. Smaller steps increase computation cost.">must not exceed 4000. Smaller steps increase computation cost.</span></p>
+<p><span data-i18n="Response Example (">Response Example (</span><code>mode=perimeter</code>)</p>
+<pre><code class="language-json">{
+  &quot;mode&quot;:&quot;perimeter&quot;,
+  &quot;threshold_dbm&quot;:-120.0,
+  &quot;perimeter&quot;:[[30.21,-93.20],[30.209,-93.198]]
+}</code></pre>
+<p><code>perimeter</code> <span data-i18n="contains">contains</span> <code>[latitude, longitude]</code> <span data-i18n="degree pairs for the furthest qualifying sample on each modeled bearing. Bearings with no qualifying sample are omitted; the list is not necessarily a closed GeoJSON polygon.">degree pairs for the furthest qualifying sample on each modeled bearing. Bearings with no qualifying sample are omitted; the list is not necessarily a closed GeoJSON polygon.</span></p>
+<p><span data-i18n="Response Example (">Response Example (</span><code>mode=heatmap</code>)</p>
+<pre><code class="language-json">{
+  &quot;mode&quot;:&quot;heatmap&quot;,
+  &quot;min_dbm&quot;:-130.0,
+  &quot;max_dbm&quot;:-80.0,
+  &quot;points&quot;:[[30.21,-93.20,-110.5]]
+}</code></pre>
+<p><code>points</code> <span data-i18n="contains">contains</span> <code>[latitude, longitude, received_power_dbm]</code> <span data-i18n="triples. Min/max values provide a color-scale range, extended from the defaults to include computed values. An empty perimeter or point list is a valid result when no samples qualify.">triples. Min/max values provide a color-scale range, extended from the defaults to include computed values. An empty perimeter or point list is a valid result when no samples qualify.</span></p>
+<p><span data-i18n="Errors: HTTP 400 for invalid IDs, nonnumeric/nonfinite/out-of-range parameters, or an excessive radius/step ratio; HTTP 404 for an unknown node or missing/zero-valued stored coordinates; HTTP 503 when">Errors: HTTP 400 for invalid IDs, nonnumeric/nonfinite/out-of-range parameters, or an excessive radius/step ratio; HTTP 404 for an unknown node or missing/zero-valued stored coordinates; HTTP 503 when</span> <code>pyitm</code> <span data-i18n="is unavailable. Dependency availability is checked before numeric query validation and node lookup. Unexpected model/storage failures can return HTTP 500.">is unavailable. Dependency availability is checked before numeric query validation and node lookup. Unexpected model/storage failures can return HTTP 500.</span></p>
+</section>
+</main>
+<footer><span data-i18n="Source: docs/API_Documentation.md · Generated with node scripts/build-api-docs.mjs">Source: docs/API_Documentation.md · Generated with node scripts/build-api-docs.mjs</span></footer>
 </body>
 </html>

@@ -1,6 +1,7 @@
 from meshtastic.protobuf import channel_pb2 as _channel_pb2
 from meshtastic.protobuf import config_pb2 as _config_pb2
 from meshtastic.protobuf import device_ui_pb2 as _device_ui_pb2
+from meshtastic.protobuf import field_metadata_pb2 as _field_metadata_pb2
 from meshtastic.protobuf import module_config_pb2 as _module_config_pb2
 from meshtastic.protobuf import portnums_pb2 as _portnums_pb2
 from meshtastic.protobuf import telemetry_pb2 as _telemetry_pb2
@@ -14,6 +15,7 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 AMBIENTLIGHTING_CONFIG: ExcludedModules
 ANDROID_SIM: HardwareModel
 AUDIO_CONFIG: ExcludedModules
+AXIOMETA_GENESIS_MINI: HardwareModel
 BETAFPV_2400_TX: HardwareModel
 BETAFPV_900_NANO_TX: HardwareModel
 BLUETOOTH_CONFIG: ExcludedModules
@@ -21,20 +23,24 @@ BROWNOUT: CriticalErrorCode
 BURNING_MAN: FirmwareEdition
 CANARYONE: HardwareModel
 CANNEDMSG_CONFIG: ExcludedModules
+CCC: FirmwareEdition
 CDEBYTE_EORA_S3: HardwareModel
 CHATTER_2: HardwareModel
 CROWPANEL: HardwareModel
+CROWPANEL_P4: HardwareModel
 DATA_PAYLOAD_LEN: Constants
 DEFCON: FirmwareEdition
 DESCRIPTOR: _descriptor.FileDescriptor
 DETECTIONSENSOR_CONFIG: ExcludedModules
 DIY_EDITION: FirmwareEdition
 DIY_V1: HardwareModel
+DRAGON_CON: FirmwareEdition
 DR_DEV: HardwareModel
 EBYTE_ESP32_S3: HardwareModel
 ESP32_S3_PICO: HardwareModel
 EXCLUDED_NONE: ExcludedModules
 EXTNOTIF_CONFIG: ExcludedModules
+FAB: FirmwareEdition
 FLASH_CORRUPTION_RECOVERABLE: CriticalErrorCode
 FLASH_CORRUPTION_UNRECOVERABLE: CriticalErrorCode
 GENIEBLOCKS: HardwareModel
@@ -46,7 +52,12 @@ HELTEC_MESH_NODE_T096: HardwareModel
 HELTEC_MESH_NODE_T1: HardwareModel
 HELTEC_MESH_NODE_T114: HardwareModel
 HELTEC_MESH_POCKET: HardwareModel
+HELTEC_MESH_POCKET_V2: HardwareModel
 HELTEC_MESH_SOLAR: HardwareModel
+HELTEC_MESH_TOWER_V2: HardwareModel
+HELTEC_RC32: HardwareModel
+HELTEC_RC52: HardwareModel
+HELTEC_RCC6: HardwareModel
 HELTEC_SENSOR_HUB: HardwareModel
 HELTEC_V1: HardwareModel
 HELTEC_V2_0: HardwareModel
@@ -76,10 +87,18 @@ M5STACK_CORE2: HardwareModel
 M5STACK_COREBASIC: HardwareModel
 M5STACK_CORES3: HardwareModel
 M5STACK_RESERVED: HardwareModel
+MAKERFABS_NOMAD_TERMINAL: HardwareModel
+MAKERFABS_RESERVED: HardwareModel
+MAKERFABS_TRACKER: HardwareModel
 ME25LS01_4Y10TD: HardwareModel
+MESHBEACON_CONFIG: ExcludedModules
 MESHLINK: HardwareModel
+MESHNOLOGY_W10: HardwareModel
+MESHNOLOGY_W12: HardwareModel
+MESHPAGER_X2: HardwareModel
 MESHSTICK_1262: HardwareModel
 MESH_TAB: HardwareModel
+MESH_TRACKER_X1: HardwareModel
 MINI_EPAPER_S3: HardwareModel
 MQTT_CONFIG: ExcludedModules
 MS24SF1: HardwareModel
@@ -90,6 +109,7 @@ NANO_G1_EXPLORER: HardwareModel
 NANO_G2_ULTRA: HardwareModel
 NEIGHBORINFO_CONFIG: ExcludedModules
 NETWORK_CONFIG: ExcludedModules
+NODARA: HardwareModel
 NOMADSTAR_METEOR_PRO: HardwareModel
 NONE: CriticalErrorCode
 NO_AXP192: CriticalErrorCode
@@ -124,19 +144,21 @@ RPI_PICO2: HardwareModel
 SEEED_SOLAR_NODE: HardwareModel
 SEEED_WIO_TRACKER_L1: HardwareModel
 SEEED_WIO_TRACKER_L1_EINK: HardwareModel
+SEEED_WIO_TRACKER_L1_PRO_1W: HardwareModel
+SEEED_WIO_TRACKER_L2: HardwareModel
 SEEED_XIAO_S3: HardwareModel
 SENSECAP_INDICATOR: HardwareModel
-SENSELORA_RP2040: HardwareModel
-SENSELORA_S3: HardwareModel
 SERIAL_CONFIG: ExcludedModules
 SLEEP_ENTER_WAIT: CriticalErrorCode
 SMART_CITIZEN: FirmwareEdition
 STATION_G1: HardwareModel
 STATION_G2: HardwareModel
 STATION_G3: HardwareModel
+STATUSMESSAGE_CONFIG: ExcludedModules
 STOREFORWARD_CONFIG: ExcludedModules
 SX1262_FAILURE: CriticalErrorCode
 T5_S3_EPAPER_PRO: HardwareModel
+TAK_CONFIG: ExcludedModules
 TBEAM: HardwareModel
 TBEAM_1_WATT: HardwareModel
 TBEAM_BPF: HardwareModel
@@ -153,6 +175,7 @@ THINKNODE_M6: HardwareModel
 THINKNODE_M7: HardwareModel
 THINKNODE_M8: HardwareModel
 THINKNODE_M9: HardwareModel
+THINKNODE_MX: HardwareModel
 TLORA_C6: HardwareModel
 TLORA_T3_S3: HardwareModel
 TLORA_V1: HardwareModel
@@ -161,10 +184,11 @@ TLORA_V2: HardwareModel
 TLORA_V2_1_1P6: HardwareModel
 TLORA_V2_1_1P8: HardwareModel
 TRACKER_T1000_E: HardwareModel
-TRACKER_T1000_E_PRO: HardwareModel
+TRAFFICMANAGEMENT_CONFIG: ExcludedModules
 TRANSMIT_FAILED: CriticalErrorCode
 TWC_MESH_V4: HardwareModel
 TX_WATCHDOG: CriticalErrorCode
+T_CONNECT_PRO: HardwareModel
 T_DECK: HardwareModel
 T_DECK_PRO: HardwareModel
 T_ECHO: HardwareModel
@@ -189,6 +213,18 @@ WISMESH_TAP: HardwareModel
 WISMESH_TAP_V2: HardwareModel
 XIAO_NRF52_KIT: HardwareModel
 ZERO: Constants
+
+class BoundingBox(_message.Message):
+    __slots__ = ["latitude_north_i", "latitude_south_i", "longitude_east_i", "longitude_west_i"]
+    LATITUDE_NORTH_I_FIELD_NUMBER: _ClassVar[int]
+    LATITUDE_SOUTH_I_FIELD_NUMBER: _ClassVar[int]
+    LONGITUDE_EAST_I_FIELD_NUMBER: _ClassVar[int]
+    LONGITUDE_WEST_I_FIELD_NUMBER: _ClassVar[int]
+    latitude_north_i: int
+    latitude_south_i: int
+    longitude_east_i: int
+    longitude_west_i: int
+    def __init__(self, longitude_west_i: _Optional[int] = ..., latitude_south_i: _Optional[int] = ..., longitude_east_i: _Optional[int] = ..., latitude_north_i: _Optional[int] = ...) -> None: ...
 
 class ChunkedPayload(_message.Message):
     __slots__ = ["chunk_count", "chunk_index", "payload_chunk", "payload_id"]
@@ -245,7 +281,7 @@ class Compressed(_message.Message):
     def __init__(self, portnum: _Optional[_Union[_portnums_pb2.PortNum, str]] = ..., data: _Optional[bytes] = ...) -> None: ...
 
 class Data(_message.Message):
-    __slots__ = ["bitfield", "dest", "emoji", "payload", "portnum", "reply_id", "request_id", "source", "want_response"]
+    __slots__ = ["bitfield", "dest", "emoji", "payload", "portnum", "reply_id", "request_id", "source", "want_response", "xeddsa_signature"]
     BITFIELD_FIELD_NUMBER: _ClassVar[int]
     DEST_FIELD_NUMBER: _ClassVar[int]
     EMOJI_FIELD_NUMBER: _ClassVar[int]
@@ -255,6 +291,7 @@ class Data(_message.Message):
     REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
     SOURCE_FIELD_NUMBER: _ClassVar[int]
     WANT_RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    XEDDSA_SIGNATURE_FIELD_NUMBER: _ClassVar[int]
     bitfield: int
     dest: int
     emoji: int
@@ -264,10 +301,11 @@ class Data(_message.Message):
     request_id: int
     source: int
     want_response: bool
-    def __init__(self, portnum: _Optional[_Union[_portnums_pb2.PortNum, str]] = ..., payload: _Optional[bytes] = ..., want_response: bool = ..., dest: _Optional[int] = ..., source: _Optional[int] = ..., request_id: _Optional[int] = ..., reply_id: _Optional[int] = ..., emoji: _Optional[int] = ..., bitfield: _Optional[int] = ...) -> None: ...
+    xeddsa_signature: bytes
+    def __init__(self, portnum: _Optional[_Union[_portnums_pb2.PortNum, str]] = ..., payload: _Optional[bytes] = ..., want_response: bool = ..., dest: _Optional[int] = ..., source: _Optional[int] = ..., request_id: _Optional[int] = ..., reply_id: _Optional[int] = ..., emoji: _Optional[int] = ..., bitfield: _Optional[int] = ..., xeddsa_signature: _Optional[bytes] = ...) -> None: ...
 
 class DeviceMetadata(_message.Message):
-    __slots__ = ["canShutdown", "device_state_version", "excluded_modules", "firmware_version", "hasBluetooth", "hasEthernet", "hasPKC", "hasRemoteHardware", "hasWifi", "hw_model", "position_flags", "role"]
+    __slots__ = ["canShutdown", "device_state_version", "excluded_modules", "firmware_version", "hasBluetooth", "hasEthernet", "hasPKC", "hasRemoteHardware", "hasWifi", "has_xeddsa", "hw_model", "position_flags", "role"]
     CANSHUTDOWN_FIELD_NUMBER: _ClassVar[int]
     DEVICE_STATE_VERSION_FIELD_NUMBER: _ClassVar[int]
     EXCLUDED_MODULES_FIELD_NUMBER: _ClassVar[int]
@@ -277,6 +315,7 @@ class DeviceMetadata(_message.Message):
     HASPKC_FIELD_NUMBER: _ClassVar[int]
     HASREMOTEHARDWARE_FIELD_NUMBER: _ClassVar[int]
     HASWIFI_FIELD_NUMBER: _ClassVar[int]
+    HAS_XEDDSA_FIELD_NUMBER: _ClassVar[int]
     HW_MODEL_FIELD_NUMBER: _ClassVar[int]
     POSITION_FLAGS_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
@@ -289,10 +328,11 @@ class DeviceMetadata(_message.Message):
     hasPKC: bool
     hasRemoteHardware: bool
     hasWifi: bool
+    has_xeddsa: bool
     hw_model: HardwareModel
     position_flags: int
     role: _config_pb2.Config.DeviceConfig.Role
-    def __init__(self, firmware_version: _Optional[str] = ..., device_state_version: _Optional[int] = ..., canShutdown: bool = ..., hasWifi: bool = ..., hasBluetooth: bool = ..., hasEthernet: bool = ..., role: _Optional[_Union[_config_pb2.Config.DeviceConfig.Role, str]] = ..., position_flags: _Optional[int] = ..., hw_model: _Optional[_Union[HardwareModel, str]] = ..., hasRemoteHardware: bool = ..., hasPKC: bool = ..., excluded_modules: _Optional[int] = ...) -> None: ...
+    def __init__(self, firmware_version: _Optional[str] = ..., device_state_version: _Optional[int] = ..., canShutdown: bool = ..., hasWifi: bool = ..., hasBluetooth: bool = ..., hasEthernet: bool = ..., role: _Optional[_Union[_config_pb2.Config.DeviceConfig.Role, str]] = ..., position_flags: _Optional[int] = ..., hw_model: _Optional[_Union[HardwareModel, str]] = ..., hasRemoteHardware: bool = ..., hasPKC: bool = ..., excluded_modules: _Optional[int] = ..., has_xeddsa: bool = ...) -> None: ...
 
 class DuplicatedPublicKey(_message.Message):
     __slots__ = []
@@ -307,7 +347,7 @@ class FileInfo(_message.Message):
     def __init__(self, file_name: _Optional[str] = ..., size_bytes: _Optional[int] = ...) -> None: ...
 
 class FromRadio(_message.Message):
-    __slots__ = ["channel", "clientNotification", "config", "config_complete_id", "deviceuiConfig", "fileInfo", "id", "lockdown_status", "log_record", "metadata", "moduleConfig", "mqttClientProxyMessage", "my_info", "node_info", "packet", "queueStatus", "rebooted", "xmodemPacket"]
+    __slots__ = ["channel", "clientNotification", "config", "config_complete_id", "deviceuiConfig", "fileInfo", "id", "lockdown_status", "log_record", "metadata", "moduleConfig", "mqttClientProxyMessage", "my_info", "node_info", "packet", "queueStatus", "rebooted", "region_presets", "xmodemPacket"]
     CHANNEL_FIELD_NUMBER: _ClassVar[int]
     CLIENTNOTIFICATION_FIELD_NUMBER: _ClassVar[int]
     CONFIG_COMPLETE_ID_FIELD_NUMBER: _ClassVar[int]
@@ -325,6 +365,7 @@ class FromRadio(_message.Message):
     PACKET_FIELD_NUMBER: _ClassVar[int]
     QUEUESTATUS_FIELD_NUMBER: _ClassVar[int]
     REBOOTED_FIELD_NUMBER: _ClassVar[int]
+    REGION_PRESETS_FIELD_NUMBER: _ClassVar[int]
     XMODEMPACKET_FIELD_NUMBER: _ClassVar[int]
     channel: _channel_pb2.Channel
     clientNotification: ClientNotification
@@ -343,8 +384,9 @@ class FromRadio(_message.Message):
     packet: MeshPacket
     queueStatus: QueueStatus
     rebooted: bool
+    region_presets: LoRaRegionPresetMap
     xmodemPacket: _xmodem_pb2.XModem
-    def __init__(self, id: _Optional[int] = ..., packet: _Optional[_Union[MeshPacket, _Mapping]] = ..., my_info: _Optional[_Union[MyNodeInfo, _Mapping]] = ..., node_info: _Optional[_Union[NodeInfo, _Mapping]] = ..., config: _Optional[_Union[_config_pb2.Config, _Mapping]] = ..., log_record: _Optional[_Union[LogRecord, _Mapping]] = ..., config_complete_id: _Optional[int] = ..., rebooted: bool = ..., moduleConfig: _Optional[_Union[_module_config_pb2.ModuleConfig, _Mapping]] = ..., channel: _Optional[_Union[_channel_pb2.Channel, _Mapping]] = ..., queueStatus: _Optional[_Union[QueueStatus, _Mapping]] = ..., xmodemPacket: _Optional[_Union[_xmodem_pb2.XModem, _Mapping]] = ..., metadata: _Optional[_Union[DeviceMetadata, _Mapping]] = ..., mqttClientProxyMessage: _Optional[_Union[MqttClientProxyMessage, _Mapping]] = ..., fileInfo: _Optional[_Union[FileInfo, _Mapping]] = ..., clientNotification: _Optional[_Union[ClientNotification, _Mapping]] = ..., deviceuiConfig: _Optional[_Union[_device_ui_pb2.DeviceUIConfig, _Mapping]] = ..., lockdown_status: _Optional[_Union[LockdownStatus, _Mapping]] = ...) -> None: ...
+    def __init__(self, id: _Optional[int] = ..., packet: _Optional[_Union[MeshPacket, _Mapping]] = ..., my_info: _Optional[_Union[MyNodeInfo, _Mapping]] = ..., node_info: _Optional[_Union[NodeInfo, _Mapping]] = ..., config: _Optional[_Union[_config_pb2.Config, _Mapping]] = ..., log_record: _Optional[_Union[LogRecord, _Mapping]] = ..., config_complete_id: _Optional[int] = ..., rebooted: bool = ..., moduleConfig: _Optional[_Union[_module_config_pb2.ModuleConfig, _Mapping]] = ..., channel: _Optional[_Union[_channel_pb2.Channel, _Mapping]] = ..., queueStatus: _Optional[_Union[QueueStatus, _Mapping]] = ..., xmodemPacket: _Optional[_Union[_xmodem_pb2.XModem, _Mapping]] = ..., metadata: _Optional[_Union[DeviceMetadata, _Mapping]] = ..., mqttClientProxyMessage: _Optional[_Union[MqttClientProxyMessage, _Mapping]] = ..., fileInfo: _Optional[_Union[FileInfo, _Mapping]] = ..., clientNotification: _Optional[_Union[ClientNotification, _Mapping]] = ..., deviceuiConfig: _Optional[_Union[_device_ui_pb2.DeviceUIConfig, _Mapping]] = ..., lockdown_status: _Optional[_Union[LockdownStatus, _Mapping]] = ..., region_presets: _Optional[_Union[LoRaRegionPresetMap, _Mapping]] = ...) -> None: ...
 
 class Heartbeat(_message.Message):
     __slots__ = ["nonce"]
@@ -392,12 +434,39 @@ class KeyVerificationNumberRequest(_message.Message):
     remote_longname: str
     def __init__(self, nonce: _Optional[int] = ..., remote_longname: _Optional[str] = ...) -> None: ...
 
+class LoRaPresetGroup(_message.Message):
+    __slots__ = ["default_preset", "licensed_only", "presets"]
+    DEFAULT_PRESET_FIELD_NUMBER: _ClassVar[int]
+    LICENSED_ONLY_FIELD_NUMBER: _ClassVar[int]
+    PRESETS_FIELD_NUMBER: _ClassVar[int]
+    default_preset: _config_pb2.Config.LoRaConfig.ModemPreset
+    licensed_only: bool
+    presets: _containers.RepeatedScalarFieldContainer[_config_pb2.Config.LoRaConfig.ModemPreset]
+    def __init__(self, presets: _Optional[_Iterable[_Union[_config_pb2.Config.LoRaConfig.ModemPreset, str]]] = ..., default_preset: _Optional[_Union[_config_pb2.Config.LoRaConfig.ModemPreset, str]] = ..., licensed_only: bool = ...) -> None: ...
+
+class LoRaRegionPresetMap(_message.Message):
+    __slots__ = ["groups", "region_groups"]
+    GROUPS_FIELD_NUMBER: _ClassVar[int]
+    REGION_GROUPS_FIELD_NUMBER: _ClassVar[int]
+    groups: _containers.RepeatedCompositeFieldContainer[LoRaPresetGroup]
+    region_groups: _containers.RepeatedCompositeFieldContainer[LoRaRegionPresets]
+    def __init__(self, groups: _Optional[_Iterable[_Union[LoRaPresetGroup, _Mapping]]] = ..., region_groups: _Optional[_Iterable[_Union[LoRaRegionPresets, _Mapping]]] = ...) -> None: ...
+
+class LoRaRegionPresets(_message.Message):
+    __slots__ = ["group_index", "region"]
+    GROUP_INDEX_FIELD_NUMBER: _ClassVar[int]
+    REGION_FIELD_NUMBER: _ClassVar[int]
+    group_index: int
+    region: _config_pb2.Config.LoRaConfig.RegionCode
+    def __init__(self, region: _Optional[_Union[_config_pb2.Config.LoRaConfig.RegionCode, str]] = ..., group_index: _Optional[int] = ...) -> None: ...
+
 class LockdownStatus(_message.Message):
     __slots__ = ["backoff_seconds", "boots_remaining", "lock_reason", "state", "valid_until_epoch"]
     class State(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
     BACKOFF_SECONDS_FIELD_NUMBER: _ClassVar[int]
     BOOTS_REMAINING_FIELD_NUMBER: _ClassVar[int]
+    DISABLED: LockdownStatus.State
     LOCKED: LockdownStatus.State
     LOCK_REASON_FIELD_NUMBER: _ClassVar[int]
     NEEDS_PROVISION: LockdownStatus.State
@@ -439,14 +508,23 @@ class LowEntropyKey(_message.Message):
     def __init__(self) -> None: ...
 
 class MeshPacket(_message.Message):
-    __slots__ = ["channel", "decoded", "delayed", "encrypted", "hop_limit", "hop_start", "id", "next_hop", "pki_encrypted", "priority", "public_key", "relay_node", "rx_rssi", "rx_snr", "rx_time", "to", "transport_mechanism", "tx_after", "via_mqtt", "want_ack"]
+    __slots__ = ["ack_proof_status", "channel", "decoded", "delayed", "encrypted", "hop_limit", "hop_start", "id", "next_hop", "pki_encrypted", "priority", "public_key", "relay_node", "rx_rssi", "rx_snr", "rx_time", "slot_parity", "to", "transport_mechanism", "tx_after", "via_mqtt", "want_ack", "xeddsa_signed"]
+    class AckProofStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
     class Delayed(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
     class Priority(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
+    class SlotParity(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = []
     class TransportMechanism(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
     ACK: MeshPacket.Priority
+    ACK_PROOF_ABSENT: MeshPacket.AckProofStatus
+    ACK_PROOF_INVALID: MeshPacket.AckProofStatus
+    ACK_PROOF_NO_KEY: MeshPacket.AckProofStatus
+    ACK_PROOF_STATUS_FIELD_NUMBER: _ClassVar[int]
+    ACK_PROOF_VALID: MeshPacket.AckProofStatus
     ALERT: MeshPacket.Priority
     BACKGROUND: MeshPacket.Priority
     CHANNEL_FIELD_NUMBER: _ClassVar[int]
@@ -474,6 +552,10 @@ class MeshPacket(_message.Message):
     RX_RSSI_FIELD_NUMBER: _ClassVar[int]
     RX_SNR_FIELD_NUMBER: _ClassVar[int]
     RX_TIME_FIELD_NUMBER: _ClassVar[int]
+    SLOT_PARITY_EVEN: MeshPacket.SlotParity
+    SLOT_PARITY_FIELD_NUMBER: _ClassVar[int]
+    SLOT_PARITY_ODD: MeshPacket.SlotParity
+    SLOT_PARITY_UNSET: MeshPacket.SlotParity
     TO_FIELD_NUMBER: _ClassVar[int]
     TRANSPORT_API: MeshPacket.TransportMechanism
     TRANSPORT_INTERNAL: MeshPacket.TransportMechanism
@@ -484,10 +566,13 @@ class MeshPacket(_message.Message):
     TRANSPORT_MECHANISM_FIELD_NUMBER: _ClassVar[int]
     TRANSPORT_MQTT: MeshPacket.TransportMechanism
     TRANSPORT_MULTICAST_UDP: MeshPacket.TransportMechanism
+    TRANSPORT_UNICAST_UDP: MeshPacket.TransportMechanism
     TX_AFTER_FIELD_NUMBER: _ClassVar[int]
     UNSET: MeshPacket.Priority
     VIA_MQTT_FIELD_NUMBER: _ClassVar[int]
     WANT_ACK_FIELD_NUMBER: _ClassVar[int]
+    XEDDSA_SIGNED_FIELD_NUMBER: _ClassVar[int]
+    ack_proof_status: MeshPacket.AckProofStatus
     channel: int
     decoded: Data
     delayed: MeshPacket.Delayed
@@ -503,12 +588,14 @@ class MeshPacket(_message.Message):
     rx_rssi: int
     rx_snr: float
     rx_time: int
+    slot_parity: MeshPacket.SlotParity
     to: int
     transport_mechanism: MeshPacket.TransportMechanism
     tx_after: int
     via_mqtt: bool
     want_ack: bool
-    def __init__(self, to: _Optional[int] = ..., channel: _Optional[int] = ..., decoded: _Optional[_Union[Data, _Mapping]] = ..., encrypted: _Optional[bytes] = ..., id: _Optional[int] = ..., rx_time: _Optional[int] = ..., rx_snr: _Optional[float] = ..., hop_limit: _Optional[int] = ..., want_ack: bool = ..., priority: _Optional[_Union[MeshPacket.Priority, str]] = ..., rx_rssi: _Optional[int] = ..., delayed: _Optional[_Union[MeshPacket.Delayed, str]] = ..., via_mqtt: bool = ..., hop_start: _Optional[int] = ..., public_key: _Optional[bytes] = ..., pki_encrypted: bool = ..., next_hop: _Optional[int] = ..., relay_node: _Optional[int] = ..., tx_after: _Optional[int] = ..., transport_mechanism: _Optional[_Union[MeshPacket.TransportMechanism, str]] = ..., **kwargs) -> None: ...
+    xeddsa_signed: bool
+    def __init__(self, to: _Optional[int] = ..., channel: _Optional[int] = ..., decoded: _Optional[_Union[Data, _Mapping]] = ..., encrypted: _Optional[bytes] = ..., id: _Optional[int] = ..., rx_time: _Optional[int] = ..., rx_snr: _Optional[float] = ..., hop_limit: _Optional[int] = ..., want_ack: bool = ..., priority: _Optional[_Union[MeshPacket.Priority, str]] = ..., rx_rssi: _Optional[int] = ..., delayed: _Optional[_Union[MeshPacket.Delayed, str]] = ..., via_mqtt: bool = ..., hop_start: _Optional[int] = ..., public_key: _Optional[bytes] = ..., pki_encrypted: bool = ..., next_hop: _Optional[int] = ..., relay_node: _Optional[int] = ..., tx_after: _Optional[int] = ..., transport_mechanism: _Optional[_Union[MeshPacket.TransportMechanism, str]] = ..., xeddsa_signed: bool = ..., ack_proof_status: _Optional[_Union[MeshPacket.AckProofStatus, str]] = ..., slot_parity: _Optional[_Union[MeshPacket.SlotParity, str]] = ..., **kwargs) -> None: ...
 
 class MqttClientProxyMessage(_message.Message):
     __slots__ = ["data", "retained", "text", "topic"]
@@ -565,9 +652,11 @@ class NeighborInfo(_message.Message):
     def __init__(self, node_id: _Optional[int] = ..., last_sent_by_id: _Optional[int] = ..., node_broadcast_interval_secs: _Optional[int] = ..., neighbors: _Optional[_Iterable[_Union[Neighbor, _Mapping]]] = ...) -> None: ...
 
 class NodeInfo(_message.Message):
-    __slots__ = ["channel", "device_metrics", "hops_away", "is_favorite", "is_ignored", "is_key_manually_verified", "is_muted", "last_heard", "num", "position", "snr", "user", "via_mqtt"]
+    __slots__ = ["channel", "device_metrics", "has_xeddsa_signed", "heard_on_current_lora", "hops_away", "is_favorite", "is_ignored", "is_key_manually_verified", "is_muted", "last_heard", "num", "position", "snr", "user", "via_mqtt"]
     CHANNEL_FIELD_NUMBER: _ClassVar[int]
     DEVICE_METRICS_FIELD_NUMBER: _ClassVar[int]
+    HAS_XEDDSA_SIGNED_FIELD_NUMBER: _ClassVar[int]
+    HEARD_ON_CURRENT_LORA_FIELD_NUMBER: _ClassVar[int]
     HOPS_AWAY_FIELD_NUMBER: _ClassVar[int]
     IS_FAVORITE_FIELD_NUMBER: _ClassVar[int]
     IS_IGNORED_FIELD_NUMBER: _ClassVar[int]
@@ -581,6 +670,8 @@ class NodeInfo(_message.Message):
     VIA_MQTT_FIELD_NUMBER: _ClassVar[int]
     channel: int
     device_metrics: _telemetry_pb2.DeviceMetrics
+    has_xeddsa_signed: bool
+    heard_on_current_lora: bool
     hops_away: int
     is_favorite: bool
     is_ignored: bool
@@ -592,7 +683,7 @@ class NodeInfo(_message.Message):
     snr: float
     user: User
     via_mqtt: bool
-    def __init__(self, num: _Optional[int] = ..., user: _Optional[_Union[User, _Mapping]] = ..., position: _Optional[_Union[Position, _Mapping]] = ..., snr: _Optional[float] = ..., last_heard: _Optional[int] = ..., device_metrics: _Optional[_Union[_telemetry_pb2.DeviceMetrics, _Mapping]] = ..., channel: _Optional[int] = ..., via_mqtt: bool = ..., hops_away: _Optional[int] = ..., is_favorite: bool = ..., is_ignored: bool = ..., is_key_manually_verified: bool = ..., is_muted: bool = ...) -> None: ...
+    def __init__(self, num: _Optional[int] = ..., user: _Optional[_Union[User, _Mapping]] = ..., position: _Optional[_Union[Position, _Mapping]] = ..., snr: _Optional[float] = ..., last_heard: _Optional[int] = ..., device_metrics: _Optional[_Union[_telemetry_pb2.DeviceMetrics, _Mapping]] = ..., channel: _Optional[int] = ..., via_mqtt: bool = ..., hops_away: _Optional[int] = ..., is_favorite: bool = ..., is_ignored: bool = ..., is_key_manually_verified: bool = ..., is_muted: bool = ..., has_xeddsa_signed: bool = ..., heard_on_current_lora: bool = ...) -> None: ...
 
 class NodeRemoteHardwarePin(_message.Message):
     __slots__ = ["node_num", "pin"]
@@ -728,9 +819,10 @@ class RouteDiscovery(_message.Message):
     def __init__(self, route: _Optional[_Iterable[int]] = ..., snr_towards: _Optional[_Iterable[int]] = ..., route_back: _Optional[_Iterable[int]] = ..., snr_back: _Optional[_Iterable[int]] = ...) -> None: ...
 
 class Routing(_message.Message):
-    __slots__ = ["error_reason", "route_reply", "route_request"]
+    __slots__ = ["ack_proof", "error_reason", "route_reply", "route_request"]
     class Error(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
+    ACK_PROOF_FIELD_NUMBER: _ClassVar[int]
     ADMIN_BAD_SESSION_KEY: Routing.Error
     ADMIN_PUBLIC_KEY_UNAUTHORIZED: Routing.Error
     BAD_REQUEST: Routing.Error
@@ -752,10 +844,11 @@ class Routing(_message.Message):
     ROUTE_REQUEST_FIELD_NUMBER: _ClassVar[int]
     TIMEOUT: Routing.Error
     TOO_LARGE: Routing.Error
+    ack_proof: bytes
     error_reason: Routing.Error
     route_reply: RouteDiscovery
     route_request: RouteDiscovery
-    def __init__(self, route_request: _Optional[_Union[RouteDiscovery, _Mapping]] = ..., route_reply: _Optional[_Union[RouteDiscovery, _Mapping]] = ..., error_reason: _Optional[_Union[Routing.Error, str]] = ...) -> None: ...
+    def __init__(self, route_request: _Optional[_Union[RouteDiscovery, _Mapping]] = ..., route_reply: _Optional[_Union[RouteDiscovery, _Mapping]] = ..., error_reason: _Optional[_Union[Routing.Error, str]] = ..., ack_proof: _Optional[bytes] = ...) -> None: ...
 
 class StatusMessage(_message.Message):
     __slots__ = ["status"]
@@ -834,24 +927,34 @@ class User(_message.Message):
     def __init__(self, id: _Optional[str] = ..., long_name: _Optional[str] = ..., short_name: _Optional[str] = ..., macaddr: _Optional[bytes] = ..., hw_model: _Optional[_Union[HardwareModel, str]] = ..., is_licensed: bool = ..., role: _Optional[_Union[_config_pb2.Config.DeviceConfig.Role, str]] = ..., public_key: _Optional[bytes] = ..., is_unmessagable: bool = ...) -> None: ...
 
 class Waypoint(_message.Message):
-    __slots__ = ["description", "expire", "icon", "id", "latitude_i", "locked_to", "longitude_i", "name"]
+    __slots__ = ["bounding_box", "description", "expire", "geofence_radius", "icon", "id", "latitude_i", "locked_to", "longitude_i", "name", "notify_favorites_only", "notify_on_enter", "notify_on_exit"]
+    BOUNDING_BOX_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     EXPIRE_FIELD_NUMBER: _ClassVar[int]
+    GEOFENCE_RADIUS_FIELD_NUMBER: _ClassVar[int]
     ICON_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     LATITUDE_I_FIELD_NUMBER: _ClassVar[int]
     LOCKED_TO_FIELD_NUMBER: _ClassVar[int]
     LONGITUDE_I_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
+    NOTIFY_FAVORITES_ONLY_FIELD_NUMBER: _ClassVar[int]
+    NOTIFY_ON_ENTER_FIELD_NUMBER: _ClassVar[int]
+    NOTIFY_ON_EXIT_FIELD_NUMBER: _ClassVar[int]
+    bounding_box: BoundingBox
     description: str
     expire: int
+    geofence_radius: int
     icon: int
     id: int
     latitude_i: int
     locked_to: int
     longitude_i: int
     name: str
-    def __init__(self, id: _Optional[int] = ..., latitude_i: _Optional[int] = ..., longitude_i: _Optional[int] = ..., expire: _Optional[int] = ..., locked_to: _Optional[int] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., icon: _Optional[int] = ...) -> None: ...
+    notify_favorites_only: bool
+    notify_on_enter: bool
+    notify_on_exit: bool
+    def __init__(self, id: _Optional[int] = ..., latitude_i: _Optional[int] = ..., longitude_i: _Optional[int] = ..., expire: _Optional[int] = ..., locked_to: _Optional[int] = ..., name: _Optional[str] = ..., description: _Optional[str] = ..., icon: _Optional[int] = ..., geofence_radius: _Optional[int] = ..., bounding_box: _Optional[_Union[BoundingBox, _Mapping]] = ..., notify_on_enter: bool = ..., notify_on_exit: bool = ..., notify_favorites_only: bool = ...) -> None: ...
 
 class resend_chunks(_message.Message):
     __slots__ = ["chunks"]
