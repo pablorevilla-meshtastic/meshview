@@ -135,7 +135,7 @@ See [README-Docker.md](README-Docker.md) for container deployment and [docs/](do
 
 * **Packet Analysis**: Detailed information on individual data packets transmitted within the network can be accessed, including payload content and transmission paths.
 
-* **Node Statistics**: Users can explore statistics related to network traffic, such as top contributors and message volumes. The highest-router map includes a minimum-altitude field (default 200 m above sea level) that immediately filters the top 50 routers shown.
+* **Node Statistics**: Users can explore statistics related to network traffic, such as top contributors and message volumes. The highest-router map includes a minimum-altitude field (default 500 m above sea level) that immediately filters the top 50 routers shown.
 
 Samples of currently running instances:
 
