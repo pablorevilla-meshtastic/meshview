@@ -170,7 +170,9 @@
     "expand_chart": "Expand Chart",
     "export_csv": "Export CSV",
     "all_channels": "All Channels",
-    "node_id": "Node ID"
+    "node_id": "Node ID",
+    "minimum_altitude": "Minimum altitude (m)",
+    "altitude_map_filtered_count": "Showing {located} of {total} routers at or above {minimum} m"
   },
   "top": {
     "top_traffic_nodes": "Top Nodes Traffic",
@@ -597,6 +599,7 @@
     "Mesh overview": "Mesh overview",
     "Mesh statistics": "Mesh statistics",
     "Messages, oldest to newest": "Messages, oldest to newest",
+    "Minimum altitude (m)": "Minimum altitude (m)",
     "Missed": "Missed",
     "Missing translation keys fall back to English within each section.": "Missing translation keys fall back to English within each section.",
     "Moderate": "Moderate",
@@ -782,6 +785,7 @@
     "Showing nodes active in the last": "Showing nodes active in the last",
     "Showing {count} nodes · highest first": "Showing {count} nodes · highest first",
     "Showing {located} of the top {total} routers · altitude in meters above sea level": "Showing {located} of the top {total} routers · altitude in meters above sea level",
+    "Showing {located} of {total} routers at or above {minimum} m": "Showing {located} of {total} routers at or above {minimum} m",
     "Signal": "Signal",
     "Simulator": "Simulator",
     "Snapshot node and gateway timeframe": "Snapshot node and gateway timeframe",

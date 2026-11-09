@@ -173,7 +173,9 @@
     "no_gateways": "No se encontraron gateways",
     "expand_chart": "Ampliar Gráfico",
     "export_csv": "Exportar CSV",
-    "all_channels": "Todos los Canales"
+    "all_channels": "Todos los Canales",
+    "minimum_altitude": "Altitud mínima (m)",
+    "altitude_map_filtered_count": "Mostrando {located} de {total} routers a {minimum} m o más"
   },
   "top": {
     "top_traffic_nodes": "Tráfico de Nodos (24h)",
@@ -605,6 +607,7 @@
     "Mesh overview": "Resumen de la red mesh",
     "Mesh statistics": "Estadísticas de la red mesh",
     "Messages, oldest to newest": "Mensajes, de más antiguos a más recientes",
+    "Minimum altitude (m)": "Altitud mínima (m)",
     "Missed": "No recibido",
     "Missing translation keys fall back to English within each section.": "Las claves de traducción ausentes usan el inglés dentro de cada sección.",
     "Moderate": "Moderada",
@@ -790,6 +793,7 @@
     "Showing nodes active in the last": "Mostrando nodos activos en los últimos",
     "Showing {count} nodes · highest first": "Mostrando {count} nodos · de mayor a menor altitud",
     "Showing {located} of the top {total} routers · altitude in meters above sea level": "Mostrando {located} de los {total} routers más altos · altitud en metros sobre el nivel del mar",
+    "Showing {located} of {total} routers at or above {minimum} m": "Mostrando {located} de {total} routers a {minimum} m o más",
     "Signal": "Señal",
     "Simulator": "Simulador",
     "Snapshot node and gateway timeframe": "Intervalo de instantáneas de nodos y puertas de enlace",

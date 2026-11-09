@@ -170,7 +170,9 @@
     "all_channels": "Все каналы",
     "node_id": "ID ноды",
     "daily_snapshot_packets_history": "История ежедневных снимков пакетов",
-    "daily_snapshot_nodes_gateways_history": "История ежедневных снимков узлов и шлюзов"
+    "daily_snapshot_nodes_gateways_history": "История ежедневных снимков узлов и шлюзов",
+    "minimum_altitude": "Минимальная высота (м)",
+    "altitude_map_filtered_count": "Показано {located} из {total} роутеров на высоте от {minimum} м"
   },
   "top": {
     "top_traffic_nodes": " Трафик нод",
@@ -597,6 +599,7 @@
     "Mesh overview": "Обзор mesh-сети",
     "Mesh statistics": "Статистика mesh-сети",
     "Messages, oldest to newest": "Сообщения от старых к новым",
+    "Minimum altitude (m)": "Минимальная высота (м)",
     "Missed": "Пропущен",
     "Missing translation keys fall back to English within each section.": "Отсутствующие ключи перевода заменяются английскими в каждом разделе.",
     "Moderate": "Умеренная",
@@ -782,6 +785,7 @@
     "Showing nodes active in the last": "Показаны узлы, активные за последние",
     "Showing {count} nodes · highest first": "Показано узлов: {count} · сначала самые высокие",
     "Showing {located} of the top {total} routers · altitude in meters above sea level": "Показано {located} из {total} самых высоких роутеров · высота в метрах над уровнем моря",
+    "Showing {located} of {total} routers at or above {minimum} m": "Показано {located} из {total} роутеров на высоте от {minimum} м",
     "Signal": "Сигнал",
     "Simulator": "Симулятор",
     "Snapshot node and gateway timeframe": "Период снимков узлов и шлюзов",

@@ -26,7 +26,10 @@
 #altitude-map-modal[hidden] { display:none; }
 #altitude-map-modal { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center; padding:16px; background:#17263c99; }
 .altitude-map-dialog { width:min(1100px,100%); height:85dvh; display:flex; flex-direction:column; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:10px; padding:16px; }
-.altitude-map-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.altitude-map-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.altitude-map-controls { display:flex; align-items:center; gap:10px; margin-left:auto; }
+.altitude-map-filter { display:flex; align-items:center; flex-wrap:wrap; gap:6px; font-size:13px; }
+#altitude-map-minimum { width:90px; }
 .altitude-map-heading h2 { font-size:18px; margin:0; }
 #altitude-map-status { color:var(--mesh-muted); font-size:13px; margin:10px 0; }
 #altitude-router-map { flex:1; min-height:0; border-radius:6px; }
@@ -218,7 +221,16 @@
 
 <div id="altitude-map-modal" role="dialog" aria-modal="true" aria-labelledby="altitude-map-title" hidden>
     <div class="altitude-map-dialog">
-        <div class="altitude-map-heading"><h2 id="altitude-map-title" data-translate-lang="altitude_map_title">highest routers · top 50</h2><button id="altitude-map-close" type="button" data-translate-aria-label="close_router_map" aria-label="Close router map">&times;</button></div>
+        <div class="altitude-map-heading">
+            <h2 id="altitude-map-title" data-translate-lang="altitude_map_title">highest routers · top 50</h2>
+            <div class="altitude-map-controls">
+                <label class="altitude-map-filter" for="altitude-map-minimum">
+                    <span data-translate-lang="minimum_altitude">{{ tr("Minimum altitude (m)") }}</span>
+                    <input id="altitude-map-minimum" type="number" value="200" step="1" required>
+                </label>
+                <button id="altitude-map-close" type="button" data-translate-aria-label="close_router_map" aria-label="Close router map">&times;</button>
+            </div>
+        </div>
         <p id="altitude-map-status" role="status"></p>
         <div id="altitude-router-map" data-translate-aria-label="router_map_label" aria-label="Map of highest routers and their altitudes"></div>
     </div>
@@ -243,6 +255,8 @@ function statsText(key, values = {}) {
         Object.hasOwn(values, name) ? String(values[name]) : match);
 }
 const statsReportFallback = {
+    "minimum_altitude": MeshI18n.t("Minimum altitude (m)"),
+    "altitude_map_filtered_count": MeshI18n.t("Showing {located} of {total} routers at or above {minimum} m"),
     "node_id": MeshI18n.t("Node ID"),
     "text_senders_title": MeshI18n.t("Top text senders · main channel"),
     "refresh_sample": MeshI18n.t("Refresh sample"),
@@ -363,9 +377,10 @@ document.getElementById("text-nodes-refresh").addEventListener("click", loadText
 
 let altitudeRows = [];
 let altitudeExportRows = [];
-function rankAltitudeNodes(nodes) {
+let altitudeRouterRows = [];
+function rankAltitudeNodes(nodes, minimumAltitude = 100) {
     return nodes
-        .filter(node => Number.isFinite(node.last_altitude) && node.last_altitude >= 100 && node.node_id != null
+        .filter(node => Number.isFinite(node.last_altitude) && node.last_altitude >= minimumAltitude && node.node_id != null
             && ["ROUTER", "ROUTER_CLIENT", "ROUTER_LATE"].includes((node.role || "").toUpperCase()))
         .sort((a, b) => b.last_altitude - a.last_altitude || a.node_id - b.node_id);
 }
@@ -386,9 +401,10 @@ async function loadAltitudeNodes(refreshNodes = false) {
     chart.off("click");
     chart.on("click", openAltitudeNode);
     try {
-        altitudeExportRows = rankAltitudeNodes(await fetchStatsNodes(refreshNodes)).slice(0, 50);
+        altitudeRouterRows = rankAltitudeNodes(await fetchStatsNodes(refreshNodes), -Infinity);
+        altitudeExportRows = altitudeRouterRows.filter(node => node.last_altitude >= 100).slice(0, 50);
         altitudeRows = altitudeExportRows.slice(0, 10);
-        document.getElementById("altitude-map-button").disabled = altitudeExportRows.length === 0;
+        document.getElementById("altitude-map-button").disabled = altitudeRouterRows.length === 0;
         chart.setOption({
             tooltip: {trigger:"axis", renderMode:"richText", valueFormatter:value => statsText("meters", {value})},
             grid: {left:10, right:20, top:55, bottom:10, containLabel:true},
@@ -406,6 +422,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
     } catch (error) {
         altitudeRows = [];
         altitudeExportRows = [];
+        altitudeRouterRows = [];
         chart.clear();
         status.textContent = statsText("altitude_error");
         console.error(error);
@@ -415,12 +432,13 @@ async function loadAltitudeNodes(refreshNodes = false) {
 }
 document.getElementById("altitude-refresh").addEventListener("click", () => loadAltitudeNodes(true));
 
-// Map the same ranked sample used by the top-50 CSV export.
+// Map the highest 50 routers meeting the user-selected altitude threshold.
 let altitudeMap;
 let altitudeMarkers;
 const altitudeMapModal = document.getElementById("altitude-map-modal");
 const altitudeMapButton = document.getElementById("altitude-map-button");
 const altitudeMapClose = document.getElementById("altitude-map-close");
+const altitudeMapMinimum = document.getElementById("altitude-map-minimum");
 function closeAltitudeMap() {
     altitudeMapModal.hidden = true;
     altitudeMapButton.focus();
@@ -432,16 +450,20 @@ altitudeMapModal.addEventListener("click", event => {
 altitudeMapModal.addEventListener("keydown", event => {
     if (event.key === "Escape") { event.preventDefault(); closeAltitudeMap(); }
     if (event.key === "Tab") {
-        const controls = [...altitudeMapModal.querySelectorAll('button, a[href], [tabindex="0"]')]
+        const controls = [...altitudeMapModal.querySelectorAll('button, input, a[href], [tabindex="0"]')]
             .filter(el => el.getClientRects().length);
         const first = controls[0], last = controls[controls.length - 1];
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
 });
-altitudeMapButton.addEventListener("click", () => {
-    altitudeMapModal.hidden = false;
-    altitudeMapClose.focus();
+function renderAltitudeMap() {
+    if (!altitudeMapMinimum.checkValidity()) {
+        altitudeMapMinimum.reportValidity();
+        return;
+    }
+    const minimumAltitude = altitudeMapMinimum.valueAsNumber;
+    const filteredRows = altitudeRouterRows.filter(node => node.last_altitude >= minimumAltitude).slice(0, 50);
     if (!altitudeMap) {
         altitudeMap = L.map("altitude-router-map").setView([0,0], 2);
         L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
@@ -451,12 +473,12 @@ altitudeMapButton.addEventListener("click", () => {
         altitudeMarkers = L.layerGroup().addTo(altitudeMap);
     }
     altitudeMarkers.clearLayers();
-    const located = altitudeExportRows.filter(node =>
+    const located = filteredRows.filter(node =>
         Number.isFinite(node.last_lat) && Number.isFinite(node.last_long)
         && Math.abs(node.last_lat) <= 900000000 && Math.abs(node.last_long) <= 1800000000
         && (Math.abs(node.last_lat) > 10000000 || Math.abs(node.last_long) > 10000000));
     const icon = L.divIcon({className:"altitude-router-icon", iconSize:[32,32], iconAnchor:[16,16],
-        html:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#187346" stroke="white" stroke-width="2"/><g fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 21h12v4H10zM16 21v-7m-4 1a6 6 0 0 1 8 0m-11-3a10 10 0 0 1 14 0"/></g><circle cx="16" cy="12" r="1.5" fill="white"/></svg>'});
+        html:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#dc2626" stroke="white" stroke-width="2"/><g fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 21h12v4H10zM16 21v-7m-4 1a6 6 0 0 1 8 0m-11-3a10 10 0 0 1 14 0"/></g><circle cx="16" cy="12" r="1.5" fill="white"/></svg>'});
     located.forEach(node => {
         const marker = L.marker([node.last_lat / 1e7,node.last_long / 1e7], {icon}).addTo(altitudeMarkers);
         const label = document.createElement("span");
@@ -471,16 +493,28 @@ altitudeMapButton.addEventListener("click", () => {
         details.append(link,altitude);
         marker.bindPopup(details);
     });
-    const missing = altitudeExportRows.length - located.length;
+    const missing = filteredRows.length - located.length;
     document.getElementById("altitude-map-status").textContent =
-        statsText("altitude_map_count", {located: located.length, total: altitudeExportRows.length}) +
+        statsText("altitude_map_filtered_count", {
+            located: located.length, total: filteredRows.length,
+            minimum: minimumAltitude.toLocaleString(MeshI18n.language)
+        }) +
         (missing ? statsText("altitude_map_missing", {missing}) : '');
     requestAnimationFrame(() => {
         altitudeMap.invalidateSize();
         if (located.length) altitudeMap.fitBounds(located.map(node => [node.last_lat / 1e7,node.last_long / 1e7]), {padding:[60,60], maxZoom:12});
         else altitudeMap.setView([0,0],2);
     });
+}
+altitudeMapButton.addEventListener("click", () => {
+    altitudeMapModal.hidden = false;
+    altitudeMapClose.focus();
+    renderAltitudeMap();
 });
+altitudeMapMinimum.addEventListener("input", () => {
+    if (altitudeMapMinimum.validity.valid) renderAltitudeMap();
+});
+altitudeMapMinimum.addEventListener("change", renderAltitudeMap);
 
 // --- Fetch & Processing ---
 async function fetchStats(period_type,length,portnum=null,channel=null){
