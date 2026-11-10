@@ -42,7 +42,8 @@
 .chart-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:16px 20px; border-bottom:1px solid var(--mesh-border); font-size:14px; font-weight:600; }
 .chart-title { display:flex; align-items:center; gap:8px; margin:0; font-size:15px; font-weight:650; }
 .chart-title .ti { color:var(--mesh-primary); font-size:18px; }
-.chart-actions { display:flex; gap:6px; }
+.chart-actions { display:flex; gap:4px; }
+.packet-filter-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
 .filter-container { display:flex; gap:10px; flex-wrap:wrap; padding:16px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:18px; }
 #chartModal,#qrModal { display:none; position:fixed; inset:0; background:#17263c99; z-index:9999; align-items:center; justify-content:center; padding:16px; }
 #chartModal > div { background:var(--mesh-surface); border-radius:10px; width:95%; height:85%; padding:14px; }
@@ -57,7 +58,7 @@
 .qr-actions { display:flex; justify-content:center; }
 .mesh-data-page .copied { background:#e8f5ee; color:#187346; }
 @media(max-width:900px) { .node-info { grid-template-columns:minmax(0,1fr); gap:10px; } }
-@media(max-width:700px) { .chart-header { padding:12px; } .chart-actions button { padding:6px 8px; } }
+@media(max-width:700px) { .chart-header { padding:12px; } #node-packets select { flex:1 1 0; min-width:0; } .packet-filter-actions { width:100%; justify-content:flex-end; } }
 </style>
 {% endblock %}
 
@@ -147,8 +148,8 @@
         <div class="chart-header">
             <h2 class="chart-title"><span class="ti ti-battery-2" aria-hidden="true"></span> <span data-translate-lang="battery_voltage">Battery & Voltage</span></h2>
             <div class="chart-actions">
-                <button onclick="expandChart('battery_voltage')" data-translate-lang="expand">Expand</button>
-                <button onclick="exportCSV('battery_voltage')" data-translate-lang="export_csv">Export CSV</button>
+                <button type="button" class="chart-tool" onclick="expandChart('battery_voltage')" title="{{ tr("Expand chart") }}" aria-label="{{ tr("Expand chart") }}"><span class="ti ti-arrows-maximize" aria-hidden="true"></span></button>
+                <button type="button" class="chart-tool" onclick="exportCSV('battery_voltage')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
             </div>
         </div>
         <div id="chart_battery_voltage" style="height:380px;"></div>
@@ -159,8 +160,8 @@
         <div class="chart-header">
             <h2 class="chart-title"><span class="ti ti-bolt" aria-hidden="true"></span> <span data-translate-lang="power">Power Metrics</span></h2>
             <div class="chart-actions">
-                <button onclick="expandChart('power')" data-translate-lang="expand">Expand</button>
-                <button onclick="exportCSV('power')" data-translate-lang="export_csv">Export CSV</button>
+                <button type="button" class="chart-tool" onclick="expandChart('power')" title="{{ tr("Expand chart") }}" aria-label="{{ tr("Expand chart") }}"><span class="ti ti-arrows-maximize" aria-hidden="true"></span></button>
+                <button type="button" class="chart-tool" onclick="exportCSV('power')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
             </div>
         </div>
         <div id="chart_power" style="height:380px;"></div>
@@ -171,8 +172,8 @@
         <div class="chart-header">
             <h2 class="chart-title"><span class="ti ti-antenna-bars-5" aria-hidden="true"></span> <span data-translate-lang="air_channel">Air & Channel Utilization</span></h2>
             <div class="chart-actions">
-                <button onclick="expandChart('air_channel')" data-translate-lang="expand">Expand</button>
-                <button onclick="exportCSV('air_channel')" data-translate-lang="export_csv">Export CSV</button>
+                <button type="button" class="chart-tool" onclick="expandChart('air_channel')" title="{{ tr("Expand chart") }}" aria-label="{{ tr("Expand chart") }}"><span class="ti ti-arrows-maximize" aria-hidden="true"></span></button>
+                <button type="button" class="chart-tool" onclick="exportCSV('air_channel')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
             </div>
         </div>
         <div id="chart_air_channel" style="height:380px;"></div>
@@ -183,8 +184,8 @@
         <div class="chart-header">
             <h2 class="chart-title"><span class="ti ti-temperature" aria-hidden="true"></span> <span data-translate-lang="environment">Environment Metrics</span></h2>
             <div class="chart-actions">
-                <button onclick="expandChart('environment')" data-translate-lang="expand">Expand</button>
-                <button onclick="exportCSV('environment')" data-translate-lang="export_csv">Export CSV</button>
+                <button type="button" class="chart-tool" onclick="expandChart('environment')" title="{{ tr("Expand chart") }}" aria-label="{{ tr("Expand chart") }}"><span class="ti ti-arrows-maximize" aria-hidden="true"></span></button>
+                <button type="button" class="chart-tool" onclick="exportCSV('environment')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
             </div>
         </div>
         <div id="chart_environment" style="height:380px;"></div>
@@ -196,9 +197,9 @@
     <div class="chart-header">
         <h2 class="chart-title"><span class="ti ti-affiliate" aria-hidden="true"></span> <span data-translate-lang="neighbors_chart">Neighbors (SNR Over Time)</span></h2>
         <div class="chart-actions">
-            <button onclick="expandChart('neighbors')" data-translate-lang="expand">Expand</button>
-            <button onclick="exportCSV('neighbors')" data-translate-lang="export_csv">Export CSV</button>
-        </div>
+                <button type="button" class="chart-tool" onclick="expandChart('neighbors')" title="{{ tr("Expand chart") }}" aria-label="{{ tr("Expand chart") }}"><span class="ti ti-arrows-maximize" aria-hidden="true"></span></button>
+                <button type="button" class="chart-tool" onclick="exportCSV('neighbors')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
+            </div>
     </div>
     <div id="chart_neighbors" style="height:380px;"></div>
 </div>
@@ -208,9 +209,9 @@
     <div class="chart-header">
         <h2 class="chart-title"><span class="ti ti-chart-bar" aria-hidden="true"></span> <span data-translate-lang="packets_per_day">Packets per Day (Last 7 Days)</span></h2>
         <div class="chart-actions">
-            <button onclick="expandChart('packet_histogram')" data-translate-lang="expand">Expand</button>
-            <button onclick="exportCSV('packet_histogram')" data-translate-lang="export_csv">Export CSV</button>
-        </div>
+                <button type="button" class="chart-tool" onclick="expandChart('packet_histogram')" title="{{ tr("Expand chart") }}" aria-label="{{ tr("Expand chart") }}"><span class="ti ti-arrows-maximize" aria-hidden="true"></span></button>
+                <button type="button" class="chart-tool" onclick="exportCSV('packet_histogram')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
+            </div>
     </div>
     <div id="chart_packet_histogram" style="height:380px;"></div>
 </div>
@@ -232,8 +233,10 @@
         <option value="">{{ tr("All ports") }}</option>
     </select>
 
-    <button onclick="reloadPackets()">{{ tr("Apply") }}</button>
-    <button onclick="exportPacketsCSV()">{{ tr("Export CSV") }}</button>
+    <div class="packet-filter-actions">
+        <button type="button" onclick="reloadPackets()">{{ tr("Apply") }}</button>
+        <button type="button" class="chart-tool" onclick="exportPacketsCSV()" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
+    </div>
 </div>
 
 

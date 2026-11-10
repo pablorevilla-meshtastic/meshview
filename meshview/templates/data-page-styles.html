@@ -60,4 +60,9 @@
     .mesh-data-page #map { height:500px; }
     .mesh-data-page .data-heading a { font-size:11px; padding:8px; }
 }
+/* Icon buttons on chart and table toolbars (expand, export, refresh). */
+.chart-tool { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--mesh-muted); }
+.chart-tool .ti { width:18px; height:18px; vertical-align:0; }
+.chart-tool:hover:not(:disabled),.chart-tool:focus-visible { background:var(--mesh-soft); color:var(--mesh-primary); border-color:var(--mesh-border); }
+.chart-tool:disabled { opacity:.4; cursor:default; }
 </style>
