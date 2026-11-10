@@ -307,7 +307,9 @@ async function initializePage() {
         // Header & Message
         document.getElementById("site-header").textContent = site.title || "Meshview";
 
-        document.getElementById("site-message").textContent = site.message || "";
+        // The site message is documented as a homepage message.
+        const isHome = ["/", "/index", "/index.html"].includes(location.pathname);
+        document.getElementById("site-message").textContent = isHome ? (site.message || "") : "";
 
         // Menu
         const menu = document.getElementById("site-menu");
@@ -448,6 +450,22 @@ function setupSiteMenu(menu, items) {
     document.fonts?.ready.then(schedule);
     layout();
 }
+
+// --- Data tables: sticky header when the table fits, sideways scroll when it does not ---
+function watchTableWidth(wrap) {
+    const update = () => {
+        const table = wrap.querySelector("table");
+        if (table) wrap.classList.toggle("is-wide", table.scrollWidth > wrap.clientWidth + 1);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(wrap);
+    const table = wrap.querySelector("table");
+    if (table) observer.observe(table);
+    update();
+}
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".data-table-wrap").forEach(watchTableWidth);
+});
 
 document.querySelector(".mesh-menu-toggle").addEventListener("click", function () {
     const expanded = this.getAttribute("aria-expanded") !== "true";

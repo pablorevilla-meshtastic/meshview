@@ -5,14 +5,15 @@
 {% block css %}
 {% include "data-page-styles.html" %}
 <style>
-#node-list { width:100%; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); }
+#node-list { margin-bottom:0; }
 #node-list table { min-width:1150px; }
+#node-list :is(th,td) { padding-left:10px; padding-right:10px; }
 #node-list th { cursor:pointer; }
-.filter-container { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px; padding:16px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
-.search-box { flex:1 1 220px; }
-.count-container { font-size:13px; color:var(--mesh-muted); margin-bottom:10px; }
-#node-count { color:var(--mesh-primary); font-weight:700; }
-.node-list-note { display:flex; align-items:center; gap:8px; color:var(--mesh-muted); font-size:12px; margin-bottom:18px; flex-wrap:wrap; }
+.filter-container { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
+.days-active { display:inline-flex; align-items:center; gap:6px; margin:0 0 0 4px; font-size:12px; color:var(--mesh-muted); }
+.mesh-data-page .mesh-content .clear-btn { margin-left:auto; border-color:transparent; background:transparent; }
+.mesh-data-page .mesh-content .clear-btn:hover { background:var(--mesh-soft); }
+.search-box { flex:0 1 260px; }
 .node-status { opacity:0; padding:3px 8px; border-radius:20px; background:var(--mesh-soft); color:var(--mesh-primary); margin-left:10px; font-size:11px; }
 .node-status.active { opacity:1; }
 .favorite-star { cursor:pointer; font-size:20px; color:#8b98aa; user-select:none; }
@@ -25,18 +26,33 @@
 .node-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:16px; font-weight:600; }
 .node-card-field { padding:3px 0; }
 .node-card-field b { color:var(--mesh-muted); font-weight:500; }
-@media(max-width:768px) { #node-list { display:none; } #mobile-node-list { display:block!important; } .filter-container { padding:12px; gap:8px; } .filter-container select { flex:1 1 130px; } }
+@media(max-width:768px) { #node-list { display:none; } #mobile-node-list { display:block!important; } .filter-container select { flex:1 1 130px; } .search-box { flex:1 1 100%; } }
 </style>
 {% endblock %}
 
 {% block body %}
-<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("NODE DIRECTORY") }}</span><h1>{{ tr("Network nodes") }}</h1><p>{{ tr("Find devices, inspect their activity, and manage your favorites.") }}</p></div><a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a></header>
+<header class="data-heading is-compact">
+    <div class="data-title">
+        <h1>{{ tr("Network nodes") }}</h1>
+        <span id="node-count" class="data-count" aria-live="polite">0</span>
+        <span id="node-status" class="node-status" aria-live="polite"></span>
+    </div>
+    <div class="data-actions">
+        <button type="button" class="favorites-btn" id="favorites-btn" aria-pressed="false" data-translate-lang="show_favorites">
+            ⭐ Show Favorites
+        </button>
+        <button class="export-btn" id="export-btn" data-translate-lang="export_csv">
+            Export CSV
+        </button>
+        <a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a>
+    </div>
+</header>
 <div class="filter-container">
-
     <input
         type="text"
         id="search-box"
         class="search-box"
+        aria-label="{{ tr("Search nodes") }}"
         data-translate-lang="search_placeholder"
         placeholder="Search by name or ID or HEX ID..."
     />
@@ -57,37 +73,23 @@
         <option value="" data-translate-lang="all_firmware">All Firmware</option>
     </select>
 
-    <button type="button" class="favorites-btn" id="favorites-btn" aria-pressed="false" data-translate-lang="show_favorites">
-        ⭐ Show Favorites
-    </button>
-
-    <button class="export-btn" id="export-btn" data-translate-lang="export_csv">
-        Export CSV
-    </button>
+    <label class="days-active" for="days-active-filter">
+        <span>{{ tr("Active in the last") }}</span>
+        <select id="days-active-filter">
+            {% for day in range(1, 15) %}
+            <option value="{{ day }}" {% if day == 3 %}selected{% endif %}>{{ day }}</option>
+            {% endfor %}
+        </select>
+        <span>{{ tr("days") }}</span>
+    </label>
 
     <button class="clear-btn" id="clear-btn" data-translate-lang="clear_filters">
         Clear Filters
     </button>
 </div>
 
-<div class="count-container">
-    <span data-translate-lang="showing_nodes">Showing</span>
-    <span id="node-count">0</span>
-    <span data-translate-lang="nodes_suffix">nodes</span>
-    <span id="node-status" class="node-status" aria-live="polite"></span>
-</div>
-<div class="node-list-note">
-    <span>{{ tr("Showing nodes active in the last") }}</span>
-    <select id="days-active-filter" aria-label="{{ tr("Days active") }}">
-        {% for day in range(1, 15) %}
-        <option value="{{ day }}" {% if day == 3 %}selected{% endif %}>{{ day }}</option>
-        {% endfor %}
-    </select>
-    <span>{{ tr("days.") }}</span>
-</div>
-
 <!-- Desktop table -->
-<div id="node-list">
+<div id="node-list" class="data-table-wrap">
     <table>
         <thead>
             <tr>

@@ -5,35 +5,27 @@
 {% block css %}
 {% include "data-page-styles.html" %}
 <style>
-.firehose-controls { justify-content:space-between; }
-.firehose-controls h2 { font-size:15px; font-weight:600; }
-.firehose-controls > div { flex-wrap:wrap; }
 .firehose-filter { width:190px; }
-@media(max-width:700px) { .firehose-controls > div { width:100%; } .firehose-filter { flex:1; width:120px; } }
+@media(max-width:700px) { .firehose-filter { flex:1; width:120px; } }
 </style>
 {% endblock %}
 
 {% block body %}
 <div class="container">
-<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("NETWORK ACTIVITY") }}</span><h1>{{ tr("Live Traffic") }}</h1><p>{{ tr("Follow packet traffic across your mesh network.") }}</p></div><a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a></header>
-
-    <form class="data-toolbar firehose-controls">
-        <h2 class="mb-0" data-translate-lang="live_feed">📡 Live Traffic</h2>
-
-        <div class="d-flex align-items-center gap-2">
-            <label for="channel-filter" class="mb-0" data-translate-lang="channel">Channel</label>
-            <select id="channel-filter" class="form-select form-select-sm firehose-filter">
-                <option value="" data-translate-lang="all_channels">All Channels</option>
-            </select>
-
-            <button type="button"
-                    id="pause-button"
-                    class="btn btn-sm btn-outline-secondary"
-                    data-translate-lang="pause">
-                Pause
-            </button>
-        </div>
-    </form>
+<header class="data-heading is-compact">
+    <div class="data-title">
+        <h1>{{ tr("Live Traffic") }}</h1>
+        <span id="live-status" class="live-status" role="status">{{ tr("Live") }}</span>
+    </div>
+    <div class="data-actions">
+        <label for="channel-filter" data-translate-lang="channel">Channel</label>
+        <select id="channel-filter" class="firehose-filter">
+            <option value="" data-translate-lang="all_channels">All Channels</option>
+        </select>
+        <button type="button" id="pause-button" aria-pressed="false" data-translate-lang="pause">Pause</button>
+        <a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a>
+    </div>
+</header>
 
     <div class="data-table-wrap" role="region" aria-label="{{ tr("Live packet table") }}" tabindex="0">
     <table class="packet-table">
@@ -347,6 +339,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const pauseBtn = document.getElementById("pause-button");
     const channelFilter = document.getElementById("channel-filter");
+    const liveStatus = document.getElementById("live-status");
 
     pauseBtn.addEventListener("click", () => {
         updatesPaused = !updatesPaused;
@@ -356,6 +349,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             updatesPaused
                 ? (firehoseTranslations.resume || MeshI18n.t("Resume"))
                 : (firehoseTranslations.pause || MeshI18n.t("Pause"));
+        liveStatus.textContent = updatesPaused ? MeshI18n.t("Paused") : MeshI18n.t("Live");
+        liveStatus.classList.toggle("is-paused", updatesPaused);
     });
 
     channelFilter.addEventListener("change", async (e) => {
