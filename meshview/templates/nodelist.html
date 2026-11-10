@@ -431,7 +431,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     async function applyFilters(resetPage = true) {
         if (resetPage !== false) currentPage = 1;
-        setStatus("Updating…");
+        setStatus(MeshI18n.t("Updating…"));
         await nextFrame();
         const searchTerm = searchBox.value.trim().toLowerCase();
 

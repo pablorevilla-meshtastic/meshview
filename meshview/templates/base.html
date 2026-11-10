@@ -151,9 +151,12 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 #site-announcement-close:hover { background:var(--mesh-hover); color:var(--mesh-text); }
 #site-announcement-close:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:1px; }
 .mesh-footer { display:flex; justify-content:space-between; gap:16px; padding:20px 28px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:12px; }
-.mesh-footer-info { display:flex; flex-wrap:wrap; gap:4px 16px; }
 .mesh-footer-tagline:empty { display:none; }
-@media(max-width:700px) { .mesh-announcement-inner { padding-left:14px; } }
+.mesh-footer-project { display:inline-flex; align-items:center; gap:6px; margin-left:auto; color:var(--mesh-muted); text-decoration:none; white-space:nowrap; }
+.mesh-footer-project:hover { color:var(--mesh-primary); }
+.mesh-footer-project .ti { font-size:15px; }
+.mesh-footer-project:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; border-radius:4px; }
+@media(max-width:700px) { .mesh-announcement-inner { padding-left:14px; } .mesh-footer-project { margin-left:0; } }
 .mesh-page-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:10px; }
 .mesh-eyebrow { font-size:10px; letter-spacing:1.6px; font-weight:700; color:var(--mesh-primary); }
 .mesh-page-heading h1 { font-size:28px; font-weight:650; margin:2px 0 3px; }
@@ -298,11 +301,11 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 {% block body %}{% endblock %}
 </main>
 <footer class="mesh-footer">
-    <div class="mesh-footer-info">
-        <span id="site-tagline" class="mesh-footer-tagline">{{ site_description }}</span>
-        <span id="footer" data-translate="footer"></span>
-    </div>
-    <span id="site-version">Meshview</span>
+    <span id="site-tagline" class="mesh-footer-tagline">{{ site_description }}</span>
+    <a class="mesh-footer-project" href="https://github.com/pablorevilla-meshtastic/meshview" target="_blank" rel="noopener" title="{{ tr("Meshview on GitHub") }}">
+        <span class="ti ti-brand-github" aria-hidden="true"></span>
+        <span id="site-version">Meshview</span><span class="visually-hidden"> · GitHub</span>
+    </a>
 </footer>
 
 <script>
@@ -357,8 +360,6 @@ function applyTranslations(dict) {
             el.placeholder = value;
         } else if (el.tagName === "INPUT" && el.value) {
             el.value = value;
-        } else if (key === "footer") {
-            el.innerHTML = value;
         } else {
             el.textContent = value;
         }
@@ -438,7 +439,7 @@ async function initializePage() {
 
         // Version
         document.getElementById("site-version").textContent =
-            "ver. " + (site.version || "unknown");
+            site.version ? `Meshview ${site.version}` : "Meshview";
 
         // Apply translations
         applyTranslations(dict);
