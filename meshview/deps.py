@@ -9,5 +9,6 @@ def check_optional_deps() -> None:
         logger.warning(
             "Optional dependency missing: pyitm. "
             "Coverage prediction is disabled. "
-            "Run: ./env/bin/pip install -r requirements.txt"
+            "Install it with ./env/bin/pip install -r requirements.txt "
+            "or the package's coverage extra (pip install 'meshview[coverage]')."
         )

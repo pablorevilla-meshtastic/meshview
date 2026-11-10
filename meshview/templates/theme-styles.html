@@ -13,7 +13,7 @@
     --mesh-border:#dce4ef;
     --mesh-page:#f5f8fc;
     --mesh-stripe:#f7f9fc;
-    --mesh-muted:#64748b;
+    --mesh-muted:#566579;
     --mesh-chat-stripe:#eef3fb;
     --mesh-pulse-soft:#edf4ff;
     --mesh-pulse-peak:#c9defa;
@@ -33,7 +33,7 @@
     --mesh-border:#34465f;
     --mesh-page:#101925;
     --mesh-stripe:#1c2a3d;
-    --mesh-muted:#a0aec2;
+    --mesh-muted:#a9b6c9;
     --mesh-chat-stripe:#20314a;
     --mesh-pulse-soft:#203653;
     --mesh-pulse-peak:#355d8e;
@@ -52,13 +52,13 @@ body { background:var(--mesh-page); color:var(--mesh-text); }
 [data-bs-theme="dark"] .mesh-theme-toggle .theme-icon--sun { display:block; }
 [data-bs-theme="dark"] .mesh-theme-toggle .theme-icon--moon { display:none; }
 .mesh-theme-toggle:focus-visible { outline:2px solid white; outline-offset:3px; }
-@media(max-width:1000px) { .mesh-header .mesh-menu-toggle { margin-left:auto; } .mesh-header .mesh-theme-toggle { margin-left:12px; } .mesh-header #site-menu { order:4; } }
+@media(max-width:700px) { .mesh-header .mesh-theme-toggle { margin-left:0; } }
 [data-bs-theme="dark"] :is(.chat-status,.chat-details,.chat-channel,.chat-status[data-state="paused"],.chat-status[data-state="loading"],.good-x) { background:var(--mesh-soft); color:var(--mesh-primary); border-color:var(--mesh-border); }
 [data-bs-theme="dark"] :is(.chat-status[data-state="error"],.bad-x) { background:#472a24; color:#ffb4a6; }
 [data-bs-theme="dark"] .ok-x { background:#453820; color:#f1d38a; }
 [data-bs-theme="dark"] .chat-details:hover { background:var(--mesh-hover); color:var(--mesh-primary-dark); }
 [data-bs-theme="dark"] .chat-nick { filter:brightness(1.4) saturate(.8); }
-[data-bs-theme="dark"] :is(.summary-card:nth-child(2) .summary-count,.summary-card:nth-child(3) .summary-count,.summary-card:nth-child(4) .summary-count,.mesh-metric:nth-child(2) strong,.mesh-metric:nth-child(3) strong,.reach-metric:nth-child(2) .reach-metric-value) { color:var(--mesh-primary); }
+[data-bs-theme="dark"] :is(.mesh-metric:nth-child(2) strong,.mesh-metric:nth-child(3) strong,.reach-metric:nth-child(2) .reach-metric-value) { color:var(--mesh-primary); }
 [data-bs-theme="dark"] :is(.reliability-status-heard) { color:#8fd7aa!important; }
 [data-bs-theme="dark"] .reliability-status-missed { color:#ffb4a6!important; }
 [data-bs-theme="dark"] .reach-count-bar-value span { color:#17263c; }

@@ -2,9 +2,34 @@
 (() => {
     const byId = id => document.getElementById(id);
     const panel = byId('mesh-node-panel');
+    // Home stacks the node list under the map below 1000px; there it starts folded.
+    const STACKED = matchMedia('(max-width: 1000px)');
+    const listToggle = byId('node-panel-toggle');
+    const listBody = byId('mesh-node-browser-body');
+    function setNodeListOpen(open) {
+        if (!listToggle || !listBody) return;
+        listToggle.setAttribute('aria-expanded', String(open));
+        listBody.hidden = !open;
+    }
+    function syncNodeListLayout() {
+        if (!listToggle) return;
+        listToggle.disabled = !STACKED.matches;
+        setNodeListOpen(!STACKED.matches);
+    }
+    if (listToggle) {
+        listToggle.addEventListener('click', () => {
+            const open = listBody.hidden;
+            setNodeListOpen(open);
+            if (open) byId('node-search')?.focus({preventScroll:true});
+        });
+        STACKED.addEventListener('change', syncNodeListLayout);
+        syncNodeListLayout();
+    }
     const closeButton = byId('map-panel-close');
     if (closeButton) {
-        const layers = map.getContainer().querySelector('.leaflet-control-layers');
+        // Sit below the whole right-hand control column (layers, then the
+        // fit/share tools), not just the layers control.
+        const layers = map.getContainer().querySelector('.leaflet-top.leaflet-right');
         const positionPanel = () => {
             if (!layers) return;
             const top = layers.getBoundingClientRect().bottom - byId('map-wrapper').getBoundingClientRect().top + 10;
@@ -15,6 +40,7 @@
         let returnFocus = null;
         const close = () => {
             panel.hidden = true;
+            window.clearMapSelection?.();
             (returnFocus?.isConnected ? returnFocus : byId('map')).focus({preventScroll:true});
         };
         closeButton.addEventListener('click', close);
@@ -73,9 +99,10 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json();
     }
-    function note(container, text) {
+    function note(container, text, loading = false) {
         const p = document.createElement('p');
         p.className = 'mesh-inspector-note'; p.textContent = text;
+        p.classList.toggle('is-loading', loading);
         container.replaceChildren(p);
     }
     function facts(node) {
@@ -159,9 +186,9 @@
         byId('inspector-node-link').href = `/node/${encodeURIComponent(id)}`;
         byId('inspector-reliability-link').href = `/reliability?node_id=${encodeURIComponent(id)}`;
         facts(node);
-        note(byId('inspector-telemetry'), MeshI18n.t("Loading telemetry…"));
-        note(byId('inspector-recent'), MeshI18n.t("Loading recent packets…"));
-        if (matchMedia('(max-width: 700px)').matches) byId('mesh-node-inspector').scrollIntoView({block:'nearest'});
+        note(byId('inspector-telemetry'), MeshI18n.t("Loading telemetry…"), true);
+        note(byId('inspector-recent'), MeshI18n.t("Loading recent packets…"), true);
+        if (STACKED.matches) byId('mesh-node-inspector').scrollIntoView({block:'nearest'});
         // A sender/gateway may be outside the map's recent-node snapshot.
         if (force || !findNode(id)) {
             fetchJson(`/api/nodes?node_id=${encodeURIComponent(id)}`, request.signal).then(data => {
@@ -198,8 +225,10 @@
     });
     byId('inspector-back').addEventListener('click', () => {
         nodeRequest?.abort(); inspectedNodeId = null;
+        window.clearMapSelection?.();
         byId('mesh-node-inspector').hidden = true;
         byId('mesh-node-browser').hidden = false;
+        setNodeListOpen(true);
         byId('node-search').focus({preventScroll:true});
     });
 

@@ -6,23 +6,21 @@
 {% include "data-page-styles.html" %}
 <style>
 .main-container { width:100%; }
-.summary-container { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
-.summary-card { padding:20px 24px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; min-width:0; }
-.summary-card p { color:var(--mesh-muted); font-size:13px; margin:0 0 8px; }
-.summary-count { font-size:30px; font-weight:650; color:var(--mesh-primary); font-variant-numeric:tabular-nums; }
-.summary-card:nth-child(2) .summary-count { color:var(--mesh-primary); }
-.summary-card:nth-child(3) .summary-count { color:var(--mesh-primary); }
-.summary-card:nth-child(4) .summary-count { color:var(--mesh-primary); }
 .stats-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.card-section { min-width:0; display:flex; align-items:center; align-content:flex-start; flex-wrap:wrap; gap:10px; padding:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
-.section-header { text-transform:lowercase; width:100%; font-size:15px; font-weight:600; color:var(--mesh-text); padding-bottom:6px; margin:0; border-bottom:1px solid var(--mesh-border); }
-.total-count { font-size:12px; color:var(--mesh-muted); margin-right:auto; }
-.chart { width:100%; min-width:0; height:340px; margin-top:8px; }
+.card-section { min-width:0; display:flex; flex-direction:column; gap:10px; padding:16px 20px 20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
+.chart-head { display:flex; align-items:center; gap:12px; padding-bottom:8px; border-bottom:1px solid var(--mesh-border); }
+.section-header { flex:1; min-width:0; font-size:15px; font-weight:600; line-height:1.35; color:var(--mesh-text); margin:0; }
+.chart-tools { display:flex; gap:4px; margin-left:auto; }
+.chart-controls { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; min-height:31px; }
+.chart-filter { width:auto; max-width:100%; }
+.chart-wrap { position:relative; }
+.chart-overlay { position:absolute; top:0; left:0; z-index:1; }
+.total-count,.chart-note { font-size:12px; color:var(--mesh-muted); margin:0; }
+.chart { width:100%; min-width:0; height:340px; flex:1 0 auto; }
 #chart_hourly_all,#chart_portnum_1 { height:380px; }
 #chartModal { display:none; position:fixed; inset:0; background:#17263c99; z-index:9999; justify-content:center; align-items:center; padding:16px; }
 #chartModal > div { position:relative; width:95%; max-width:1200px; height:85%; background:var(--mesh-surface); border-radius:10px; padding:48px 16px 16px; display:flex; flex-direction:column; }
 #chartModal #closeModal { position:absolute; top:10px; right:12px; font-size:22px; padding:0; width:32px; height:32px; line-height:1; }
-#altitude-map-button { margin-left:auto; }
 #altitude-map-modal[hidden] { display:none; }
 #altitude-map-modal { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center; padding:16px; background:#17263c99; }
 .altitude-map-dialog { width:min(1100px,100%); height:85dvh; display:flex; flex-direction:column; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:10px; padding:16px; }
@@ -38,7 +36,7 @@
 .altitude-router-label { background:var(--mesh-surface); color:var(--mesh-text); border-color:var(--mesh-border); box-shadow:none; font-size:9px; line-height:1.2; padding:2px 4px; }
 #modalChart { flex:1; min-height:0; width:100%; }
 @media(max-width:1000px) { .stats-chart-grid { grid-template-columns:minmax(0,1fr); } }
-@media(max-width:700px) { .summary-container { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .summary-card { padding:16px; } .summary-count { font-size:26px; } .card-section { padding:14px; gap:8px; } .chart { height:320px; } }
+@media(max-width:700px) { .card-section { padding:12px 14px 14px; gap:8px; } .chart { height:320px; } }
 </style>
 {% endblock %}
 
@@ -51,178 +49,179 @@
 
 {% block body %}
 <div class="main-container">
-    <header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("NETWORK ANALYTICS") }}</span><h1>{{ tr("Mesh statistics") }}</h1><p>{{ tr("Explore packet history, device activity, and gateway distribution.") }}</p></div><a class="mesh-secondary-button" href="/top">{{ tr("Top nodes ↗") }}</a></header>
+    <header class="data-heading is-compact"><div class="data-title"><h1>{{ tr("Mesh statistics") }}</h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/top">{{ tr("Top nodes ↗") }}</a></div></header>
 
-    <!-- Summary cards now fully driven by API + JS -->
-    <div class="summary-container">
-        <div class="summary-card">
-            <p data-translate-lang="total_nodes">Total Nodes</p>
-            <div class="summary-count" id="summary_nodes">0</div>
-        </div>
-        <div class="summary-card">
-            <p data-translate-lang="total_packets">Total Packets</p>
-            <div class="summary-count" id="summary_packets">0</div>
-        </div>
-        <div class="summary-card">
-            <p data-translate-lang="total_packets_seen">Total Packets Seen</p>
-            <div class="summary-count" id="summary_seen">0</div>
-        </div>
-        <div class="summary-card">
-            <p data-translate-lang="total_gateways">Total Gateways</p>
-            <div class="summary-count" id="summary_gateways">0</div>
-        </div>
-    </div>
+    {% macro chart_tools(chart, export_label) -%}
+        <button type="button" class="chart-tool expand-btn" data-chart="{{ chart }}" title="{{ tr("Expand chart") }}" aria-label="{{ tr("Expand chart") }}"><span class="ti ti-arrows-maximize" aria-hidden="true"></span></button>
+        <button type="button" class="chart-tool export-btn" data-chart="{{ chart }}" title="{{ export_label }}" aria-label="{{ export_label }}"><span class="ti ti-download" aria-hidden="true"></span></button>
+    {%- endmacro %}
+    {% set export_csv = tr("Export CSV") %}
+    {% set export_top = tr("Export top 50 CSV") %}
+
+    <section class="mesh-metrics" aria-label="{{ tr("Network summary") }}">
+        <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-antenna"></span></span><span data-translate-lang="total_nodes">Total Nodes</span><strong id="summary_nodes">—</strong></div>
+        <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-package"></span></span><span data-translate-lang="total_packets">Total Packets</span><strong id="summary_packets">—</strong></div>
+        <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-eye"></span></span><span data-translate-lang="total_packets_seen">Total Packets Seen</span><strong id="summary_seen">—</strong></div>
+        <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-router"></span></span><span data-translate-lang="total_gateways">Total Gateways</span><strong id="summary_gateways">—</strong></div>
+    </section>
+
+    {% set ranges %}
+            <option value="7">{{ tr("7 days") }}</option>
+            <option value="14">{{ tr("14 days") }}</option>
+            <option value="30">{{ tr("1 month") }}</option>
+            <option value="183">{{ tr("6 months") }}</option>
+            <option value="365">{{ tr("1 year") }}</option>
+            <option value="all" selected>{{ tr("All") }}</option>
+    {% endset %}
 
     <div class="stats-chart-grid">
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="daily_snapshot_packets_history">
-            Daily Packet Snapshot History
-        </p>
-        <select id="snapshotPacketsRange" class="chart-filter" aria-label="{{ tr("Snapshot packet timeframe") }}">
-            <option value="7">{{ tr("7 days") }}</option>
-            <option value="14">{{ tr("14 days") }}</option>
-            <option value="30">{{ tr("1 month") }}</option>
-            <option value="183">{{ tr("6 months") }}</option>
-            <option value="365">{{ tr("1 year") }}</option>
-            <option value="all" selected>{{ tr("All") }}</option>
-        </select>
-        <button class="expand-btn" data-chart="chart_daily_snapshot_packets" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_daily_snapshot_packets" data-translate-lang="export_csv">Export CSV</button>
-        <div id="chart_daily_snapshot_packets" class="chart"></div>
-    </div>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="daily_snapshot_packets_history">Daily Packet Snapshot History</h2>
+            <div class="chart-tools">{{ chart_tools("chart_daily_snapshot_packets", export_csv) }}</div>
+        </div>
+        <div class="chart-wrap">
+            <select id="snapshotPacketsRange" class="chart-filter chart-overlay" aria-label="{{ tr("Snapshot packet timeframe") }}">{{ ranges }}</select>
+            <div id="chart_daily_snapshot_packets" class="chart"></div>
+        </div>
+    </section>
 
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="daily_snapshot_nodes_gateways_history">
-            Daily Node/Gateway Snapshot History
-        </p>
-        <select id="snapshotNodesGatewaysRange" class="chart-filter" aria-label="{{ tr("Snapshot node and gateway timeframe") }}">
-            <option value="7">{{ tr("7 days") }}</option>
-            <option value="14">{{ tr("14 days") }}</option>
-            <option value="30">{{ tr("1 month") }}</option>
-            <option value="183">{{ tr("6 months") }}</option>
-            <option value="365">{{ tr("1 year") }}</option>
-            <option value="all" selected>{{ tr("All") }}</option>
-        </select>
-        <button class="expand-btn" data-chart="chart_daily_snapshot_nodes_gateways" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_daily_snapshot_nodes_gateways" data-translate-lang="export_csv">Export CSV</button>
-        <div id="chart_daily_snapshot_nodes_gateways" class="chart"></div>
-    </div>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="daily_snapshot_nodes_gateways_history">Daily Node/Gateway Snapshot History</h2>
+            <div class="chart-tools">{{ chart_tools("chart_daily_snapshot_nodes_gateways", export_csv) }}</div>
+        </div>
+        <div class="chart-wrap">
+            <select id="snapshotNodesGatewaysRange" class="chart-filter chart-overlay" aria-label="{{ tr("Snapshot node and gateway timeframe") }}">{{ ranges }}</select>
+            <div id="chart_daily_snapshot_nodes_gateways" class="chart"></div>
+        </div>
+    </section>
 
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="text_senders_title">Top text senders · main channel</p>
-        <button id="text-nodes-refresh" type="button" data-translate-lang="refresh_sample">Refresh sample</button>
-        <span class="total-count" id="text-nodes-status" role="status" data-translate-lang="loading">Loading…</span>
-        <button class="expand-btn" data-chart="chart_text_nodes" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_text_nodes" data-translate-lang="export_top_50">Export top 50 CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="text_senders_title">Top text senders · main channel</h2>
+            <div class="chart-tools">
+                <button id="text-nodes-refresh" type="button" class="chart-tool" title="{{ tr("Refresh sample") }}" aria-label="{{ tr("Refresh sample") }}"><span class="ti ti-refresh" aria-hidden="true"></span></button>
+                {{ chart_tools("chart_text_nodes", export_top) }}
+            </div>
+        </div>
+        <div class="chart-controls">
+            <span class="total-count" id="text-nodes-status" role="status" aria-busy="true" data-translate-lang="loading">Loading…</span>
+        </div>
         <div id="chart_text_nodes" class="chart"></div>
-        <p class="total-count" data-translate-lang="text_senders_description">Top 10 senders from the latest 500 text packets across all channels. Only packets on the sender’s recorded main channel count; unknown channels are excluded.</p>
-    </div>
+        <p class="chart-note" data-translate-lang="text_senders_description">Top 10 senders from the latest 500 text packets across all channels. Only packets on the sender’s recorded main channel count; unknown channels are excluded.</p>
+    </section>
 
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="altitude_title">10 highest routers · altitude</p>
-        <button id="altitude-refresh" type="button" data-translate-lang="refresh_report">Refresh report</button>
-        <span class="total-count" id="altitude-status" role="status" data-translate-lang="loading">Loading…</span>
-        <button class="expand-btn" data-chart="chart_altitude" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_altitude" data-translate-lang="export_top_50">Export top 50 CSV</button>
-        <button id="altitude-map-button" type="button" disabled data-translate-lang="map_top_50">Map top 50</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="altitude_title">10 highest routers · altitude</h2>
+            <div class="chart-tools">
+                <button id="altitude-refresh" type="button" class="chart-tool" title="{{ tr("Refresh report") }}" aria-label="{{ tr("Refresh report") }}"><span class="ti ti-refresh" aria-hidden="true"></span></button>
+                <button id="altitude-map-button" type="button" class="chart-tool" disabled title="{{ tr("Map top 50") }}" aria-label="{{ tr("Map top 50") }}"><span class="ti ti-map-2" aria-hidden="true"></span></button>
+                {{ chart_tools("chart_altitude", export_top) }}
+            </div>
+        </div>
+        <div class="chart-controls">
+            <span class="total-count" id="altitude-status" role="status" aria-busy="true" data-translate-lang="loading">Loading…</span>
+        </div>
         <div id="chart_altitude" class="chart"></div>
-        <p class="total-count" data-translate-lang="altitude_description">Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes at least 100 m above sea level are included. Click a bar to view the node.</p>
-    </div>
+        <p class="chart-note" data-translate-lang="altitude_description">Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes at least 100 m above sea level are included. Click a bar to view the node.</p>
+    </section>
 
-    <!-- Packet Types Pie Chart with Channel Selector -->
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="packet_types_last_24h">
-            Packet Types - Last 24 Hours
-        </p>
-        <select id="channelSelect" aria-label="{{ tr("Packet type channel") }}">
-            <option value="" data-translate-lang="all_channels">All Channels</option>
-        </select>
-        <button class="expand-btn" data-chart="chart_packet_types" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_packet_types" data-translate-lang="export_csv">Export CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="packet_types_last_24h">Packet Types - Last 24 Hours</h2>
+            <div class="chart-tools">{{ chart_tools("chart_packet_types", export_csv) }}</div>
+        </div>
+        <div class="chart-controls">
+            <select id="channelSelect" class="chart-filter" aria-label="{{ tr("Packet type channel") }}">
+                <option value="" data-translate-lang="all_channels">All Channels</option>
+            </select>
+        </div>
         <div id="chart_packet_types" class="chart"></div>
-    </div>
+    </section>
 
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="packets_per_day_text">
-            Packets per Day - Text Messages (Port 1, Last 14 Days)
-        </p>
-        <div id="total_daily_portnum_1" class="total-count">{{ tr("Total: 0") }}</div>
-        <button class="expand-btn" data-chart="chart_daily_portnum_1" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_daily_portnum_1" data-translate-lang="export_csv">Export CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="packets_per_day_text">Packets per Day - Text Messages (Port 1, Last 14 Days)</h2>
+            <div class="chart-tools">{{ chart_tools("chart_daily_portnum_1", export_csv) }}</div>
+        </div>
+        <div class="chart-controls"><span id="total_daily_portnum_1" class="total-count">{{ tr("Total: 0") }}</span></div>
         <div id="chart_daily_portnum_1" class="chart"></div>
-    </div>
+    </section>
 
-    <!-- Hourly Charts -->
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="packets_per_hour_all">
-            Packets per Hour - All Ports
-        </p>
-        <div id="total_hourly_all" class="total-count">{{ tr("Total: 0") }}</div>
-        <button class="expand-btn" data-chart="chart_hourly_all" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_hourly_all" data-translate-lang="export_csv">Export CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="packets_per_hour_all">Packets per Hour - All Ports</h2>
+            <div class="chart-tools">{{ chart_tools("chart_hourly_all", export_csv) }}</div>
+        </div>
+        <div class="chart-controls"><span id="total_hourly_all" class="total-count">{{ tr("Total: 0") }}</span></div>
         <div id="chart_hourly_all" class="chart"></div>
-    </div>
+    </section>
 
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="packets_per_hour_text">
-            Packets per Hour - Text Messages (Port 1)
-        </p>
-        <div id="total_portnum_1" class="total-count">{{ tr("Total: 0") }}</div>
-        <button class="expand-btn" data-chart="chart_portnum_1" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_portnum_1" data-translate-lang="export_csv">Export CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="packets_per_hour_text">Packets per Hour - Text Messages (Port 1)</h2>
+            <div class="chart-tools">{{ chart_tools("chart_portnum_1", export_csv) }}</div>
+        </div>
+        <div class="chart-controls"><span id="total_portnum_1" class="total-count">{{ tr("Total: 0") }}</span></div>
         <div id="chart_portnum_1" class="chart"></div>
-    </div>
+    </section>
 
-    <!-- Node breakdown charts -->
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="hardware_breakdown">Hardware Breakdown</p>
-        <button class="expand-btn" data-chart="chart_hw_model" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_hw_model" data-translate-lang="export_csv">Export CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="hardware_breakdown">Hardware Breakdown</h2>
+            <div class="chart-tools">{{ chart_tools("chart_hw_model", export_csv) }}</div>
+        </div>
         <div id="chart_hw_model" class="chart"></div>
-    </div>
+    </section>
 
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="role_breakdown">Role Breakdown</p>
-        <button class="expand-btn" data-chart="chart_role" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_role" data-translate-lang="export_csv">Export CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="role_breakdown">Role Breakdown</h2>
+            <div class="chart-tools">{{ chart_tools("chart_role", export_csv) }}</div>
+        </div>
         <div id="chart_role" class="chart"></div>
-    </div>
+    </section>
 
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="channel_breakdown">Channel Breakdown</p>
-        <button class="expand-btn" data-chart="chart_channel" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_channel" data-translate-lang="export_csv">Export CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="channel_breakdown">Channel Breakdown</h2>
+            <div class="chart-tools">{{ chart_tools("chart_channel", export_csv) }}</div>
+        </div>
         <div id="chart_channel" class="chart"></div>
-    </div>
+    </section>
 
-    <!-- Gateway breakdown charts -->
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="gateway_channel_breakdown">Gateway Channel Breakdown</p>
-        <button class="expand-btn" data-chart="chart_gateway_channel" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_gateway_channel" data-translate-lang="export_csv">Export CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="gateway_channel_breakdown">Gateway Channel Breakdown</h2>
+            <div class="chart-tools">{{ chart_tools("chart_gateway_channel", export_csv) }}</div>
+        </div>
         <div id="chart_gateway_channel" class="chart"></div>
-    </div>
+    </section>
 
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="gateway_role_breakdown">Gateway Role Breakdown</p>
-        <button class="expand-btn" data-chart="chart_gateway_role" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_gateway_role" data-translate-lang="export_csv">Export CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="gateway_role_breakdown">Gateway Role Breakdown</h2>
+            <div class="chart-tools">{{ chart_tools("chart_gateway_role", export_csv) }}</div>
+        </div>
         <div id="chart_gateway_role" class="chart"></div>
-    </div>
+    </section>
 
-    <div class="card-section">
-        <p class="section-header" data-translate-lang="gateway_firmware_breakdown">Gateway Firmware Breakdown</p>
-        <button class="expand-btn" data-chart="chart_gateway_firmware" data-translate-lang="expand_chart">Expand Chart</button>
-        <button class="export-btn" data-chart="chart_gateway_firmware" data-translate-lang="export_csv">Export CSV</button>
+    <section class="card-section">
+        <div class="chart-head">
+            <h2 class="section-header" data-translate-lang="gateway_firmware_breakdown">Gateway Firmware Breakdown</h2>
+            <div class="chart-tools">{{ chart_tools("chart_gateway_firmware", export_csv) }}</div>
+        </div>
         <div id="chart_gateway_firmware" class="chart"></div>
+    </section>
     </div>
-</div>
 </div>
 
 <div id="altitude-map-modal" role="dialog" aria-modal="true" aria-labelledby="altitude-map-title" hidden>
     <div class="altitude-map-dialog">
         <div class="altitude-map-heading">
-            <h2 id="altitude-map-title" data-translate-lang="altitude_map_title">highest routers · top 50</h2>
+            <h2 id="altitude-map-title" data-translate-lang="altitude_map_title">Highest routers · top 50</h2>
             <div class="altitude-map-controls">
                 <label class="altitude-map-filter" for="altitude-map-minimum">
                     <span data-translate-lang="minimum_altitude">{{ tr("Minimum altitude (m)") }}</span>
@@ -322,6 +321,7 @@ async function loadTextNodes() {
     const status = document.getElementById("text-nodes-status");
     const chart = initMeshChart(document.getElementById("chart_text_nodes"));
     status.textContent = statsText("loading");
+    status.setAttribute("aria-busy", "true");
     textNodeRows = [];
     textNodeExportRows = [];
     chart.clear();
@@ -341,6 +341,7 @@ async function loadTextNodes() {
         textNodeExportRows = ranked.slice(0, 50);
         textNodeRows = textNodeExportRows.slice(0, 10);
         const matched = ranked.reduce((sum, node) => sum + node.packet_count, 0);
+        status.removeAttribute("aria-busy");
         status.textContent = matched
             ? statsText("sample_matches", {matched, sample: sample.length})
             : statsText("sample_no_matches", {sample: sample.length});
@@ -369,6 +370,7 @@ async function loadTextNodes() {
         });
     } catch (error) {
         if (request !== textNodesRequest) return;
+        status.removeAttribute("aria-busy");
         status.textContent = statsText("text_senders_error");
         console.error("Top text senders:", error);
     }
@@ -398,6 +400,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
     refresh.disabled = true;
     document.getElementById("altitude-map-button").disabled = true;
     status.textContent = statsText("loading");
+    status.setAttribute("aria-busy", "true");
     chart.off("click");
     chart.on("click", openAltitudeNode);
     try {
@@ -405,17 +408,24 @@ async function loadAltitudeNodes(refreshNodes = false) {
         altitudeExportRows = altitudeRouterRows.filter(node => node.last_altitude >= 100).slice(0, 50);
         altitudeRows = altitudeExportRows.slice(0, 10);
         document.getElementById("altitude-map-button").disabled = altitudeRouterRows.length === 0;
-        chart.setOption({
+        const empty = altitudeRows.length === 0;
+        status.classList.toggle("visually-hidden", empty);
+        if (empty) {
+            chart.setOption({title:{text:statsText("altitude_empty"), left:"center", top:"middle",
+                textStyle:{fontSize:13, fontWeight:"normal", color:"#64748b"}}}, true);
+        } else chart.setOption({
             tooltip: {trigger:"axis", renderMode:"richText", valueFormatter:value => statsText("meters", {value})},
             grid: {left:10, right:20, top:55, bottom:10, containLabel:true},
             xAxis: {type:"category", data:altitudeRows.map(node => node.long_name || node.short_name || node.id),
                 axisLabel:{interval:0, rotate:35, width:85, overflow:"truncate"}},
-            yAxis: {type:"value", name:statsText("altitude_axis"), nameGap:30},
+            yAxis: {type:"value", name:statsText("altitude_axis"), nameGap:20,
+                nameTextStyle:{align:"left"}},
             series: [{type:"bar", name:statsText("altitude"), barMaxWidth:45,
                 itemStyle:{color:"#187346"},
                 label:{show:true, position:"top", formatter:params => statsText("meters", {value: params.value}), color:"#243247", textBorderWidth:0},
                 data:altitudeRows.map(node => node.last_altitude)}]
         }, true);
+        status.removeAttribute("aria-busy");
         status.textContent = altitudeRows.length
             ? statsText("altitude_count", {count: altitudeRows.length})
             : statsText("altitude_empty");
@@ -424,6 +434,8 @@ async function loadAltitudeNodes(refreshNodes = false) {
         altitudeExportRows = [];
         altitudeRouterRows = [];
         chart.clear();
+        status.classList.remove("visually-hidden");
+        status.removeAttribute("aria-busy");
         status.textContent = statsText("altitude_error");
         console.error(error);
     } finally {
@@ -633,15 +645,14 @@ function renderChart(domId,data,type,color){
     chart.setOption({
         backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
-        grid:hourly
-            ? {left:15, right:20, top:35, bottom:20, containLabel:true}
-            : {left:'6%', right:'6%', bottom:'18%'},
+        grid:{left:10, right:20, top:20, bottom:10, containLabel:true},
         xAxis:{
             type:'category',
             data:periods,
             axisLine:{lineStyle:{color:'#c3cfdf'}},
             axisLabel:hourly
-                ? {rotate:45, color:'#64748b', margin:16, hideOverlap:true}
+                // The tooltip keeps the full date; the axis only needs the hour.
+                ? {color:'#64748b', hideOverlap:true, formatter:value => value.slice(11) || value}
                 : {rotate:45,color:'#64748b'}
         },
         yAxis:{
@@ -741,11 +752,13 @@ function renderDailySnapshotPacketsChart(domId,data){
     chart.setOption({
         backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
+        // Sits on the right of the timeframe select, which overlays the chart.
         legend:{
-            data:['Packets'],
+            right:0, top:6,
+            data:[MeshI18n.t("Packets")],
             textStyle:{color:'#64748b'}
         },
-        grid:{left:'6%', right:'6%', bottom:'18%'},
+        grid:{left:10, right:20, top:56, bottom:10, containLabel:true},
         xAxis:{
             type:'category',
             data:labels,
@@ -758,7 +771,7 @@ function renderDailySnapshotPacketsChart(domId,data){
             axisLabel:{color:'#64748b'}
         },
         series:[
-            makeTelemetryLine("Packets", "rgba(255,214,82,1)", packetCounts)
+            makeTelemetryLine(MeshI18n.t("Packets"), "rgba(255,214,82,1)", packetCounts)
         ]
     });
     return chart;
@@ -776,10 +789,11 @@ function renderDailySnapshotNodesGatewaysChart(domId,data){
         backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
         legend:{
-            data:[MeshI18n.t("Nodes"),'Gateways'],
+            right:0, top:6,
+            data:[MeshI18n.t("Nodes"),MeshI18n.t("Gateways")],
             textStyle:{color:'#64748b'}
         },
-        grid:{left:'6%', right:'6%', bottom:'18%'},
+        grid:{left:10, right:20, top:56, bottom:10, containLabel:true},
         xAxis:{
             type:'category',
             data:labels,
@@ -793,7 +807,7 @@ function renderDailySnapshotNodesGatewaysChart(domId,data){
         },
         series:[
             makeTelemetryLine(MeshI18n.t("Nodes"), "rgba(79,155,255,1)", nodeCounts),
-            makeTelemetryLine("Gateways", "rgba(138,255,108,1)", gatewayCounts)
+            makeTelemetryLine(MeshI18n.t("Gateways"), "rgba(138,255,108,1)", gatewayCounts)
         ]
     });
     return chart;

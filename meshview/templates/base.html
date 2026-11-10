@@ -4,6 +4,7 @@
     <title>Meshview</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% if site_description %}<meta name="description" content="{{ site_description }}">{% endif %}
 
     <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48 64x64 256x256" href="/static/favicon.ico">
     <link rel="icon" type="image/svg+xml" sizes="any" href="/static/meshview-icon.svg">
@@ -19,6 +20,9 @@
     <!-- Scripts -->
     <script src="/static/vendor/bootstrap-5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <link href="/static/vendor/bootstrap-5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet" href="/static/vendor/inter-5.3.0/wght.css">
+    <link rel="stylesheet" href="/static/vendor/inter-5.3.0/wght-italic.css">
+    <link rel="stylesheet" href="/static/icons.css">
     <link rel="stylesheet" href="/static/vendor/leaflet-1.9.4/dist/leaflet.css" crossorigin=""/>
     <script src="/static/vendor/leaflet-1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="/static/html-escape.js"></script>
@@ -59,6 +63,7 @@
     <style>
 /* Shared dashboard chrome and map explorer. */
 :root,[data-bs-theme="light"],[data-bs-theme="dark"] {
+    --bs-body-font-family:"Inter Variable",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --bs-primary:var(--mesh-brand);
     --bs-primary-rgb:var(--mesh-primary-rgb);
     --bs-link-color:var(--mesh-primary);
@@ -87,7 +92,7 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .form-check-input:checked { background-color:var(--mesh-primary); border-color:var(--mesh-primary); }
 .form-check-input:focus { border-color:#91bda1; box-shadow:0 0 0 .25rem rgba(var(--mesh-primary-rgb),.2); }
 .page-link { --bs-pagination-color:var(--mesh-primary); --bs-pagination-hover-color:var(--mesh-primary-dark); --bs-pagination-active-bg:var(--mesh-primary); --bs-pagination-active-border-color:var(--mesh-primary); }
-[data-bs-theme="light"] body { background:var(--mesh-page); color:var(--mesh-text); font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; }
+[data-bs-theme="light"] body { background:var(--mesh-page); color:var(--mesh-text); }
 /* Tint whole cells: an edge-only shadow is too subtle on wide packet tables. */
 .packet-arrival-glow > td {
     animation:packet-arrival-beat 1s ease-in-out 1;
@@ -105,29 +110,133 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 @media(prefers-reduced-motion:reduce) {
     .packet-arrival-glow > td { animation:none; background:var(--mesh-soft); }
 }
-.mesh-header { background:var(--mesh-brand); color:white; box-shadow:0 2px 8px #193d6918; }
+/* Sticky header that hides while scrolling down and returns on the way up (script below). */
+.mesh-header { position:sticky; top:0; z-index:1100; background:var(--mesh-brand); color:white; box-shadow:0 2px 8px #193d6918; transition:transform .2s ease; }
+.mesh-header.is-hidden { transform:translateY(-100%); }
+@media(prefers-reduced-motion:reduce) { .mesh-header { transition:none; } }
 .mesh-header-inner { max-width:1600px; margin:auto; padding:0 20px; min-height:48px; display:flex; align-items:center; gap:20px; }
 .mesh-brand { display:flex; align-items:center; gap:8px; font-size:17px; font-weight:700; color:white; text-decoration:none; flex-shrink:0; }
 .mesh-brand:hover { color:white; }
 .mesh-brand-icon { width:28px; height:28px; display:block; flex-shrink:0; }
-#site-menu { display:flex; align-items:center; flex-wrap:wrap; gap:2px; }
-#site-menu a { color:#e6effb; text-decoration:none; padding:6px 8px; border-radius:5px; font-size:14px; line-height:20px; white-space:nowrap; text-transform:capitalize; }
-#site-menu a:hover, #site-menu a.active { color:white; background:#ffffff26; }
-.mesh-menu-toggle { display:none; color:white; background:none; border:1px solid #ffffff70; border-radius:5px; width:36px; height:36px; padding:0; font-size:22px; line-height:1; }
-.mesh-content { max-width:1600px; margin:0 auto; padding:16px 28px; }
-.mesh-announcement { text-align:center; padding:10px 20px; background:var(--mesh-soft); color:var(--mesh-text); font-size:14px; }
-.mesh-announcement:empty { display:none; }
+#site-menu { display:flex; align-items:center; gap:4px; flex:1 1 auto; min-width:0; }
+.mesh-nav-items { display:flex; align-items:center; gap:4px; min-width:0; overflow:hidden; }
+.mesh-more { position:relative; flex-shrink:0; }
+.mesh-more[hidden] { display:none; }
+.mesh-more-button { display:inline-flex; align-items:center; gap:4px; color:#e6effb; background:transparent; border:0; padding:6px 8px 6px 10px; border-radius:6px; font-size:14px; line-height:20px; white-space:nowrap; cursor:pointer; }
+.mesh-more-button svg { width:16px; height:16px; flex-shrink:0; }
+.mesh-more-button:hover { color:white; background:#ffffff14; }
+.mesh-more-button.active,.mesh-more-button[aria-expanded="true"] { color:white; background:#ffffff2e; }
+.mesh-more-button:focus-visible,#site-menu a:focus-visible { outline:2px solid white; outline-offset:2px; }
+.mesh-more-menu { position:absolute; top:calc(100% + 8px); right:0; min-width:230px; padding:6px; display:flex; flex-direction:column; gap:2px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; box-shadow:0 8px 24px rgba(16,25,37,.22); }
+.mesh-more-menu[hidden] { display:none; }
+#site-menu .mesh-more-menu a { color:var(--mesh-text); padding:9px 12px; }
+#site-menu .mesh-more-menu a:hover { color:var(--mesh-text); background:var(--mesh-soft); }
+#site-menu .mesh-more-menu a.active { color:var(--mesh-primary); background:var(--mesh-soft); font-weight:600; }
+#site-menu .mesh-more-menu a:focus-visible { outline-color:var(--mesh-primary); outline-offset:-2px; }
+.mesh-nav-external { margin-left:4px; font-size:12px; opacity:.75; }
+#site-menu .mesh-more-menu a:has(.mesh-nav-external) { display:flex; justify-content:space-between; gap:12px; }
+#site-menu .mesh-more-menu .mesh-nav-external { color:var(--mesh-muted); opacity:1; }
+.mesh-more-separator { height:1px; margin:4px; background:var(--mesh-border); }
+#site-menu a { color:#e6effb; text-decoration:none; padding:6px 10px; border-radius:6px; font-size:14px; line-height:20px; white-space:nowrap; }
+#site-menu a:hover { color:white; background:#ffffff14; }
+#site-menu a.active { color:white; background:#ffffff2e; font-weight:500; }
+.mesh-menu-toggle { display:none; align-items:center; justify-content:center; color:white; background:none; border:1px solid #ffffff70; border-radius:6px; width:36px; height:36px; padding:0; font-size:20px; line-height:1; }
+.mesh-menu-toggle:hover { background:#ffffff20; }
+.mesh-menu-toggle:focus-visible { outline:2px solid white; outline-offset:3px; }
+.mesh-nav-section { display:none; }
+/* Short pages (an empty search, a missing node) keep the footer at the bottom of the window. */
+body { min-height:100dvh; display:flex; flex-direction:column; }
+.mesh-content { flex:1 0 auto; width:100%; max-width:1600px; margin:0 auto; padding:16px 28px; box-sizing:border-box; }
+.mesh-announcement { background:var(--mesh-soft); border-bottom:1px solid var(--mesh-border); color:var(--mesh-text); font-size:14px; }
+.mesh-announcement[hidden] { display:none; }
+.mesh-announcement-inner { display:flex; align-items:center; gap:10px; max-width:1600px; margin:auto; padding:8px 12px 8px 28px; }
+.mesh-announcement-inner > .ti { color:var(--mesh-primary); font-size:18px; }
+.mesh-announcement-inner p { flex:1; margin:0; overflow-wrap:anywhere; }
+#site-announcement-close { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:32px; height:32px; padding:0; border:0; border-radius:6px; background:transparent; color:var(--mesh-muted); font-size:16px; cursor:pointer; }
+#site-announcement-close:hover { background:var(--mesh-hover); color:var(--mesh-text); }
+#site-announcement-close:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:1px; }
 .mesh-footer { display:flex; justify-content:space-between; gap:16px; padding:20px 28px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:12px; }
+.mesh-footer-tagline:empty { display:none; }
+.mesh-footer-project { display:inline-flex; align-items:center; gap:6px; margin-left:auto; color:var(--mesh-muted); text-decoration:none; white-space:nowrap; }
+.mesh-footer-project:hover { color:var(--mesh-primary); }
+.mesh-footer-project .ti { font-size:15px; }
+.mesh-footer-project:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; border-radius:4px; }
+@media(max-width:700px) { .mesh-announcement-inner { padding-left:14px; } .mesh-footer-project { margin-left:0; } }
 .mesh-page-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:10px; }
 .mesh-eyebrow { font-size:10px; letter-spacing:1.6px; font-weight:700; color:var(--mesh-primary); }
 .mesh-page-heading h1 { font-size:28px; font-weight:650; margin:2px 0 3px; }
 .mesh-page-heading p { color:var(--mesh-muted); font-size:14px; margin:0; }
-.mesh-secondary-button,.mesh-fit-button { border:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); padding:9px 14px; border-radius:6px; text-decoration:none; font-size:13px; }
-.mesh-secondary-button:hover,.mesh-fit-button:hover { background:var(--mesh-soft); }
-.mesh-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
-.mesh-metric { padding:20px 24px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; box-shadow:0 2px 4px var(--mesh-text)04; display:flex; flex-direction:column; gap:5px; }
-.mesh-metric>span { font-size:13px; font-weight:500; color:var(--mesh-muted); }
-.mesh-metric strong { font-size:30px; font-weight:650; color:var(--mesh-primary); font-variant-numeric:tabular-nums; }
+.mesh-page-heading.is-compact { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:0 16px; min-height:40px; margin-bottom:12px; }
+.mesh-page-heading.is-compact h1 { font-size:22px; line-height:1.2; margin:0; }
+.mesh-secondary-button { border:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); padding:9px 14px; border-radius:6px; text-decoration:none; font-size:13px; }
+.mesh-secondary-button:hover { background:var(--mesh-soft); }
+/* Shared loading spinner: .is-loading on placeholder text, aria-busy="true" on status chips. */
+@keyframes mesh-spin { to { transform:rotate(360deg); } }
+:is(.is-loading,[aria-busy="true"])::before { content:""; display:inline-block; flex-shrink:0; width:.95em; height:.95em; margin-right:.5em; vertical-align:-.15em; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; opacity:.8; animation:mesh-spin .8s linear infinite; }
+@media(prefers-reduced-motion:reduce) { :is(.is-loading,[aria-busy="true"])::before { animation-duration:2.4s; } }
+/* Live feed status: green live, grey paused, amber stale, red offline. */
+.live-status { display:inline-flex; align-items:center; gap:7px; font-size:12px; color:var(--mesh-muted); }
+.live-status::before { content:""; width:8px; height:8px; border-radius:50%; background:#198754; }
+.live-status[data-state="paused"]::before { background:var(--mesh-muted); }
+.live-status[data-state="loading"]::before { width:10px; height:10px; background:none; border:2px solid currentColor; border-right-color:transparent; animation:mesh-spin .8s linear infinite; }
+.live-status[data-state="stale"]::before { background:#d99a00; }
+.live-status[data-state="offline"] { color:#b42318; font-weight:600; }
+.live-status[data-state="offline"]::before { background:#dc3545; }
+[data-bs-theme="dark"] .live-status[data-state="offline"] { color:#ffb4a6; }
+/* Payload toggle shared by every packet table. */
+:is(.mesh-data-page .mesh-content,.mesh-dashboard) .packet-toggle { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; margin-right:6px; padding:0; border:0; border-radius:6px; background:transparent; color:var(--mesh-muted); font-size:16px; vertical-align:middle; cursor:pointer; }
+:is(.mesh-data-page .mesh-content,.mesh-dashboard) .packet-toggle:hover { background:var(--mesh-soft); color:var(--mesh-primary); }
+.packet-toggle .ti { transition:transform .15s ease; }
+.packet-toggle[aria-expanded="true"] .ti { transform:rotate(90deg); }
+.packet-toggle:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:1px; }
+/* Tables marked .card-table switch to cards (.is-cards, set below) under the viewport width in
+   their data-cards-below attribute, 700px by default. Cards flow in a grid: one column on
+   phones, two or three at medium widths. */
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards { display:block; min-width:0; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tbody { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr)); gap:10px; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tbody tr { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:4px 12px; padding:12px 14px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tbody td { display:block; height:auto; min-width:0; padding:0; border:0; background:none; overflow-wrap:anywhere; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tbody td[colspan] { grid-column:1 / -1; }
+:is(.mesh-data-page,.mesh-dashboard) .data-table-wrap:has(> .card-table.is-cards) { border:0; background:none; overflow:visible; }
+.mesh-traffic-list:has(> .card-table.is-cards) { padding:12px; max-height:70vh; }
+/* Packets: port and time / sender → recipient / channel or size and packet ID. */
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr:is(.packet-row,.mesh-traffic-row) { grid-template-columns:minmax(0,max-content) minmax(0,1fr) auto; grid-template-areas:"port port time" "from to to" "meta meta id"; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-port { grid-area:port; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-time { grid-area:time; text-align:right; white-space:nowrap; font-size:12px; color:var(--mesh-muted); }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-from { grid-area:from; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-to { grid-area:to; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-to::before { content:" → "; color:var(--mesh-muted); }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards :is(.c-channel,.c-size) { grid-area:meta; font-size:12px; color:var(--mesh-muted); }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-id { grid-area:id; text-align:right; white-space:nowrap; font-size:12px; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr.payload-row { display:none; grid-column:1 / -1; padding:0; overflow:hidden; }
+:is(.mesh-data-page,.mesh-dashboard) .packet-table.card-table.is-cards tr.expanded + .payload-row { display:block; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .payload-cell { padding:12px 14px; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr.mesh-traffic-payload { display:block; grid-column:1 / -1; padding:0; overflow:hidden; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr.mesh-traffic-payload td { padding:12px 14px; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr[hidden] { display:none; }
+/* An open packet takes the full row and its payload joins the card from below. */
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr:is(.packet-row.expanded,.mesh-traffic-row:has(+ .mesh-traffic-payload:not([hidden]))) { grid-column:1 / -1; border-bottom-left-radius:0; border-bottom-right-radius:0; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr:is(.payload-row,.mesh-traffic-payload) { margin-top:-11px; border-top:0; border-top-left-radius:0; border-top-right-radius:0; background:var(--mesh-soft); }
+/* Top nodes: name, short name and average gateways / channel, sent and seen. */
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards tbody tr { grid-template-columns:minmax(0,1fr) auto auto; grid-template-areas:"name short avg" "channel sent seen"; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-name { grid-area:name; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-short { grid-area:short; font-size:12px; color:var(--mesh-muted); }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-avg { grid-area:avg; justify-self:end; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-channel { grid-area:channel; font-size:12px; color:var(--mesh-muted); }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards :is(.c-sent,.c-seen) { font-size:13px; white-space:nowrap; text-align:right; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-sent { grid-area:sent; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-seen { grid-area:seen; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards :is(.c-sent,.c-seen)::before { content:attr(data-label) " "; color:var(--mesh-muted); }
+/* Four columns while every card fits on its lines, then two; all cards share one height. */
+.mesh-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-auto-rows:1fr; gap:12px; margin-bottom:12px; }
+@media(max-width:1199px) { .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.mesh-metric { display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:14px; row-gap:1px; align-items:center; align-content:start; padding:14px 18px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; box-shadow:0 2px 4px var(--mesh-text)04; }
+.mesh-metric > :not(.mesh-metric-icon) { grid-column:2; min-width:0; }
+.mesh-metric-icon { grid-row:1 / span 3; display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:10px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:20px; }
+.mesh-metric-icon .ti { width:22px; height:22px; vertical-align:0; }
+.mesh-metric>span:not(.mesh-metric-icon) { font-size:12px; font-weight:500; color:var(--mesh-muted); }
+.mesh-metric strong { font-size:24px; line-height:1.25; font-weight:650; color:var(--mesh-primary); font-variant-numeric:tabular-nums; }
 .mesh-metric:nth-child(2) strong { color:var(--mesh-primary); }
 .mesh-metric:nth-child(3) strong { color:var(--mesh-primary); }
 .mesh-metric small { font-size:11px; color:var(--mesh-muted); }
@@ -150,16 +259,43 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-node-role { font-size:10px; color:var(--mesh-muted); }
 .mesh-empty { color:var(--mesh-muted); padding:20px 16px; font-size:13px; }
 .mesh-map-panel #map-wrapper { height:520px; }
-.mesh-map-panel #filter-container { display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:5px; margin:0; padding:12px; font-size:12px; border-top:1px solid var(--mesh-border); }
-.mesh-map-panel .filter-checkbox { margin:0 2px 0 10px; accent-color:var(--mesh-primary); }
-.mesh-map-panel #share-button,.mesh-map-panel #reset-filters-button { background:var(--mesh-soft); color:var(--mesh-primary); margin:5px; padding:8px 12px; font-size:12px; }
-.mesh-map-panel #share-button.is-copied { background:var(--mesh-brand-deep); color:white; }
-.mesh-map-panel #reset-filters-button { color:var(--mesh-muted); background:var(--mesh-stripe); }
-.mesh-map-panel #map-legend { bottom:80px!important; left:12px; right:auto!important; box-shadow:0 2px 8px #0001; font-size:11px; }
+/* Home: with no heading above it, the map takes the panel's full height next to the node list. */
+@media(min-width:1001px) { .mesh-dashboard .mesh-map-panel { display:flex; flex-direction:column; } .mesh-dashboard .mesh-map-panel #map-wrapper { flex:1; height:auto; min-height:592px; } }
+@media(max-width:1000px) { .mesh-dashboard .mesh-map-panel #map-wrapper { height:512px; } }
+.mesh-map-panel #filter-container { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:0; padding:10px 12px; font-size:12px; border-top:1px solid var(--mesh-border); }
+/* Map filters are pills: the checkbox and its text never wrap apart. */
+/* Groups flow as one row of pills, so a trailing button (map reset) can share the last line. */
+.map-filter-group { display:contents; }
+.map-filter-group:first-child > .map-filter:last-child { margin-right:10px; }
+.map-filter-group:empty { display:none; }
+.map-filter { display:inline-flex; align-items:center; gap:6px; min-height:30px; margin:0; padding:0 11px 0 9px; border:1px solid var(--mesh-border); border-radius:15px; background:var(--mesh-surface); color:var(--mesh-text); font-size:12px; white-space:nowrap; cursor:pointer; user-select:none; }
+.map-filter:has(input:checked) { background:var(--mesh-soft); border-color:var(--mesh-hover); }
+/* Hover only darkens the border: the tinted background means "selected". */
+.map-filter:hover,.map-filter:has(input:checked):hover { border-color:var(--mesh-muted); }
+.map-filter input { margin:0; accent-color:var(--mesh-primary); }
+.map-filter:has(input:focus-visible) { outline:2px solid var(--mesh-primary); outline-offset:2px; }
+.map-filter-dot { flex-shrink:0; width:8px; height:8px; border-radius:50%; background:var(--chip-color,#6c757d); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18); }
 .mesh-map-panel #unmapped-packets { bottom:25px; right:10px; width:190px; }
 .mesh-map-panel .leaflet-control-layers { font-size:11px; border:1px solid var(--mesh-border); box-shadow:0 2px 8px #0001; }
-@media(max-width:1000px) { .mesh-header-inner { flex-wrap:wrap; gap:0; padding:6px 16px; justify-content:space-between; } .mesh-menu-toggle { display:block; } #site-menu { display:none; width:100%; padding-top:6px; } #site-menu.is-open { display:flex; } .mesh-explorer { grid-template-columns:240px minmax(0,1fr); } }
-@media(max-width:700px) { .mesh-content { padding:16px 14px; } .mesh-page-heading { align-items:flex-start; } .mesh-page-heading h1 { font-size:24px; } .mesh-secondary-button { white-space:nowrap; font-size:11px; padding:8px; } .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .mesh-metric { padding:14px; } .mesh-metric strong { font-size:26px; } .mesh-explorer { display:flex; flex-direction:column-reverse; gap:16px; } .mesh-map-panel #map-wrapper { height:440px; } .mesh-node-list { max-height:300px; } .mesh-map-panel #unmapped-packets { width:155px; font-size:10px; } .mesh-footer { flex-direction:column; } }
+/* Below 1000px the node list stacks under the map instead of squeezing it. */
+@media(max-width:1000px) { .mesh-explorer { display:flex; flex-direction:column-reverse; gap:12px; } .mesh-node-list { max-height:300px; } }
+@media(max-width:700px) {
+    .mesh-header-inner { gap:8px; padding:0 12px 0 16px; min-height:52px; }
+    .mesh-brand { min-width:0; flex:1 1 auto; }
+    .mesh-brand #site-header { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mesh-menu-toggle { display:inline-flex; order:3; }
+    /* The menu opens as a panel under the header, grouped by section. */
+    #site-menu { display:none; position:absolute; top:100%; left:0; right:0; max-height:calc(100dvh - 52px); overflow:auto; padding:4px 0 10px; background:var(--mesh-surface); border-bottom:1px solid var(--mesh-border); box-shadow:0 12px 24px rgba(16,25,37,.25); }
+    #site-menu.is-open { display:block; }
+    .mesh-nav-items { flex-direction:column; align-items:stretch; gap:0; overflow:visible; }
+    .mesh-nav-section { display:block; padding:14px 20px 4px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--mesh-muted); }
+    #site-menu .mesh-nav-items a { display:flex; align-items:center; justify-content:space-between; min-height:48px; padding:0 20px; border-radius:0; color:var(--mesh-text); font-size:15px; }
+    #site-menu .mesh-nav-items a:hover { color:var(--mesh-text); background:var(--mesh-soft); }
+    #site-menu .mesh-nav-items a.active { color:var(--mesh-primary); background:var(--mesh-soft); font-weight:600; box-shadow:inset 3px 0 0 var(--mesh-primary); }
+    #site-menu .mesh-nav-items a:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
+    #site-menu .mesh-nav-external { color:var(--mesh-muted); opacity:1; }
+}
+@media(max-width:700px) { .mesh-content { padding:16px 14px; } .mesh-page-heading { align-items:flex-start; } .mesh-page-heading h1 { font-size:24px; } .mesh-secondary-button { white-space:nowrap; font-size:11px; padding:8px; } .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .mesh-metric { padding:12px 14px; column-gap:8px; } .mesh-metric > :not(.mesh-metric-icon) { grid-column:1 / -1; } .mesh-metric > span:not(.mesh-metric-icon) { grid-column:2; grid-row:1; } .mesh-metric-icon { grid-row:1; width:24px; height:24px; border-radius:6px; } .mesh-metric-icon .ti { width:15px; height:15px; } .mesh-metric strong { font-size:22px; } .mesh-explorer { display:flex; flex-direction:column-reverse; gap:16px; } .mesh-map-panel #map-wrapper { height:440px; } .mesh-node-list { max-height:300px; } .mesh-map-panel #unmapped-packets { width:155px; font-size:10px; } .mesh-footer { flex-direction:column; } }
     </style>
 {% include "theme-styles.html" %}
 </head>
@@ -168,18 +304,27 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 <header class="mesh-header">
     <div class="mesh-header-inner">
         <a class="mesh-brand" href="/"><img class="mesh-brand-icon" src="/static/meshview-icon.svg" width="28" height="28" alt=""> <span id="site-header">Meshview</span></a>
-        <button class="mesh-menu-toggle" type="button" aria-label="{{ tr("Toggle navigation") }}" aria-expanded="false" aria-controls="site-menu">☰</button>
+        <button class="mesh-menu-toggle" type="button" aria-label="{{ tr("Toggle navigation") }}" aria-expanded="false" aria-controls="site-menu"><span class="ti ti-menu-2" aria-hidden="true"></span></button>
         <nav id="site-menu" aria-label="{{ tr("Main navigation") }}"></nav>
         <button class="mesh-theme-toggle" type="button" data-theme-toggle aria-label="{{ tr("Switch to night mode") }}" aria-pressed="false" title="{{ tr("Night mode") }}"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
     </div>
 </header>
-<div id="site-message" class="mesh-announcement"></div>
+<div id="site-announcement" class="mesh-announcement" role="region" aria-label="{{ tr("Announcement") }}" hidden>
+    <div class="mesh-announcement-inner">
+        <span class="ti ti-speakerphone" aria-hidden="true"></span>
+        <p id="site-announcement-text"></p>
+        <button id="site-announcement-close" type="button" aria-label="{{ tr("Dismiss announcement") }}" title="{{ tr("Dismiss announcement") }}"><span class="ti ti-x" aria-hidden="true"></span></button>
+    </div>
+</div>
 <main class="mesh-content">
 {% block body %}{% endblock %}
 </main>
 <footer class="mesh-footer">
-    <span id="footer" data-translate="footer"></span>
-    <span id="site-version">Meshview</span>
+    <span id="site-tagline" class="mesh-footer-tagline">{{ site_description }}</span>
+    <a class="mesh-footer-project" href="https://github.com/pablorevilla-meshtastic/meshview" target="_blank" rel="noopener" title="{{ tr("Meshview on GitHub") }}">
+        <span class="ti ti-brand-github" aria-hidden="true"></span>
+        <span id="site-version">Meshview</span><span class="visually-hidden"> · GitHub</span>
+    </a>
 </footer>
 
 <script>
@@ -198,6 +343,28 @@ if (!window._siteConfigPromise) {
         }
     })();
 }
+
+// Starting view for Leaflet maps: a known position, else the configured map
+// area (usually loaded already), else the whole world until the config
+// arrives. Never a hard-coded city; data that loads later fits as usual.
+window.meshMapStartView = (map, position, zoom = 12) => {
+    if (position) return map.setView(position, zoom);
+    const area = cfg => {
+        const s = cfg?.site || {};
+        const b = [[s.map_top_left_lat, s.map_top_left_lon], [s.map_bottom_right_lat, s.map_bottom_right_lon]]
+            .map(pair => pair.map(parseFloat));
+        return b.flat().every(Number.isFinite) ? b : null;
+    };
+    const known = area(window._siteConfig);
+    if (known) return map.fitBounds(known);
+    map.setView([20, 0], 2);
+    let moved = false;
+    map.once("movestart", () => { moved = true; });
+    window._siteConfigPromise?.then(cfg => {
+        const later = area(cfg);
+        if (later && !moved) map.fitBounds(later);
+    });
+};
 
 // --- Load language AFTER config ---
 if (!window._langPromise) {
@@ -234,8 +401,6 @@ function applyTranslations(dict) {
             el.placeholder = value;
         } else if (el.tagName === "INPUT" && el.value) {
             el.value = value;
-        } else if (key === "footer") {
-            el.innerHTML = value;
         } else {
             el.textContent = value;
         }
@@ -284,32 +449,39 @@ async function initializePage() {
         // Header & Message
         document.getElementById("site-header").textContent = site.title || "Meshview";
 
-        document.getElementById("site-message").textContent = site.message || "";
+        // [site] announcement: a dismissible banner on every page. Dismissing it hides that
+        // text in this browser until the announcement changes.
+        showAnnouncement((site.announcement || "").trim());
 
         // Menu
         const menu = document.getElementById("site-menu");
         if (menu) {
-            const items = ['<a href="/"' + (["/", "/index", "/index.html"].includes(location.pathname) ? ' class="active" aria-current="page"' : "") + '>' + escapeHtml(MeshI18n.t("Home")) + '</a>'];
-            const keys = ["nodes", "chat", "everything", "graphs", "net", "map", "stats", "top"];
-            const urls = ["/nodelist", "/chat", "/firehose", "/nodegraph", "/net", "/map", "/stats", "/top"];
+            const items = [{key: "home", html: '<a href="/"' + (["/", "/index", "/index.html"].includes(location.pathname) ? ' class="active" aria-current="page"' : "") + '>' + escapeHtml(MeshI18n.t("Home")) + '</a>'}];
+            // Most used sections first.
+            // Tables first, then the map, the analysis pages, and weekly net (often disabled).
+            const keys = ["nodes", "everything", "chat", "map", "graphs", "top", "stats", "net"];
+            const urls = ["/nodelist", "/firehose", "/chat", "/map", "/nodegraph", "/top", "/stats", "/net"];
 
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
                 if (site[key] === "true" || site[key] === true) {
-                    items.push(`<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || (key === "everything" ? MeshI18n.t("Live Traffic") : key))}</a>`);
+                    items.push({key, html: `<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || (key === "everything" ? MeshI18n.t("Live Traffic") : key))}</a>`});
                 }
             }
+            // Links outside the monitoring views: they overflow together and show an arrow.
             if (site.api !== "false" && site.api !== false) {
-                items.push('<a href="/api.html">API</a>');
+                items.push({key: "api", group: "links", html: '<a href="/api.html" target="_blank" rel="noopener">API<span class="mesh-nav-external" aria-hidden="true">↗</span></a>'});
             }
-            items.push('<a href="https://meshview.world" target="_blank" rel="noopener noreferrer">MeshviewWorld</a>');
+            if (site.meshviewworld !== "false" && site.meshviewworld !== false) {
+                items.push({key: "world", group: "links", html: '<a href="https://meshview.world" target="_blank" rel="noopener noreferrer">MeshviewWorld<span class="mesh-nav-external" aria-hidden="true">↗</span></a>'});
+            }
 
-            menu.innerHTML = items.join("");
+            setupSiteMenu(menu, items);
         }
 
         // Version
         document.getElementById("site-version").textContent =
-            "ver. " + (site.version || "unknown");
+            site.version ? `Meshview ${site.version}` : "Meshview";
 
         // Apply translations
         applyTranslations(dict);
@@ -322,11 +494,246 @@ async function initializePage() {
     }
 }
 
-document.querySelector(".mesh-menu-toggle").addEventListener("click", function () {
-    const expanded = this.getAttribute("aria-expanded") !== "true";
-    this.setAttribute("aria-expanded", String(expanded));
-    document.getElementById("site-menu").classList.toggle("is-open", expanded);
+// --- Announcement banner ---
+const ANNOUNCEMENT_KEY = "meshview-announcement-dismissed";
+function showAnnouncement(text) {
+    const banner = document.getElementById("site-announcement");
+    if (!banner || !text) return;
+    let dismissed = null;
+    try { dismissed = localStorage.getItem(ANNOUNCEMENT_KEY); } catch {}
+    if (dismissed === text) return;
+    document.getElementById("site-announcement-text").textContent = text;
+    banner.hidden = false;
+    document.getElementById("site-announcement-close").addEventListener("click", () => {
+        banner.hidden = true;
+        try { localStorage.setItem(ANNOUNCEMENT_KEY, text); } catch {}
+    }, {once: true});
+}
+
+// --- Site menu: every section on one line, overflow into "More" only when it does not fit ---
+// Groups that leave first when space runs out; anything not listed stays longest.
+const MENU_OVERFLOW_ORDER = ["links", "net", "stats", "top", "graphs", "chat", "home", "map", "everything", "nodes"];
+const MOBILE_MENU_QUERY = window.matchMedia("(max-width:700px)");
+// The mobile menu panel groups sections under these headings.
+const MENU_SECTIONS = {
+    home: "explore", nodes: "explore", everything: "explore", chat: "explore", map: "explore",
+    graphs: "analysis", top: "analysis", stats: "analysis", net: "analysis",
+    api: "links", world: "links",
+};
+const MENU_SECTION_LABELS = {explore: "Explore", analysis: "Analysis", links: "Links"};
+
+function setupSiteMenu(menu, items) {
+    const template = document.createElement("template");
+    const entries = items.map(({key, group, html}) => {
+        template.innerHTML = html.trim();
+        return {key, group: group || key, section: MENU_SECTIONS[key] || "explore", el: template.content.firstElementChild};
+    });
+    const groups = [...new Set(entries.map(entry => entry.group))];
+
+    const list = document.createElement("div");
+    list.className = "mesh-nav-items";
+    const more = document.createElement("div");
+    more.className = "mesh-more";
+    more.hidden = true;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mesh-more-button";
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-controls", "mesh-more-menu");
+    button.innerHTML = escapeHtml(MeshI18n.t("More")) +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+    const panel = document.createElement("div");
+    panel.className = "mesh-more-menu";
+    panel.id = "mesh-more-menu";
+    panel.hidden = true;
+    more.append(button, panel);
+    menu.replaceChildren(list, more);
+
+    const setOpen = open => {
+        panel.hidden = !open;
+        button.setAttribute("aria-expanded", String(open));
+    };
+    const rank = group => {
+        const index = MENU_OVERFLOW_ORDER.indexOf(group);
+        return index === -1 ? MENU_OVERFLOW_ORDER.length : index;
+    };
+    const overflowing = () => list.scrollWidth > list.clientWidth + 1;
+
+    function layout() {
+        setOpen(false);
+        panel.replaceChildren();
+        more.hidden = true;
+        button.classList.remove("active");
+        if (MOBILE_MENU_QUERY.matches) {
+            const children = [];
+            let current = null;
+            for (const entry of entries) {
+                if (entry.section !== current) {
+                    current = entry.section;
+                    const heading = document.createElement("span");
+                    heading.className = "mesh-nav-section";
+                    heading.textContent = MeshI18n.t(MENU_SECTION_LABELS[current]);
+                    children.push(heading);
+                }
+                children.push(entry.el);
+            }
+            list.replaceChildren(...children);
+            return;
+        }
+        list.replaceChildren(...entries.map(entry => entry.el));
+        if (!overflowing()) return;
+
+        more.hidden = false;
+        const moved = new Set();
+        for (const group of [...groups].sort((a, b) => rank(a) - rank(b))) {
+            if (!overflowing()) break;
+            for (const entry of entries) {
+                if (entry.group !== group) continue;
+                entry.el.remove();
+                moved.add(entry);
+            }
+        }
+        const hidden = entries.filter(entry => moved.has(entry));
+        const panelItems = [];
+        hidden.forEach((entry, index) => {
+            if (index > 0 && entry.group === "links" && hidden[index - 1].group !== "links") {
+                const separator = document.createElement("div");
+                separator.className = "mesh-more-separator";
+                separator.setAttribute("role", "separator");
+                panelItems.push(separator);
+            }
+            panelItems.push(entry.el);
+        });
+        panel.replaceChildren(...panelItems);
+        button.classList.toggle("active", hidden.some(entry => entry.el.classList.contains("active")));
+    }
+
+    button.addEventListener("click", () => setOpen(panel.hidden));
+    more.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !panel.hidden) {
+            setOpen(false);
+            button.focus();
+        }
+    });
+    more.addEventListener("focusout", event => {
+        if (!more.contains(event.relatedTarget)) setOpen(false);
+    });
+    document.addEventListener("click", event => {
+        if (!more.contains(event.target)) setOpen(false);
+    });
+
+    let frame = 0;
+    const schedule = () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(layout);
+    };
+    new ResizeObserver(schedule).observe(menu.closest(".mesh-header-inner") || menu);
+    MOBILE_MENU_QUERY.addEventListener("change", schedule);
+    document.fonts?.ready.then(schedule);
+    layout();
+}
+
+// --- Data tables: sticky header when the table fits, sideways scroll when it does not ---
+function watchTableWidth(wrap) {
+    const update = () => {
+        const table = wrap.querySelector("table");
+        if (table) wrap.classList.toggle("is-wide", table.scrollWidth > wrap.clientWidth + 1);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(wrap);
+    const table = wrap.querySelector("table");
+    if (table) observer.observe(table);
+    update();
+}
+// Rows with a right-aligned actions block (compact headings, chat toolbar): mark the row
+// .is-wrapped when the actions dropped below its first item, so they align left there.
+function watchHeadingWrap(row, leadSelector = ".data-title", actionsSelector = ".data-actions") {
+    const lead = row.querySelector(leadSelector);
+    const actions = row.querySelector(actionsSelector);
+    if (!lead || !actions) return;
+    const update = () => {
+        row.classList.remove("is-wrapped");
+        row.classList.toggle("is-wrapped", actions.offsetTop > lead.offsetTop + lead.offsetHeight / 2);
+    };
+    new ResizeObserver(update).observe(row);
+    update();
+}
+
+// Card tables: each one switches to cards below its own data-cards-below width.
+function watchCardTable(table) {
+    const query = window.matchMedia(`(max-width:${Number(table.dataset.cardsBelow) || 700}px)`);
+    const apply = () => table.classList.toggle("is-cards", query.matches);
+    query.addEventListener("change", apply);
+    apply();
+}
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("table.card-table").forEach(watchCardTable);
+    document.querySelectorAll(".data-heading.is-compact").forEach(heading => watchHeadingWrap(heading));
+    document.querySelectorAll(".chat-toolbar").forEach(toolbar => watchHeadingWrap(toolbar, ".chat-channel-control", ".chat-actions"));
+    document.querySelectorAll(".data-table-wrap").forEach(watchTableWidth);
 });
+
+// --- Header: hide while scrolling down, show again when scrolling up ---
+(() => {
+    const header = document.querySelector(".mesh-header");
+    const root = document.documentElement;
+    let lastY = window.scrollY;
+    const setHidden = hidden => {
+        header.classList.toggle("is-hidden", hidden);
+        root.style.setProperty("--header-offset", hidden ? "0px" : `${header.offsetHeight}px`);
+    };
+    const update = () => {
+        const y = window.scrollY;
+        // Keep it visible near the top, with a menu open or with keyboard focus inside.
+        const busy = header.querySelector('[aria-expanded="true"]') || header.contains(document.activeElement);
+        if (busy || y <= header.offsetHeight) {
+            setHidden(false);
+            lastY = y;
+            return;
+        }
+        if (Math.abs(y - lastY) < 6) return;
+        setHidden(y > lastY);
+        lastY = y;
+    };
+    let frame = 0;
+    window.addEventListener("scroll", () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(update);
+    }, {passive: true});
+    window.addEventListener("resize", update);
+    header.addEventListener("focusin", () => setHidden(false));
+    setHidden(false);
+})();
+
+// --- Mobile menu panel ---
+(() => {
+    const toggle = document.querySelector(".mesh-menu-toggle");
+    const menu = document.getElementById("site-menu");
+    const icon = toggle.querySelector(".ti");
+    const setOpen = open => {
+        toggle.setAttribute("aria-expanded", String(open));
+        menu.classList.toggle("is-open", open);
+        icon.classList.toggle("ti-menu-2", !open);
+        icon.classList.toggle("ti-x", open);
+    };
+    toggle.addEventListener("click", () => {
+        const open = toggle.getAttribute("aria-expanded") !== "true";
+        setOpen(open);
+        if (open) menu.querySelector("a")?.focus();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && menu.classList.contains("is-open")) {
+            setOpen(false);
+            toggle.focus();
+        }
+    });
+    document.addEventListener("click", event => {
+        if (menu.classList.contains("is-open") && !menu.contains(event.target) && !toggle.contains(event.target)) {
+            setOpen(false);
+        }
+    });
+    MOBILE_MENU_QUERY.addEventListener("change", () => setOpen(false));
+})();
 document.addEventListener("DOMContentLoaded", initializePage);
 </script>
 

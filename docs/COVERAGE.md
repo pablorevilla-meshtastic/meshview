@@ -27,6 +27,13 @@ and the last point above the threshold forms the outline.
 - **Reliability**: default `0.5` (median)
 - **Terrain irregularity**: default `90 m` (average terrain)
 
+### Requirements
+
+The model needs the optional `pyitm` package. It is included in `requirements.txt`, and
+installations from the package can add it with the `coverage` extra
+(`pip install 'meshview[coverage]'`). Without it the coverage button reports that
+predicted coverage is not available on the server.
+
 ### Limitations
 
 - No terrain or building data is used (area mode only).

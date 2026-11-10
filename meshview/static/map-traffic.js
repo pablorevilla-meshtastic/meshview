@@ -54,24 +54,26 @@
             const time = document.createElement('td'); time.className = 'mesh-traffic-time';
             time.textContent = packet.import_time_us ? new Date(Number(packet.import_time_us)/1000).toLocaleTimeString(MeshI18n.language, {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) : '—';
             time.title = dateText(packet.import_time_us);
-            const packetCell = document.createElement('td');
-            const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'mesh-traffic-toggle';
+            time.classList.add('c-time');
+            const packetCell = document.createElement('td'); packetCell.className = 'c-id';
+            const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'mesh-traffic-toggle packet-toggle';
             toggle.dataset.trafficFocus = 'toggle';
             toggle.setAttribute('aria-label', MeshI18n.t("Toggle payload for packet {id}", {id}));
             toggle.setAttribute('aria-expanded',String(expandedPackets.has(id)));
-            toggle.textContent = expandedPackets.has(id) ? '▼' : '▶';
+            toggle.innerHTML = '<span class="ti ti-chevron-right" aria-hidden="true"></span>';
             const details = document.createElement('a'); details.href = `/packet/${encodeURIComponent(id)}`;
             details.dataset.trafficFocus = 'details'; details.title = MeshI18n.t("View packet details");
             details.textContent = packet.packet_id == null ? MeshI18n.t("Details") : String(packet.packet_id);
             packetCell.append(toggle,details);
-            const channelCell = document.createElement('td'); channelCell.textContent = packet.channel || '—';
-            const port = document.createElement('td');
+            const channelCell = document.createElement('td'); channelCell.className = 'c-channel'; channelCell.textContent = packet.channel || '—';
+            const port = document.createElement('td'); port.className = 'c-port';
             const tag = document.createElement('span'); tag.className = 'mesh-traffic-type'; tag.textContent = portName(packet);
-            tag.style.backgroundColor = window.PORT_COLOR_MAP[packet.portnum] || '#6c757d';
-            tag.title = packet.payload || '';
-            const number = document.createElement('span'); number.className = 'mesh-traffic-port-number'; number.textContent = `(${packet.portnum ?? '?'})`;
-            port.append(tag,number);
-            row.append(time,packetCell,nodeCell(packet.from_node_id,packet.long_name),nodeCell(packet.to_node_id,packet.to_long_name,true),channelCell,port);
+            tag.style.setProperty('--port-color', window.PORT_COLOR_MAP[packet.portnum] || '#6c757d');
+            tag.title = MeshI18n.t("Port {port}", {port: packet.portnum ?? '?'});
+            port.append(tag);
+            const from = nodeCell(packet.from_node_id,packet.long_name); from.classList.add('c-from');
+            const to = nodeCell(packet.to_node_id,packet.to_long_name,true); to.classList.add('c-to');
+            row.append(time,packetCell,from,to,channelCell,port);
             const payloadRow = document.createElement('tr'); payloadRow.className = 'mesh-traffic-payload';
             payloadRow.hidden = !expandedPackets.has(id);
             const payloadCell = document.createElement('td'); payloadCell.colSpan = 6;
@@ -80,7 +82,7 @@
             toggle.addEventListener('click', () => {
                 if (expandedPackets.has(id)) expandedPackets.delete(id); else expandedPackets.add(id);
                 payloadRow.hidden = !expandedPackets.has(id);
-                toggle.setAttribute('aria-expanded',String(!payloadRow.hidden)); toggle.textContent = payloadRow.hidden ? '▶' : '▼';
+                toggle.setAttribute('aria-expanded',String(!payloadRow.hidden));
             });
             body.append(row,payloadRow);
             if (!displayedPackets.has(id)) {
@@ -96,11 +98,21 @@
                 .find(el => el.dataset.trafficFocus === focusedControl)?.focus({preventScroll:true});
         }
     }
+    // Same states as the traffic page: amber when the newest packet is over 15 minutes old.
+    const STALE_AFTER_MS = 15 * 60 * 1000;
     function renderTrafficStatus() {
         const el = byId('map-traffic-status');
-        el.dataset.state = trafficState;
-        el.textContent = paused ? MeshI18n.t("Feed paused") : trafficState === 'error' ? MeshI18n.t("Traffic unavailable") :
-            trafficState === 'loading' ? MeshI18n.t("Loading packets…") : mapInterval > 0 ? MeshI18n.t("Live · every {seconds}s", {seconds: mapInterval}) : MeshI18n.t("Snapshot · auto-refresh off");
+        const newest = Math.max(0, ...[...packetHistory.values()].map(packetTime));
+        let state = 'live';
+        let text = MeshI18n.t("Live");
+        if (paused) { state = 'paused'; text = MeshI18n.t("Paused"); }
+        else if (trafficState === 'error') { state = 'offline'; text = MeshI18n.t("Connection lost"); }
+        else if (trafficState === 'loading') { state = 'loading'; text = MeshI18n.t("Loading packets…"); }
+        else if (mapInterval <= 0) { state = 'paused'; text = MeshI18n.t("Snapshot · auto-refresh off"); }
+        else if (newest && Date.now() - newest / 1000 > STALE_AFTER_MS) { state = 'stale'; text = MeshI18n.t("No recent packets"); }
+        el.dataset.state = state;
+        el.textContent = text;
+        el.title = newest ? MeshI18n.t("Last packet: {time}", {time: dateText(newest)}) : '';
     }
     document.addEventListener('mesh:traffic-status', event => {
         trafficState = event.detail; renderTrafficStatus();
@@ -125,6 +137,7 @@
             }
         }
         if (!paused && added) renderTraffic();
+        renderTrafficStatus();
     });
     byId('map-traffic-channel').addEventListener('change', () => renderTraffic());
     byId('map-traffic-pause').addEventListener('click', () => {

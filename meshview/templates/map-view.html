@@ -12,20 +12,7 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
     .legend { background:var(--mesh-surface);padding:8px;line-height:1.5;border-radius:5px;box-shadow:0 0 10px rgba(0,0,0,0.3);font-size:14px;color:var(--mesh-text); }
     .legend i { width:12px;height:12px;display:inline-block;margin-right:6px;border-radius:50%; }
 
-    #filter-container { text-align:center;margin-top:10px; }
-    .filter-checkbox { margin:0 10px; }
 
-    #share-button,
-    #reset-filters-button {
-        padding:5px 15px;border:none;border-radius:4px;font-size:14px;cursor:pointer;color:white;
-    }
-    #share-button { margin-left:20px; background-color:#4CAF50; }
-    #share-button:hover { background-color:#45a049; }
-    #share-button:active { background-color:#3d8b40; }
-
-    #reset-filters-button { margin-left:10px; background-color:#f44336; }
-    #reset-filters-button:hover { background-color:#da190b; }
-    #reset-filters-button:active { background-color:#c41e0d; }
 
     .blinking-tooltip {
         background: var(--mesh-surface);
@@ -44,23 +31,13 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
     .packet-seen-trace {
         stroke-dasharray: 0.01px var(--packet-trace-gap, 999px);
         stroke-linecap: round;
-        filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.65));
+        filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.9));
         animation: packetTrace var(--packet-trace-duration, 6.5s) linear 1 forwards;
     }
     .packet-seen-landing {
         transform-box: fill-box;
         transform-origin: center;
         animation: packetSeenLanding 1s ease-out 1 forwards;
-    }
-    [data-bs-theme="dark"] .packet-seen-trace,
-    [data-bs-theme="dark"] .packet-seen-landing {
-        stroke: #e6fff0;
-    }
-    [data-bs-theme="dark"] .packet-seen-landing {
-        fill: #e6fff0;
-    }
-    [data-bs-theme="dark"] .packet-seen-trace {
-        filter: drop-shadow(0 0 2px rgba(230, 255, 240, 0.65));
     }
     @keyframes packetTrace {
         from { stroke-dashoffset: 0; }
@@ -128,16 +105,56 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
         border-bottom: 1px dotted #e0e0e0;
     }
     #unmapped-list li:last-child { border-bottom: none; }
+    .map-overlay > summary { display:flex; align-items:center; gap:6px; list-style:none; cursor:pointer; }
+    .map-overlay > summary::-webkit-details-marker { display:none; }
+    .map-overlay > summary::after { content:""; flex-shrink:0; width:12px; height:12px; margin-left:auto; background:currentColor; opacity:.6; -webkit-mask:url(/static/vendor/tabler-icons-3.51.0/icons/outline/chevron-right.svg) center / contain no-repeat; mask:url(/static/vendor/tabler-icons-3.51.0/icons/outline/chevron-right.svg) center / contain no-repeat; transition:transform .15s ease; }
+    .map-overlay[open] > summary::after { transform:rotate(90deg); }
+    #unmapped-packets > summary { margin-bottom:6px; }
+    #unmapped-packets > summary h3 { margin:0; }
+    #map-legend > summary { display:none; }
+    /* Zoom and legend side by side in the top-left corner. */
+    .mesh-map-panel .leaflet-top.leaflet-left { display:flex; align-items:flex-start; }
+    .mesh-map-panel #map-legend { margin-left:8px; font-size:11px; box-shadow:0 2px 8px #0001; border:1px solid var(--mesh-border); }
+    .map-overlay-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--mesh-primary); color:var(--mesh-surface); font-size:11px; font-weight:700; }
+    .map-overlay-count[hidden] { display:none; }
+    @media(max-width:700px) {
+        .mesh-map-panel .map-overlay:not([open]) { width:auto; padding:5px 10px; }
+        .mesh-map-panel .map-overlay:not([open]) > summary { margin:0; }
+        #map-legend > summary { display:flex; font-weight:600; font-size:12px; }
+        #map-legend[open] > summary { margin-bottom:6px; }
+    }
     .unmapped-node { font-weight: 400; color: #000; }
     .unmapped-empty { color: #666; font-style: italic; }
 
 /* Give the standalone map more vertical space. */
-.mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 220px); min-height:650px; }
-@media(max-width:700px) { .mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 240px); min-height:500px; } }
+/* Map page: the content fills the window under the header and the map takes every pixel the
+   filter row leaves, whatever its height. */
+.mesh-map-only .mesh-content { display:flex; flex-direction:column; height:calc(100dvh - 48px); min-height:480px; box-sizing:border-box; }
+.mesh-map-only .mesh-explorer { display:flex; flex:1; min-height:0; }
+.mesh-map-only .mesh-map-panel { display:flex; flex:1; flex-direction:column; min-width:0; min-height:0; }
+.mesh-map-only .mesh-map-panel #map-wrapper { display:flex; flex:1; flex-direction:column; height:auto; min-height:300px; }
+.mesh-map-only .mesh-map-panel #map { flex:1; height:auto; min-height:0; }
+@media(max-width:700px) { .mesh-map-only .mesh-content { height:calc(100dvh - 52px); } }
+/* Fit and share as a map control, with labels on wider screens. */
+.mesh-map-tools { display:flex; flex-direction:column; overflow:hidden; background:var(--mesh-surface); }
+/* Same frame as the layers control and the legend (thin border, soft shadow), not Leaflet's thick bar border. */
+.mesh-map-panel .mesh-map-tools.leaflet-bar { border:1px solid var(--mesh-border); border-radius:5px; box-shadow:0 2px 8px #0001; background-clip:padding-box; }
+.mesh-map-tools button { display:flex; align-items:center; gap:8px; min-height:34px; padding:0 12px 0 10px; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font:500 11px/1 inherit; white-space:nowrap; cursor:pointer; }
+.mesh-map-tools button:last-child { border-bottom:0; }
+.mesh-map-tools button:hover { background:var(--mesh-soft); }
+.mesh-map-tools button:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
+.mesh-map-tools .ti { font-size:16px; color:var(--mesh-primary); }
+.mesh-map-tools button.is-copied .ti { color:#198754; }
+@media(max-width:700px) { .mesh-map-tools button { justify-content:center; width:44px; min-height:38px; padding:0; } .mesh-map-tool-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; } }
+/* Reset sits at the end of the filter row. */
+.map-filter-reset { display:inline-flex; align-items:center; gap:6px; margin-left:auto; padding:6px 10px; border:0; border-radius:6px; background:transparent; color:var(--mesh-primary); font-size:12px; font-weight:500; white-space:nowrap; cursor:pointer; }
+.map-filter-reset:hover { background:var(--mesh-soft); }
+.map-filter-reset:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
 /* Let the map determine the desktop row height; scroll longer node panels. */
-@media(min-width:701px) {
+@media(min-width:1001px) {
     .mesh-explorer .mesh-node-panel { contain:size; }
     .mesh-explorer .mesh-node-browser:not([hidden]) { height:100%; display:flex; flex-direction:column; }
+    .mesh-explorer .mesh-node-browser-body { flex:1; min-height:0; display:flex; flex-direction:column; }
     .mesh-explorer .mesh-node-list { flex:1; min-height:0; max-height:none; }
     .mesh-explorer .mesh-node-inspector { max-height:100%; }
 }
@@ -151,11 +168,9 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-kiosk .mesh-map-only .mesh-map-panel #map-wrapper { height:100dvh; min-height:0; }
 .mesh-kiosk .mesh-map-panel #filter-container { position:absolute; bottom:24px; left:10px; z-index:700; max-width:calc(100% - 240px); max-height:25dvh; overflow:auto; padding:8px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:6px; }
 .mesh-kiosk #map-load-status:not(:empty) { position:absolute; top:10px; left:50px; z-index:800; background:var(--mesh-surface); padding:8px; border-radius:5px; }
-.mesh-kiosk .mesh-map-panel #map-legend { bottom:110px!important; }
 @media(max-width:700px) { .mesh-kiosk .mesh-map-panel #filter-container { max-width:calc(100% - 20px); bottom:24px; } .mesh-kiosk #unmapped-packets { display:none; } }
 /* Compact live-map node card. */
 .mesh-map-only .mesh-content { max-width:none; }
-.mesh-map-only .mesh-explorer { display:block; }
 .mesh-map-only .mesh-node-panel { position:absolute; right:10px; top:var(--inspector-top,60px); width:280px; max-width:calc(100% - 20px); max-height:calc(100% - var(--inspector-top,60px) - 12px); overflow:auto; z-index:800; contain:none; padding:14px; box-shadow:0 4px 20px #0003; }
 .mesh-map-only .mesh-node-panel[hidden] { display:none; }
 .mesh-map-only .mesh-panel-close { float:right; margin-left:8px; }
@@ -163,9 +178,17 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-map-only .mesh-inspector-meta { margin-bottom:10px; }
 .mesh-map-only .mesh-inspector-facts { grid-template-columns:70px minmax(0,1fr); gap:5px; margin:0; }
 .mesh-map-only .mesh-inspector-short-name { font-size:14px; font-weight:650; }
-.mesh-map-actions { display:flex; align-items:center; gap:8px; }
 /* Map-side inspection and shared live packet stream. */
-.mesh-node-browser[hidden],.mesh-node-inspector[hidden] { display:none; }
+.mesh-node-browser[hidden],.mesh-node-inspector[hidden],.mesh-node-browser-body[hidden] { display:none; }
+/* Node list heading: plain title beside the map, a fold toggle once stacked under it. */
+.mesh-panel-toggle { display:inline-flex; align-items:center; gap:6px; padding:0; border:0; background:none; color:inherit; font:inherit; text-align:left; }
+.mesh-panel-toggle .ti { display:none; color:var(--mesh-muted); transition:transform .15s ease; }
+.mesh-panel-toggle:disabled { cursor:default; opacity:1; }
+.mesh-panel-toggle:not(:disabled) { cursor:pointer; }
+.mesh-panel-toggle:not(:disabled) .ti { display:inline-block; }
+.mesh-panel-toggle[aria-expanded="true"] .ti { transform:rotate(90deg); }
+.mesh-panel-toggle:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:3px; border-radius:4px; }
+.mesh-node-panel:has(.mesh-node-browser-body[hidden]) .mesh-panel-title { border-bottom:0; }
 .mesh-node-inspector { max-height:690px; overflow:auto; }
 .mesh-inspector-back,.mesh-traffic-control { padding:6px 10px; background:var(--mesh-soft); color:var(--mesh-primary); border:1px solid var(--mesh-border); border-radius:5px; font-size:12px; }
 .mesh-inspector-body { padding:16px; }
@@ -187,9 +210,10 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-inspector-telemetry strong { display:block; font-size:18px; color:var(--mesh-primary); }
 .mesh-inspector-telemetry span { font-size:10px; color:var(--mesh-muted); }
 .mesh-traffic { margin-top:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
-.mesh-traffic-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.mesh-traffic-status { font-size:11px; color:var(--mesh-primary); }
-.mesh-traffic-status[data-state="error"] { color:#b23d2f; }
+.mesh-traffic-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:auto; }
+.mesh-traffic-actions { display:flex; gap:8px; align-items:center; }
+.mesh-traffic-icon { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; }
+.mesh-traffic-icon .ti { width:16px; height:16px; vertical-align:0; }
 .mesh-traffic-list { max-height:360px; overflow:auto; }
  .mesh-traffic-table { width:100%; min-width:780px; border-collapse:collapse; font-size:13px; color:var(--mesh-text); }
 .mesh-traffic-table th { position:sticky; top:0; z-index:1; padding:12px 14px; background:var(--mesh-brand); color:white; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
@@ -199,43 +223,47 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-traffic-table a { color:var(--mesh-primary); text-decoration:none; }
 .mesh-traffic-table a:hover { text-decoration:underline; }
 .mesh-traffic-time { white-space:nowrap; font-size:12px; }
-.mesh-traffic-type { display:inline-block; color:white; padding:3px 7px; border-radius:5px; font-size:10px; font-weight:500; white-space:nowrap; }
-.mesh-traffic-port-number { color:var(--mesh-muted); font-size:11px; margin:0 6px; }
-.mesh-traffic-toggle { border:1px solid var(--mesh-border); background:var(--mesh-soft); color:var(--mesh-primary); border-radius:5px; font-size:11px; padding:4px 7px; white-space:nowrap; }
-.mesh-traffic-toggle { margin-right:7px; }
+.mesh-traffic-type { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:11px; background:var(--mesh-soft); color:var(--mesh-text); font-size:12px; font-weight:500; line-height:1; white-space:nowrap; vertical-align:middle; }
+.mesh-traffic-type::before { content:""; flex-shrink:0; width:8px; height:8px; border-radius:50%; background:var(--port-color,#6c757d); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18); }
 .mesh-traffic-payload[hidden] { display:none; }
 .mesh-traffic-payload td { background:var(--mesh-soft); }
 .mesh-traffic-payload pre { margin:0; max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.7 ui-monospace,monospace; }
 #map-traffic-channel { border:1px solid var(--mesh-border); border-radius:5px; color:var(--mesh-text); background:var(--mesh-surface); font-size:12px; padding:6px 8px; max-width:180px; }
 :is(.mesh-traffic-toggle,.mesh-traffic-table a,#map-traffic-channel,.mesh-inspector-packet,.mesh-inspector-back,.mesh-traffic-control):focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
 .mesh-traffic-note { padding:8px 18px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:11px; margin:0; }
-@media(max-width:700px) { .mesh-node-inspector { max-height:none; } .mesh-traffic .mesh-panel-title { align-items:flex-start; flex-direction:column; } }
+/* Phones: title and buttons share the first row, channel and status the second. */
+@media(max-width:700px) { .mesh-node-inspector { max-height:none; } .mesh-traffic .mesh-panel-title { flex-wrap:wrap; row-gap:10px; } .mesh-traffic .mesh-panel-title h2 { flex:1; } .mesh-traffic-tools { order:3; width:100%; margin-left:0; } }
 </style>
 {% endblock %}
 
 {% block body %}
 {% if dashboard %}
-<section class="mesh-page-heading">
-    <div><span class="mesh-eyebrow">{{ tr("NETWORK EXPLORER") }}</span><h1>{{ tr("Mesh overview") }}</h1><p>{{ tr("Explore your nodes, connections, and live network activity.") }}</p></div>
+<section class="mesh-page-heading is-compact">
+    <h1>{{ tr("Mesh overview") }}</h1>
     <a class="mesh-secondary-button" href="/stats">{{ tr("View statistics ↗") }}</a>
 </section>
 <section class="mesh-metrics" aria-label="{{ tr("Network summary") }}">
-    <div class="mesh-metric"><span>{{ tr("Recent nodes") }}</span><strong id="metric-nodes">—</strong><small>{{ tr("Seen in the last 3 days") }}</small></div>
-    <div class="mesh-metric"><span>{{ tr("Active nodes") }}</span><strong id="metric-active">—</strong><small>{{ tr("Seen in the last 24 hours") }}</small></div>
-    <div class="mesh-metric"><span>{{ tr("MQTT gateways") }}</span><strong id="metric-gateways">—</strong><small>{{ tr("Among recent nodes") }}</small></div>
-    <div class="mesh-metric"><span>{{ tr("Total packets") }}</span><strong id="metric-packets">—</strong><small id="metric-status" role="status">{{ tr("Loading network totals…") }}</small></div>
+    <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-antenna"></span></span><span>{{ tr("Recent nodes") }}</span><strong id="metric-nodes">—</strong><small>{{ tr("Seen in the last 3 days") }}</small></div>
+    <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-activity"></span></span><span>{{ tr("Active nodes") }}</span><strong id="metric-active">—</strong><small>{{ tr("Seen in the last 24 hours") }}</small></div>
+    <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-cloud-upload"></span></span><span>{{ tr("MQTT gateways") }}</span><strong id="metric-gateways">—</strong><small>{{ tr("Among recent nodes") }}</small></div>
+    <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-package"></span></span><span>{{ tr("Total packets") }}</span><strong id="metric-packets">—</strong><small id="metric-status" role="status" aria-busy="true">{{ tr("Loading network totals…") }}</small></div>
 </section>
 {% else %}
-<section class="mesh-page-heading"><div><span class="mesh-eyebrow">{{ tr("NETWORK EXPLORER") }}</span><h1>{{ tr("Network map") }}</h1><p>{{ tr("Explore node locations and network connections.") }}</p></div><a class="mesh-secondary-button" href="/">{{ tr("Home ↗") }}</a></section>
+<h1 class="visually-hidden">{{ tr("Network map") }}</h1>
 {% endif %}
 <div class="mesh-explorer">
 {% if dashboard %}
 <aside id="mesh-node-panel" class="mesh-node-panel" aria-label="{{ tr("Node explorer") }}"{% if not dashboard %} hidden{% endif %}>
     <div id="mesh-node-browser" class="mesh-node-browser">
-    <div class="mesh-panel-title"><h2>{{ tr("Network nodes") }}</h2><span id="node-result-count" class="mesh-count">—</span></div>
+    <div class="mesh-panel-title">
+        <h2><button id="node-panel-toggle" class="mesh-panel-toggle" type="button" aria-expanded="true" aria-controls="mesh-node-browser-body" disabled>{{ tr("Network nodes") }}<span class="ti ti-chevron-right" aria-hidden="true"></span></button></h2>
+        <span id="node-result-count" class="mesh-count">—</span>
+    </div>
+    <div id="mesh-node-browser-body" class="mesh-node-browser-body">
     <label class="mesh-search-label" for="node-search">{{ tr("Search nodes") }}</label>
     <input id="node-search" class="mesh-search" type="search" placeholder="{{ tr("Name or node ID…") }}" autocomplete="off">
-    <div id="mesh-node-list" class="mesh-node-list" aria-live="polite"><p class="mesh-empty">{{ tr("Loading nodes…") }}</p></div>
+    <div id="mesh-node-list" class="mesh-node-list" aria-live="polite"><p class="mesh-empty is-loading">{{ tr("Loading nodes…") }}</p></div>
+    </div>
     </div>
     <section id="mesh-node-inspector" class="mesh-node-inspector" aria-label="{{ tr("Selected node") }}" hidden>
         <div class="mesh-panel-title"><h2>{{ tr("Node inspector") }}</h2><button id="inspector-back" class="mesh-inspector-back" type="button">{{ tr("← Nodes") }}</button></div>
@@ -254,7 +282,13 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 {% endif %}
 
 <section class="mesh-map-panel" aria-label="{{ tr("Network map") }}">
-<div class="mesh-panel-title"><h2>{{ tr("Network map") }}</h2><div class="mesh-map-actions"><button class="mesh-fit-button" type="button" id="fit-network">{{ tr("Fit network") }}</button></div></div>
+<!-- Fit (and share, on the map page) live in a map control under the layer picker (moved in by script). -->
+<div id="map-tools" class="mesh-map-tools leaflet-bar">
+    <button type="button" id="fit-network" title="{{ tr("Fit network") }}"><span class="ti ti-focus-centered" aria-hidden="true"></span><span class="mesh-map-tool-label">{{ tr("Fit network") }}</span></button>
+    {% if not dashboard %}
+    <button type="button" id="share-button" onclick="shareCurrentView()" title="{{ tr("Share this view") }}"><span id="share-icon" class="ti ti-link" aria-hidden="true"></span><span id="share-label" class="mesh-map-tool-label" data-translate-lang="share_view">Share This View</span></button>
+    {% endif %}
+</div>
 <p id="map-load-status" role="status" style="margin:0; color:#b23d2f;"></p>
 
 <div id="map-wrapper">
@@ -269,21 +303,17 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
     </aside>
     {% endif %}
 
-    <div id="unmapped-packets">
-        <h3 data-translate-lang="unmapped_packets_title">Unmapped Packets</h3>
+    <!-- Map overlays fold to a small pill on phones (opened by script on wider screens). -->
+    <details id="unmapped-packets" class="map-overlay" open>
+        <summary><h3 data-translate-lang="unmapped_packets_title">Unmapped Packets</h3><span id="unmapped-count" class="map-overlay-count" hidden></span></summary>
         <ul id="unmapped-list">
             <li class="unmapped-empty" data-translate-lang="unmapped_packets_empty">
                 No recent unmapped packets.
             </li>
         </ul>
-    </div>
-<div id="map-legend"
-     class="legend"
-     style="position:absolute;
-            bottom:30px;
-            right:15px;
-            z-index:500;
-            pointer-events:none;">
+    </details>
+<details id="map-legend" open class="legend map-overlay">
+    <summary>{{ tr("Legend") }}</summary>
     <div>
         <i style="background:orange; width:15px; height:3px; border-radius:0;"></i>
         <span data-translate-lang="legend_traceroute">Traceroute Path (arrowed)</span>
@@ -293,28 +323,23 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
         <i style="background:gray; width:15px; height:3px; border-radius:0;"></i>
         <span data-translate-lang="legend_neighbor">Neighbor Link</span>
     </div>
-</div>
+</details>
 
 
 </div>
 
 <div id="filter-container">
-    <input type="checkbox" class="filter-checkbox" id="filter-routers-only" aria-label="{{ tr("Show routers only") }}">
-    <span data-translate-lang="show_routers_only">Show Routers Only</span>
-    <input type="checkbox" class="filter-checkbox" id="filter-mqtt-only" aria-label="{{ tr("Show MQTT gateways only") }}">
-    <span data-translate-lang="show_mqtt_only">Show MQTT Gateways Only</span>
-</div>
-
-{% if not dashboard %}
-<div style="text-align:center;margin-top:5px;">
-    <button id="share-button" onclick="shareCurrentView()" data-translate-lang="share_view">
-        🔗 Share This View
+    <div class="map-filter-group">
+        <label class="map-filter"><input type="checkbox" class="filter-checkbox" id="filter-routers-only"> <span data-translate-lang="show_routers_only">Show Routers Only</span></label>
+        <label class="map-filter"><input type="checkbox" class="filter-checkbox" id="filter-mqtt-only"> <span data-translate-lang="show_mqtt_only">Show MQTT Gateways Only</span></label>
+    </div>
+    <div id="map-channel-filters" class="map-filter-group" role="group" aria-label="{{ tr("Channels") }}"></div>
+    {% if not dashboard %}
+    <button id="reset-filters-button" class="map-filter-reset" type="button" onclick="resetFiltersToDefaults()">
+        <span class="ti ti-refresh" aria-hidden="true"></span> <span data-translate-lang="reset_filters">Reset Filters To Defaults</span>
     </button>
-    <button id="reset-filters-button" onclick="resetFiltersToDefaults()" data-translate-lang="reset_filters">
-        ↺ Reset Filters To Defaults
-    </button>
+    {% endif %}
 </div>
-{% endif %}
 
 
 
@@ -322,9 +347,9 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 </div>
 {% if dashboard %}
 <section class="mesh-traffic" aria-label="{{ tr("Live network traffic") }}">
-    <div class="mesh-panel-title"><h2>{{ tr("Live traffic") }}</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">{{ tr("Channel") }}</label><select id="map-traffic-channel"><option value="">{{ tr("All channels") }}</option></select><span id="map-traffic-status" class="mesh-traffic-status" role="status">{{ tr("Loading packets…") }}</span><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="{{ tr("Pause the traffic list; map animations continue") }}">{{ tr("Pause feed") }}</button><button id="map-traffic-refresh" class="mesh-traffic-control" type="button">{{ tr("Refresh") }}</button></div></div>
+    <div class="mesh-panel-title"><h2>{{ tr("Live traffic") }}</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">{{ tr("Channel") }}</label><select id="map-traffic-channel"><option value="">{{ tr("All channels") }}</option></select><span id="map-traffic-status" class="live-status" role="status" data-state="loading">{{ tr("Loading packets…") }}</span></div><div class="mesh-traffic-actions"><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="{{ tr("Pause the traffic list; map animations continue") }}">{{ tr("Pause feed") }}</button><button id="map-traffic-refresh" class="mesh-traffic-control mesh-traffic-icon" type="button" title="{{ tr("Refresh") }}" aria-label="{{ tr("Refresh") }}"><span class="ti ti-refresh" aria-hidden="true"></span></button></div></div>
     <div id="map-traffic-list" class="mesh-traffic-list" role="region" aria-label="{{ tr("Live packet table") }}" tabindex="0">
-        <table class="mesh-traffic-table"><thead><tr><th>{{ tr("Time") }}</th><th>{{ tr("Packet ID") }}</th><th>{{ tr("From") }}</th><th>{{ tr("To") }}</th><th>{{ tr("Channel") }}</th><th>{{ tr("Port") }}</th></tr></thead><tbody id="map-traffic-body"><tr><td colspan="6" class="mesh-empty">{{ tr("Loading recent network traffic…") }}</td></tr></tbody></table>
+        <table class="mesh-traffic-table card-table" data-cards-below="1100"><thead><tr><th>{{ tr("Time") }}</th><th>{{ tr("Packet ID") }}</th><th>{{ tr("From") }}</th><th>{{ tr("To") }}</th><th>{{ tr("Channel") }}</th><th>{{ tr("Port") }}</th></tr></thead><tbody id="map-traffic-body"><tr><td colspan="6" class="mesh-empty">{{ tr("Loading recent network traffic…") }}</td></tr></tbody></table>
     </div>
     <p class="mesh-traffic-note">{{ tr("Latest 30 packets · expand the arrow to view payloads · follow packet IDs or node names for details.") }}</p>
 </section>
@@ -442,6 +467,52 @@ function updateMapLayerTranslations() {
 }
 
 // Data structures
+// The legend sits next to the zoom buttons as a map control.
+const mapLegend = document.getElementById('map-legend');
+if (mapLegend) {
+    const MapLegend = L.Control.extend({
+        onAdd() {
+            L.DomEvent.disableClickPropagation(mapLegend);
+            L.DomEvent.disableScrollPropagation(mapLegend);
+            return mapLegend;
+        }
+    });
+    new MapLegend({position: 'topleft'}).addTo(map);
+}
+// Map page: fit and share as a control under the layer picker.
+const mapTools = document.getElementById('map-tools');
+if (mapTools) {
+    const MapTools = L.Control.extend({
+        onAdd() {
+            L.DomEvent.disableClickPropagation(mapTools);
+            L.DomEvent.disableScrollPropagation(mapTools);
+            return mapTools;
+        }
+    });
+    new MapTools({position: 'topright'}).addTo(map);
+}
+// Remember the base map and overlay choices in this browser, like the filters.
+const MAP_LAYERS_KEY = "mapLayers";
+const mapLayerIds = new Map([[nodeLayer, "nodes"], [packetSeenLayer, "reach"], [trafficHeatLayer, "heat"]]);
+function saveMapLayers() {
+    const state = { base: Object.keys(baseLayers).find(name => map.hasLayer(baseLayers[name])) };
+    mapLayerIds.forEach((id, layer) => { state[id] = map.hasLayer(layer); });
+    try { localStorage.setItem(MAP_LAYERS_KEY, JSON.stringify(state)); } catch (_) { /* storage unavailable */ }
+}
+(function restoreMapLayers() {
+    let state = null;
+    try { state = JSON.parse(localStorage.getItem(MAP_LAYERS_KEY) || "null"); } catch (_) { /* ignore */ }
+    if (!state) return;
+    if (baseLayers[state.base] && !map.hasLayer(baseLayers[state.base])) {
+        Object.values(baseLayers).forEach(layer => map.removeLayer(layer));
+        baseLayers[state.base].addTo(map);
+    }
+    mapLayerIds.forEach((id, layer) => {
+        if (typeof state[id] !== "boolean") return;
+        if (state[id]) map.addLayer(layer); else map.removeLayer(layer);
+    });
+})();
+map.on("baselayerchange overlayadd overlayremove", saveMapLayers);
 var nodes = [], markers = {}, markerById = {}, nodeMap = new Map();
 var selectedNodeId = null;
 var activeBlinks = new Map(), lastImportTime = null;
@@ -452,7 +523,11 @@ var trafficHeatLoaded = false;
 var trafficHeatLoading = false;
 const UNMAPPED_LIMIT = 50;
 const UNMAPPED_TTL_MS = 5000;
-const PACKET_SEEN_DELAY_MS = 15000;
+// Wait for the gateways' reports to arrive before drawing where a packet
+// was heard; 5 s catches most of them and keeps the effect close to the
+// sender's blink.
+const PACKET_SEEN_DELAY_MS = 5000;
+const PACKET_SEEN_COLOR = "#f97316";
 const PACKET_TRACE_MIN_DURATION_MS = 1500;
 const PACKET_TRACE_MAX_DURATION_MS = 6500;
 const PACKET_TRACE_MS_PER_PIXEL = 18;
@@ -672,8 +747,23 @@ async function initMapPolling() {
         const lng  = parseFloat(params.get('lng'));
         const zoom = parseInt(params.get('zoom'), 10);
 
+        // A shared link wins, then the view this browser left the map in
+        // (kept separately for the home page and the map page), then the
+        // configured area. Kiosk screens always use the configured area.
+        const viewKey = document.body.classList.contains("mesh-dashboard") ? "mapView:home" : "mapView:map";
+        const kiosk = params.get("kiosk") === "1";
+        let savedView = null;
+        if (!kiosk) {
+            try { savedView = JSON.parse(localStorage.getItem(viewKey) || "null"); } catch (_) { /* ignore */ }
+        }
+
         if (!isNaN(lat) && !isNaN(lng) && !isNaN(zoom)) {
             map.setView([lat, lng], zoom);
+            window.configBoundsApplied = true;
+            setTimeout(() => map.invalidateSize(), 100);
+        }
+        else if (savedView && [savedView.lat, savedView.lng, savedView.zoom].every(Number.isFinite)) {
+            map.setView([savedView.lat, savedView.lng], savedView.zoom);
             window.configBoundsApplied = true;
             setTimeout(() => map.invalidateSize(), 100);
         }
@@ -686,6 +776,15 @@ async function initMapPolling() {
                 window.configBoundsApplied = true;
                 setTimeout(() => map.invalidateSize(), 100);
             }
+        }
+
+        if (!kiosk) {
+            // Start remembering once the initial view (and its resize) settled.
+            setTimeout(() => map.on("moveend", () => {
+                const c = map.getCenter();
+                const view = { lat: +c.lat.toFixed(5), lng: +c.lng.toFixed(5), zoom: map.getZoom() };
+                try { localStorage.setItem(viewKey, JSON.stringify(view)); } catch (_) { /* storage unavailable */ }
+            }), 500);
         }
 
         if (mapInterval > 0) startPacketFetcher();
@@ -868,6 +967,11 @@ function renderUnmappedPackets(){
     const list = document.getElementById("unmapped-list");
     if (!list) return;
     list.innerHTML = "";
+    const count = document.getElementById("unmapped-count");
+    if (count) {
+        count.textContent = unmappedPackets.length;
+        count.hidden = unmappedPackets.length === 0;
+    }
 
     if(unmappedPackets.length === 0){
         const empty = document.createElement("li");
@@ -896,9 +1000,35 @@ function renderUnmappedPackets(){
    ⭐ NEW: DYNAMIC EDGE LOADING
    ====================================================== */
 
+/* The selected node gets a larger dot with a ring in the primary colour and a
+   soft halo behind it, so it stands out among its neighbours. Blinking only
+   changes the fill, so it keeps working on the selected node. */
+let selectedMarker = null, selectedHalo = null;
+function highlightSelectedNode(id){
+    if(selectedMarker){
+        selectedMarker.setRadius(6);
+        selectedMarker.setStyle({ color: "white", weight: 0.7 });
+    }
+    selectedHalo?.remove();
+    selectedMarker = selectedHalo = null;
+    const marker = id == null ? null : markerById[id];
+    if(!marker) return;
+    const primary = getComputedStyle(document.documentElement).getPropertyValue("--mesh-primary").trim() || "#1f5fae";
+    selectedMarker = marker;
+    marker.setRadius(9);
+    marker.setStyle({ color: primary, weight: 3 });
+    marker.bringToFront();
+    selectedHalo = L.circleMarker(marker.getLatLng(), {
+        radius: 20, stroke: false, fillColor: primary, fillOpacity: 0.22, interactive: false
+    }).addTo(map);
+    selectedHalo.bringToBack();
+}
+window.clearMapSelection = () => { selectedNodeId = null; edgeLayer.clearLayers(); highlightSelectedNode(null); };
+
 async function onNodeClick(node){
     if (typeof openMapNodeInspector === "function") openMapNodeInspector(node);
     selectedNodeId = node.key;
+    highlightSelectedNode(node.key);
     edgeLayer.clearLayers();
 
     try {
@@ -936,6 +1066,8 @@ async function onNodeClick(node){
                 }).addTo(edgeLayer);
             }
         });
+        // Keep the selected dot above its own connection lines.
+        selectedMarker?.bringToFront();
 
     } catch(err){
         console.error("Failed to load edges for node", node.key, err);
@@ -946,8 +1078,7 @@ map.on('click', e=>{
     if(e.originalEvent.defaultPrevented) return;
 
     if(!e.originalEvent.target.classList.contains('leaflet-interactive')){
-        edgeLayer.clearLayers();
-        selectedNodeId=null;
+        clearMapSelection();
     }
 });
 
@@ -1034,10 +1165,18 @@ async function showPacketSeenNodes(pkt){
             const markerLatLng = markerById[row.node_id]?.getLatLng();
             const lat = markerLatLng?.lat ?? node.lat;
             const lng = markerLatLng?.lng ?? node.long;
-            const trace = L.polyline([[sourceLatLng.lat, sourceLatLng.lng], [lat, lng]], {
-                color: "#000",
+            // A faint path shows the whole hop while a dot travels along it.
+            const path = L.polyline([[sourceLatLng.lat, sourceLatLng.lng], [lat, lng]], {
+                color: PACKET_SEEN_COLOR,
                 weight: 3,
-                opacity: 0.9,
+                opacity: 0.75,
+                dashArray: "6 6",
+                interactive: false
+            }).addTo(packetSeenLayer);
+            const trace = L.polyline([[sourceLatLng.lat, sourceLatLng.lng], [lat, lng]], {
+                color: PACKET_SEEN_COLOR,
+                weight: 12,
+                opacity: 1,
                 className: "packet-seen-trace",
                 interactive: false
             }).addTo(packetSeenLayer);
@@ -1056,12 +1195,12 @@ async function showPacketSeenNodes(pkt){
 
             const landingTimeout = setTimeout(() => {
                 const landing = L.circleMarker([lat, lng], {
-                    radius: 16,
-                    color: "#000",
-                    fillColor: "#000",
-                    fillOpacity: 0.24,
-                    opacity: 0.7,
-                    weight: 2,
+                    radius: 18,
+                    color: PACKET_SEEN_COLOR,
+                    fillColor: PACKET_SEEN_COLOR,
+                    fillOpacity: 0.3,
+                    opacity: 0.9,
+                    weight: 3,
                     className: "packet-seen-landing",
                     interactive: false
                 }).addTo(packetSeenLayer);
@@ -1075,6 +1214,7 @@ async function showPacketSeenNodes(pkt){
 
             const timeout = setTimeout(() => {
                 packetSeenLayer.removeLayer(trace);
+                packetSeenLayer.removeLayer(path);
             }, traceDurationMs + PACKET_LANDING_DURATION_MS);
             activePacketSeenHighlights.push(timeout);
         });
@@ -1155,7 +1295,7 @@ function blinkNode(marker,longName,portnum,payload){
    ====================================================== */
 
 function createChannelFilters(){
-    const filterContainer = document.getElementById("filter-container");
+    const filterContainer = document.getElementById("map-channel-filters");
     const saved = JSON.parse(localStorage.getItem("mapFilters") || "{}");
 
     [...channelSet].sort((a, b) => a.localeCompare(b)).forEach(channel=>{
@@ -1168,12 +1308,15 @@ function createChannelFilters(){
         cb.addEventListener("change", saveFiltersToLocalStorage);
         cb.addEventListener("change", updateNodeVisibility);
 
-        filterContainer.appendChild(cb);
-
+        // One pill per channel: checkbox, channel color dot and name stay together.
         const label=document.createElement("label");
-        label.htmlFor=cb.id;
-        label.innerText=channel;
-        label.style.color = hashToColor(channel);
+        label.className="map-filter";
+        const dot=document.createElement("span");
+        dot.className="map-filter-dot";
+        dot.style.setProperty("--chip-color", hashToColor(channel));
+        const name=document.createElement("span");
+        name.textContent=channel;
+        label.append(cb, dot, name);
         filterContainer.appendChild(label);
     });
 
@@ -1239,13 +1382,17 @@ function shareCurrentView() {
 
     navigator.clipboard.writeText(url).then(()=>{
         const btn = document.getElementById('share-button');
-        if (!btn.classList.contains('is-copied')) btn.dataset.shareLabel = btn.textContent;
+        const label = document.getElementById('share-label');
+        const icon = document.getElementById('share-icon');
+        if (!btn.classList.contains('is-copied')) btn.dataset.shareLabel = label.textContent;
         clearTimeout(shareViewResetTimer);
-        btn.textContent = '✓ ' + (mapTranslations.link_copied || MeshI18n.t("Link Copied!"));
+        label.textContent = mapTranslations.link_copied || MeshI18n.t("Link Copied!");
+        icon.className = 'ti ti-check';
         btn.classList.add('is-copied');
 
         shareViewResetTimer = setTimeout(()=>{
-            btn.textContent = btn.dataset.shareLabel;
+            label.textContent = btn.dataset.shareLabel;
+            icon.className = 'ti ti-link';
             btn.classList.remove('is-copied');
             delete btn.dataset.shareLabel;
         }, 2000);
@@ -1269,6 +1416,15 @@ function resetFiltersToDefaults(){
 document.addEventListener("DOMContentLoaded", () => {
     loadTranslationsMap();
 });
+
+// Legend and unmapped packets: open on wider screens, folded to a pill on phones.
+(() => {
+    const phone = window.matchMedia("(max-width:700px)");
+    const overlays = document.querySelectorAll("details.map-overlay");
+    const sync = () => overlays.forEach(el => { el.open = !phone.matches; });
+    phone.addEventListener("change", sync);
+    sync();
+})();
 </script>
 
 <script src="/static/map-dashboard.js"></script>

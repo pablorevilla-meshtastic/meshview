@@ -10,17 +10,27 @@ body:has(#chat-container) .mesh-footer { display:none; }
 body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 #chat-container { display:flex; flex-direction:column; flex:1; min-width:0; min-height:0; background:var(--mesh-stripe); }
 .chat-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:12px 24px; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); flex-shrink:0; }
-.chat-heading { display:flex; align-items:center; gap:8px; margin:0 6px 0 0; font-size:15px; font-weight:650; }
-.chat-heading span:first-child { color:var(--mesh-primary); }
 .chat-channel-control { display:flex; align-items:center; gap:6px; color:var(--mesh-muted); }
 .chat-filter { width:170px; font-size:12px; border-color:var(--mesh-border); }
 .chat-search { width:210px; font-size:12px; border-color:var(--mesh-border); }
 .chat-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
+/* Two layouts only: everything on one line, or, as soon as it does not fit (base.html marks the
+   toolbar .is-wrapped), the phone layout: channel and a wider search box, then count and buttons. */
+.chat-toolbar.is-wrapped .chat-channel-control { flex:0 1 auto; min-width:0; }
+.chat-toolbar.is-wrapped .chat-filter { width:auto; max-width:100%; min-width:0; }
+.chat-toolbar.is-wrapped .chat-search { flex:1 1 0; width:auto; min-width:0; }
+.chat-toolbar.is-wrapped .chat-actions { width:100%; margin-left:0; }
+.chat-toolbar.is-wrapped #chat-count { margin-right:auto; }
 .chat-status { border-radius:20px; padding:4px 9px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:11px; white-space:nowrap; }
 .chat-status[data-state="error"] { background:#fff0ed; color:#b23d2f; }
 .chat-status[data-state="paused"],.chat-status[data-state="loading"] { background:#eef2f7; color:var(--mesh-muted); }
 .chat-control { font-size:12px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:5px; padding:5px 9px; color:var(--mesh-text); }
-.chat-control:hover { background:var(--mesh-soft); }
+.chat-control:hover:not(:disabled) { background:var(--mesh-soft); }
+.chat-control:disabled { opacity:.5; cursor:default; }
+.chat-latest { display:inline-flex; align-items:center; gap:6px; }
+.chat-latest .ti { font-size:15px; color:var(--mesh-primary); }
+.chat-unread { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--mesh-primary); color:var(--mesh-surface); font-size:11px; font-weight:700; }
+.chat-unread[hidden] { display:none; }
 .chat-messages { flex:1; min-height:0; overflow-y:auto; overflow-anchor:none; padding:12px 0; font-family:ui-monospace,"SFMono-Regular",Consolas,monospace; font-size:13px; line-height:1.6; scrollbar-gutter:stable; }
 .chat-date-sep { display:flex; align-items:center; gap:14px; margin:12px 24px; color:var(--mesh-muted); font:600 10px system-ui,sans-serif; letter-spacing:.7px; text-transform:uppercase; }
 .chat-date-sep::before,.chat-date-sep::after { content:""; flex:1; height:1px; background:var(--mesh-border); }
@@ -45,11 +55,6 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 @media(prefers-reduced-motion:reduce) { .chat-line.flash { animation:none; } }
 @media(max-width:700px) {
     .chat-toolbar { padding:10px 14px; gap:8px; }
-    .chat-heading { width:100%; }
-    .chat-filter { width:140px; }
-    .chat-search { flex:1; width:120px; min-width:0; }
-    .chat-actions { width:100%; margin-left:0; }
-    #chat-count { margin-right:auto; }
     .chat-line { grid-template-columns:50px minmax(0,1fr) auto; gap:2px 8px; padding:7px 14px; }
     .chat-time { grid-column:1; grid-row:1; }
     .chat-nick { grid-column:2; grid-row:1; text-align:left; }
@@ -65,7 +70,7 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 {% block body %}
 <section id="chat-container" aria-label="{{ tr("Mesh chat") }}">
     <div class="chat-toolbar">
-        <h1 class="chat-heading"><span aria-hidden="true">#</span> <span data-chat-translate="chat_title">Mesh chat</span></h1>
+        <h1 class="visually-hidden" data-chat-translate="chat_title">Mesh chat</h1>
         <div class="chat-channel-control">
             <label for="channel-filter" class="visually-hidden" data-chat-translate="channel">Channel</label>
             <span aria-hidden="true">#</span>
@@ -77,10 +82,10 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
             <span id="chat-count" class="text-secondary small">{{ tr("0 messages") }}</span>
             <span id="chat-status" class="chat-status" data-state="loading" role="status">{{ tr("Connecting…") }}</span>
             <button id="chat-pause" class="chat-control" type="button" aria-pressed="false">{{ tr("Pause") }}</button>
-            <button id="chat-latest" class="chat-control" type="button">{{ tr("↓ Latest") }}</button>
+            <button id="chat-latest" class="chat-control chat-latest" type="button"><span class="ti ti-arrow-bar-to-down" aria-hidden="true"></span> {{ tr("Jump to latest") }} <span id="chat-unread" class="chat-unread" hidden></span></button>
         </div>
     </div>
-    <div id="chat-log" class="chat-messages" role="region" aria-label="{{ tr("Messages, oldest to newest") }}" tabindex="0"><p class="chat-empty">{{ tr("Loading messages…") }}</p></div>
+    <div id="chat-log" class="chat-messages" role="region" aria-label="{{ tr("Messages, oldest to newest") }}" tabindex="0"><p class="chat-empty is-loading">{{ tr("Loading messages…") }}</p></div>
     <div class="chat-bottom"><p>{{ tr("Received text messages · updates every 5 seconds") }}</p><span id="chat-updated" role="status"></span></div>
 </section>
 <script src="/static/chat-dashboard.js"></script>

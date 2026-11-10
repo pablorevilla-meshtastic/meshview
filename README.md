@@ -338,8 +338,14 @@ language = es
 # Site title to show in the browser title bar and headers.
 title = Bay Area Mesh
 
-# A brief message shown on the homepage.
+# Short tagline for this installation, shown in the page footer and used as the page
+# description by search engines and link previews. Leave empty for none.
 message = Real time data from around the bay area and beyond.
+
+# Optional announcement shown in a banner at the top of every page, for example planned
+# maintenance. Visitors can dismiss it; it shows again when the text changes.
+# Leave empty for none.
+announcement =
 
 # Enable or disable site features (as strings: "True" or "False").
 nodes = True
@@ -352,6 +358,8 @@ map = True
 top = True
 # Show the API documentation link in the navigation bar (default: True).
 api = True
+# Show the MeshviewWorld link in the navigation bar (default: True).
+meshviewworld = True
 
 # Map boundaries (used for the map view).
 # Defaults will show the San Francisco Bay Area

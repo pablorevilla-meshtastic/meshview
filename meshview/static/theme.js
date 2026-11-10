@@ -21,7 +21,7 @@
     function chartOption(option) {
         const palette = colors();
         const text = new Set(['#333','#334155','#243247','#26364a','#e7eef7','#e2ece5','#e2eaf6']);
-        const muted = new Set(['#ccc','#64748b','#888','#9faea6','#8190a5','#a0aec2']);
+        const muted = new Set(['#ccc','#64748b','#566579','#888','#9faea6','#8190a5','#a0aec2','#a9b6c9']);
         const border = new Set(['#aaa','#c3cfdf','#34483c','#dce7df','#dce4ef','#34465f']);
         function visit(value, key) {
             if (Array.isArray(value)) return value.map(item => visit(item,key));

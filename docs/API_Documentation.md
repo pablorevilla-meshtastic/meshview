@@ -384,15 +384,19 @@ LocalChat = #18aa18
 ```
 
 No query parameters are supported. Only the `site`, MQTT server/topics, and cleanup
-fields shown here are exposed; credentials and the database connection string are
-not returned. Feature flags and cleanup booleans are lowercase strings (`"true"` /
+fields shown here are exposed; credentials and the database connection string are not
+returned. Feature flags and cleanup booleans are lowercase strings (`"true"` /
 `"false"`), not JSON booleans. Cleanup scheduling values are strings; map bounds are
 numbers and refresh intervals are integers. The removed `starting` option is not
 returned: `/` always serves the dashboard. `site.api` controls visibility of the API
 documentation link in the navigation bar, defaults to `"true"`, and can be disabled
 with `api = False` in `[site]`. This setting does not disable documentation or API
-routes. Restart the web server and reload the page after changing it. Handler
-failures return HTTP 500.
+routes. `site.meshviewworld` does the same for the MeshviewWorld link
+(`meshviewworld = False`). `site.message` is the installation's tagline (page footer
+and description) and `site.announcement` the text of the dismissible banner shown on
+every page; both are empty when unset. `site.chat` follows `conversations` in `[site]`
+(the older `chat` key is still read when `conversations` is absent). Restart the web
+server and reload the page after changing it. Handler failures return HTTP 500.
 
 Restart the web server and reload the map after changing these settings. Omitting
 the section uses generated colors for every channel.
@@ -405,6 +409,7 @@ Response Example
     "language": "en",
     "title": "Meshview",
     "message": "",
+    "announcement": "",
     "nodes": "true",
     "chat": "true",
     "everything": "true",
@@ -414,6 +419,7 @@ Response Example
     "map": "true",
     "top": "true",
     "api": "true",
+    "meshviewworld": "true",
     "map_top_left_lat": 39.0,
     "map_top_left_lon": -123.0,
     "map_bottom_right_lat": 36.0,

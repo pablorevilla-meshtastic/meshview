@@ -9,20 +9,33 @@
 .reach-description { margin-bottom:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:14px 18px; font-size:13px; color:var(--mesh-muted); }
 .reach-description summary { cursor:pointer; color:var(--mesh-text); font-weight:500; }
 .reach-description p { margin:12px 0 0; line-height:1.7; }
-.reach-controls { display:flex; align-items:center; flex-wrap:wrap; gap:10px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:20px; }
-.reach-search { flex:1 1 260px; }
-.reach-search-label,.reach-limit-label { color:var(--mesh-muted); font-size:12px; }
+.reach-controls { display:grid; grid-template-columns:minmax(0,1fr) auto auto auto auto; align-items:end; gap:10px 12px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:14px 16px; margin-bottom:20px; }
+.reach-field { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.reach-field label { margin:0; font-size:12px; color:var(--mesh-muted); }
+.mesh-data-page .reach-controls :is(input,select) { width:100%; height:38px; padding:0 10px; font-size:14px; }
+.mesh-data-page .reach-controls select { min-width:140px; }
+.mesh-data-page .mesh-content .reach-load { display:inline-flex; align-items:center; justify-content:center; gap:6px; height:38px; padding:0 16px; border-color:var(--mesh-brand); background:var(--mesh-brand); color:#fff; font-size:13px; font-weight:600; }
+.mesh-data-page .mesh-content .reach-load:hover { background:var(--mesh-brand-deep); }
+.mesh-data-page .reach-node-link { display:inline-flex; align-items:center; justify-content:center; height:38px; padding:0 14px; font-size:13px; white-space:nowrap; }
+/* Tablets: node on its own row, selects and buttons under it. */
+@media(max-width:1000px) {
+    .reach-controls { grid-template-columns:repeat(2,minmax(0,1fr)) auto auto; }
+    .reach-field-node { grid-column:1 / -1; }
+}
+/* Phones: selects side by side, then the two buttons side by side. */
+@media(max-width:600px) {
+    .reach-controls { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .mesh-data-page .reach-controls select { min-width:0; }
+}
 .reach-node-link { white-space:nowrap; font-size:12px; }
-.reach-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-bottom:20px; }
-.reach-metric { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:20px 24px; font-size:13px; }
-.reach-metric-value { font-size:30px; font-weight:650; color:var(--mesh-primary); margin-top:6px; font-variant-numeric:tabular-nums; }
-.reach-metric:nth-child(2) .reach-metric-value { color:#198754; }
+.reach-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-auto-rows:1fr; gap:12px; margin-bottom:20px; }
+/* Label and figure only: keep the figures on one line across cards whatever the label wraps to. */
+.reach-summary .mesh-metric { align-content:space-between; }
 .reach-table-wrap { overflow-x:auto; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); margin-bottom:20px; }
 .reach-table { min-width:520px; }
 .reach-map { width:100%; height:450px; border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; margin-bottom:20px; background:var(--mesh-stripe); }
 .reach-map-marker { width:34px; height:34px; border:2px solid white; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:10px; font-weight:800; line-height:1; text-shadow:0 1px 2px #000b; box-shadow:0 2px 8px #0003; }
 .reach-map-marker-source { font-size:14px; }
-.reach-gateway-panels { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
 .reach-gateway-panel { min-width:0; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); margin-bottom:20px; }
 .reach-gateway-table { min-width:480px; }
 .reach-count-bar-cell { min-width:180px; }
@@ -41,37 +54,71 @@
 .reliability-status-missed { color:#b23d2f!important; font-weight:600; }
 .reliability-status-skipped { color:var(--mesh-muted)!important; font-weight:600; }
 .reliability-row-skipped td { text-decoration:line-through; color:var(--mesh-muted)!important; }
-@media(max-width:1000px) { .reach-gateway-panels { grid-template-columns:minmax(0,1fr); gap:0; } }
-@media(max-width:600px) { .reach-controls { align-items:stretch; } .reach-search-label { width:100%; } .reach-search { flex-basis:100%; } .reach-summary { gap:10px; } .reach-metric { padding:16px; } .reach-metric-value { font-size:26px; } .reach-map { height:340px; } .reliability-modal-panel { padding:14px; } }
+/* Phones: the bands table fits without scrolling. */
+@media(max-width:700px) {
+    .reach-table:not(.card-table) { min-width:0; }
+    .reach-table:not(.card-table) th { white-space:normal; }
+    .reach-count-bar-cell { min-width:0; width:55%; }
+}
+/* Card mode: wrappers drop their frame; the two gateway lists read as one. */
+.reach-table.is-cards { min-width:0; }
+.mesh-data-page .mesh-content .reach-sort { display:inline-flex; align-items:center; gap:2px; padding:0; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; }
+.mesh-data-page .mesh-content .reach-sort:hover { background:transparent; }
+.mesh-data-page .mesh-content .reach-sort:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+.reach-sort .sort-icon { font-size:10px; }
+/* Cards: sorting is table-only, so keep the hidden header buttons out of the tab order. */
+.reach-gateway-table.is-cards thead { visibility:hidden; }
+:is(.reach-table-wrap,.reach-gateway-panel):has(> .card-table.is-cards) { border:0; background:none; overflow:visible; margin-bottom:10px; }
+.mesh-data-page .reach-gateway-table.card-table.is-cards tr.gateway-row { grid-template-areas:"gw rel" "heard hops"; }
+.mesh-data-page .reach-gateway-table.card-table.is-cards .c-gw { grid-area:gw; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mesh-data-page .reach-gateway-table.card-table.is-cards .c-rel { grid-area:rel; justify-self:end; font-weight:700; color:var(--mesh-primary); }
+.mesh-data-page .reach-gateway-table.card-table.is-cards .c-heard { grid-area:heard; font-size:13px; }
+.mesh-data-page .reach-gateway-table.card-table.is-cards .c-hops { grid-area:hops; justify-self:end; font-size:13px; }
+.mesh-data-page .packet-modal-table.card-table.is-cards tr.modal-packet-row { grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:"pkt pkt status" "time type hops"; }
+.mesh-data-page .packet-modal-table.card-table.is-cards .c-pkt { grid-area:pkt; font-weight:600; }
+.mesh-data-page .packet-modal-table.card-table.is-cards .c-status { grid-area:status; justify-self:end; font-weight:600; }
+.mesh-data-page .packet-modal-table.card-table.is-cards .c-time { grid-area:time; font-size:12px; color:var(--mesh-muted); white-space:nowrap; }
+.mesh-data-page .packet-modal-table.card-table.is-cards .c-type { grid-area:type; }
+.mesh-data-page .packet-modal-table.card-table.is-cards .c-hops { grid-area:hops; justify-self:end; font-size:12px; }
+.mesh-data-page :is(.reach-gateway-table,.packet-modal-table).card-table.is-cards :is(.c-heard,.c-hops)::before { content:attr(data-label) " "; color:var(--mesh-muted); }
+@media(max-width:600px) { .reach-summary { gap:10px; } .reach-map { height:340px; } .reliability-modal-panel { padding:14px; } }
 </style>
 {% endblock %}
 
 {% block body %}
 <section class="reach-page">
-    <header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("GATEWAY DIAGNOSTICS") }}</span><h1>{{ tr("Reliability") }}</h1><p>{{ tr("See how consistently gateways hear packets from a selected node.") }}</p></div><a class="mesh-secondary-button" href="/nodelist">{{ tr("All nodes ↗") }}</a></header>
+    <header class="data-heading is-compact"><div class="data-title"><h1>{{ tr("Reliability") }}</h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/nodelist">{{ tr("All nodes ↗") }}</a></div></header>
     <details class="reach-description"><summary>{{ tr("How reliability is calculated") }}</summary><p>{{ tr("Review how often each gateway hears packets from a selected node. The report uses the latest selected packet sample on the node’s recorded main channel and calculates reliability as heard packets divided by packets reviewed. The range table groups gateways by reliability bands, while the gateway list shows each gateway's heard count and percentage for the same sample. Reliability is calculated only from Text, Position, Node Info, and Telemetry packets; other packet types are shown in packet details but skipped from the calculation.") }}</p></details>
 
     <section class="reach-panel">
+        <!-- Fields stack their label over the control; the grid sets one row on desktop, then
+             node on its own row with selects and buttons below on tablets and phones. -->
         <form class="reach-controls" id="reach-search-form">
-            <label class="reach-search-label" for="reach-node-search">{{ tr("Search") }}</label>
-            <input
-                class="form-control reach-search"
-                id="reach-node-search"
-                list="reach-node-options"
-                placeholder="{{ tr("Search node name or enter node ID") }}"
-                autocomplete="off"
-            >
-            <datalist id="reach-node-options"></datalist>
-            <label class="reach-limit-label" for="reliability-packet-type">{{ tr("Packet type") }}</label>
-            <select class="form-select" id="reliability-packet-type" style="max-width:150px;">
+            <div class="reach-field reach-field-node">
+                <label for="reach-node-search">{{ tr("Search") }}</label>
+                <input
+                    type="search"
+                    class="reach-search"
+                    id="reach-node-search"
+                    list="reach-node-options"
+                    placeholder="{{ tr("Search node name or enter node ID") }}"
+                    autocomplete="off"
+                >
+                <datalist id="reach-node-options"></datalist>
+            </div>
+            <div class="reach-field">
+                <label for="reliability-packet-type">{{ tr("Packet type") }}</label>
+                <select id="reliability-packet-type">
                 <option value="">{{ tr("All") }}</option>
                 <option value="1" selected>{{ tr("Text") }}</option>
                 <option value="3">{{ tr("Position") }}</option>
                 <option value="4">{{ tr("Node Info") }}</option>
                 <option value="67">{{ tr("Telemetry") }}</option>
             </select>
-            <label class="reach-limit-label" for="reach-packet-limit">{{ tr("Packets to review") }}</label>
-            <select class="form-select" id="reach-packet-limit" style="max-width:110px;">
+            </div>
+            <div class="reach-field">
+                <label for="reach-packet-limit">{{ tr("Packets to review") }}</label>
+                <select id="reach-packet-limit">
                 <option value="10">10</option>
                 <option value="20" selected>20</option>
                 <option value="30">30</option>
@@ -83,21 +130,23 @@
                 <option value="90">90</option>
                 <option value="100">100</option>
             </select>
-            <button class="btn btn-primary" type="submit">{{ tr("Load") }}</button>
-            <a class="btn btn-outline-secondary reach-node-link" id="reach-node-link" href="/node/3530776522">
-                {{ tr("Back to Node") }}
-            </a>
+            </div>
+            <button class="reach-load" type="submit"><span class="ti ti-search" aria-hidden="true"></span> {{ tr("Load") }}</button>
+            <a class="mesh-secondary-button reach-node-link" id="reach-node-link" href="/node/3530776522">{{ tr("Back to Node") }}</a>
         </form>
 
         <p class="reach-muted" id="reach-channel" role="status"></p>
         <div class="reach-summary">
-            <div class="reach-metric">
-                <div class="text-secondary">{{ tr("Latest Packets") }}</div>
-                <div class="reach-metric-value" id="reach-packet-count">...</div>
+            <!-- Same metric cards as home: icon, label and figure aligned across cards. -->
+            <div class="mesh-metric">
+                <span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-package"></span></span>
+                <span>{{ tr("Latest Packets") }}</span>
+                <strong id="reach-packet-count">…</strong>
             </div>
-            <div class="reach-metric">
-                <div class="text-secondary">{{ tr("Unique Gateways") }}</div>
-                <div class="reach-metric-value" id="reach-gateway-count">...</div>
+            <div class="mesh-metric">
+                <span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-router"></span></span>
+                <span>{{ tr("Unique Gateways") }}</span>
+                <strong id="reach-gateway-count">…</strong>
             </div>
         </div>
 
@@ -111,7 +160,7 @@
                 </thead>
                 <tbody id="reach-bucket-body">
                     <tr>
-                        <td colspan="2" class="reach-muted">{{ tr("Loading statistics...") }}</td>
+                        <td colspan="2" class="reach-muted is-loading">{{ tr("Loading statistics...") }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -119,41 +168,22 @@
 
         <div id="reach-gateway-map" class="reach-map"></div>
 
-        <div class="reach-gateway-panels">
-            <div class="reach-gateway-panel" role="region" aria-label="{{ tr("Gateway reliability table") }}" tabindex="0">
-                <table class="table table-sm reach-table reach-gateway-table">
-                    <thead>
-                        <tr>
-                            <th>{{ tr("Gateway") }}</th>
-                            <th>{{ tr("Heard") }}</th>
-                            <th>{{ tr("Avg Hops") }}</th>
-                            <th>{{ tr("Reliability") }}</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reach-packet-body-left">
-                        <tr>
-                            <td colspan="4" class="reach-muted">{{ tr("Loading packets...") }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="reach-gateway-panel" role="region" aria-label="{{ tr("Gateway reliability table") }}" tabindex="0">
-                <table class="table table-sm reach-table reach-gateway-table">
-                    <thead>
-                        <tr>
-                            <th>{{ tr("Gateway") }}</th>
-                            <th>{{ tr("Heard") }}</th>
-                            <th>{{ tr("Avg Hops") }}</th>
-                            <th>{{ tr("Reliability") }}</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reach-packet-body-right">
-                        <tr>
-                            <td colspan="4" class="reach-muted">{{ tr("Loading packets...") }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="reach-gateway-panel" role="region" aria-label="{{ tr("Gateway reliability table") }}" tabindex="0">
+            <table class="table table-sm reach-table reach-gateway-table card-table">
+                <thead>
+                    <tr>
+                        <th data-sort="gateway"><button type="button" class="reach-sort">{{ tr("Gateway") }}<span class="sort-icon" aria-hidden="true"></span></button></th>
+                        <th data-sort="heard"><button type="button" class="reach-sort">{{ tr("Heard") }}<span class="sort-icon" aria-hidden="true"></span></button></th>
+                        <th data-sort="hops"><button type="button" class="reach-sort">{{ tr("Avg Hops") }}<span class="sort-icon" aria-hidden="true"></span></button></th>
+                        <th data-sort="reliability" aria-sort="descending"><button type="button" class="reach-sort">{{ tr("Reliability") }}<span class="sort-icon" aria-hidden="true"></span></button></th>
+                    </tr>
+                </thead>
+                <tbody id="reach-gateway-body">
+                    <tr>
+                        <td colspan="4" class="reach-muted is-loading">{{ tr("Loading packets...") }}</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </section>
 </section>
@@ -165,7 +195,7 @@
             <button class="btn btn-sm btn-outline-secondary" type="button" onclick="closeGatewayPacketModal()">{{ tr("Close") }}</button>
         </div>
         <div class="reach-table-wrap" role="region" aria-label="{{ tr("Reliability report table") }}" tabindex="0">
-            <table class="table table-sm reach-table">
+            <table class="table table-sm reach-table card-table packet-modal-table">
                 <thead>
                     <tr>
                         <th>{{ tr("Packet") }}</th>
@@ -240,10 +270,9 @@ function packetTypeTag(portnum) {
     const name = window.PORT_MAP?.[portnum] || MeshI18n.t("Unknown");
     const color = window.PORT_COLORS?.[portnum] || "#6c757d";
     return `
-        <span class="port-tag" style="background-color:${color}">
+        <span class="port-tag" style="--port-color:${color}" title="${escapeHtml(MeshI18n.t("Port {port}", {port: portnum ?? "?"}))}">
             ${escapeHtml(name)}
         </span>
-        <span class="text-secondary">(${escapeHtml(portnum ?? "?")})</span>
     `;
 }
 
@@ -279,10 +308,47 @@ function nodeLatLng(node) {
     return [lat, lon];
 }
 
+
+// Gateway table sorting (table mode only; cards have no headers).
+const gatewaySort = {key: "reliability", asc: false, rows: [], render: null};
+const GATEWAY_SORT_VALUE = {
+    gateway: row => row.label.toLowerCase(),
+    heard: row => row.heardCount,
+    hops: row => row.avgHopCount ?? Infinity,
+    reliability: row => row.percent,
+};
+function renderSortedGateways() {
+    if (!gatewaySort.render) return;
+    const value = GATEWAY_SORT_VALUE[gatewaySort.key];
+    const rows = [...gatewaySort.rows].sort((a, b) => {
+        const A = value(a), B = value(b);
+        const order = A < B ? -1 : A > B ? 1 : 0;
+        return (gatewaySort.asc ? order : -order) || b.percent - a.percent || a.nodeId - b.nodeId;
+    });
+    gatewaySort.render(rows);
+    document.querySelectorAll(".reach-gateway-table th[data-sort]").forEach(th => {
+        const active = th.dataset.sort === gatewaySort.key;
+        if (active) th.setAttribute("aria-sort", gatewaySort.asc ? "ascending" : "descending");
+        else th.removeAttribute("aria-sort");
+        th.querySelector(".sort-icon").textContent = active ? (gatewaySort.asc ? " ▲" : " ▼") : "";
+    });
+}
+document.addEventListener("click", event => {
+    const th = event.target.closest(".reach-gateway-table th[data-sort]");
+    if (!th) return;
+    const key = th.dataset.sort;
+    // Names start ascending; counts and percentages start with the highest.
+    gatewaySort.asc = gatewaySort.key === key ? !gatewaySort.asc : key === "gateway" || key === "hops";
+    gatewaySort.key = key;
+    renderSortedGateways();
+});
+
 function initReliabilityMap() {
     if (reliabilityMap) return reliabilityMap;
 
-    reliabilityMap = L.map("reach-gateway-map", { preferCanvas: true }).setView([37.7749, -122.4194], 8);
+    reliabilityMap = L.map("reach-gateway-map", { preferCanvas: true });
+    // Start on the site's configured map area until a report fits the gateways.
+    meshMapStartView(reliabilityMap);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap",
         maxZoom: 19,
@@ -382,12 +448,12 @@ function openGatewayPacketModal(nodeId) {
         const statusText = packet.heard ? MeshI18n.t("Heard") : MeshI18n.t("Missed");
 
         return `
-        <tr class="${packet.skipped ? "reliability-row-skipped" : ""}">
-            <td><a href="/packet/${packet.id}">${packet.id}</a></td>
-            <td>${escapeHtml(formatPacketTime(packet.import_time_us))}</td>
-            <td>${packetTypeTag(packet.portnum)}</td>
-            <td>${packet.hopCount ?? "—"}</td>
-            <td class="${statusClass}">${statusText}</td>
+        <tr class="modal-packet-row ${packet.skipped ? "reliability-row-skipped" : ""}">
+            <td class="c-pkt"><a href="/packet/${packet.id}">${packet.id}</a></td>
+            <td class="c-time">${escapeHtml(formatPacketTime(packet.import_time_us))}</td>
+            <td class="c-type">${packetTypeTag(packet.portnum)}</td>
+            <td class="c-hops" data-label="${MeshI18n.h("Hops")}">${packet.hopCount ?? "—"}</td>
+            <td class="c-status ${statusClass}">${statusText}</td>
         </tr>
         `;
     }).join("");
@@ -442,23 +508,18 @@ async function loadReachReport(nodeId = reachNodeId) {
     const packetCountEl = document.getElementById("reach-packet-count");
     const gatewayCountEl = document.getElementById("reach-gateway-count");
     const nodeLinkEl = document.getElementById("reach-node-link");
-    const bodyEls = [
-        document.getElementById("reach-packet-body-left"),
-        document.getElementById("reach-packet-body-right"),
-    ];
+    const gatewayBodyEl = document.getElementById("reach-gateway-body");
     const bucketBodyEl = document.getElementById("reach-bucket-body");
     const setGatewayTables = html => {
-        bodyEls.forEach(el => {
-            el.innerHTML = html;
-        });
+        gatewayBodyEl.innerHTML = html;
     };
 
     packetCountEl.textContent = "...";
     gatewayCountEl.textContent = "...";
     reliabilityGatewayDetails = new Map();
     nodeLinkEl.href = `/node/${encodeURIComponent(reachNodeId)}`;
-    bucketBodyEl.innerHTML = `<tr><td colspan="2" class="reach-muted">${MeshI18n.h("Loading statistics...")}</td></tr>`;
-    setGatewayTables(`<tr><td colspan="4" class="reach-muted">${MeshI18n.h("Loading packets...")}</td></tr>`);
+    bucketBodyEl.innerHTML = `<tr><td colspan="2" class="reach-muted is-loading">${MeshI18n.h("Loading statistics...")}</td></tr>`;
+    setGatewayTables(`<tr><td colspan="4" class="reach-muted is-loading">${MeshI18n.h("Loading packets...")}</td></tr>`);
     resetReliabilityMap();
 
     try {
@@ -557,16 +618,16 @@ async function loadReachReport(nodeId = reachNodeId) {
 
         const renderGatewayRows = rows => rows.length
             ? rows.map(row => `
-                <tr>
-                    <td>${nodeLink(row.nodeId, nodesById)}</td>
-                    <td>
+                <tr class="gateway-row">
+                    <td class="c-gw">${nodeLink(row.nodeId, nodesById)}</td>
+                    <td class="c-heard" data-label="${MeshI18n.h("Heard")}">
                         <button class="reach-heard-link" type="button" onclick="openGatewayPacketModal(${row.nodeId})">
                             ${row.heardCount}
                         </button>
                         <span class="text-secondary">(${reportResults.length})</span>
                     </td>
-                    <td>${formatAverageHopCountWithActual(row.avgHopCount)}</td>
-                    <td>${row.percent.toFixed(1)}%</td>
+                    <td class="c-hops" data-label="${MeshI18n.h("Avg Hops")}">${formatAverageHopCountWithActual(row.avgHopCount)}</td>
+                    <td class="c-rel">${row.percent.toFixed(1)}%</td>
                 </tr>
             `).join("")
             : `<tr><td colspan="4" class="reach-muted">${MeshI18n.h("No gateways heard these packets.")}</td></tr>`;
@@ -589,11 +650,10 @@ async function loadReachReport(nodeId = reachNodeId) {
                 }),
             }
         ]));
-        const splitIndex = Math.ceil(gatewayRows.length / 2);
-        bodyEls[0].innerHTML = renderGatewayRows(gatewayRows.slice(0, splitIndex));
-        bodyEls[1].innerHTML = gatewayRows.length > 1
-            ? renderGatewayRows(gatewayRows.slice(splitIndex))
-            : `<tr><td colspan="4" class="reach-muted">${MeshI18n.h("No additional gateways.")}</td></tr>`;
+        // One ranked list, most reliable first; the column headers re-sort it in table mode.
+        gatewaySort.rows = gatewayRows.map(row => ({...row, label: gatewayLabel(row.nodeId, nodesById)}));
+        gatewaySort.render = rows => { gatewayBodyEl.innerHTML = renderGatewayRows(rows); };
+        renderSortedGateways();
         renderReliabilityMap(gatewayRows, nodesById);
     } catch (err) {
         console.error("Failed to load reach report:", err);
@@ -617,9 +677,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!nodeId) {
             document.getElementById("reach-bucket-body").innerHTML =
                 `<tr><td colspan="2" class="text-warning">${MeshI18n.h("Enter a valid node ID or select a node.")}</td></tr>`;
-            document.getElementById("reach-packet-body-left").innerHTML =
-                `<tr><td colspan="4" class="text-warning">${MeshI18n.h("Enter a valid node ID or select a node.")}</td></tr>`;
-            document.getElementById("reach-packet-body-right").innerHTML =
+            document.getElementById("reach-gateway-body").innerHTML =
                 `<tr><td colspan="4" class="text-warning">${MeshI18n.h("Enter a valid node ID or select a node.")}</td></tr>`;
             return;
         }

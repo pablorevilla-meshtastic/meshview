@@ -5,42 +5,128 @@
 {% block css %}
 {% include "data-page-styles.html" %}
 <style>
-#node-list { width:100%; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); }
+#node-list { margin-bottom:0; }
 #node-list table { min-width:1150px; }
+#node-list :is(th,td) { padding-left:10px; padding-right:10px; }
+/* Card layout: short name chip, long name and favourite / role · hardware · firmware /
+   channel and MQTT badge, last seen / location when known. */
+.card-only { display:none; }
+#node-list table.is-cards { min-width:0; }
+#node-list .is-cards td { padding:0; }
+#node-list .is-cards td.card-only { display:block; }
+#node-list .is-cards td.card-only:empty { display:none; }
+#node-list .is-cards :is(.c-hw,.c-fw,.c-role,.c-lat,.c-lon,.c-alt,.c-channel,.c-mqtt) { display:none; }
+#node-list .is-cards tbody tr { grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:"short long fav" "meta meta meta" "net net seen" "loc loc loc"; }
+#node-list .is-cards .c-short { grid-area:short; }
+#node-list .is-cards .node-short { display:inline-block; padding:2px 7px; border-radius:5px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:12px; font-weight:600; }
+#node-list .is-cards .c-long { grid-area:long; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#node-list .is-cards .c-fav { grid-area:fav; justify-self:end; }
+#node-list .is-cards .c-meta { grid-area:meta; font-size:12px; color:var(--mesh-muted); }
+#node-list .is-cards .c-net { grid-area:net; font-size:12px; }
+#node-list .is-cards .c-seen { grid-area:seen; justify-self:end; white-space:nowrap; font-size:12px; color:var(--mesh-muted); }
+#node-list .is-cards .c-loc { grid-area:loc; font-size:12px; color:var(--mesh-muted); font-variant-numeric:tabular-nums; }
+.node-badge { display:inline-block; margin-left:4px; padding:1px 8px; border-radius:10px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:11px; font-weight:600; }
+/* The sort control only shows in card mode, where there are no column headers. */
+/* Segmented sort control: direction toggle + field select, showing the current order. */
+.sort-control { display:none; align-items:stretch; height:38px; border:1px solid var(--mesh-border); border-radius:6px; background:var(--mesh-surface); overflow:hidden; order:5; }
+.mesh-nodelist-page:has(#node-list .is-cards) .sort-control { display:inline-flex; }
+.sort-control:focus-within { outline:2px solid var(--mesh-primary); outline-offset:1px; }
+.mesh-data-page .mesh-content .sort-direction { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:34px; height:auto; padding:0; border:0; border-right:1px solid var(--mesh-border); border-radius:0; background:var(--mesh-soft); color:var(--mesh-primary); font-size:18px; }
+.mesh-data-page .mesh-content .sort-direction:focus-visible { outline:0; }
+.mesh-data-page .sort-control .sort-select { flex:1 1 auto; min-width:0; height:auto; padding:0 20px 0 7px; font-size:13px; background-position:right 4px center; border:0; border-radius:0; background-color:transparent; text-overflow:ellipsis; }
+.mesh-data-page .sort-control .sort-select:focus-visible { outline:0; }
+.filter-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; flex:1 0 auto; order:6; }
+/* Card mode above phones: search and sort on the first row (sort at the right end), the
+   filters and "clear" on a second row of their own. */
+@media(min-width:701px) {
+    .mesh-nodelist-page:has(#node-list .is-cards) .search-box { flex:1 1 260px; order:0; }
+    .mesh-nodelist-page:has(#node-list .is-cards) .sort-control { flex:0 0 230px; order:1; }
+    .mesh-nodelist-page:has(#node-list .is-cards) .filter-panel { display:flex; flex:1 1 100%; flex-wrap:wrap; align-items:center; gap:8px; order:2; }
+    .mesh-nodelist-page:has(#node-list .is-cards) .filter-panel > select { flex:1 1 150px; }
+    .mesh-nodelist-page:has(#node-list .is-cards) .filter-panel .days-active { margin-left:4px; }
+}
 #node-list th { cursor:pointer; }
-.filter-container { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px; padding:16px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
-.search-box { flex:1 1 220px; }
-.count-container { font-size:13px; color:var(--mesh-muted); margin-bottom:10px; }
-#node-count { color:var(--mesh-primary); font-weight:700; }
-.node-list-note { display:flex; align-items:center; gap:8px; color:var(--mesh-muted); font-size:12px; margin-bottom:18px; flex-wrap:wrap; }
+.filter-container { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
+.filter-panel { display:contents; }
+.mesh-data-page .mesh-content .filters-toggle { display:none; align-items:center; gap:6px; height:38px; padding:0 12px; font-size:13px; }
+.filters-toggle .ti { font-size:17px; }
+.filters-count { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--mesh-primary); color:var(--mesh-surface); font-size:11px; font-weight:700; }
+.filters-count[hidden] { display:none; }
+@media(max-width:700px) {
+    .search-box { flex:1 1 100%!important; min-width:0; }
+    /* Filters and sort share the row under the search box, half each. */
+    .mesh-data-page .mesh-content .filters-toggle { display:inline-flex; flex:0 0 calc(50% - 4px); min-width:0; justify-content:center; order:1; }
+    .mesh-nodelist-page:has(#node-list .is-cards) .sort-control { flex:0 0 calc(50% - 4px); min-width:0; order:2; }
+    .filter-panel { order:3; }
+    .filter-panel { display:none; flex:1 1 100%; flex-wrap:wrap; align-items:center; gap:8px; padding:12px; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); }
+    .filter-panel.is-open { display:flex; }
+    .filter-container .filter-panel > select { flex:1 1 calc(50% - 4px); min-width:0; }
+    .filter-panel .days-active { margin-left:0; }
+}
+.days-active { white-space:nowrap; display:inline-flex; align-items:center; gap:6px; margin:0 0 0 4px; font-size:12px; color:var(--mesh-muted); }
+.mesh-data-page .mesh-content .clear-btn { flex-shrink:0; border-color:transparent; background:transparent; }
+.mesh-data-page .mesh-content .clear-btn:hover { background:var(--mesh-soft); }
+.search-box { flex:0 1 260px; }
 .node-status { opacity:0; padding:3px 8px; border-radius:20px; background:var(--mesh-soft); color:var(--mesh-primary); margin-left:10px; font-size:11px; }
 .node-status.active { opacity:1; }
-.favorite-star { cursor:pointer; font-size:20px; color:#8b98aa; user-select:none; }
-.favorite-star.active { color:#ad7800; }
+.mesh-data-page .mesh-content .favorite-star { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:0; border-radius:6px; background:transparent; color:var(--mesh-muted); font-size:18px; cursor:pointer; }
+.mesh-data-page .mesh-content .favorite-star:hover { background:var(--mesh-soft); }
+.mesh-data-page .mesh-content .favorite-star.active { color:#b7791f; }
 .mesh-data-page .favorites-btn.active { background:#fff3d6; border-color:#eacb80; color:#8b6200; }
-.node-pagination { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap; }
+.node-load-more { display:flex; align-items:center; justify-content:center; gap:10px; padding:24px 0 8px; color:var(--mesh-muted); font-size:13px; }
+.node-load-more[hidden] { display:none; }
+.node-spinner { width:22px; height:22px; border:3px solid var(--mesh-border); border-top-color:var(--mesh-primary); border-radius:50%; animation:node-spin .8s linear infinite; }
+@keyframes node-spin { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .node-spinner { animation-duration:2.4s; } }
+.node-page-range { margin:10px 0 0; text-align:center; color:var(--mesh-muted); font-size:12px; }
+.node-page-range:empty { display:none; }
 .sort-icon { font-size:10px; }
-#mobile-node-list { display:none; }
-.node-card { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:12px; font-size:13px; overflow-wrap:anywhere; }
-.node-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:16px; font-weight:600; }
-.node-card-field { padding:3px 0; }
-.node-card-field b { color:var(--mesh-muted); font-weight:500; }
-@media(max-width:768px) { #node-list { display:none; } #mobile-node-list { display:block!important; } .filter-container { padding:12px; gap:8px; } .filter-container select { flex:1 1 130px; } }
+@media(max-width:768px) { .filter-container select { flex:1 1 130px; } .search-box { flex:1 1 100%; } }
 </style>
 {% endblock %}
 
 {% block body %}
-<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("NODE DIRECTORY") }}</span><h1>{{ tr("Network nodes") }}</h1><p>{{ tr("Find devices, inspect their activity, and manage your favorites.") }}</p></div><a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a></header>
+<header class="data-heading is-compact">
+    <div class="data-title">
+        <h1>{{ tr("Network nodes") }}</h1>
+        <span id="node-count" class="data-count" aria-live="polite">0</span>
+        <span id="node-status" class="node-status" aria-live="polite"></span>
+    </div>
+    <div class="data-actions">
+        <button type="button" class="favorites-btn" id="favorites-btn" aria-pressed="false">
+            <span class="ti ti-star" aria-hidden="true"></span> <span id="favorites-label" data-translate-lang="show_favorites">Show Favorites</span>
+        </button>
+        <button class="export-btn" id="export-btn" data-translate-lang="export_csv">
+            Export CSV
+        </button>
+        <a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a>
+    </div>
+</header>
 <div class="filter-container">
-
     <input
         type="text"
         id="search-box"
         class="search-box"
+        aria-label="{{ tr("Search nodes") }}"
         data-translate-lang="search_placeholder"
         placeholder="Search by name or ID or HEX ID..."
     />
 
+    <button type="button" id="filters-toggle" class="filters-toggle" aria-expanded="false" aria-controls="filter-panel">
+        <span class="ti ti-adjustments-horizontal" aria-hidden="true"></span>
+        <span>{{ tr("Filters") }}</span>
+        <span id="filters-count" class="filters-count" hidden></span>
+    </button>
+
+    <!-- Sorting is not a filter: it shows the current order and stays outside the panel. -->
+    <div class="sort-control" role="group" aria-label="{{ tr("Sort by") }}">
+        <button type="button" id="sort-direction" class="sort-direction" aria-pressed="false" aria-label="{{ tr("Ascending") }}" title="{{ tr("Ascending") }}"><span class="ti ti-sort-ascending" aria-hidden="true"></span></button>
+        <label for="sort-select" class="visually-hidden">{{ tr("Sort by") }}</label>
+        <select id="sort-select" class="sort-select"></select>
+    </div>
+
+    <!-- On phones the rest folds behind the Filters button; elsewhere it lays out inline. -->
+    <div id="filter-panel" class="filter-panel">
     <select id="role-filter" aria-label="{{ tr("Filter by role") }}">
         <option value="" data-translate-lang="all_roles">All Roles</option>
     </select>
@@ -57,38 +143,28 @@
         <option value="" data-translate-lang="all_firmware">All Firmware</option>
     </select>
 
-    <button type="button" class="favorites-btn" id="favorites-btn" aria-pressed="false" data-translate-lang="show_favorites">
-        ⭐ Show Favorites
-    </button>
-
-    <button class="export-btn" id="export-btn" data-translate-lang="export_csv">
-        Export CSV
-    </button>
+    <!-- Active days and "clear" move together: days on the left, clear on the right. -->
+    <div class="filter-footer">
+    <label class="days-active" for="days-active-filter">
+        <span>{{ tr("Active in the last") }}</span>
+        <select id="days-active-filter">
+            {% for day in range(1, 15) %}
+            <option value="{{ day }}" {% if day == 3 %}selected{% endif %}>{{ day }}</option>
+            {% endfor %}
+        </select>
+        <span>{{ tr("days") }}</span>
+    </label>
 
     <button class="clear-btn" id="clear-btn" data-translate-lang="clear_filters">
         Clear Filters
     </button>
-</div>
-
-<div class="count-container">
-    <span data-translate-lang="showing_nodes">Showing</span>
-    <span id="node-count">0</span>
-    <span data-translate-lang="nodes_suffix">nodes</span>
-    <span id="node-status" class="node-status" aria-live="polite"></span>
-</div>
-<div class="node-list-note">
-    <span>{{ tr("Showing nodes active in the last") }}</span>
-    <select id="days-active-filter" aria-label="{{ tr("Days active") }}">
-        {% for day in range(1, 15) %}
-        <option value="{{ day }}" {% if day == 3 %}selected{% endif %}>{{ day }}</option>
-        {% endfor %}
-    </select>
-    <span>{{ tr("days.") }}</span>
+    </div>
+    </div>
 </div>
 
 <!-- Desktop table -->
-<div id="node-list">
-    <table>
+<div id="node-list" class="data-table-wrap">
+    <table class="card-table nodes-table" data-cards-below="1339">
         <thead>
             <tr>
                 <th data-translate-lang="short_name">Short <span class="sort-icon">▲</span></th>
@@ -107,7 +183,7 @@
         </thead>
         <tbody id="node-table-body">
             <tr>
-                <td colspan="12" style="text-align:center; color:var(--mesh-muted);" data-translate-lang="loading_nodes">
+                <td colspan="12" class="is-loading" style="text-align:center; color:var(--mesh-muted);" data-translate-lang="loading_nodes">
                     Loading nodes...
                 </td>
             </tr>
@@ -115,13 +191,11 @@
     </table>
 </div>
 
-<!-- Mobile Card View -->
-<div id="mobile-node-list" style="display:none;"></div>
-<nav class="node-pagination" aria-label="{{ tr("Node list pages") }}">
-    <span id="node-page-range" class="reach-muted" aria-live="polite"></span>
-    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-previous" disabled>{{ tr("Previous") }}</button>
-    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-next" disabled>{{ tr("Next") }}</button>
-</nav>
+<div id="node-load-more" class="node-load-more" hidden>
+    <span class="node-spinner" aria-hidden="true"></span>
+    <span>{{ tr("Loading more nodes…") }}</span>
+</div>
+<p id="node-page-range" class="node-page-range" aria-live="polite"></p>
 
 <script>
 // =====================================================
@@ -215,17 +289,25 @@ function isFavorite(nodeId) {
     return favoritesSet.has(nodeId);
 }
 
+function favoriteStar(nodeId, active) {
+    const label = active ? MeshI18n.h("Remove from favorites") : MeshI18n.h("Add to favorites");
+    return `<button type="button" class="favorite-star${active ? " active" : ""}" data-node-id="${nodeId}"
+        aria-pressed="${active}" aria-label="${label}" title="${label}"><span class="ti ${active ? "ti-star-filled" : "ti-star"}" aria-hidden="true"></span></button>`;
+}
+
 function timeAgoFromMs(msTimestamp) {
     if (!msTimestamp) return MeshI18n.t("N/A");
     const diff = Date.now() - msTimestamp;
 
     if (diff < 60000) return MeshI18n.t("just now");
+    // Intl picks the right plural for every language ("hace 1 día", "3 дня назад").
+    const short = new Intl.RelativeTimeFormat(MeshI18n.language, {numeric: "always", style: "short"});
+    const long = new Intl.RelativeTimeFormat(MeshI18n.language, {numeric: "always", style: "long"});
     const mins = Math.floor(diff / 60000);
-    if (mins < 60) return MeshI18n.t("{count} min ago", {count: mins});
+    if (mins < 60) return short.format(-mins, "minute");
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return MeshI18n.t("{count} hr ago", {count: hrs});
-    const days = Math.floor(hrs / 24);
-    return MeshI18n.t("{count} days ago", {count: days});
+    if (hrs < 24) return short.format(-hrs, "hour");
+    return long.format(-Math.floor(hrs / 24), "day");
 }
 
 // =====================================================
@@ -237,7 +319,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     loadFavorites();
 
     const tbody = document.getElementById("node-table-body");
-    const mobileList = document.getElementById("mobile-node-list");
 
     const roleFilter = document.getElementById("role-filter");
     const channelFilter = document.getElementById("channel-filter");
@@ -251,13 +332,16 @@ document.addEventListener("DOMContentLoaded", async function() {
     const clearBtn = document.getElementById("clear-btn");
     const favoritesBtn = document.getElementById("favorites-btn");
 
-    const pageSize = 100;
-    let currentPage = 1;
+    const BATCH_SIZE = 50;
+    let renderedCount = 0;
     let filteredNodes = [];
-    const previousPage = document.getElementById("node-page-previous");
-    const nextPage = document.getElementById("node-page-next");
+    const loadMore = document.getElementById("node-load-more");
+    new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting) && renderedCount < filteredNodes.length) {
+            requestAnimationFrame(appendBatch);
+        }
+    }, {rootMargin: "400px 0px"}).observe(loadMore);
 
-    let lastIsMobile = (window.innerWidth <= 768);
 
     async function loadNodesForActiveDays() {
         const daysActive = Number(daysActiveFilter.value) || 3;
@@ -308,13 +392,13 @@ document.addEventListener("DOMContentLoaded", async function() {
         return;
     }
 
-    previousPage.addEventListener("click", () => {
-        currentPage--;
-        applyFilters(false);
-    });
-    nextPage.addEventListener("click", () => {
-        currentPage++;
-        applyFilters(false);
+    // Phones: the filters fold behind a button that counts the active ones.
+    const filtersToggle = document.getElementById("filters-toggle");
+    const filterPanel = document.getElementById("filter-panel");
+    filtersToggle.addEventListener("click", () => {
+        const open = !filterPanel.classList.contains("is-open");
+        filterPanel.classList.toggle("is-open", open);
+        filtersToggle.setAttribute("aria-expanded", String(open));
     });
 
     roleFilter.addEventListener("change", applyFilters);
@@ -330,7 +414,6 @@ document.addEventListener("DOMContentLoaded", async function() {
                 <td colspan="12" style="text-align:center; color:red;">
                     ${nodelistTranslations.error_loading_nodes || MeshI18n.t("Error loading nodes")}
                 </td></tr>`;
-            mobileList.innerHTML = "";
             countSpan.textContent = 0;
             setStatus("");
         }
@@ -345,20 +428,15 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     // Favorite star click handler (delegated)
     document.addEventListener("click", e => {
-        if (e.target.classList.contains('favorite-star')) {
-            const nodeId = parseInt(e.target.dataset.nodeId, 10);
+        const star = e.target.closest('.favorite-star');
+        if (star) {
+            const nodeId = parseInt(star.dataset.nodeId, 10);
             const fav = isFavorite(nodeId);
-
-            if (fav) {
-                e.target.classList.remove("active");
-                e.target.textContent = "☆";
-            } else {
-                e.target.classList.add("active");
-                e.target.textContent = "★";
-            }
+            star.outerHTML = favoriteStar(nodeId, !fav);
 
             toggleFavorite(nodeId);
-            applyFilters();
+            // Only the favourites view changes its rows; elsewhere keep the scroll position.
+            if (showOnlyFavorites) applyFilters();
         }
     });
 
@@ -375,14 +453,24 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     });
 
-    // Re-render on breakpoint change so mobile/desktop view switches instantly
-    window.addEventListener("resize", debounce(() => {
-        const isMobile = (window.innerWidth <= 768);
-        if (isMobile !== lastIsMobile) {
-            lastIsMobile = isMobile;
-            applyFilters();
-        }
-    }, 150));
+    // Card mode has no column headers: sort with the select and direction button instead.
+    const sortSelect = document.getElementById("sort-select");
+    const sortDir = document.getElementById("sort-direction");
+    // Short labels so the current order fits the compact sort button.
+    const SORT_LABELS = {
+        short_name: "Short name", long_name: "Long name", hw_model: "Hardware", firmware: "Firmware",
+        role: "Role", last_lat: "Latitude", last_long: "Longitude", last_altitude: "Altitude",
+        channel: "Channel", is_mqtt_gateway: "MQTT gateway", last_seen_us: "Last heard",
+    };
+    keyMap.forEach(key => sortSelect.add(new Option(MeshI18n.t(SORT_LABELS[key]), key)));
+    sortSelect.addEventListener("change", () => {
+        sortColumn = sortSelect.value;
+        applyFilters();
+    });
+    sortDir.addEventListener("click", () => {
+        sortAsc = !sortAsc;
+        applyFilters();
+    });
 
     function populateFilters(nodes) {
         const roles = new Set(), channels = new Set(), hws = new Set(), fws = new Set();
@@ -418,15 +506,22 @@ document.addEventListener("DOMContentLoaded", async function() {
             return;
         }
         showOnlyFavorites = true;
-        favoritesBtn.textContent = MeshI18n.t("Show All");
+        document.getElementById("favorites-label").textContent = MeshI18n.t("Show All");
         favoritesBtn.classList.add("active");
         favoritesBtn.setAttribute("aria-pressed", "true");
         applyFilters();
     }
 
-    async function applyFilters(resetPage = true) {
-        if (resetPage !== false) currentPage = 1;
-        setStatus("Updating…");
+    function updateFiltersCount() {
+        const active = [roleFilter, channelFilter, hwFilter, firmwareFilter].filter(select => select.value).length;
+        const badge = document.getElementById("filters-count");
+        badge.textContent = active;
+        badge.hidden = active === 0;
+    }
+
+    async function applyFilters() {
+        updateFiltersCount();
+        setStatus(MeshI18n.t("Updating…"));
         await nextFrame();
         const searchTerm = searchBox.value.trim().toLowerCase();
 
@@ -451,113 +546,76 @@ document.addEventListener("DOMContentLoaded", async function() {
         setStatus("");
     }
 
+    // Infinite scroll: render the filtered list in batches as the end comes into view.
     function renderTable(nodes) {
-        const total = nodes.length;
-        currentPage = Math.max(1, Math.min(currentPage, Math.ceil(total / pageSize)));
-        const start = (currentPage - 1) * pageSize;
-        document.getElementById("node-page-range").textContent = total
-            ? MeshI18n.t("{start}–{end} of {total} nodes", {start: start + 1, end: Math.min(start + pageSize, total), total}) : MeshI18n.t("0 nodes");
-        previousPage.disabled = currentPage === 1;
-        nextPage.disabled = start + pageSize >= total;
-        nodes = nodes.slice(start, start + pageSize);
-        const isMobile = window.innerWidth <= 768;
-        const shouldRenderTable = !isMobile;
-
-        if (shouldRenderTable) {
-            tbody.innerHTML = "";
-        } else {
-            mobileList.innerHTML = "";
-        }
-
-        const tableFrag = shouldRenderTable ? document.createDocumentFragment() : null;
-        const mobileFrag = shouldRenderTable ? null : document.createDocumentFragment();
-
+        renderedCount = 0;
+        tbody.innerHTML = "";
+        countSpan.textContent = nodes.length;
         if (!nodes.length) {
-            if (shouldRenderTable) {
-                tbody.innerHTML = `<tr>
-                    <td colspan="12" style="text-align:center; color:var(--mesh-muted);">
-                        ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
-                    </td>
-                </tr>`;
-            } else {
-                mobileList.innerHTML = `<div style="text-align:center; color:var(--mesh-muted);">
+            tbody.innerHTML = `<tr>
+                <td colspan="12" style="text-align:center; color:var(--mesh-muted);">
                     ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
-                </div>`;
-            }
-
-            countSpan.textContent = 0;
+                </td>
+            </tr>`;
+            updateLoadMore();
             return;
         }
+        appendBatch();
+    }
 
-        nodes.forEach(node => {
-            const fav = isFavorite(node.node_id);
-            const star = fav ? "★" : "☆";
+    function appendBatch() {
+        const batch = filteredNodes.slice(renderedCount, renderedCount + BATCH_SIZE);
+        const fragment = document.createDocumentFragment();
+        batch.forEach(node => fragment.appendChild(nodeRow(node)));
+        tbody.appendChild(fragment);
+        renderedCount += batch.length;
+        updateLoadMore();
+    }
 
-            if (shouldRenderTable) {
-                // DESKTOP TABLE ROW
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${escapeHtml(node.short_name || MeshI18n.t("N/A"))}</td>
-                    <td><a href="/node/${node.node_id}">${escapeHtml(node.long_name || MeshI18n.t("N/A"))}</a></td>
-                    <td>${escapeHtml(node.hw_model || MeshI18n.t("N/A"))}</td>
-                    <td>${escapeHtml(node.firmware || MeshI18n.t("N/A"))}</td>
-                    <td>${escapeHtml(node.role || MeshI18n.t("N/A"))}</td>
-                    <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : MeshI18n.t("N/A")}</td>
-                    <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : MeshI18n.t("N/A")}</td>
-                    <td>${node.last_altitude != null ? escapeHtml(String(node.last_altitude)) : MeshI18n.t("N/A")}</td>
-                    <td>${escapeHtml(node.channel || MeshI18n.t("N/A"))}</td>
-                    <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No"))}</td>
-                    <td>${timeAgoFromMs(node.last_seen_ms)}</td>
-                    <td style="text-align:center;">
-                        <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
-                            ${star}
-                        </span>
-                    </td>
-                `;
-                tableFrag.appendChild(row);
-            } else {
-                // MOBILE CARD VIEW
-                const card = document.createElement("div");
-                card.className = "node-card";
-                card.innerHTML = `
-                    <div class="node-card-header">
-                        <span>${escapeHtml(node.short_name || node.long_name || node.node_id)}</span>
-                        <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
-                            ${star}
-                        </span>
-                    </div>
-
-                    <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Name:")}</b> ${escapeHtml(node.long_name || MeshI18n.t("N/A"))}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("HW:")}</b> ${escapeHtml(node.hw_model || MeshI18n.t("N/A"))}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Firmware:")}</b> ${escapeHtml(node.firmware || MeshI18n.t("N/A"))}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Role:")}</b> ${escapeHtml(node.role || MeshI18n.t("N/A"))}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Location:")}</b>
-                        ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : MeshI18n.t("N/A")},
-                        ${node.last_long ? (node.last_long / 1e7).toFixed(5) : MeshI18n.t("N/A")}
-                    </div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Altitude:")}</b> ${node.last_altitude != null ? MeshI18n.h("{altitude} m above sea level", {altitude: node.last_altitude}) : MeshI18n.t("N/A")}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Channel:")}</b> ${escapeHtml(node.channel || MeshI18n.t("N/A"))}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Last Seen:")}</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
-
-                    <a href="/node/${node.node_id}" style="color:var(--mesh-primary); text-decoration:none; margin-top:10px; display:block;">
-                        ${MeshI18n.h("View Node →")}
-                    </a>
-                `;
-                mobileFrag.appendChild(card);
-            }
-        });
-
-        // Toggle correct view
-        mobileList.style.display = isMobile ? "block" : "none";
-
-        countSpan.textContent = total;
-
-        if (shouldRenderTable) {
-            tbody.appendChild(tableFrag);
-        } else {
-            mobileList.appendChild(mobileFrag);
+    function updateLoadMore() {
+        const total = filteredNodes.length;
+        const more = renderedCount < total;
+        loadMore.hidden = !more;
+        document.getElementById("node-page-range").textContent = total
+            ? MeshI18n.t("Showing {shown} of {total} nodes", {shown: renderedCount, total}) : "";
+        // A short list may not fill the screen: keep loading until it does or nothing is left.
+        if (more && loadMore.getBoundingClientRect().top < window.innerHeight + 400) {
+            requestAnimationFrame(appendBatch);
         }
+    }
+
+    function nodeRow(node) {
+        const fav = isFavorite(node.node_id);
+        const na = MeshI18n.t("N/A");
+        const lat = node.last_lat ? (node.last_lat / 1e7).toFixed(7) : null;
+        const lon = node.last_long ? (node.last_long / 1e7).toFixed(7) : null;
+        const alt = node.last_altitude != null ? String(node.last_altitude) : null;
+        // Card-only cells (.card-only) combine fields into one line for the card layout.
+        const meta = [node.role, node.hw_model, node.firmware].filter(Boolean).map(escapeHtml).join(" · ");
+        const mqttBadge = node.is_mqtt_gateway ? `<span class="node-badge">${MeshI18n.h("MQTT gateway")}</span>` : "";
+        const net = [node.channel ? escapeHtml(node.channel) : "", mqttBadge].filter(Boolean).join(" ");
+        const location = lat && lon
+            ? `<span class="ti ti-map-pin" aria-hidden="true"></span> ${lat.slice(0, -2)}, ${lon.slice(0, -2)}${alt ? ` · ${escapeHtml(alt)} m` : ""}`
+            : "";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td class="c-short"><span class="node-short">${escapeHtml(node.short_name || na)}</span></td>
+            <td class="c-long"><a href="/node/${node.node_id}">${escapeHtml(node.long_name || na)}</a></td>
+            <td class="c-hw">${escapeHtml(node.hw_model || na)}</td>
+            <td class="c-fw">${escapeHtml(node.firmware || na)}</td>
+            <td class="c-role">${escapeHtml(node.role || na)}</td>
+            <td class="c-lat">${lat || na}</td>
+            <td class="c-lon">${lon || na}</td>
+            <td class="c-alt">${alt != null ? escapeHtml(alt) : na}</td>
+            <td class="c-channel">${escapeHtml(node.channel || na)}</td>
+            <td class="c-mqtt">${node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No"))}</td>
+            <td class="c-seen">${timeAgoFromMs(node.last_seen_ms)}</td>
+            <td class="c-fav" style="text-align:center;">${favoriteStar(node.node_id, fav)}</td>
+            <td class="c-meta card-only">${meta}</td>
+            <td class="c-net card-only">${net}</td>
+            <td class="c-loc card-only">${location}</td>
+        `;
+        return row;
     }
 
     function clearFilters() {
@@ -571,7 +629,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         sortAsc = true;
         showOnlyFavorites = false;
 
-        favoritesBtn.textContent = nodelistTranslations.show_favorites || MeshI18n.t("⭐ Show Favorites");
+        document.getElementById("favorites-label").textContent = nodelistTranslations.show_favorites || MeshI18n.t("Show Favorites");
         favoritesBtn.classList.remove("active");
         favoritesBtn.setAttribute("aria-pressed", "false");
 
@@ -635,6 +693,16 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function updateSortIcons() {
+        const select = document.getElementById("sort-select");
+        const direction = document.getElementById("sort-direction");
+        if (select) select.value = sortColumn;
+        if (direction) {
+            direction.setAttribute("aria-pressed", String(!sortAsc));
+            direction.querySelector(".ti").className = `ti ${sortAsc ? "ti-sort-ascending" : "ti-sort-descending"}`;
+            const label = sortAsc ? MeshI18n.t("Ascending") : MeshI18n.t("Descending");
+            direction.setAttribute("aria-label", label);
+            direction.title = label;
+        }
         headers.forEach((th, i) => {
             const span = th.querySelector(".sort-icon");
             if (!span) return;
@@ -654,6 +722,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             statusShownAt = Date.now();
             console.log("[nodelist] status:", message);
             statusSpan.textContent = message;
+            statusSpan.setAttribute("aria-busy", "true");
             statusSpan.classList.add("active");
             isBusy = true;
             return;
@@ -666,6 +735,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 statusHideTimer = null;
                 console.log("[nodelist] status: cleared");
                 statusSpan.textContent = "";
+                statusSpan.removeAttribute("aria-busy");
                 statusSpan.classList.remove("active");
                 isBusy = false;
             }, remaining);
@@ -674,6 +744,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         console.log("[nodelist] status: cleared");
         statusSpan.textContent = "";
+        statusSpan.removeAttribute("aria-busy");
         statusSpan.classList.remove("active");
         isBusy = false;
     }

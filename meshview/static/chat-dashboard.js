@@ -19,7 +19,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nodeName = p => (p.long_name || '').trim() || MeshI18n.t("Node {id}", {id: p.from_node_id});
     const packetUrl = id => `/packet/${encodeURIComponent(id)}`;
     function setStatus(text, state) { status.textContent = text; status.dataset.state = state; }
-    function goLatest() { log.scrollTop = log.scrollHeight; unread = 0; latest.textContent = MeshI18n.t("↓ Latest"); }
+    // Unread messages show as a count badge on the "jump to latest" button.
+    function showUnread() {
+        const badge = document.getElementById('chat-unread');
+        badge.textContent = unread;
+        badge.hidden = !unread;
+        latest.title = unread ? MeshI18n.t("{count} new messages", {count: unread}) : "";
+        syncLatest();
+    }
+    // Nothing to jump to while the newest message is already in view.
+    function syncLatest() { latest.disabled = atBottom(); }
+    function goLatest() { log.scrollTop = log.scrollHeight; unread = 0; showUnread(); }
 
     function render(scrollToBottom = false, highlights = new Set()) {
         const query = search.value.trim().toLowerCase();
@@ -79,6 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         log.replaceChildren(fragment);
         document.getElementById('chat-count').textContent = MeshI18n.t(visible.length === 1 ? MeshI18n.t("{count} message") : MeshI18n.t("{count} messages"), {count: visible.length});
         if (scrollToBottom) goLatest(); else log.scrollTop = previousTop;
+        syncLatest();
     }
 
     async function fetchMessages() {
@@ -113,7 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return p && (!channel.value || p.channel === channel.value) &&
                         `${nodeName(p)} ${p.payload || ''} ${p.from_node_id} ${p.channel || ''}`.toLowerCase().includes(search.value.trim().toLowerCase());
                 }).length;
-                latest.textContent = unread ? MeshI18n.t("↓ Latest ({count})", {count: unread}) : MeshI18n.t("↓ Latest");
+                showUnread();
             }
             lastTime = data.latest_import_time || lastTime;
             loaded = true;
@@ -129,7 +140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     channel.addEventListener('change', () => render(true));
     search.addEventListener('input', () => render(true));
     latest.addEventListener('click', goLatest);
-    log.addEventListener('scroll', () => { if (atBottom()) { unread = 0; latest.textContent = MeshI18n.t("↓ Latest"); } });
+    log.addEventListener('scroll', () => { if (atBottom()) { unread = 0; showUnread(); } else syncLatest(); });
     pause.addEventListener('click', () => {
         paused = !paused; pause.setAttribute('aria-pressed', String(paused));
         pause.textContent = paused ? MeshI18n.t("Resume") : MeshI18n.t("Pause");

@@ -26,6 +26,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Predicted coverage (Longley-Rice / ITM); without it /api/coverage answers 503.
+coverage = [
+    "pyitm>=0.3,<0.4",
+]
 dev = [
     # Data science stack
     "numpy>=2.2.3,<3.0.0",

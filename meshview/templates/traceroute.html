@@ -25,7 +25,7 @@
 {% endblock %}
 
 {% block body %}
-<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("ROUTE EXPLORER") }}</span><h1>{{ tr("Traceroute") }}</h1><p>{{ tr("Explore forward paths, reported return routes, and the nodes along the way.") }}</p></div><a class="mesh-secondary-button" href="/firehose">{{ tr("Live packets ↗") }}</a></header>
+<header class="data-heading is-compact"><div class="data-title"><h1>{{ tr("Traceroute") }}</h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/firehose">{{ tr("Live packets ↗") }}</a></div></header>
 <div id="traceroute-meta">
     <div><b>{{ tr("Traceroute") }}</b> <span id="traceroute-title"></span></div>
     <div id="traceroute-error" role="status"></div>

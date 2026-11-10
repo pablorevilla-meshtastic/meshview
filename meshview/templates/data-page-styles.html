@@ -11,21 +11,39 @@
 .mesh-data-page .mesh-content button:hover { background:var(--mesh-hover); }
 .mesh-data-page .mesh-content button:disabled { opacity:.5; cursor:default; }
 .mesh-data-page :is(button,a,input,select):focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
-.mesh-data-page .data-table-wrap { width:100%; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); margin-bottom:20px; }
+/* clip, not auto: a scroll container would stop the sticky header from following the page.
+   base.html adds .is-wide, and with it sideways scrolling, only when the table cannot fit. */
+.mesh-data-page .data-table-wrap { width:100%; overflow:clip; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); margin-bottom:20px; }
 .mesh-data-page table { width:100%; border-collapse:collapse; font-size:13px; margin:0; color:var(--mesh-text); }
-.mesh-data-page table th { padding:12px 14px; background:var(--mesh-brand); color:white; border:0; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
-.mesh-data-page table td { padding:11px 14px; border:0; border-bottom:1px solid var(--mesh-border); text-align:left; }
+.mesh-data-page .data-table-wrap.is-wide { overflow:auto; }
+/* Sticky column headers. Only tables whose wrapper does not scroll stick to the page, so only
+   those sit under the auto-hiding header (--header-offset, base.html); inside a scrolling box
+   the offset would push the header over the first rows. */
+.mesh-data-page .data-table-wrap:not(.is-wide) > table th { top:var(--header-offset,0px); }
+.mesh-data-page table th { position:sticky; top:0; z-index:2; vertical-align:middle; transition:top .2s ease; height:40px; padding:0 14px; background:var(--mesh-brand); color:white; border:0; font-weight:600; font-size:12px; white-space:nowrap; text-align:left; }
+.mesh-data-page table td { vertical-align:middle; height:40px; padding:6px 14px; border:0; border-bottom:1px solid var(--mesh-border); text-align:left; }
+/* Compact page heading: title, live context and actions on one line. */
+.mesh-data-page .data-heading.is-compact { flex-wrap:wrap; gap:8px 14px; min-height:40px; margin-bottom:12px; }
+.mesh-data-page .data-heading.is-compact h1 { font-size:22px; line-height:1.2; margin:0; }
+.mesh-data-page .data-title { display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; min-width:0; }
+.mesh-data-page .data-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-left:auto; }
+/* Once the actions drop under the title (base.html marks it), they line up on the left. */
+.mesh-data-page .data-heading.is-wrapped .data-actions { margin-left:0; }
+.mesh-data-page .data-actions label { margin:0; font-size:12px; color:var(--mesh-muted); }
+.mesh-data-page .data-actions .mesh-secondary-button { padding:7px 12px; }
+.mesh-data-page .data-count { display:inline-flex; align-items:center; height:24px; padding:0 9px; border-radius:6px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
+.mesh-data-page .data-context { font-size:12px; color:var(--mesh-muted); }
 .mesh-data-page table tbody tr { background:var(--mesh-surface); }
 .mesh-data-page table tbody tr:nth-child(even) { background:var(--mesh-stripe); }
 .mesh-data-page table tbody tr:hover { background:var(--mesh-hover); }
 .mesh-data-page table a { text-decoration:none; }
 .mesh-data-page table a:hover { text-decoration:underline; }
-.mesh-data-page .port-tag { display:inline-block; padding:3px 7px; border-radius:5px; color:white; font-size:10px; font-weight:500; white-space:nowrap; }
+.mesh-data-page .port-tag { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:11px; background:var(--mesh-soft); color:var(--mesh-text); font-size:12px; font-weight:500; line-height:1; white-space:nowrap; vertical-align:middle; }
+.mesh-data-page .port-tag::before { content:""; flex-shrink:0; width:8px; height:8px; border-radius:50%; background:var(--port-color,#6c757d); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18); }
 .mesh-data-page .to-mqtt { color:var(--mesh-muted); font-size:12px; font-style:italic; }
 .mesh-data-page .payload-row { display:none; }
 .mesh-data-page .packet-table tr.expanded + .payload-row { display:table-row; }
 .mesh-data-page .payload-cell { font:12px/1.7 ui-monospace,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; background:var(--mesh-soft); color:var(--mesh-text); }
-.mesh-data-page .toggle-btn { cursor:pointer; color:var(--mesh-muted); display:inline-block; margin-right:7px; }
 .mesh-data-page .inline-link { margin-left:6px; color:var(--mesh-primary); text-decoration:none; }
 .mesh-data-page #map { width:100%; height:650px; border:1px solid var(--mesh-border); border-radius:9px; margin:18px 0 24px; }
 .mesh-data-page .leaflet-container { background:var(--mesh-stripe); z-index:1; }
@@ -35,8 +53,16 @@
     .mesh-data-page .data-heading h1 { font-size:23px; }
     .mesh-data-page .data-heading p { font-size:12px; }
     .mesh-data-page .data-toolbar { padding:12px; gap:8px; }
+    .mesh-data-page .data-table-wrap { overflow:auto; }
     .mesh-data-page .data-table-wrap table { min-width:700px; }
+    .mesh-data-page .data-table-wrap table.card-table { min-width:0; }
+    .mesh-data-page .data-actions { margin-left:0; width:100%; }
     .mesh-data-page #map { height:500px; }
     .mesh-data-page .data-heading a { font-size:11px; padding:8px; }
 }
+/* Icon buttons on chart and table toolbars (expand, export, refresh). */
+.chart-tool { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:1px solid transparent; border-radius:7px; background:transparent; color:var(--mesh-muted); }
+.chart-tool .ti { width:18px; height:18px; vertical-align:0; }
+.chart-tool:hover:not(:disabled),.chart-tool:focus-visible { background:var(--mesh-soft); color:var(--mesh-primary); border-color:var(--mesh-border); }
+.chart-tool:disabled { opacity:.4; cursor:default; }
 </style>
