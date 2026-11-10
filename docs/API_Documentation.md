@@ -392,7 +392,8 @@ returned: `/` always serves the dashboard. `site.api` controls visibility of the
 documentation link in the navigation bar, defaults to `"true"`, and can be disabled
 with `api = False` in `[site]`. This setting does not disable documentation or API
 routes. `site.meshviewworld` does the same for the MeshviewWorld link
-(`meshviewworld = False`). Restart the web server and reload the page after changing it. Handler
+(`meshviewworld = False`). `site.chat` follows `conversations` in `[site]` (the older
+`chat` key is still read when `conversations` is absent). Restart the web server and reload the page after changing it. Handler
 failures return HTTP 500.
 
 Restart the web server and reload the map after changing these settings. Omitting
