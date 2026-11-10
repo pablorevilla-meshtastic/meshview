@@ -14,7 +14,13 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 .chat-filter { width:170px; font-size:12px; border-color:var(--mesh-border); }
 .chat-search { width:210px; font-size:12px; border-color:var(--mesh-border); }
 .chat-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
-.chat-toolbar.is-wrapped .chat-actions { margin-left:0; }
+/* Two layouts only: everything on one line, or, as soon as it does not fit (base.html marks the
+   toolbar .is-wrapped), the phone layout: channel and a wider search box, then count and buttons. */
+.chat-toolbar.is-wrapped .chat-channel-control { flex:0 1 auto; min-width:0; }
+.chat-toolbar.is-wrapped .chat-filter { width:auto; max-width:100%; min-width:0; }
+.chat-toolbar.is-wrapped .chat-search { flex:1 1 0; width:auto; min-width:0; }
+.chat-toolbar.is-wrapped .chat-actions { width:100%; margin-left:0; }
+.chat-toolbar.is-wrapped #chat-count { margin-right:auto; }
 .chat-status { border-radius:20px; padding:4px 9px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:11px; white-space:nowrap; }
 .chat-status[data-state="error"] { background:#fff0ed; color:#b23d2f; }
 .chat-status[data-state="paused"],.chat-status[data-state="loading"] { background:#eef2f7; color:var(--mesh-muted); }
@@ -44,11 +50,6 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 @media(prefers-reduced-motion:reduce) { .chat-line.flash { animation:none; } }
 @media(max-width:700px) {
     .chat-toolbar { padding:10px 14px; gap:8px; }
-    .chat-channel-control { flex:1 1 0; min-width:0; }
-    .chat-filter { width:100%; min-width:0; }
-    .chat-search { flex:1 1 0; width:auto; min-width:0; }
-    .chat-actions { width:100%; margin-left:0; }
-    #chat-count { margin-right:auto; }
     .chat-line { grid-template-columns:50px minmax(0,1fr) auto; gap:2px 8px; padding:7px 14px; }
     .chat-time { grid-column:1; grid-row:1; }
     .chat-nick { grid-column:2; grid-row:1; text-align:left; }
