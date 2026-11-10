@@ -114,13 +114,10 @@
     function normalizeNode(node) {
         return {...node, key: node.node_id, lat: node.last_lat / 1e7 || null, long: node.last_long / 1e7 || null};
     }
-    function renderTelemetry(packet) {
-        const container = byId('inspector-telemetry');
-        if (packet && packetTime(packet) < telemetryTime) return;
-        if (packet) telemetryTime = packetTime(packet);
-        if (!packet && telemetryTime >= 0) return;
-        if (!packet) { note(container, MeshI18n.t("No telemetry packets found.")); return; }
-        const payload = String(packet.payload || '');
+    // Device metrics (battery, voltage, channel and air utilization) found in a telemetry
+    // packet; empty for the environment, power and other telemetry nodes send in between.
+    function deviceMetrics(packet) {
+        const payload = String(packet?.payload || '');
         const value = field => {
             const match = payload.match(new RegExp(`(?:^|[\\s{])${field}:\\s*(-?\\d+(?:\\.\\d+)?)`));
             return match ? Number(match[1]) : null;
@@ -129,13 +126,16 @@
         const voltage = value('voltage');
         const channelUtil = value('channel_utilization');
         const airUtil = value('air_util_tx');
-        const values = [
+        return [
             [MeshI18n.t("Battery"), battery === null ? null : battery > 100 ? MeshI18n.t("Powered") : `${battery}%`],
             [MeshI18n.t("Voltage"), voltage === null ? null : `${voltage.toFixed(2)} V`],
             [MeshI18n.t("Channel utilization"), channelUtil === null ? null : `${channelUtil.toFixed(1)}%`],
             [MeshI18n.t("Air utilization TX"), airUtil === null ? null : `${airUtil.toFixed(1)}%`]
         ].filter(([, value]) => value !== null);
-        if (!values.length) { note(container, MeshI18n.t("No device metrics in the latest telemetry packet.")); return; }
+    }
+    function showTelemetry(packet, values) {
+        telemetryTime = packetTime(packet);
+        const container = byId('inspector-telemetry');
         container.replaceChildren();
         const grid = document.createElement('div'); grid.className = 'mesh-inspector-telemetry';
         for (const [label, value] of values) {
@@ -147,6 +147,22 @@
         const stamp = document.createElement('p'); stamp.className = 'mesh-inspector-note';
         stamp.textContent = MeshI18n.t("Reported {time}", {time: dateText(packet.import_time_us)});
         container.append(grid, stamp);
+    }
+    // Initial load: the newest of the recent telemetry packets that carries device metrics.
+    function renderTelemetry(packets) {
+        for (const packet of packets) {
+            const values = deviceMetrics(packet);
+            if (values.length) { showTelemetry(packet, values); return; }
+        }
+        if (telemetryTime >= 0) return;
+        note(byId('inspector-telemetry'), packets.length
+            ? MeshI18n.t("No device metrics in recent telemetry packets.")
+            : MeshI18n.t("No telemetry packets found."));
+    }
+    // Live packets only replace the metrics shown with newer ones.
+    function updateTelemetry(packet) {
+        const values = deviceMetrics(packet);
+        if (values.length && packetTime(packet) >= telemetryTime) showTelemetry(packet, values);
     }
     function renderRecent() {
         const container = byId('inspector-recent');
@@ -192,10 +208,10 @@
             });
         }
         await Promise.all([
-            fetchJson(`/api/packets?from_node_id=${encodeURIComponent(id)}&portnum=67&limit=1`, request.signal).then(data => {
+            fetchJson(`/api/packets?from_node_id=${encodeURIComponent(id)}&portnum=67&limit=20`, request.signal).then(data => {
                 if (request.signal.aborted) return;
                 if (!Array.isArray(data.packets)) throw new Error('Invalid telemetry response');
-                renderTelemetry(data.packets[0]);
+                renderTelemetry(data.packets);
             }).catch(error => {
                 if (error.name !== 'AbortError') note(byId('inspector-telemetry'), MeshI18n.t("Telemetry unavailable. Use Refresh data to retry."));
             }),
@@ -228,7 +244,7 @@
                 const merged = new Map([...recentPackets,packet].map(p => [String(packetId(p)),p]));
                 recentPackets = [...merged.values()].sort((a,b) => packetTime(b)-packetTime(a)).slice(0,8);
                 renderRecent();
-                if (String(packet.from_node_id) === inspectedNodeId && Number(packet.portnum) === 67) renderTelemetry(packet);
+                if (String(packet.from_node_id) === inspectedNodeId && Number(packet.portnum) === 67) updateTelemetry(packet);
             }
         }
     });

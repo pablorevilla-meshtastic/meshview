@@ -622,7 +622,7 @@
     "No GPS": "Нет GPS",
     "No Meshtastic packet ID": "Нет ID пакета Meshtastic",
     "No check-ins received in the last six days.": "За последние шесть дней отметок не было.",
-    "No device metrics in the latest telemetry packet.": "В последнем пакете телеметрии нет метрик устройства.",
+    "No device metrics in recent telemetry packets.": "В последних пакетах телеметрии нет метрик устройства.",
     "No gateways heard these packets.": "Ни один шлюз не принял эти пакеты.",
     "No main-channel matches in {sample} sampled packets": "Нет совпадений с основными каналами среди {sample} пакетов выборки",
     "No messages match your filters.": "Нет сообщений по выбранным фильтрам.",

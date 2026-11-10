@@ -622,7 +622,7 @@
     "No GPS": "No GPS",
     "No Meshtastic packet ID": "No Meshtastic packet ID",
     "No check-ins received in the last six days.": "No check-ins received in the last six days.",
-    "No device metrics in the latest telemetry packet.": "No device metrics in the latest telemetry packet.",
+    "No device metrics in recent telemetry packets.": "No device metrics in recent telemetry packets.",
     "No gateways heard these packets.": "No gateways heard these packets.",
     "No main-channel matches in {sample} sampled packets": "No main-channel matches in {sample} sampled packets",
     "No messages match your filters.": "No messages match your filters.",
