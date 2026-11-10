@@ -198,6 +198,28 @@ def node_id_to_hex(node_id):
         return f"!{hex(node_id)[2:].zfill(8)}"
 
 
+DOT_LABEL_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+DOT_LABEL_MAX_CHARS = 100
+
+
+def dot_label_text(value):
+    """Return a stored string so that a Graphviz label shows it as plain text.
+
+    Names come from packets on the mesh. pydot quotes a label and escapes any `"` in it,
+    but leaves backslashes alone, and Graphviz reads `\\` followed by `"` as a backslash and
+    then the end of the string. Whatever follows in the name would be parsed as part of the
+    graph. Doubling the backslashes keeps the whole name inside the label.
+
+    Two more things in a name make Graphviz or the browser reject the graph: control
+    characters (Graphviz stops at a NUL, and others are not allowed in the SVG it writes)
+    and length (a quoted string may not exceed 16384 bytes). Control characters become
+    spaces and the text is cut to 100 characters; the firmware allows 39 bytes for a long
+    name.
+    """
+    text = DOT_LABEL_CONTROL_CHARS.sub(" ", str(value))[:DOT_LABEL_MAX_CHARS]
+    return text.replace("\\", "\\\\")
+
+
 def format_timestamp(timestamp):
     """Normalize timestamps to ISO 8601 strings."""
     if isinstance(timestamp, int):
@@ -450,7 +472,8 @@ async def graph_traceroute(request):
             node_name = node_id_to_hex(node_id)
         else:
             node_name = (
-                f'[{node.short_name}] {node.long_name}\n{node_id_to_hex(node_id)}\n{node.role}'
+                f'[{dot_label_text(node.short_name)}] {dot_label_text(node.long_name)}\n'
+                f'{node_id_to_hex(node_id)}\n{dot_label_text(node.role)}'
             )
         if node_id in node_seen_time:
             ms = (node_seen_time[node_id] - first_time) / 1000
