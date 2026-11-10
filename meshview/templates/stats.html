@@ -6,6 +6,9 @@
 {% include "data-page-styles.html" %}
 <style>
 .main-container { width:100%; }
+/* Phones: a shorter top nodes link so it fits beside the title. */
+.label-short { display:none; }
+@media(max-width:700px) { .label-long { display:none; } .label-short { display:inline; } }
 .stats-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .card-section { min-width:0; display:flex; flex-direction:column; gap:10px; padding:16px 20px 20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
 .chart-head { display:flex; align-items:center; gap:12px; padding-bottom:8px; border-bottom:1px solid var(--mesh-border); }
@@ -49,7 +52,7 @@
 
 {% block body %}
 <div class="main-container">
-    <header class="data-heading is-compact"><div class="data-title"><h1>{{ tr("Mesh statistics") }}</h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/top">{{ tr("Top nodes ↗") }}</a></div></header>
+    <header class="data-heading is-compact"><div class="data-title"><h1>{{ tr("Mesh statistics") }}</h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/top"><span class="label-long">{{ tr("Top nodes ↗") }}</span><span class="label-short">{{ tr("Top ↗") }}</span></a></div></header>
 
     {% macro chart_tools(chart, export_label) -%}
         <button type="button" class="chart-tool expand-btn" data-chart="{{ chart }}" title="{{ tr("Expand chart") }}" aria-label="{{ tr("Expand chart") }}"><span class="ti ti-arrows-maximize" aria-hidden="true"></span></button>

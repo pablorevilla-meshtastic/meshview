@@ -88,7 +88,6 @@
   },
   "net": {
     "net_title": "Еженедельная сеть",
-    "total_messages": "Количество сообщений:",
     "view_packet_details": "Больше деталей"
   },
   "map": {
@@ -437,6 +436,7 @@
     "Channels": "Каналы",
     "Chat messages API": "API сообщений чата",
     "Chat uses": "Чат использует",
+    "Check-ins": "Участники",
     "Ch{n} current (mA)": "Ток Ch{n} (мА)",
     "Ch{n} voltage (V)": "Напряжение Ch{n} (В)",
     "Click to view text packets": "Нажмите для просмотра текстовых пакетов",
@@ -544,6 +544,7 @@
     "Last hour": "За последний час",
     "Last packet: {time}": "Последний пакет: {time}",
     "Last seen": "Последнее наблюдение",
+    "Last six days · only the earliest report from each device is listed.": "Последние шесть дней · показано только первое сообщение с каждого устройства.",
     "Last {days} days — the {n} neighbors with the most data points, of {total}": "Последние {days} дн. — {n} соседей с наибольшим числом точек, из {total}",
     "Last {days} days — {n} neighbors": "Последние {days} дн. — {n} соседей",
     "Lat:": "Широта:",
@@ -600,6 +601,7 @@
     "Mesh overview": "Обзор mesh-сети",
     "Mesh statistics": "Статистика mesh-сети",
     "Meshview on GitHub": "Meshview на GitHub",
+    "Message": "Сообщение",
     "Messages, oldest to newest": "Сообщения от старых к новым",
     "Minimum altitude (m)": "Минимальная высота (м)",
     "Missed": "Пропущен",
@@ -664,7 +666,6 @@
     "Not a Packet": "Не пакет",
     "Notes": "Примечания",
     "Numeric bounds are inclusive, values must be finite, and": "Числовые границы включены, значения должны быть конечными, а",
-    "Only the earliest report from each device is listed.": "Показан только первый отчёт каждого устройства.",
     "Open the fullscreen live map": "Открыть полноэкранную карту",
     "Other": "Другое",
     "Packet": "Пакет",
@@ -815,6 +816,7 @@
     "Top nodes traffic table": "Таблица трафика ведущих узлов",
     "Top nodes ↗": "Топ узлов ↗",
     "Top text senders · main channel": "Топ отправителей текста · основной канал",
+    "Top ↗": "Топ ↗",
     "Total packets": "Всего пакетов",
     "Total: 0": "Всего: 0",
     "Total: {count}": "Всего: {count}",
