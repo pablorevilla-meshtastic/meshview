@@ -957,9 +957,35 @@ function renderUnmappedPackets(){
    ⭐ NEW: DYNAMIC EDGE LOADING
    ====================================================== */
 
+/* The selected node gets a larger dot with a ring in the primary colour and a
+   soft halo behind it, so it stands out among its neighbours. Blinking only
+   changes the fill, so it keeps working on the selected node. */
+let selectedMarker = null, selectedHalo = null;
+function highlightSelectedNode(id){
+    if(selectedMarker){
+        selectedMarker.setRadius(6);
+        selectedMarker.setStyle({ color: "white", weight: 0.7 });
+    }
+    selectedHalo?.remove();
+    selectedMarker = selectedHalo = null;
+    const marker = id == null ? null : markerById[id];
+    if(!marker) return;
+    const primary = getComputedStyle(document.documentElement).getPropertyValue("--mesh-primary").trim() || "#1f5fae";
+    selectedMarker = marker;
+    marker.setRadius(9);
+    marker.setStyle({ color: primary, weight: 3 });
+    marker.bringToFront();
+    selectedHalo = L.circleMarker(marker.getLatLng(), {
+        radius: 20, stroke: false, fillColor: primary, fillOpacity: 0.22, interactive: false
+    }).addTo(map);
+    selectedHalo.bringToBack();
+}
+window.clearMapSelection = () => { selectedNodeId = null; edgeLayer.clearLayers(); highlightSelectedNode(null); };
+
 async function onNodeClick(node){
     if (typeof openMapNodeInspector === "function") openMapNodeInspector(node);
     selectedNodeId = node.key;
+    highlightSelectedNode(node.key);
     edgeLayer.clearLayers();
 
     try {
@@ -997,6 +1023,8 @@ async function onNodeClick(node){
                 }).addTo(edgeLayer);
             }
         });
+        // Keep the selected dot above its own connection lines.
+        selectedMarker?.bringToFront();
 
     } catch(err){
         console.error("Failed to load edges for node", node.key, err);
@@ -1007,8 +1035,7 @@ map.on('click', e=>{
     if(e.originalEvent.defaultPrevented) return;
 
     if(!e.originalEvent.target.classList.contains('leaflet-interactive')){
-        edgeLayer.clearLayers();
-        selectedNodeId=null;
+        clearMapSelection();
     }
 });
 

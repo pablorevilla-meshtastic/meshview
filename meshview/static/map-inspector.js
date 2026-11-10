@@ -38,6 +38,7 @@
         let returnFocus = null;
         const close = () => {
             panel.hidden = true;
+            window.clearMapSelection?.();
             (returnFocus?.isConnected ? returnFocus : byId('map')).focus({preventScroll:true});
         };
         closeButton.addEventListener('click', close);
@@ -222,6 +223,7 @@
     });
     byId('inspector-back').addEventListener('click', () => {
         nodeRequest?.abort(); inspectedNodeId = null;
+        window.clearMapSelection?.();
         byId('mesh-node-inspector').hidden = true;
         byId('mesh-node-browser').hidden = false;
         setNodeListOpen(true);
