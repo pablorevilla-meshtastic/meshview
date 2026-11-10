@@ -163,6 +163,34 @@ function logPacketTimes(packet) {
    FIREHOSE FETCHING
    ====================================================== */
 let lastImportTimeUs = null;
+
+/* Live status dot: green live, grey paused, amber when no packet arrived for a while,
+   red when the server cannot be reached. */
+const STALE_AFTER_MS = 15 * 60 * 1000;
+const FAILURES_BEFORE_OFFLINE = 2;
+let fetchFailures = 0;
+
+function updateLiveStatus() {
+    const el = document.getElementById("live-status");
+    if (!el) return;
+    let state = "live";
+    let text = MeshI18n.t("Live");
+    if (updatesPaused) {
+        state = "paused";
+        text = MeshI18n.t("Paused");
+    } else if (fetchFailures >= FAILURES_BEFORE_OFFLINE) {
+        state = "offline";
+        text = MeshI18n.t("Connection lost");
+    } else if (lastImportTimeUs && Date.now() - lastImportTimeUs / 1000 > STALE_AFTER_MS) {
+        state = "stale";
+        text = MeshI18n.t("No recent packets");
+    }
+    el.dataset.state = state;
+    el.textContent = text;
+    el.title = lastImportTimeUs
+        ? MeshI18n.t("Last packet: {time}", {time: new Date(lastImportTimeUs / 1000).toLocaleString(MeshI18n.language)})
+        : "";
+}
 let firehoseLoaded = false;
 let updatesPaused = false;
 let updateInterval = 3000;
@@ -218,9 +246,10 @@ async function fetchUpdates() {
 
     try {
         const res = await fetch(url);
-        if (!res.ok) return;
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();
+        fetchFailures = 0;
         const packets = data.packets || [];
         const highlightNewPackets = firehoseLoaded;
         firehoseLoaded = true;
@@ -328,7 +357,10 @@ async function fetchUpdates() {
         lastImportTimeUs = packets[packets.length - 1].import_time_us;
 
     } catch (err) {
+        fetchFailures += 1;
         console.error("Packet fetch failed:", err);
+    } finally {
+        updateLiveStatus();
     }
 }
 
@@ -339,7 +371,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const pauseBtn = document.getElementById("pause-button");
     const channelFilter = document.getElementById("channel-filter");
-    const liveStatus = document.getElementById("live-status");
 
     pauseBtn.addEventListener("click", () => {
         updatesPaused = !updatesPaused;
@@ -349,8 +380,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             updatesPaused
                 ? (firehoseTranslations.resume || MeshI18n.t("Resume"))
                 : (firehoseTranslations.pause || MeshI18n.t("Pause"));
-        liveStatus.textContent = updatesPaused ? MeshI18n.t("Paused") : MeshI18n.t("Live");
-        liveStatus.classList.toggle("is-paused", updatesPaused);
+        updateLiveStatus();
     });
 
     channelFilter.addEventListener("change", async (e) => {

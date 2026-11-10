@@ -28,7 +28,11 @@
 .mesh-data-page .data-count { display:inline-flex; align-items:center; height:24px; padding:0 9px; border-radius:6px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
 .mesh-data-page .live-status { display:inline-flex; align-items:center; gap:7px; font-size:12px; color:var(--mesh-muted); }
 .mesh-data-page .live-status::before { content:""; width:8px; height:8px; border-radius:50%; background:#198754; }
-.mesh-data-page .live-status.is-paused::before { background:var(--mesh-muted); }
+.mesh-data-page .live-status[data-state="paused"]::before { background:var(--mesh-muted); }
+.mesh-data-page .live-status[data-state="stale"]::before { background:#d99a00; }
+.mesh-data-page .live-status[data-state="offline"] { color:#b42318; font-weight:600; }
+.mesh-data-page .live-status[data-state="offline"]::before { background:#dc3545; }
+[data-bs-theme="dark"] .mesh-data-page .live-status[data-state="offline"] { color:#ffb4a6; }
 .mesh-data-page table tbody tr { background:var(--mesh-surface); }
 .mesh-data-page table tbody tr:nth-child(even) { background:var(--mesh-stripe); }
 .mesh-data-page table tbody tr:hover { background:var(--mesh-hover); }
