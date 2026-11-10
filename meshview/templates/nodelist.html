@@ -33,6 +33,19 @@
 .mesh-data-page .mesh-content .sort-direction { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0; font-size:18px; }
 #node-list th { cursor:pointer; }
 .filter-container { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
+.filter-panel { display:contents; }
+.mesh-data-page .mesh-content .filters-toggle { display:none; align-items:center; gap:6px; height:38px; padding:0 12px; font-size:13px; }
+.filters-toggle .ti { font-size:17px; }
+.filters-count { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--mesh-primary); color:var(--mesh-surface); font-size:11px; font-weight:700; }
+.filters-count[hidden] { display:none; }
+@media(max-width:700px) {
+    .search-box { flex:1 1 0!important; min-width:0; }
+    .mesh-data-page .mesh-content .filters-toggle { display:inline-flex; }
+    .filter-panel { display:none; flex:1 1 100%; flex-wrap:wrap; align-items:center; gap:8px; padding:12px; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); }
+    .filter-panel.is-open { display:flex; }
+    .filter-panel > select { flex:1 1 130px; }
+    .filter-panel .days-active { margin-left:0; }
+}
 .days-active { display:inline-flex; align-items:center; gap:6px; margin:0 0 0 4px; font-size:12px; color:var(--mesh-muted); }
 .mesh-data-page .mesh-content .clear-btn { margin-left:auto; border-color:transparent; background:transparent; }
 .mesh-data-page .mesh-content .clear-btn:hover { background:var(--mesh-soft); }
@@ -76,6 +89,14 @@
         placeholder="Search by name or ID or HEX ID..."
     />
 
+    <button type="button" id="filters-toggle" class="filters-toggle" aria-expanded="false" aria-controls="filter-panel">
+        <span class="ti ti-adjustments-horizontal" aria-hidden="true"></span>
+        <span>{{ tr("Filters") }}</span>
+        <span id="filters-count" class="filters-count" hidden></span>
+    </button>
+
+    <!-- On phones the rest folds behind the Filters button; elsewhere it lays out inline. -->
+    <div id="filter-panel" class="filter-panel">
     <select id="role-filter" aria-label="{{ tr("Filter by role") }}">
         <option value="" data-translate-lang="all_roles">All Roles</option>
     </select>
@@ -111,6 +132,7 @@
     <button class="clear-btn" id="clear-btn" data-translate-lang="clear_filters">
         Clear Filters
     </button>
+    </div>
 </div>
 
 <!-- Desktop table -->
@@ -349,6 +371,15 @@ document.addEventListener("DOMContentLoaded", async function() {
         applyFilters(false);
     });
 
+    // Phones: the filters fold behind a button that counts the active ones.
+    const filtersToggle = document.getElementById("filters-toggle");
+    const filterPanel = document.getElementById("filter-panel");
+    filtersToggle.addEventListener("click", () => {
+        const open = !filterPanel.classList.contains("is-open");
+        filterPanel.classList.toggle("is-open", open);
+        filtersToggle.setAttribute("aria-expanded", String(open));
+    });
+
     roleFilter.addEventListener("change", applyFilters);
     channelFilter.addEventListener("change", applyFilters);
     hwFilter.addEventListener("change", applyFilters);
@@ -456,8 +487,16 @@ document.addEventListener("DOMContentLoaded", async function() {
         applyFilters();
     }
 
+    function updateFiltersCount() {
+        const active = [roleFilter, channelFilter, hwFilter, firmwareFilter].filter(select => select.value).length;
+        const badge = document.getElementById("filters-count");
+        badge.textContent = active;
+        badge.hidden = active === 0;
+    }
+
     async function applyFilters(resetPage = true) {
         if (resetPage !== false) currentPage = 1;
+        updateFiltersCount();
         setStatus(MeshI18n.t("Updating…"));
         await nextFrame();
         const searchTerm = searchBox.value.trim().toLowerCase();
