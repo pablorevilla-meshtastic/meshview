@@ -110,13 +110,14 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-brand { display:flex; align-items:center; gap:8px; font-size:17px; font-weight:700; color:white; text-decoration:none; flex-shrink:0; }
 .mesh-brand:hover { color:white; }
 .mesh-brand-icon { width:28px; height:28px; display:block; flex-shrink:0; }
-#site-menu { display:flex; align-items:center; gap:2px; flex:1 1 auto; min-width:0; }
-.mesh-nav-items { display:flex; align-items:center; gap:2px; min-width:0; overflow:hidden; }
+#site-menu { display:flex; align-items:center; gap:4px; flex:1 1 auto; min-width:0; }
+.mesh-nav-items { display:flex; align-items:center; gap:4px; min-width:0; overflow:hidden; }
 .mesh-more { position:relative; flex-shrink:0; }
 .mesh-more[hidden] { display:none; }
-.mesh-more-button { display:inline-flex; align-items:center; gap:4px; color:#e6effb; background:transparent; border:0; padding:6px 6px 6px 8px; border-radius:5px; font-size:14px; line-height:20px; white-space:nowrap; cursor:pointer; }
+.mesh-more-button { display:inline-flex; align-items:center; gap:4px; color:#e6effb; background:transparent; border:0; padding:6px 8px 6px 10px; border-radius:6px; font-size:14px; line-height:20px; white-space:nowrap; cursor:pointer; }
 .mesh-more-button svg { width:16px; height:16px; flex-shrink:0; }
-.mesh-more-button:hover,.mesh-more-button.active,.mesh-more-button[aria-expanded="true"] { color:white; background:#ffffff26; }
+.mesh-more-button:hover { color:white; background:#ffffff14; }
+.mesh-more-button.active,.mesh-more-button[aria-expanded="true"] { color:white; background:#ffffff2e; }
 .mesh-more-button:focus-visible,#site-menu a:focus-visible { outline:2px solid white; outline-offset:2px; }
 .mesh-more-menu { position:absolute; top:calc(100% + 8px); right:0; min-width:230px; padding:6px; display:flex; flex-direction:column; gap:2px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; box-shadow:0 8px 24px rgba(16,25,37,.22); }
 .mesh-more-menu[hidden] { display:none; }
@@ -128,8 +129,9 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 #site-menu .mesh-more-menu a:has(.mesh-nav-external) { display:flex; justify-content:space-between; gap:12px; }
 #site-menu .mesh-more-menu .mesh-nav-external { color:var(--mesh-muted); opacity:1; }
 .mesh-more-separator { height:1px; margin:4px; background:var(--mesh-border); }
-#site-menu a { color:#e6effb; text-decoration:none; padding:6px 8px; border-radius:5px; font-size:14px; line-height:20px; white-space:nowrap; }
-#site-menu a:hover, #site-menu a.active { color:white; background:#ffffff26; }
+#site-menu a { color:#e6effb; text-decoration:none; padding:6px 10px; border-radius:6px; font-size:14px; line-height:20px; white-space:nowrap; }
+#site-menu a:hover { color:white; background:#ffffff14; }
+#site-menu a.active { color:white; background:#ffffff2e; font-weight:500; }
 .mesh-menu-toggle { display:none; color:white; background:none; border:1px solid #ffffff70; border-radius:5px; width:36px; height:36px; padding:0; font-size:22px; line-height:1; }
 .mesh-content { max-width:1600px; margin:0 auto; padding:16px 28px; }
 .mesh-announcement { text-align:center; padding:10px 20px; background:var(--mesh-soft); color:var(--mesh-text); font-size:14px; }
@@ -320,7 +322,7 @@ async function initializePage() {
             }
             // Links outside the monitoring views: they overflow together and show an arrow.
             if (site.api !== "false" && site.api !== false) {
-                items.push({key: "api", group: "links", html: '<a href="/api.html">API<span class="mesh-nav-external" aria-hidden="true">↗</span></a>'});
+                items.push({key: "api", group: "links", html: '<a href="/api.html" target="_blank" rel="noopener">API<span class="mesh-nav-external" aria-hidden="true">↗</span></a>'});
             }
             if (site.meshviewworld !== "false" && site.meshviewworld !== false) {
                 items.push({key: "world", group: "links", html: '<a href="https://meshview.world" target="_blank" rel="noopener noreferrer">MeshviewWorld<span class="mesh-nav-external" aria-hidden="true">↗</span></a>'});
