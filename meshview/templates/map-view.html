@@ -746,8 +746,23 @@ async function initMapPolling() {
         const lng  = parseFloat(params.get('lng'));
         const zoom = parseInt(params.get('zoom'), 10);
 
+        // A shared link wins, then the view this browser left the map in
+        // (kept separately for the home page and the map page), then the
+        // configured area. Kiosk screens always use the configured area.
+        const viewKey = document.body.classList.contains("mesh-dashboard") ? "mapView:home" : "mapView:map";
+        const kiosk = params.get("kiosk") === "1";
+        let savedView = null;
+        if (!kiosk) {
+            try { savedView = JSON.parse(localStorage.getItem(viewKey) || "null"); } catch (_) { /* ignore */ }
+        }
+
         if (!isNaN(lat) && !isNaN(lng) && !isNaN(zoom)) {
             map.setView([lat, lng], zoom);
+            window.configBoundsApplied = true;
+            setTimeout(() => map.invalidateSize(), 100);
+        }
+        else if (savedView && [savedView.lat, savedView.lng, savedView.zoom].every(Number.isFinite)) {
+            map.setView([savedView.lat, savedView.lng], savedView.zoom);
             window.configBoundsApplied = true;
             setTimeout(() => map.invalidateSize(), 100);
         }
@@ -760,6 +775,15 @@ async function initMapPolling() {
                 window.configBoundsApplied = true;
                 setTimeout(() => map.invalidateSize(), 100);
             }
+        }
+
+        if (!kiosk) {
+            // Start remembering once the initial view (and its resize) settled.
+            setTimeout(() => map.on("moveend", () => {
+                const c = map.getCenter();
+                const view = { lat: +c.lat.toFixed(5), lng: +c.lng.toFixed(5), zoom: map.getZoom() };
+                try { localStorage.setItem(viewKey, JSON.stringify(view)); } catch (_) { /* storage unavailable */ }
+            }), 500);
         }
 
         if (mapInterval > 0) startPacketFetcher();
