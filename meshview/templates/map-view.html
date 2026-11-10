@@ -31,23 +31,13 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
     .packet-seen-trace {
         stroke-dasharray: 0.01px var(--packet-trace-gap, 999px);
         stroke-linecap: round;
-        filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.65));
+        filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.9));
         animation: packetTrace var(--packet-trace-duration, 6.5s) linear 1 forwards;
     }
     .packet-seen-landing {
         transform-box: fill-box;
         transform-origin: center;
         animation: packetSeenLanding 1s ease-out 1 forwards;
-    }
-    [data-bs-theme="dark"] .packet-seen-trace,
-    [data-bs-theme="dark"] .packet-seen-landing {
-        stroke: #e6fff0;
-    }
-    [data-bs-theme="dark"] .packet-seen-landing {
-        fill: #e6fff0;
-    }
-    [data-bs-theme="dark"] .packet-seen-trace {
-        filter: drop-shadow(0 0 2px rgba(230, 255, 240, 0.65));
     }
     @keyframes packetTrace {
         from { stroke-dashoffset: 0; }
@@ -500,6 +490,28 @@ if (mapTools) {
     });
     new MapTools({position: 'topright'}).addTo(map);
 }
+// Remember the base map and overlay choices in this browser, like the filters.
+const MAP_LAYERS_KEY = "mapLayers";
+const mapLayerIds = new Map([[nodeLayer, "nodes"], [packetSeenLayer, "reach"], [trafficHeatLayer, "heat"]]);
+function saveMapLayers() {
+    const state = { base: Object.keys(baseLayers).find(name => map.hasLayer(baseLayers[name])) };
+    mapLayerIds.forEach((id, layer) => { state[id] = map.hasLayer(layer); });
+    try { localStorage.setItem(MAP_LAYERS_KEY, JSON.stringify(state)); } catch (_) { /* storage unavailable */ }
+}
+(function restoreMapLayers() {
+    let state = null;
+    try { state = JSON.parse(localStorage.getItem(MAP_LAYERS_KEY) || "null"); } catch (_) { /* ignore */ }
+    if (!state) return;
+    if (baseLayers[state.base] && !map.hasLayer(baseLayers[state.base])) {
+        Object.values(baseLayers).forEach(layer => map.removeLayer(layer));
+        baseLayers[state.base].addTo(map);
+    }
+    mapLayerIds.forEach((id, layer) => {
+        if (typeof state[id] !== "boolean") return;
+        if (state[id]) map.addLayer(layer); else map.removeLayer(layer);
+    });
+})();
+map.on("baselayerchange overlayadd overlayremove", saveMapLayers);
 var nodes = [], markers = {}, markerById = {}, nodeMap = new Map();
 var selectedNodeId = null;
 var activeBlinks = new Map(), lastImportTime = null;
@@ -510,7 +522,11 @@ var trafficHeatLoaded = false;
 var trafficHeatLoading = false;
 const UNMAPPED_LIMIT = 50;
 const UNMAPPED_TTL_MS = 5000;
-const PACKET_SEEN_DELAY_MS = 15000;
+// Wait for the gateways' reports to arrive before drawing where a packet
+// was heard; 5 s catches most of them and keeps the effect close to the
+// sender's blink.
+const PACKET_SEEN_DELAY_MS = 5000;
+const PACKET_SEEN_COLOR = "#f97316";
 const PACKET_TRACE_MIN_DURATION_MS = 1500;
 const PACKET_TRACE_MAX_DURATION_MS = 6500;
 const PACKET_TRACE_MS_PER_PIXEL = 18;
@@ -1124,10 +1140,18 @@ async function showPacketSeenNodes(pkt){
             const markerLatLng = markerById[row.node_id]?.getLatLng();
             const lat = markerLatLng?.lat ?? node.lat;
             const lng = markerLatLng?.lng ?? node.long;
-            const trace = L.polyline([[sourceLatLng.lat, sourceLatLng.lng], [lat, lng]], {
-                color: "#000",
+            // A faint path shows the whole hop while a dot travels along it.
+            const path = L.polyline([[sourceLatLng.lat, sourceLatLng.lng], [lat, lng]], {
+                color: PACKET_SEEN_COLOR,
                 weight: 3,
-                opacity: 0.9,
+                opacity: 0.75,
+                dashArray: "6 6",
+                interactive: false
+            }).addTo(packetSeenLayer);
+            const trace = L.polyline([[sourceLatLng.lat, sourceLatLng.lng], [lat, lng]], {
+                color: PACKET_SEEN_COLOR,
+                weight: 12,
+                opacity: 1,
                 className: "packet-seen-trace",
                 interactive: false
             }).addTo(packetSeenLayer);
@@ -1146,12 +1170,12 @@ async function showPacketSeenNodes(pkt){
 
             const landingTimeout = setTimeout(() => {
                 const landing = L.circleMarker([lat, lng], {
-                    radius: 16,
-                    color: "#000",
-                    fillColor: "#000",
-                    fillOpacity: 0.24,
-                    opacity: 0.7,
-                    weight: 2,
+                    radius: 18,
+                    color: PACKET_SEEN_COLOR,
+                    fillColor: PACKET_SEEN_COLOR,
+                    fillOpacity: 0.3,
+                    opacity: 0.9,
+                    weight: 3,
                     className: "packet-seen-landing",
                     interactive: false
                 }).addTo(packetSeenLayer);
@@ -1165,6 +1189,7 @@ async function showPacketSeenNodes(pkt){
 
             const timeout = setTimeout(() => {
                 packetSeenLayer.removeLayer(trace);
+                packetSeenLayer.removeLayer(path);
             }, traceDurationMs + PACKET_LANDING_DURATION_MS);
             activePacketSeenHighlights.push(timeout);
         });
