@@ -6,9 +6,10 @@
 {% include "data-page-styles.html" %}
 <style>
 #weekly-message { display:flex; gap:12px; align-items:flex-start; padding:14px 18px; background:var(--mesh-soft); border:1px solid var(--mesh-border); border-radius:9px; color:var(--mesh-text); font-size:13px; line-height:1.5; margin-bottom:16px; overflow-wrap:anywhere; }
-#weekly-message[hidden] { display:none; }
 #weekly-message .ti { flex-shrink:0; margin-top:2px; font-size:18px; color:var(--mesh-primary); }
-#weekly-message-text { margin:0; white-space:pre-wrap; }
+#weekly-message-text { margin:0 0 4px; white-space:pre-wrap; }
+#weekly-message-text[hidden] { display:none; }
+.weekly-rules { margin:0; color:var(--mesh-muted); font-size:12px; }
 .net-table .c-num { width:1%; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .net-table td.c-num { color:var(--mesh-muted); }
 .net-table .c-time { white-space:nowrap; }
@@ -23,7 +24,6 @@
 /* The configured net tag, wherever it appears in a message. */
 .net-tag { padding:0 5px; border-radius:4px; background:var(--mesh-soft); white-space:nowrap; }
 #weekly-message .net-tag { background:var(--mesh-surface); border:1px solid var(--mesh-border); }
-#net-note { color:var(--mesh-muted); font-size:12px; margin-top:12px; }
 /* Phones: number, node and time on top, location and channel below, the message last. */
 .mesh-data-page .net-table.card-table.is-cards tbody tr { grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:"num node time" "loc loc chan" "msg msg msg"; }
 .mesh-data-page .net-table.card-table.is-cards .c-num { grid-area:num; width:auto; text-align:left; font-size:12px; }
@@ -39,7 +39,7 @@
 {% block body %}
 <header class="data-heading is-compact"><div class="data-title"><h1><span data-translate-lang="net_title">Weekly Net</span></h1><span id="net-count" class="data-count" title="{{ tr("Check-ins") }}" aria-live="polite">—</span></div><div class="data-actions"><a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a></div></header>
 
-<div id="weekly-message" role="note" hidden><span class="ti ti-info-circle" aria-hidden="true"></span><p id="weekly-message-text"></p></div>
+<div id="weekly-message" role="note"><span class="ti ti-info-circle" aria-hidden="true"></span><div><p id="weekly-message-text" hidden></p><p class="weekly-rules">{{ tr("Last six days · only the earliest report from each device is listed.") }}</p></div></div>
 
 <div class="data-table-wrap" role="region" aria-label="{{ tr("Check-ins") }}" tabindex="0">
 <table class="net-table card-table" data-cards-below="760">
@@ -48,13 +48,11 @@
 </table>
 </div>
 
-<p id="net-note">{{ tr("Only the earliest report from each device is listed.") }}</p>
 
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
     const list = document.getElementById("net-list");
     const countEl = document.getElementById("net-count");
-    const messageBox = document.getElementById("weekly-message");
     let netTranslations = {};
     let netTag = "";
 
@@ -196,8 +194,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const tag = (site.net_tag || "").trim();
         netTag = tag;
         const weekly = (site.weekly_net_message || "").trim();
-        document.getElementById("weekly-message-text").replaceChildren(withTag(weekly, tag));
-        messageBox.hidden = !weekly;
+        const weeklyText = document.getElementById("weekly-message-text");
+        weeklyText.replaceChildren(withTag(weekly, tag));
+        weeklyText.hidden = !weekly;
 
         if (!tag) {
             countEl.textContent = "0";
