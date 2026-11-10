@@ -10,8 +10,14 @@
 .node-info-col > div { padding:5px 0; }
 .node-info-col h2 { margin:0 0 10px; padding-bottom:10px; border-bottom:1px solid var(--mesh-border); color:var(--mesh-text); font-size:15px; font-weight:600; }
 .node-info strong { color:var(--mesh-muted); font-weight:500; }
-.node-actions .qr-unavailable { align-self:center; color:var(--mesh-muted); font-size:13px; }
-.node-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+.node-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.node-action-notes { margin-bottom:16px; }
+.node-action-note { display:flex; align-items:center; gap:6px; margin:4px 0 0; color:var(--mesh-muted); font-size:13px; }
+.node-action-note[hidden] { display:none; }
+.node-action-note.is-warning { color:#9a5b00; }
+[data-bs-theme="dark"] .node-action-note.is-warning { color:#f1d38a; }
+.mesh-data-page .mesh-content #toggleCoverageBtn[aria-pressed="true"] { background:var(--mesh-primary); color:var(--mesh-surface); }
+.mesh-data-page .mesh-content #toggleCoverageBtn[aria-busy="true"] .ti-broadcast { display:none; }
 /* Coverage and its help button read as one split button. */
 .node-action-group { display:inline-flex; }
 .mesh-data-page .mesh-content .node-action-group > button:first-child { border-top-right-radius:0; border-bottom-right-radius:0; }
@@ -65,23 +71,23 @@
         <button onclick="showQrCode()" id="showQrBtn">
             <span class="ti ti-qrcode" aria-hidden="true"></span> <span data-translate-lang="show_qr_code">Show QR Code</span>
         </button>
-        <span class="qr-unavailable" id="qrUnavailable" style="display:none;" data-translate-lang="qr_no_public_key">
-            No public key heard from this node yet, so it cannot be shared as a contact.
-        </span>
-        <span class="qr-unavailable" id="qrKeyConflict" style="display:none;" data-translate-lang="qr_key_conflict">
-            This node has reported more than one public key, so it is not shared as a contact.
-        </span>
         <button onclick="openReachReport()" id="reachReportBtn">
             <span class="ti ti-chart-line" aria-hidden="true"></span> <span>{{ tr("Reliability") }}</span>
         </button>
         <span class="node-action-group">
-            <button onclick="toggleCoverage()" id="toggleCoverageBtn" disabled title="{{ tr("Location required for coverage") }}">
+            <button onclick="toggleCoverage()" id="toggleCoverageBtn" aria-pressed="false" disabled title="{{ tr("Location required for coverage") }}">
                 <span class="ti ti-broadcast" aria-hidden="true"></span> <span data-translate-lang="toggle_coverage">Predicted Coverage</span>
             </button>
             <button type="button" id="coverageHelpBtn" class="node-help-btn" aria-haspopup="dialog" aria-controls="coverage-help" aria-label="{{ tr("Coverage help") }}" title="{{ tr("Coverage help") }}">
                 <span class="ti ti-help-circle" aria-hidden="true"></span>
             </button>
         </span>
+    </div>
+    <!-- Notes about the actions sit under the row instead of between the buttons. -->
+    <div class="node-action-notes" aria-live="polite">
+        <p class="node-action-note" id="qrUnavailable" style="display:none;"><span class="ti ti-info-circle" aria-hidden="true"></span> <span data-translate-lang="qr_no_public_key">No public key heard from this node yet, so it cannot be shared as a contact.</span></p>
+        <p class="node-action-note" id="qrKeyConflict" style="display:none;"><span class="ti ti-info-circle" aria-hidden="true"></span> <span data-translate-lang="qr_key_conflict">This node has reported more than one public key, so it is not shared as a contact.</span></p>
+        <p class="node-action-note is-warning" id="coverageNote" hidden><span class="ti ti-info-circle" aria-hidden="true"></span> <span id="coverageNoteText"></span></p>
     </div>
 
     <!-- Coverage help: docs/COVERAGE.md rendered in a dialog. -->
@@ -598,27 +604,43 @@ function initMap(){
     }).addTo(map);
 }
 
+// Coverage feedback: the button shows its state and failures are explained under the row.
+function setCoverageNote(text) {
+    document.getElementById("coverageNoteText").textContent = text || "";
+    document.getElementById("coverageNote").hidden = !text;
+}
+
 async function toggleCoverage() {
     if (!map) initMap();
+    const button = document.getElementById("toggleCoverageBtn");
 
     if (coverageLayer) {
         map.removeLayer(coverageLayer);
         coverageLayer = null;
+        button.setAttribute("aria-pressed", "false");
         return;
     }
 
     const nodeId = currentNode?.node_id || fromNodeId;
     if (!nodeId) return;
 
+    setCoverageNote("");
+    button.setAttribute("aria-busy", "true");
     try {
         const res = await fetch(`/api/coverage/${encodeURIComponent(nodeId)}?mode=perimeter`);
+        if (res.status === 503) {
+            // The server lacks the optional propagation model (pyitm).
+            setCoverageNote(MeshI18n.t("Predicted coverage is not available on this server."));
+            button.disabled = true;
+            return;
+        }
         if (!res.ok) {
-            console.error("Coverage request failed", res.status);
+            setCoverageNote(MeshI18n.t("Unable to compute the predicted coverage."));
             return;
         }
         const data = await res.json();
         if (!data.perimeter || data.perimeter.length < 3) {
-            console.warn("Coverage perimeter missing or too small");
+            setCoverageNote(MeshI18n.t("Unable to compute the predicted coverage."));
             return;
         }
         coverageLayer = L.polygon(data.perimeter, {
@@ -630,8 +652,12 @@ async function toggleCoverage() {
         }).addTo(map);
         map.fitBounds(coverageLayer.getBounds(), { padding: [20, 20] });
         map.invalidateSize();
+        button.setAttribute("aria-pressed", "true");
     } catch (err) {
         console.error("Coverage request failed", err);
+        setCoverageNote(MeshI18n.t("Unable to compute the predicted coverage."));
+    } finally {
+        button.removeAttribute("aria-busy");
     }
 }
 
@@ -1768,7 +1794,10 @@ function renderSimpleMarkdown(markdown) {
         dialog.showModal();
         if (loaded) return;
         try {
-            const res = await fetch("/docs/COVERAGE.md");
+            // Prefer the site language's translation (docs/COVERAGE.<lang>.md), else English.
+            const lang = (MeshI18n.language || "en").split("-")[0];
+            let res = lang === "en" ? null : await fetch(`/docs/COVERAGE.${encodeURIComponent(lang)}.md`);
+            if (!res || !res.ok) res = await fetch("/docs/COVERAGE.md");
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             body.innerHTML = renderSimpleMarkdown(await res.text());
             loaded = true;
