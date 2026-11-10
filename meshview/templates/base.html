@@ -148,12 +148,19 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-eyebrow { font-size:10px; letter-spacing:1.6px; font-weight:700; color:var(--mesh-primary); }
 .mesh-page-heading h1 { font-size:28px; font-weight:650; margin:2px 0 3px; }
 .mesh-page-heading p { color:var(--mesh-muted); font-size:14px; margin:0; }
+.mesh-page-heading.is-compact { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:0 16px; min-height:40px; margin-bottom:12px; }
+.mesh-page-heading.is-compact h1 { font-size:22px; line-height:1.2; margin:0; }
+.mesh-page-heading .mesh-page-message { grid-column:1 / -1; margin-top:4px; }
+.mesh-page-heading .mesh-page-message:empty { display:none; }
 .mesh-secondary-button,.mesh-fit-button { border:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); padding:9px 14px; border-radius:6px; text-decoration:none; font-size:13px; }
 .mesh-secondary-button:hover,.mesh-fit-button:hover { background:var(--mesh-soft); }
 .mesh-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:12px; }
-.mesh-metric { padding:20px 24px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; box-shadow:0 2px 4px var(--mesh-text)04; display:flex; flex-direction:column; gap:5px; }
-.mesh-metric>span { font-size:13px; font-weight:500; color:var(--mesh-muted); }
-.mesh-metric strong { font-size:30px; font-weight:650; color:var(--mesh-primary); font-variant-numeric:tabular-nums; }
+.mesh-metric { display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:14px; row-gap:1px; align-items:center; padding:14px 18px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; box-shadow:0 2px 4px var(--mesh-text)04; }
+.mesh-metric > :not(.mesh-metric-icon) { grid-column:2; min-width:0; }
+.mesh-metric-icon { grid-row:1 / span 3; display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:10px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:20px; }
+.mesh-metric-icon .ti { width:22px; height:22px; vertical-align:0; }
+.mesh-metric>span:not(.mesh-metric-icon) { font-size:12px; font-weight:500; color:var(--mesh-muted); }
+.mesh-metric strong { font-size:24px; line-height:1.25; font-weight:650; color:var(--mesh-primary); font-variant-numeric:tabular-nums; }
 .mesh-metric:nth-child(2) strong { color:var(--mesh-primary); }
 .mesh-metric:nth-child(3) strong { color:var(--mesh-primary); }
 .mesh-metric small { font-size:11px; color:var(--mesh-muted); }
@@ -201,7 +208,7 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
     #site-menu .mesh-nav-items a:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
     #site-menu .mesh-nav-external { color:var(--mesh-muted); opacity:1; }
 }
-@media(max-width:700px) { .mesh-content { padding:16px 14px; } .mesh-page-heading { align-items:flex-start; } .mesh-page-heading h1 { font-size:24px; } .mesh-secondary-button { white-space:nowrap; font-size:11px; padding:8px; } .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .mesh-metric { padding:14px; } .mesh-metric strong { font-size:26px; } .mesh-explorer { display:flex; flex-direction:column-reverse; gap:16px; } .mesh-map-panel #map-wrapper { height:440px; } .mesh-node-list { max-height:300px; } .mesh-map-panel #unmapped-packets { width:155px; font-size:10px; } .mesh-footer { flex-direction:column; } }
+@media(max-width:700px) { .mesh-content { padding:16px 14px; } .mesh-page-heading { align-items:flex-start; } .mesh-page-heading h1 { font-size:24px; } .mesh-secondary-button { white-space:nowrap; font-size:11px; padding:8px; } .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .mesh-metric { padding:12px 14px; column-gap:8px; } .mesh-metric > :not(.mesh-metric-icon) { grid-column:1 / -1; } .mesh-metric > span:not(.mesh-metric-icon) { grid-column:2; grid-row:1; } .mesh-metric-icon { grid-row:1; width:24px; height:24px; border-radius:6px; } .mesh-metric-icon .ti { width:15px; height:15px; } .mesh-metric strong { font-size:22px; } .mesh-explorer { display:flex; flex-direction:column-reverse; gap:16px; } .mesh-map-panel #map-wrapper { height:440px; } .mesh-node-list { max-height:300px; } .mesh-map-panel #unmapped-packets { width:155px; font-size:10px; } .mesh-footer { flex-direction:column; } }
     </style>
 {% include "theme-styles.html" %}
 </head>
@@ -327,8 +334,11 @@ async function initializePage() {
         document.getElementById("site-header").textContent = site.title || "Meshview";
 
         // The site message is documented as a homepage message.
+        // Pages with a #page-message slot show it there, under their title, instead of the band.
         const isHome = ["/", "/index", "/index.html"].includes(location.pathname);
-        document.getElementById("site-message").textContent = isHome ? (site.message || "") : "";
+        const pageMessage = document.getElementById("page-message");
+        if (pageMessage) pageMessage.textContent = isHome ? (site.message || "") : "";
+        document.getElementById("site-message").textContent = isHome && !pageMessage ? (site.message || "") : "";
 
         // Menu
         const menu = document.getElementById("site-menu");
