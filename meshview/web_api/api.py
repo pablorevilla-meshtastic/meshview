@@ -787,6 +787,7 @@ async def api_config(request):
             "map": get_bool(site, "map", True),
             "top": get_bool(site, "top", True),
             "api": get_bool(site, "api", True),
+            "meshviewworld": get_bool(site, "meshviewworld", True),
             "map_top_left_lat": get_float(site, "map_top_left_lat", 39.0),
             "map_top_left_lon": get_float(site, "map_top_left_lon", -123.0),
             "map_bottom_right_lat": get_float(site, "map_bottom_right_lat", 36.0),

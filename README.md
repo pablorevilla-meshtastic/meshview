@@ -352,6 +352,8 @@ map = True
 top = True
 # Show the API documentation link in the navigation bar (default: True).
 api = True
+# Show the MeshviewWorld link in the navigation bar (default: True).
+meshviewworld = True
 
 # Map boundaries (used for the map view).
 # Defaults will show the San Francisco Bay Area

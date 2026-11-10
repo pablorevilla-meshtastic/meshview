@@ -391,7 +391,8 @@ numbers and refresh intervals are integers. The removed `starting` option is not
 returned: `/` always serves the dashboard. `site.api` controls visibility of the API
 documentation link in the navigation bar, defaults to `"true"`, and can be disabled
 with `api = False` in `[site]`. This setting does not disable documentation or API
-routes. Restart the web server and reload the page after changing it. Handler
+routes. `site.meshviewworld` does the same for the MeshviewWorld link
+(`meshviewworld = False`). Restart the web server and reload the page after changing it. Handler
 failures return HTTP 500.
 
 Restart the web server and reload the map after changing these settings. Omitting
@@ -414,6 +415,7 @@ Response Example
     "map": "true",
     "top": "true",
     "api": "true",
+    "meshviewworld": "true",
     "map_top_left_lat": 39.0,
     "map_top_left_lon": -123.0,
     "map_bottom_right_lat": 36.0,

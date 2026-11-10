@@ -124,6 +124,10 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 #site-menu .mesh-more-menu a:hover { color:var(--mesh-text); background:var(--mesh-soft); }
 #site-menu .mesh-more-menu a.active { color:var(--mesh-primary); background:var(--mesh-soft); font-weight:600; }
 #site-menu .mesh-more-menu a:focus-visible { outline-color:var(--mesh-primary); outline-offset:-2px; }
+.mesh-nav-external { margin-left:4px; font-size:12px; opacity:.75; }
+#site-menu .mesh-more-menu a:has(.mesh-nav-external) { display:flex; justify-content:space-between; gap:12px; }
+#site-menu .mesh-more-menu .mesh-nav-external { color:var(--mesh-muted); opacity:1; }
+.mesh-more-separator { height:1px; margin:4px; background:var(--mesh-border); }
 #site-menu a { color:#e6effb; text-decoration:none; padding:6px 8px; border-radius:5px; font-size:14px; line-height:20px; white-space:nowrap; }
 #site-menu a:hover, #site-menu a.active { color:white; background:#ffffff26; }
 .mesh-menu-toggle { display:none; color:white; background:none; border:1px solid #ffffff70; border-radius:5px; width:36px; height:36px; padding:0; font-size:22px; line-height:1; }
@@ -314,10 +318,13 @@ async function initializePage() {
                     items.push({key, html: `<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || (key === "everything" ? MeshI18n.t("Live Traffic") : key))}</a>`});
                 }
             }
+            // Links outside the monitoring views: they overflow together and show an arrow.
             if (site.api !== "false" && site.api !== false) {
-                items.push({key: "api", html: '<a href="/api.html">API</a>'});
+                items.push({key: "api", group: "links", html: '<a href="/api.html">API<span class="mesh-nav-external" aria-hidden="true">↗</span></a>'});
             }
-            items.push({key: "world", html: '<a href="https://meshview.world" target="_blank" rel="noopener noreferrer">MeshviewWorld</a>'});
+            if (site.meshviewworld !== "false" && site.meshviewworld !== false) {
+                items.push({key: "world", group: "links", html: '<a href="https://meshview.world" target="_blank" rel="noopener noreferrer">MeshviewWorld<span class="mesh-nav-external" aria-hidden="true">↗</span></a>'});
+            }
 
             setupSiteMenu(menu, items);
         }
@@ -338,16 +345,17 @@ async function initializePage() {
 }
 
 // --- Site menu: every section on one line, overflow into "More" only when it does not fit ---
-// Sections that leave first when space runs out; anything not listed stays longest.
-const MENU_OVERFLOW_ORDER = ["world", "api", "top", "net", "graphs", "stats", "chat", "home", "everything", "map", "nodes"];
+// Groups that leave first when space runs out; anything not listed stays longest.
+const MENU_OVERFLOW_ORDER = ["links", "top", "net", "graphs", "stats", "chat", "home", "everything", "map", "nodes"];
 const MOBILE_MENU_QUERY = window.matchMedia("(max-width:700px)");
 
 function setupSiteMenu(menu, items) {
     const template = document.createElement("template");
-    const entries = items.map(({key, html}) => {
+    const entries = items.map(({key, group, html}) => {
         template.innerHTML = html.trim();
-        return {key, el: template.content.firstElementChild};
+        return {key, group: group || key, el: template.content.firstElementChild};
     });
+    const groups = [...new Set(entries.map(entry => entry.group))];
 
     const list = document.createElement("div");
     list.className = "mesh-nav-items";
@@ -372,8 +380,8 @@ function setupSiteMenu(menu, items) {
         panel.hidden = !open;
         button.setAttribute("aria-expanded", String(open));
     };
-    const rank = entry => {
-        const index = MENU_OVERFLOW_ORDER.indexOf(entry.key);
+    const rank = group => {
+        const index = MENU_OVERFLOW_ORDER.indexOf(group);
         return index === -1 ? MENU_OVERFLOW_ORDER.length : index;
     };
     const overflowing = () => list.scrollWidth > list.clientWidth + 1;
@@ -388,13 +396,26 @@ function setupSiteMenu(menu, items) {
 
         more.hidden = false;
         const moved = new Set();
-        for (const entry of [...entries].sort((a, b) => rank(a) - rank(b))) {
+        for (const group of [...groups].sort((a, b) => rank(a) - rank(b))) {
             if (!overflowing()) break;
-            entry.el.remove();
-            moved.add(entry);
+            for (const entry of entries) {
+                if (entry.group !== group) continue;
+                entry.el.remove();
+                moved.add(entry);
+            }
         }
         const hidden = entries.filter(entry => moved.has(entry));
-        panel.replaceChildren(...hidden.map(entry => entry.el));
+        const panelItems = [];
+        hidden.forEach((entry, index) => {
+            if (index > 0 && entry.group === "links" && hidden[index - 1].group !== "links") {
+                const separator = document.createElement("div");
+                separator.className = "mesh-more-separator";
+                separator.setAttribute("role", "separator");
+                panelItems.push(separator);
+            }
+            panelItems.push(entry.el);
+        });
+        panel.replaceChildren(...panelItems);
         button.classList.toggle("active", hidden.some(entry => entry.el.classList.contains("active")));
     }
 
