@@ -231,8 +231,16 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-node-role { font-size:10px; color:var(--mesh-muted); }
 .mesh-empty { color:var(--mesh-muted); padding:20px 16px; font-size:13px; }
 .mesh-map-panel #map-wrapper { height:520px; }
-.mesh-map-panel #filter-container { display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:5px; margin:0; padding:12px; font-size:12px; border-top:1px solid var(--mesh-border); }
-.mesh-map-panel .filter-checkbox { margin:0 2px 0 10px; accent-color:var(--mesh-primary); }
+.mesh-map-panel #filter-container { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; margin:0; padding:10px 12px; font-size:12px; border-top:1px solid var(--mesh-border); }
+/* Map filters are pills: the checkbox and its text never wrap apart. */
+.map-filter-group { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+.map-filter-group:empty { display:none; }
+.map-filter { display:inline-flex; align-items:center; gap:6px; min-height:30px; margin:0; padding:0 11px 0 9px; border:1px solid var(--mesh-border); border-radius:15px; background:var(--mesh-surface); color:var(--mesh-text); font-size:12px; white-space:nowrap; cursor:pointer; user-select:none; }
+.map-filter:hover { background:var(--mesh-soft); }
+.map-filter:has(input:checked) { background:var(--mesh-soft); border-color:var(--mesh-hover); }
+.map-filter input { margin:0; accent-color:var(--mesh-primary); }
+.map-filter:has(input:focus-visible) { outline:2px solid var(--mesh-primary); outline-offset:2px; }
+.map-filter-dot { flex-shrink:0; width:8px; height:8px; border-radius:50%; background:var(--chip-color,#6c757d); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18); }
 .mesh-map-panel #share-button,.mesh-map-panel #reset-filters-button { background:var(--mesh-soft); color:var(--mesh-primary); margin:5px; padding:8px 12px; font-size:12px; }
 .mesh-map-panel #share-button.is-copied { background:var(--mesh-brand-deep); color:white; }
 .mesh-map-panel #reset-filters-button { color:var(--mesh-muted); background:var(--mesh-stripe); }

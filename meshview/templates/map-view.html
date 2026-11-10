@@ -12,8 +12,6 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
     .legend { background:var(--mesh-surface);padding:8px;line-height:1.5;border-radius:5px;box-shadow:0 0 10px rgba(0,0,0,0.3);font-size:14px;color:var(--mesh-text); }
     .legend i { width:12px;height:12px;display:inline-block;margin-right:6px;border-radius:50%; }
 
-    #filter-container { text-align:center;margin-top:10px; }
-    .filter-checkbox { margin:0 10px; }
 
     #share-button,
     #reset-filters-button {
@@ -296,10 +294,11 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 </div>
 
 <div id="filter-container">
-    <input type="checkbox" class="filter-checkbox" id="filter-routers-only" aria-label="{{ tr("Show routers only") }}">
-    <span data-translate-lang="show_routers_only">Show Routers Only</span>
-    <input type="checkbox" class="filter-checkbox" id="filter-mqtt-only" aria-label="{{ tr("Show MQTT gateways only") }}">
-    <span data-translate-lang="show_mqtt_only">Show MQTT Gateways Only</span>
+    <div class="map-filter-group">
+        <label class="map-filter"><input type="checkbox" class="filter-checkbox" id="filter-routers-only"> <span data-translate-lang="show_routers_only">Show Routers Only</span></label>
+        <label class="map-filter"><input type="checkbox" class="filter-checkbox" id="filter-mqtt-only"> <span data-translate-lang="show_mqtt_only">Show MQTT Gateways Only</span></label>
+    </div>
+    <div id="map-channel-filters" class="map-filter-group" role="group" aria-label="{{ tr("Channels") }}"></div>
 </div>
 
 {% if not dashboard %}
@@ -1152,7 +1151,7 @@ function blinkNode(marker,longName,portnum,payload){
    ====================================================== */
 
 function createChannelFilters(){
-    const filterContainer = document.getElementById("filter-container");
+    const filterContainer = document.getElementById("map-channel-filters");
     const saved = JSON.parse(localStorage.getItem("mapFilters") || "{}");
 
     [...channelSet].sort((a, b) => a.localeCompare(b)).forEach(channel=>{
@@ -1165,12 +1164,15 @@ function createChannelFilters(){
         cb.addEventListener("change", saveFiltersToLocalStorage);
         cb.addEventListener("change", updateNodeVisibility);
 
-        filterContainer.appendChild(cb);
-
+        // One pill per channel: checkbox, channel color dot and name stay together.
         const label=document.createElement("label");
-        label.htmlFor=cb.id;
-        label.innerText=channel;
-        label.style.color = hashToColor(channel);
+        label.className="map-filter";
+        const dot=document.createElement("span");
+        dot.className="map-filter-dot";
+        dot.style.setProperty("--chip-color", hashToColor(channel));
+        const name=document.createElement("span");
+        name.textContent=channel;
+        label.append(cb, dot, name);
         filterContainer.appendChild(label);
     });
 
