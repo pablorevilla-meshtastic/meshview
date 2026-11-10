@@ -552,6 +552,7 @@
     "Inspect the payload, route, and gateways that received this packet.": "Inspect the payload, route, and gateways that received this packet.",
     "Invalid": "Invalid",
     "Invalid packet URL": "Invalid packet URL",
+    "Jump to latest": "Jump to latest",
     "Key Verification": "Key Verification",
     "Last 2 days": "Last 2 days",
     "Last 24 hours": "Last 24 hours",
@@ -993,12 +994,11 @@
     "{count} hops (many)": "{count} hops",
     "{count} message": "{count} message",
     "{count} messages": "{count} messages",
+    "{count} new messages": "{count} new messages",
     "{count} nodes nearby ({radius}m radius)": "{count} nodes nearby ({radius}m radius)",
     "{label}: {heard} ({total}) packets heard": "{label}: {heard} ({total}) packets heard",
     "{matched} of {sample} sampled packets match main channels": "{matched} of {sample} sampled packets match main channels",
     "{value} m": "{value} m",
-    "← Nodes": "← Nodes",
-    "↓ Latest": "↓ Latest",
-    "↓ Latest ({count})": "↓ Latest ({count})"
+    "← Nodes": "← Nodes"
   }
 }

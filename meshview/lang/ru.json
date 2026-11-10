@@ -552,6 +552,7 @@
     "Inspect the payload, route, and gateways that received this packet.": "Просмотр содержимого, маршрута и шлюзов, принявших этот пакет.",
     "Invalid": "Некорректные значения",
     "Invalid packet URL": "Некорректный URL пакета",
+    "Jump to latest": "К последним",
     "Key Verification": "Проверка ключей",
     "Last 2 days": "За последние 2 дня",
     "Last 24 hours": "За последние 24 часа",
@@ -993,12 +994,11 @@
     "{count} hops (many)": "{count} переходов",
     "{count} message": "Сообщений: {count}",
     "{count} messages": "Сообщений: {count}",
+    "{count} new messages": "Новых сообщений: {count}",
     "{count} nodes nearby ({radius}m radius)": "Узлов рядом: {count} (радиус {radius} м)",
     "{label}: {heard} ({total}) packets heard": "{label}: принято пакетов {heard} ({total})",
     "{matched} of {sample} sampled packets match main channels": "{matched} из {sample} пакетов выборки соответствуют основным каналам",
     "{value} m": "{value} м",
-    "← Nodes": "← Узлы",
-    "↓ Latest": "↓ Последние",
-    "↓ Latest ({count})": "↓ Последние ({count})"
+    "← Nodes": "← Узлы"
   }
 }

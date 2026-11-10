@@ -26,6 +26,10 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 .chat-status[data-state="paused"],.chat-status[data-state="loading"] { background:#eef2f7; color:var(--mesh-muted); }
 .chat-control { font-size:12px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:5px; padding:5px 9px; color:var(--mesh-text); }
 .chat-control:hover { background:var(--mesh-soft); }
+.chat-latest { display:inline-flex; align-items:center; gap:6px; }
+.chat-latest .ti { font-size:15px; color:var(--mesh-primary); }
+.chat-unread { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--mesh-primary); color:var(--mesh-surface); font-size:11px; font-weight:700; }
+.chat-unread[hidden] { display:none; }
 .chat-messages { flex:1; min-height:0; overflow-y:auto; overflow-anchor:none; padding:12px 0; font-family:ui-monospace,"SFMono-Regular",Consolas,monospace; font-size:13px; line-height:1.6; scrollbar-gutter:stable; }
 .chat-date-sep { display:flex; align-items:center; gap:14px; margin:12px 24px; color:var(--mesh-muted); font:600 10px system-ui,sans-serif; letter-spacing:.7px; text-transform:uppercase; }
 .chat-date-sep::before,.chat-date-sep::after { content:""; flex:1; height:1px; background:var(--mesh-border); }
@@ -77,7 +81,7 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
             <span id="chat-count" class="text-secondary small">{{ tr("0 messages") }}</span>
             <span id="chat-status" class="chat-status" data-state="loading" role="status">{{ tr("Connecting…") }}</span>
             <button id="chat-pause" class="chat-control" type="button" aria-pressed="false">{{ tr("Pause") }}</button>
-            <button id="chat-latest" class="chat-control" type="button">{{ tr("↓ Latest") }}</button>
+            <button id="chat-latest" class="chat-control chat-latest" type="button"><span class="ti ti-arrow-bar-to-down" aria-hidden="true"></span> {{ tr("Jump to latest") }} <span id="chat-unread" class="chat-unread" hidden></span></button>
         </div>
     </div>
     <div id="chat-log" class="chat-messages" role="region" aria-label="{{ tr("Messages, oldest to newest") }}" tabindex="0"><p class="chat-empty is-loading">{{ tr("Loading messages…") }}</p></div>

@@ -560,6 +560,7 @@
     "Inspect the payload, route, and gateways that received this packet.": "Inspeccione el contenido, la ruta y las puertas de enlace que recibieron este paquete.",
     "Invalid": "Los valores no válidos de",
     "Invalid packet URL": "URL de paquete no válida",
+    "Jump to latest": "Ir a lo último",
     "Key Verification": "Verificación de claves",
     "Last 2 days": "Últimos 2 días",
     "Last 24 hours": "Últimas 24 horas",
@@ -1001,12 +1002,11 @@
     "{count} hops (many)": "{count} saltos",
     "{count} message": "{count} mensaje",
     "{count} messages": "{count} mensajes",
+    "{count} new messages": "{count} mensajes nuevos",
     "{count} nodes nearby ({radius}m radius)": "{count} nodos cercanos (radio de {radius} m)",
     "{label}: {heard} ({total}) packets heard": "{label}: {heard} ({total}) paquetes recibidos",
     "{matched} of {sample} sampled packets match main channels": "{matched} de {sample} paquetes de la muestra coinciden con los canales principales",
     "{value} m": "{value} m",
-    "← Nodes": "← Nodos",
-    "↓ Latest": "↓ Más recientes",
-    "↓ Latest ({count})": "↓ Más recientes ({count})"
+    "← Nodes": "← Nodos"
   }
 }
