@@ -123,13 +123,10 @@ function portLabel(portnum, payload, linksHtml) {
     const name = PORT_MAP[portnum] || MeshI18n.t("Unknown");
     const color = PORT_COLORS[portnum] || "#6c757d";
 
-    const safePayload = escapeHtml(payload || "");
-
     return `
-        <span class="port-tag" style="--port-color:${color}" title="${safePayload}">
+        <span class="port-tag" style="--port-color:${color}" title="${escapeHtml(MeshI18n.t("Port {port}", {port: portnum ?? "?"}))}">
             ${name}
         </span>
-        <span class="text-secondary">(${portnum})</span>
         ${linksHtml || ""}
     `;
 }

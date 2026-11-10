@@ -68,9 +68,8 @@
             const port = document.createElement('td');
             const tag = document.createElement('span'); tag.className = 'mesh-traffic-type'; tag.textContent = portName(packet);
             tag.style.setProperty('--port-color', window.PORT_COLOR_MAP[packet.portnum] || '#6c757d');
-            tag.title = packet.payload || '';
-            const number = document.createElement('span'); number.className = 'mesh-traffic-port-number'; number.textContent = `(${packet.portnum ?? '?'})`;
-            port.append(tag,number);
+            tag.title = MeshI18n.t("Port {port}", {port: packet.portnum ?? '?'});
+            port.append(tag);
             row.append(time,packetCell,nodeCell(packet.from_node_id,packet.long_name),nodeCell(packet.to_node_id,packet.to_long_name,true),channelCell,port);
             const payloadRow = document.createElement('tr'); payloadRow.className = 'mesh-traffic-payload';
             payloadRow.hidden = !expandedPackets.has(id);

@@ -240,10 +240,9 @@ function packetTypeTag(portnum) {
     const name = window.PORT_MAP?.[portnum] || MeshI18n.t("Unknown");
     const color = window.PORT_COLORS?.[portnum] || "#6c757d";
     return `
-        <span class="port-tag" style="--port-color:${color}">
+        <span class="port-tag" style="--port-color:${color}" title="${escapeHtml(MeshI18n.t("Port {port}", {port: portnum ?? "?"}))}">
             ${escapeHtml(name)}
         </span>
-        <span class="text-secondary">(${escapeHtml(portnum ?? "?")})</span>
     `;
 }
 
