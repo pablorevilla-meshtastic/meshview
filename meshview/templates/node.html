@@ -202,7 +202,7 @@
 
     <!-- Packets -->
     <div class="data-table-wrap" role="region" aria-label="{{ tr("Node packet table") }}" tabindex="0">
-    <table class="packet-table">
+    <table class="packet-table card-table">
     <thead>
         <tr>
             <th data-translate-lang="time">Time</th>
@@ -853,14 +853,14 @@ async function loadPackets(filters = {}) {
 
         list.insertAdjacentHTML("afterbegin", `
         <tr class="packet-row">
-            <td>${localTime}</td>
-            <td><span class="toggle-btn">▶</span>
+            <td class="c-time">${localTime}</td>
+            <td class="c-id"><span class="toggle-btn">▶</span>
                 ${packetIdCell}
             </td>
-            <td>${fromCell}</td>
-            <td>${toCell}</td>
-            <td>${portLabel(pkt.portnum)}${inlineLinks}</td>
-            <td>${sizeBytes.toLocaleString(MeshI18n.language)} B</td>
+            <td class="c-from">${fromCell}</td>
+            <td class="c-to">${toCell}</td>
+            <td class="c-port">${portLabel(pkt.portnum)}${inlineLinks}</td>
+            <td class="c-size">${sizeBytes.toLocaleString(MeshI18n.language)} B</td>
         </tr>
         <tr class="payload-row">
             <td colspan="6" class="payload-cell">${safePayload}</td>

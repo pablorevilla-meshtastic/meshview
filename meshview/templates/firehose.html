@@ -28,7 +28,7 @@
 </header>
 
     <div class="data-table-wrap" role="region" aria-label="{{ tr("Live packet table") }}" tabindex="0">
-    <table class="packet-table">
+    <table class="packet-table card-table">
         <thead>
             <tr>
                 <th data-translate-lang="time">Time</th>
@@ -329,19 +329,17 @@ async function fetchUpdates() {
             const html = `
 <tr class="packet-row">
 
-    <td>
-        ${formatTimes(pkt.import_time_us).local}<br>
-    </td>
+    <td class="c-time">${formatTimes(pkt.import_time_us).local}</td>
 
-    <td>
+    <td class="c-id">
         <span class="toggle-btn">▶</span>
         ${packetIdCell}
     </td>
 
-    <td>${from}</td>
-    <td>${to}</td>
-    <td>${escapeHtml(pkt.channel || "—")}</td>
-    <td>${portLabel(pkt.portnum, pkt.payload, inlineLinks)}</td>
+    <td class="c-from">${from}</td>
+    <td class="c-to">${to}</td>
+    <td class="c-channel">${escapeHtml(pkt.channel || "—")}</td>
+    <td class="c-port">${portLabel(pkt.portnum, pkt.payload, inlineLinks)}</td>
 
 </tr>
 

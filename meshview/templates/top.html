@@ -37,7 +37,7 @@
 <div class="top-container">
 
     <div class="data-table-wrap" role="region" aria-label="{{ tr("Top nodes traffic table") }}" tabindex="0">
-    <table id="nodesTable">
+    <table id="nodesTable" class="card-table top-table">
         <thead>
             <tr>
                 <th data-translate-lang="long_name">Long Name</th>
@@ -151,22 +151,24 @@ async function renderTable() {
         tbody.append(row);
     }
 
+    // Mobile cards label the counters with the column headings.
+    const headings = [...document.querySelectorAll("#nodesTable thead th")].map(th => escapeHtml(th.textContent.trim()));
     for (const n of data.nodes || []) {
         const tr = document.createElement("tr");
         tr.onclick = () => location.href = `/node/${n.node_id}`;
 
         tr.innerHTML = `
-            <td>
+            <td class="c-name">
                 <a class="node-link" href="/node/${n.node_id}"
                    onclick="event.stopPropagation()">
                     ${escapeHtml(n.long_name || n.node_id)}
                 </a>
             </td>
-            <td>${escapeHtml(n.short_name || "")}</td>
-            <td>${escapeHtml(n.channel || "")}</td>
-            <td>${n.sent}</td>
-            <td>${n.seen}</td>
-            <td><span class="${avgClass(n.avg)}">${n.avg.toFixed(1)}</span></td>
+            <td class="c-short">${escapeHtml(n.short_name || "")}</td>
+            <td class="c-channel">${escapeHtml(n.channel || "")}</td>
+            <td class="c-sent" data-label="${headings[3] || ""}">${n.sent}</td>
+            <td class="c-seen" data-label="${headings[4] || ""}">${n.seen}</td>
+            <td class="c-avg" title="${headings[5] || ""}"><span class="${avgClass(n.avg)}">${n.avg.toFixed(1)}</span></td>
         `;
         tbody.appendChild(tr);
     }
