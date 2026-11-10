@@ -110,7 +110,10 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 @media(prefers-reduced-motion:reduce) {
     .packet-arrival-glow > td { animation:none; background:var(--mesh-soft); }
 }
-.mesh-header { position:relative; z-index:1100; background:var(--mesh-brand); color:white; box-shadow:0 2px 8px #193d6918; }
+/* Sticky header that hides while scrolling down and returns on the way up (script below). */
+.mesh-header { position:sticky; top:0; z-index:1100; background:var(--mesh-brand); color:white; box-shadow:0 2px 8px #193d6918; transition:transform .2s ease; }
+.mesh-header.is-hidden { transform:translateY(-100%); }
+@media(prefers-reduced-motion:reduce) { .mesh-header { transition:none; } }
 .mesh-header-inner { max-width:1600px; margin:auto; padding:0 20px; min-height:48px; display:flex; align-items:center; gap:20px; }
 .mesh-brand { display:flex; align-items:center; gap:8px; font-size:17px; font-weight:700; color:white; text-decoration:none; flex-shrink:0; }
 .mesh-brand:hover { color:white; }
@@ -625,6 +628,38 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("table.card-table").forEach(watchCardTable);
     document.querySelectorAll(".data-table-wrap").forEach(watchTableWidth);
 });
+
+// --- Header: hide while scrolling down, show again when scrolling up ---
+(() => {
+    const header = document.querySelector(".mesh-header");
+    const root = document.documentElement;
+    let lastY = window.scrollY;
+    const setHidden = hidden => {
+        header.classList.toggle("is-hidden", hidden);
+        root.style.setProperty("--header-offset", hidden ? "0px" : `${header.offsetHeight}px`);
+    };
+    const update = () => {
+        const y = window.scrollY;
+        // Keep it visible near the top, with a menu open or with keyboard focus inside.
+        const busy = header.querySelector('[aria-expanded="true"]') || header.contains(document.activeElement);
+        if (busy || y <= header.offsetHeight) {
+            setHidden(false);
+            lastY = y;
+            return;
+        }
+        if (Math.abs(y - lastY) < 6) return;
+        setHidden(y > lastY);
+        lastY = y;
+    };
+    let frame = 0;
+    window.addEventListener("scroll", () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(update);
+    }, {passive: true});
+    window.addEventListener("resize", update);
+    header.addEventListener("focusin", () => setHidden(false));
+    setHidden(false);
+})();
 
 // --- Mobile menu panel ---
 (() => {
