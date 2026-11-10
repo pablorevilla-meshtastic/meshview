@@ -220,13 +220,14 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-traffic-icon .ti { width:16px; height:16px; vertical-align:0; }
 .mesh-traffic-list { max-height:360px; overflow:auto; }
  .mesh-traffic-table { width:100%; min-width:780px; border-collapse:collapse; font-size:13px; color:var(--mesh-text); }
-.mesh-traffic-table th { position:sticky; top:0; z-index:1; padding:12px 14px; background:var(--mesh-brand); color:white; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
-.mesh-traffic-table td { padding:11px 14px; border-bottom:1px solid var(--mesh-border); text-align:left; }
+/* Same rows as the traffic page: 40px header and rows, plain underlined links, muted italic broadcast. */
+.mesh-traffic-table th { position:sticky; top:0; z-index:1; height:40px; padding:0 14px; background:var(--mesh-brand); color:white; font-weight:600; font-size:12px; white-space:nowrap; text-align:left; vertical-align:middle; }
+.mesh-traffic-table td { padding:6px 14px; border-bottom:1px solid var(--mesh-border); text-align:left; vertical-align:middle; }
 .mesh-traffic-row { background:var(--mesh-surface); }
 .mesh-traffic-row:hover { background:var(--mesh-soft); }
-.mesh-traffic-table a { color:var(--mesh-primary); text-decoration:none; }
-.mesh-traffic-table a:hover { text-decoration:underline; }
-.mesh-traffic-time { white-space:nowrap; font-size:12px; }
+.mesh-traffic-table a { color:inherit; text-decoration:underline; }
+.mesh-traffic-table .to-mqtt { color:var(--mesh-muted); font-size:12px; font-style:italic; }
+.mesh-traffic-time { white-space:nowrap; }
 .mesh-traffic-type { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:11px; background:var(--mesh-soft); color:var(--mesh-text); font-size:12px; font-weight:500; line-height:1; white-space:nowrap; vertical-align:middle; }
 .mesh-traffic-type::before { content:""; flex-shrink:0; width:8px; height:8px; border-radius:50%; background:var(--port-color,#6c757d); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18); }
 .mesh-traffic-payload[hidden] { display:none; }
