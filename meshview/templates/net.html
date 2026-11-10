@@ -5,245 +5,145 @@
 {% block css %}
 {% include "data-page-styles.html" %}
 <style>
-#weekly-message { padding:18px 22px; background:var(--mesh-soft); border:1px solid var(--mesh-border); border-radius:9px; color:var(--mesh-primary-dark); font-size:14px; margin-bottom:18px; white-space:pre-wrap; overflow-wrap:anywhere; }
-#weekly-message:empty { display:none; }
-#total-count { padding:16px 20px; color:var(--mesh-muted); background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px 9px 0 0; font-size:13px; }
-#total-count-value { font-size:20px; font-weight:650; color:var(--mesh-primary); margin-left:8px; }
-#chat-log { padding:0; }
-#chat-container { border:1px solid var(--mesh-border); border-top:0; border-radius:0 0 9px 9px; background:var(--mesh-surface); overflow:hidden; }
-.chat-packet { display:grid; grid-template-columns:155px 130px 200px minmax(0,1fr); gap:16px; margin:0; padding:16px 20px; border-bottom:1px solid var(--mesh-border); font-size:13px; }
-.chat-packet:nth-child(even) { background:var(--mesh-stripe); }
-.chat-packet > span { width:auto; padding:0; min-width:0; overflow-wrap:anywhere; }
-.chat-packet .timestamp { color:var(--mesh-muted); font-size:11px; }
-.chat-packet .channel { color:var(--mesh-muted); font-size:12px; }
-.chat-packet .nodename { font-weight:600; }
-.chat-packet a { text-decoration:none; }
-#net-note { color:var(--mesh-muted); font-size:12px; margin-top:14px; }
-@media(max-width:900px) { .chat-packet { grid-template-columns:120px 100px minmax(0,1fr); } .chat-packet .message { grid-column:1 / -1; } }
-@media(max-width:500px) { .chat-packet { grid-template-columns:1fr 1fr; gap:8px; } .chat-packet .nodename { grid-column:1 / -1; } }
+#weekly-message { display:flex; gap:12px; align-items:flex-start; padding:14px 18px; background:var(--mesh-soft); border:1px solid var(--mesh-border); border-radius:9px; color:var(--mesh-text); font-size:13px; line-height:1.5; margin-bottom:16px; overflow-wrap:anywhere; }
+#weekly-message[hidden] { display:none; }
+#weekly-message .ti { flex-shrink:0; margin-top:2px; font-size:18px; color:var(--mesh-primary); }
+#weekly-message-text { margin:0; white-space:pre-wrap; }
+.net-table .c-num { width:1%; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.net-table td.c-num { color:var(--mesh-muted); }
+.net-table .c-time { white-space:nowrap; }
+.net-table .c-node { font-weight:600; }
+.net-table .c-message { color:var(--mesh-muted); font-size:12px; }
+.net-table .c-message a { color:inherit; }
+#net-note { color:var(--mesh-muted); font-size:12px; margin-top:12px; }
+/* Phones: number, node and time on top, location and channel below, the message last. */
+.mesh-data-page .net-table.card-table.is-cards tbody tr { grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:"num node time" "loc loc chan" "msg msg msg"; }
+.mesh-data-page .net-table.card-table.is-cards .c-num { grid-area:num; width:auto; text-align:left; font-size:12px; }
+.mesh-data-page .net-table.card-table.is-cards .c-node { grid-area:node; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mesh-data-page .net-table.card-table.is-cards .c-time { grid-area:time; font-size:12px; color:var(--mesh-muted); text-align:right; }
+.mesh-data-page .net-table.card-table.is-cards .c-location { grid-area:loc; }
+.mesh-data-page .net-table.card-table.is-cards .c-channel { grid-area:chan; font-size:12px; color:var(--mesh-muted); text-align:right; }
+.mesh-data-page .net-table.card-table.is-cards .c-message { grid-area:msg; }
+.mesh-data-page .net-table.card-table.is-cards .c-num::before { content:"#"; }
 </style>
 {% endblock %}
 
 {% block body %}
-<div class="container">
-<header class="data-heading is-compact"><div class="data-title"><h1><span data-translate-lang="net_title">Network check-in</span></h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a></div></header>
+<header class="data-heading is-compact"><div class="data-title"><h1><span data-translate-lang="net_title">Weekly Net</span></h1><span id="net-count" class="data-count" title="{{ tr("Check-ins") }}" aria-live="polite">—</span></div><div class="data-actions"><a class="mesh-secondary-button" href="/map">{{ tr("View map ↗") }}</a></div></header>
 
-    <!-- Weekly network message -->
-    <div id="weekly-message"></div>
+<div id="weekly-message" role="note" hidden><span class="ti ti-info-circle" aria-hidden="true"></span><p id="weekly-message-text"></p></div>
 
-
-    <!-- Total message count -->
-    <div id="total-count">
-        <span data-translate-lang="total_messages">Total messages:</span>
-        <span id="total-count-value">0</span>
-    </div>
-
-    <div id="chat-container">
-        <div class="container" id="chat-log"></div>
-    </div>
-
-    <div id="net-note">
-        {{ tr("Only the earliest report from each device is listed.") }}
-    </div>
+<div class="data-table-wrap" role="region" aria-label="{{ tr("Check-ins") }}" tabindex="0">
+<table class="net-table card-table" data-cards-below="760">
+    <thead><tr><th class="c-num">#</th><th>{{ tr("Time") }}</th><th>{{ tr("Node") }}</th><th>{{ tr("Location") }}</th><th>{{ tr("Channel") }}</th><th>{{ tr("Message") }}</th></tr></thead>
+    <tbody id="net-list"><tr><td colspan="6" class="data-empty"><span class="is-loading">{{ tr("Loading...") }}</span></td></tr></tbody>
+</table>
 </div>
+
+<p id="net-note">{{ tr("Only the earliest report from each device is listed.") }}</p>
 
 <script>
 document.addEventListener("DOMContentLoaded", async () => {
-
-    const chatContainer = document.querySelector("#chat-log");
-    const weeklyMessageEl = document.querySelector("#weekly-message");
-    const totalCountValueEl = document.querySelector("#total-count-value");
-
-    if (!chatContainer || !weeklyMessageEl || !totalCountValueEl) {
-        console.error("Required elements missing");
-        return;
-    }
-
-    const renderedPacketIds = new Set();
-    const renderedNodeIds = new Set();
+    const list = document.getElementById("net-list");
+    const countEl = document.getElementById("net-count");
+    const messageBox = document.getElementById("weekly-message");
     let netTranslations = {};
-    let netTag = "";
 
-    /* -----------------------------------
-       Escape HTML safely
-    ----------------------------------- */
-    function escapeHtml(text) {
-        const div = document.createElement("div");
-        div.textContent = text ?? "";
-        return div.innerHTML;
-    }
-
-    /* -----------------------------------
-       Apply translations
-    ----------------------------------- */
-    function applyTranslations(trans, root=document) {
+    function applyTranslations(root = document) {
         root.querySelectorAll("[data-translate-lang]").forEach(el => {
             const key = el.dataset.translateLang;
-            if (trans[key]) el.textContent = trans[key];
-        });
-        root.querySelectorAll("[data-translate-lang-title]").forEach(el => {
-            const key = el.dataset.translateLangTitle;
-            if (trans[key]) el.title = trans[key];
+            if (netTranslations[key]) el.textContent = netTranslations[key];
         });
     }
 
-    /* -----------------------------------
-       Update count
-    ----------------------------------- */
-    function updateTotalCount() {
-        totalCountValueEl.textContent = renderedNodeIds.size;
+    function showMessage(text) {
+        list.replaceChildren();
+        const row = list.insertRow(), cell = row.insertCell();
+        cell.colSpan = 6; cell.className = "data-empty"; cell.textContent = text;
     }
 
-    /* -----------------------------------
-       Render single packet
-    ----------------------------------- */
-    function renderPacket(packet) {
-        if (renderedPacketIds.has(packet.id)) return;
-        renderedPacketIds.add(packet.id);
-        renderedNodeIds.add(packet.from_node_id);
-
-        const date = new Date(packet.import_time_us / 1000);
-
-        const timeStr = date.toLocaleTimeString(MeshI18n.language, {
-            hour: "numeric",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true
-        });
-
-        const dateStr =
-            `${String(date.getMonth()+1).padStart(2,"0")}/`+
-            `${String(date.getDate()).padStart(2,"0")}/`+
-            date.getFullYear();
-
-        const timestamp = `${timeStr} - ${dateStr}`;
-
-        const fromName =
-            (packet.long_name || "").trim() ||
-            `${netTranslations.node_fallback || MeshI18n.t("Node")} ${packet.from_node_id}`;
-
-        const div = document.createElement("div");
-        div.className = "row chat-packet";
-        div.dataset.packetId = packet.id;
-
-        div.innerHTML = `
-            <span class="col-2 timestamp" title="${packet.import_time_us}">
-                ${timestamp}
-            </span>
-
-            <span class="col-2 channel">
-                <a href="/packet/${packet.id}"
-                   data-translate-lang-title="view_packet_details"><span class="ti ti-mail" aria-hidden="true"></span></a>
-                ${escapeHtml(packet.channel || "")}
-            </span>
-
-            <span class="col-3 nodename">
-                <a href="/node/${packet.from_node_id}">
-                    ${escapeHtml(fromName)}
-                </a>
-            </span>
-
-            <span class="col-5 message">
-                ${escapeHtml(packet.payload).replace(/\n/g,"<br>")}
-            </span>
-        `;
-
-        chatContainer.prepend(div);
-        applyTranslations(netTranslations, div);
-        updateTotalCount();
+    // Check-ins follow "(LONG NAME) - (CITY) #tag": the location is whatever
+    // comes after the first dash once the tag is removed.
+    function locationFrom(payload, tag) {
+        const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const text = String(payload || "").replace(new RegExp(escaped, "gi"), "")
+            .trim().replace(/[\s\-–—|,]+$/, "").trim();
+        const parts = text.split(/\s+[-–—]\s+/).map(part => part.trim()).filter(Boolean);
+        return parts.length > 1 ? parts.slice(1).join(" - ") : "";
     }
 
-    /* -----------------------------------
-       Sort descending by time
-    ----------------------------------- */
-    function renderPacketsEnsureDescending(packets) {
-        if (!packets || !packets.length) return;
-        const earliestByNode = new Map();
+    function cell(row, className, content) {
+        const td = row.insertCell();
+        td.className = className;
+        if (content instanceof Node) td.append(content); else td.textContent = content;
+        return td;
+    }
 
+    function render(packets, tag) {
+        // One check-in per device: its earliest report, listed in arrival order.
+        const earliest = new Map();
         for (const packet of packets) {
-            const existing = earliestByNode.get(packet.from_node_id);
-            if (!existing || packet.import_time_us < existing.import_time_us) {
-                earliestByNode.set(packet.from_node_id, packet);
-            }
+            const known = earliest.get(packet.from_node_id);
+            if (!known || packet.import_time_us < known.import_time_us) earliest.set(packet.from_node_id, packet);
         }
-
-        const sorted = Array.from(earliestByNode.values()).sort(
-            (a, b) => b.import_time_us - a.import_time_us
-        );
-        for (let i = sorted.length - 1; i >= 0; i--) {
-            renderPacket(sorted[i]);
+        const checkIns = [...earliest.values()].sort((a, b) => a.import_time_us - b.import_time_us);
+        countEl.textContent = checkIns.length.toLocaleString(MeshI18n.language);
+        if (!checkIns.length) {
+            showMessage(MeshI18n.t("No check-ins received in the last six days."));
+            return;
         }
+        list.replaceChildren();
+        checkIns.forEach((packet, index) => {
+            const row = list.insertRow();
+            const date = new Date(packet.import_time_us / 1000);
+            cell(row, "c-num", String(index + 1));
+            const time = cell(row, "c-time", date.toLocaleString(MeshI18n.language, {
+                weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
+            }));
+            time.title = date.toLocaleString(MeshI18n.language);
+            const node = document.createElement("a");
+            node.href = `/node/${encodeURIComponent(packet.from_node_id)}`;
+            node.textContent = (packet.long_name || "").trim() || MeshI18n.t("Node {id}", {id: packet.from_node_id});
+            cell(row, "c-node", node);
+            cell(row, "c-location", locationFrom(packet.payload, tag) || "—");
+            cell(row, "c-channel", packet.channel || "—");
+            const message = document.createElement("a");
+            message.href = `/packet/${encodeURIComponent(packet.storage_id ?? packet.id)}`;
+            message.title = netTranslations.view_packet_details || MeshI18n.t("View packet details");
+            message.textContent = packet.payload || "";
+            cell(row, "c-message", message);
+        });
     }
 
-    /* -----------------------------------
-       Fetch initial net-tagged packets
-    ----------------------------------- */
-    async function fetchInitialPackets(tag) {
-        if (!tag) return;
-
-        try {
-            const sixDaysAgoMs = Date.now() - 6*24*60*60*1000;
-            const sinceUs = Math.floor(sixDaysAgoMs * 1000);
-
-            const url =
-                `/api/packets?portnum=1&contains=${encodeURIComponent(tag)}&since=${sinceUs}&limit=1000`;
-
-            const resp = await fetch(url);
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const data = await resp.json();
-
-            if (data?.packets?.length)
-                renderPacketsEnsureDescending(data.packets);
-
-        } catch (err) {
-            console.error("Initial fetch error:", err);
-            chatContainer.innerHTML = `<p class="data-empty">${MeshI18n.h("Unable to load check-ins. Reload to try again.")}</p>`;
-        }
-    }
-
-    /* -----------------------------------
-       Load translations from section=net
-    ----------------------------------- */
-    async function loadTranslations(cfg) {
-        try {
-            const lang = cfg?.site?.language || "en";
-            const res = await fetch(`/api/lang?lang=${lang}&section=net`);
-            netTranslations = await res.json();
-            applyTranslations(netTranslations, document);
-        } catch (err) {
-            console.error("Failed loading translations", err);
-        }
-    }
-
-    /* -----------------------------------
-       MAIN
-    ----------------------------------- */
     try {
-        const cfg = await window._siteConfigPromise;
-        const site = cfg?.site || {};
-
-        netTag = site.net_tag || "";
-
-        weeklyMessageEl.textContent = site.weekly_net_message || "";
-
-
-        await loadTranslations(cfg);
-        await fetchInitialPackets(netTag);
-        if (!chatContainer.children.length) {
-            const empty = document.createElement("p");
-            empty.className = "data-empty";
-            empty.textContent = netTag ? MeshI18n.t("No check-ins received in the last six days.") : MeshI18n.t("No network check-in tag configured.");
-            chatContainer.append(empty);
+        const site = (await window._siteConfigPromise)?.site || {};
+        try {
+            const res = await fetch(`/api/lang?lang=${encodeURIComponent(site.language || "en")}&section=net`);
+            netTranslations = await res.json();
+            applyTranslations();
+        } catch (error) {
+            console.error("Net translations:", error);
         }
+        const weekly = (site.weekly_net_message || "").trim();
+        document.getElementById("weekly-message-text").textContent = weekly;
+        messageBox.hidden = !weekly;
 
-    } catch (err) {
-        console.error("Initialization failed:", err);
-
-        weeklyMessageEl.textContent =
-            netTranslations.failed_to_load_site_config ||
-            MeshI18n.t("Failed to load site config.");
+        const tag = (site.net_tag || "").trim();
+        if (!tag) {
+            countEl.textContent = "0";
+            showMessage(MeshI18n.t("No network check-in tag configured."));
+            return;
+        }
+        const sinceUs = Math.floor((Date.now() - 6 * 24 * 60 * 60 * 1000) * 1000);
+        const res = await fetch(`/api/packets?portnum=1&contains=${encodeURIComponent(tag)}&since=${sinceUs}&limit=1000`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        render(Array.isArray(data.packets) ? data.packets : [], tag);
+    } catch (error) {
+        console.error("Weekly net:", error);
+        countEl.textContent = "—";
+        showMessage(MeshI18n.t("Unable to load check-ins. Reload to try again."));
     }
-
 });
 </script>
 {% endblock %}

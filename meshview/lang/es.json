@@ -90,7 +90,6 @@
   },
   "net": {
     "net_title": "Red semanal",
-    "total_messages": "Número de mensajes:",
     "view_packet_details": "Más detalles"
   },
   "map": {
@@ -445,6 +444,7 @@
     "Channels": "Canales",
     "Chat messages API": "API de mensajes de chat",
     "Chat uses": "El chat usa",
+    "Check-ins": "Participantes",
     "Ch{n} current (mA)": "Corriente Ch{n} (mA)",
     "Ch{n} voltage (V)": "Voltaje Ch{n} (V)",
     "Click to view text packets": "Pulse para ver los paquetes de texto",
@@ -608,6 +608,7 @@
     "Mesh overview": "Resumen de la malla",
     "Mesh statistics": "Estadísticas de la malla",
     "Meshview on GitHub": "Meshview en GitHub",
+    "Message": "Mensaje",
     "Messages, oldest to newest": "Mensajes, de más antiguos a más recientes",
     "Minimum altitude (m)": "Altitud mínima (m)",
     "Missed": "No recibido",

@@ -88,7 +88,6 @@
   },
   "net": {
     "net_title": "Weekly Net",
-    "total_messages": "Number of messages:",
     "view_packet_details": "More details"
   },
   "map": {
@@ -437,6 +436,7 @@
     "Channels": "Channels",
     "Chat messages API": "Chat messages API",
     "Chat uses": "Chat uses",
+    "Check-ins": "Check-ins",
     "Ch{n} current (mA)": "Ch{n} current (mA)",
     "Ch{n} voltage (V)": "Ch{n} voltage (V)",
     "Click to view text packets": "Click to view text packets",
@@ -600,6 +600,7 @@
     "Mesh overview": "Mesh overview",
     "Mesh statistics": "Mesh statistics",
     "Meshview on GitHub": "Meshview on GitHub",
+    "Message": "Message",
     "Messages, oldest to newest": "Messages, oldest to newest",
     "Minimum altitude (m)": "Minimum altitude (m)",
     "Missed": "Missed",
