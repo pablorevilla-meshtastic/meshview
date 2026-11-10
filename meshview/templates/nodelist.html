@@ -56,7 +56,13 @@
 .mesh-data-page .mesh-content .favorite-star:hover { background:var(--mesh-soft); }
 .mesh-data-page .mesh-content .favorite-star.active { color:#b7791f; }
 .mesh-data-page .favorites-btn.active { background:#fff3d6; border-color:#eacb80; color:#8b6200; }
-.node-pagination { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap; }
+.node-load-more { display:flex; align-items:center; justify-content:center; gap:10px; padding:24px 0 8px; color:var(--mesh-muted); font-size:13px; }
+.node-load-more[hidden] { display:none; }
+.node-spinner { width:22px; height:22px; border:3px solid var(--mesh-border); border-top-color:var(--mesh-primary); border-radius:50%; animation:node-spin .8s linear infinite; }
+@keyframes node-spin { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .node-spinner { animation-duration:2.4s; } }
+.node-page-range { margin:10px 0 0; text-align:center; color:var(--mesh-muted); font-size:12px; }
+.node-page-range:empty { display:none; }
 .sort-icon { font-size:10px; }
 @media(max-width:768px) { .filter-container select { flex:1 1 130px; } .search-box { flex:1 1 100%; } }
 </style>
@@ -164,12 +170,11 @@
     </table>
 </div>
 
-<!-- Mobile Card View -->
-<nav class="node-pagination" aria-label="{{ tr("Node list pages") }}">
-    <span id="node-page-range" class="reach-muted" aria-live="polite"></span>
-    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-previous" disabled>{{ tr("Previous") }}</button>
-    <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-next" disabled>{{ tr("Next") }}</button>
-</nav>
+<div id="node-load-more" class="node-load-more" hidden>
+    <span class="node-spinner" aria-hidden="true"></span>
+    <span>{{ tr("Loading more nodes…") }}</span>
+</div>
+<p id="node-page-range" class="node-page-range" aria-live="polite"></p>
 
 <script>
 // =====================================================
@@ -306,11 +311,15 @@ document.addEventListener("DOMContentLoaded", async function() {
     const clearBtn = document.getElementById("clear-btn");
     const favoritesBtn = document.getElementById("favorites-btn");
 
-    const pageSize = 100;
-    let currentPage = 1;
+    const BATCH_SIZE = 50;
+    let renderedCount = 0;
     let filteredNodes = [];
-    const previousPage = document.getElementById("node-page-previous");
-    const nextPage = document.getElementById("node-page-next");
+    const loadMore = document.getElementById("node-load-more");
+    new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting) && renderedCount < filteredNodes.length) {
+            requestAnimationFrame(appendBatch);
+        }
+    }, {rootMargin: "400px 0px"}).observe(loadMore);
 
 
     async function loadNodesForActiveDays() {
@@ -362,15 +371,6 @@ document.addEventListener("DOMContentLoaded", async function() {
         return;
     }
 
-    previousPage.addEventListener("click", () => {
-        currentPage--;
-        applyFilters(false);
-    });
-    nextPage.addEventListener("click", () => {
-        currentPage++;
-        applyFilters(false);
-    });
-
     // Phones: the filters fold behind a button that counts the active ones.
     const filtersToggle = document.getElementById("filters-toggle");
     const filterPanel = document.getElementById("filter-panel");
@@ -414,7 +414,8 @@ document.addEventListener("DOMContentLoaded", async function() {
             star.outerHTML = favoriteStar(nodeId, !fav);
 
             toggleFavorite(nodeId);
-            applyFilters();
+            // Only the favourites view changes its rows; elsewhere keep the scroll position.
+            if (showOnlyFavorites) applyFilters();
         }
     });
 
@@ -494,8 +495,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         badge.hidden = active === 0;
     }
 
-    async function applyFilters(resetPage = true) {
-        if (resetPage !== false) currentPage = 1;
+    async function applyFilters() {
         updateFiltersCount();
         setStatus(MeshI18n.t("Updating…"));
         await nextFrame();
@@ -522,65 +522,76 @@ document.addEventListener("DOMContentLoaded", async function() {
         setStatus("");
     }
 
+    // Infinite scroll: render the filtered list in batches as the end comes into view.
     function renderTable(nodes) {
-        const total = nodes.length;
-        currentPage = Math.max(1, Math.min(currentPage, Math.ceil(total / pageSize)));
-        const start = (currentPage - 1) * pageSize;
-        document.getElementById("node-page-range").textContent = total
-            ? MeshI18n.t("{start}–{end} of {total} nodes", {start: start + 1, end: Math.min(start + pageSize, total), total}) : MeshI18n.t("0 nodes");
-        previousPage.disabled = currentPage === 1;
-        nextPage.disabled = start + pageSize >= total;
-        nodes = nodes.slice(start, start + pageSize);
+        renderedCount = 0;
         tbody.innerHTML = "";
-        const tableFrag = document.createDocumentFragment();
-
+        countSpan.textContent = nodes.length;
         if (!nodes.length) {
             tbody.innerHTML = `<tr>
                 <td colspan="12" style="text-align:center; color:var(--mesh-muted);">
                     ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
                 </td>
             </tr>`;
-
-            countSpan.textContent = 0;
+            updateLoadMore();
             return;
         }
+        appendBatch();
+    }
 
-        nodes.forEach(node => {
-            const fav = isFavorite(node.node_id);
-            const na = MeshI18n.t("N/A");
-            const lat = node.last_lat ? (node.last_lat / 1e7).toFixed(7) : null;
-            const lon = node.last_long ? (node.last_long / 1e7).toFixed(7) : null;
-            const alt = node.last_altitude != null ? String(node.last_altitude) : null;
-            // Card-only cells (.card-only) combine fields into one line for the card layout.
-            const meta = [node.role, node.hw_model, node.firmware].filter(Boolean).map(escapeHtml).join(" · ");
-            const mqttBadge = node.is_mqtt_gateway ? `<span class="node-badge">${MeshI18n.h("MQTT gateway")}</span>` : "";
-            const net = [node.channel ? escapeHtml(node.channel) : "", mqttBadge].filter(Boolean).join(" ");
-            const location = lat && lon
-                ? `<span class="ti ti-map-pin" aria-hidden="true"></span> ${lat.slice(0, -2)}, ${lon.slice(0, -2)}${alt ? ` · ${escapeHtml(alt)} m` : ""}`
-                : "";
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td class="c-short"><span class="node-short">${escapeHtml(node.short_name || na)}</span></td>
-                <td class="c-long"><a href="/node/${node.node_id}">${escapeHtml(node.long_name || na)}</a></td>
-                <td class="c-hw">${escapeHtml(node.hw_model || na)}</td>
-                <td class="c-fw">${escapeHtml(node.firmware || na)}</td>
-                <td class="c-role">${escapeHtml(node.role || na)}</td>
-                <td class="c-lat">${lat || na}</td>
-                <td class="c-lon">${lon || na}</td>
-                <td class="c-alt">${alt != null ? escapeHtml(alt) : na}</td>
-                <td class="c-channel">${escapeHtml(node.channel || na)}</td>
-                <td class="c-mqtt">${node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No"))}</td>
-                <td class="c-seen">${timeAgoFromMs(node.last_seen_ms)}</td>
-                <td class="c-fav" style="text-align:center;">${favoriteStar(node.node_id, fav)}</td>
-                <td class="c-meta card-only">${meta}</td>
-                <td class="c-net card-only">${net}</td>
-                <td class="c-loc card-only">${location}</td>
-            `;
-            tableFrag.appendChild(row);
-        });
+    function appendBatch() {
+        const batch = filteredNodes.slice(renderedCount, renderedCount + BATCH_SIZE);
+        const fragment = document.createDocumentFragment();
+        batch.forEach(node => fragment.appendChild(nodeRow(node)));
+        tbody.appendChild(fragment);
+        renderedCount += batch.length;
+        updateLoadMore();
+    }
 
-        countSpan.textContent = total;
-        tbody.appendChild(tableFrag);
+    function updateLoadMore() {
+        const total = filteredNodes.length;
+        const more = renderedCount < total;
+        loadMore.hidden = !more;
+        document.getElementById("node-page-range").textContent = total
+            ? MeshI18n.t("Showing {shown} of {total} nodes", {shown: renderedCount, total}) : "";
+        // A short list may not fill the screen: keep loading until it does or nothing is left.
+        if (more && loadMore.getBoundingClientRect().top < window.innerHeight + 400) {
+            requestAnimationFrame(appendBatch);
+        }
+    }
+
+    function nodeRow(node) {
+        const fav = isFavorite(node.node_id);
+        const na = MeshI18n.t("N/A");
+        const lat = node.last_lat ? (node.last_lat / 1e7).toFixed(7) : null;
+        const lon = node.last_long ? (node.last_long / 1e7).toFixed(7) : null;
+        const alt = node.last_altitude != null ? String(node.last_altitude) : null;
+        // Card-only cells (.card-only) combine fields into one line for the card layout.
+        const meta = [node.role, node.hw_model, node.firmware].filter(Boolean).map(escapeHtml).join(" · ");
+        const mqttBadge = node.is_mqtt_gateway ? `<span class="node-badge">${MeshI18n.h("MQTT gateway")}</span>` : "";
+        const net = [node.channel ? escapeHtml(node.channel) : "", mqttBadge].filter(Boolean).join(" ");
+        const location = lat && lon
+            ? `<span class="ti ti-map-pin" aria-hidden="true"></span> ${lat.slice(0, -2)}, ${lon.slice(0, -2)}${alt ? ` · ${escapeHtml(alt)} m` : ""}`
+            : "";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td class="c-short"><span class="node-short">${escapeHtml(node.short_name || na)}</span></td>
+            <td class="c-long"><a href="/node/${node.node_id}">${escapeHtml(node.long_name || na)}</a></td>
+            <td class="c-hw">${escapeHtml(node.hw_model || na)}</td>
+            <td class="c-fw">${escapeHtml(node.firmware || na)}</td>
+            <td class="c-role">${escapeHtml(node.role || na)}</td>
+            <td class="c-lat">${lat || na}</td>
+            <td class="c-lon">${lon || na}</td>
+            <td class="c-alt">${alt != null ? escapeHtml(alt) : na}</td>
+            <td class="c-channel">${escapeHtml(node.channel || na)}</td>
+            <td class="c-mqtt">${node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No"))}</td>
+            <td class="c-seen">${timeAgoFromMs(node.last_seen_ms)}</td>
+            <td class="c-fav" style="text-align:center;">${favoriteStar(node.node_id, fav)}</td>
+            <td class="c-meta card-only">${meta}</td>
+            <td class="c-net card-only">${net}</td>
+            <td class="c-loc card-only">${location}</td>
+        `;
+        return row;
     }
 
     function clearFilters() {
