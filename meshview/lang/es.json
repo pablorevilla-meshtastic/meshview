@@ -654,7 +654,6 @@
     "No": "No",
     "No GPS": "Sin GPS",
     "No Meshtastic packet ID": "Sin ID de paquete Meshtastic",
-    "No additional gateways.": "No hay más puertas de enlace.",
     "No check-ins received in the last six days.": "No se han recibido registros en los últimos seis días.",
     "No device metrics in the latest telemetry packet.": "No hay métricas del dispositivo en el último paquete de telemetría.",
     "No gateways heard these packets.": "Ninguna puerta de enlace recibió estos paquetes.",

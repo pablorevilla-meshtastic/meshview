@@ -36,7 +36,6 @@
 .reach-map { width:100%; height:450px; border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; margin-bottom:20px; background:var(--mesh-stripe); }
 .reach-map-marker { width:34px; height:34px; border:2px solid white; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:10px; font-weight:800; line-height:1; text-shadow:0 1px 2px #000b; box-shadow:0 2px 8px #0003; }
 .reach-map-marker-source { font-size:14px; }
-.reach-gateway-panels { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
 .reach-gateway-panel { min-width:0; overflow:auto; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); margin-bottom:20px; }
 .reach-gateway-table { min-width:480px; }
 .reach-count-bar-cell { min-width:180px; }
@@ -55,7 +54,6 @@
 .reliability-status-missed { color:#b23d2f!important; font-weight:600; }
 .reliability-status-skipped { color:var(--mesh-muted)!important; font-weight:600; }
 .reliability-row-skipped td { text-decoration:line-through; color:var(--mesh-muted)!important; }
-@media(max-width:1000px) { .reach-gateway-panels { grid-template-columns:minmax(0,1fr); gap:0; } }
 /* Phones: the bands table fits without scrolling. */
 @media(max-width:700px) {
     .reach-table:not(.card-table) { min-width:0; }
@@ -164,41 +162,22 @@
 
         <div id="reach-gateway-map" class="reach-map"></div>
 
-        <div class="reach-gateway-panels">
-            <div class="reach-gateway-panel" role="region" aria-label="{{ tr("Gateway reliability table") }}" tabindex="0">
-                <table class="table table-sm reach-table reach-gateway-table card-table">
-                    <thead>
-                        <tr>
-                            <th>{{ tr("Gateway") }}</th>
-                            <th>{{ tr("Heard") }}</th>
-                            <th>{{ tr("Avg Hops") }}</th>
-                            <th>{{ tr("Reliability") }}</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reach-packet-body-left">
-                        <tr>
-                            <td colspan="4" class="reach-muted is-loading">{{ tr("Loading packets...") }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="reach-gateway-panel" role="region" aria-label="{{ tr("Gateway reliability table") }}" tabindex="0">
-                <table class="table table-sm reach-table reach-gateway-table card-table">
-                    <thead>
-                        <tr>
-                            <th>{{ tr("Gateway") }}</th>
-                            <th>{{ tr("Heard") }}</th>
-                            <th>{{ tr("Avg Hops") }}</th>
-                            <th>{{ tr("Reliability") }}</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reach-packet-body-right">
-                        <tr>
-                            <td colspan="4" class="reach-muted is-loading">{{ tr("Loading packets...") }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="reach-gateway-panel" role="region" aria-label="{{ tr("Gateway reliability table") }}" tabindex="0">
+            <table class="table table-sm reach-table reach-gateway-table card-table">
+                <thead>
+                    <tr>
+                        <th>{{ tr("Gateway") }}</th>
+                        <th>{{ tr("Heard") }}</th>
+                        <th>{{ tr("Avg Hops") }}</th>
+                        <th>{{ tr("Reliability") }}</th>
+                    </tr>
+                </thead>
+                <tbody id="reach-gateway-body">
+                    <tr>
+                        <td colspan="4" class="reach-muted is-loading">{{ tr("Loading packets...") }}</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </section>
 </section>
@@ -498,15 +477,10 @@ async function loadReachReport(nodeId = reachNodeId) {
     const packetCountEl = document.getElementById("reach-packet-count");
     const gatewayCountEl = document.getElementById("reach-gateway-count");
     const nodeLinkEl = document.getElementById("reach-node-link");
-    const bodyEls = [
-        document.getElementById("reach-packet-body-left"),
-        document.getElementById("reach-packet-body-right"),
-    ];
+    const gatewayBodyEl = document.getElementById("reach-gateway-body");
     const bucketBodyEl = document.getElementById("reach-bucket-body");
     const setGatewayTables = html => {
-        bodyEls.forEach(el => {
-            el.innerHTML = html;
-        });
+        gatewayBodyEl.innerHTML = html;
     };
 
     packetCountEl.textContent = "...";
@@ -645,11 +619,8 @@ async function loadReachReport(nodeId = reachNodeId) {
                 }),
             }
         ]));
-        const splitIndex = Math.ceil(gatewayRows.length / 2);
-        bodyEls[0].innerHTML = renderGatewayRows(gatewayRows.slice(0, splitIndex));
-        bodyEls[1].innerHTML = gatewayRows.length > 1
-            ? renderGatewayRows(gatewayRows.slice(splitIndex))
-            : `<tr><td colspan="4" class="reach-muted">${MeshI18n.h("No additional gateways.")}</td></tr>`;
+        // One ranked list, most reliable first.
+        gatewayBodyEl.innerHTML = renderGatewayRows(gatewayRows);
         renderReliabilityMap(gatewayRows, nodesById);
     } catch (err) {
         console.error("Failed to load reach report:", err);
@@ -673,9 +644,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!nodeId) {
             document.getElementById("reach-bucket-body").innerHTML =
                 `<tr><td colspan="2" class="text-warning">${MeshI18n.h("Enter a valid node ID or select a node.")}</td></tr>`;
-            document.getElementById("reach-packet-body-left").innerHTML =
-                `<tr><td colspan="4" class="text-warning">${MeshI18n.h("Enter a valid node ID or select a node.")}</td></tr>`;
-            document.getElementById("reach-packet-body-right").innerHTML =
+            document.getElementById("reach-gateway-body").innerHTML =
                 `<tr><td colspan="4" class="text-warning">${MeshI18n.h("Enter a valid node ID or select a node.")}</td></tr>`;
             return;
         }
