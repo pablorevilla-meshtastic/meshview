@@ -58,7 +58,7 @@
 .qr-actions { display:flex; justify-content:center; }
 .mesh-data-page .copied { background:#e8f5ee; color:#187346; }
 @media(max-width:900px) { .node-info { grid-template-columns:minmax(0,1fr); gap:10px; } }
-@media(max-width:700px) { .chart-header { padding:12px; } #node-packets select { flex:1 1 0; min-width:0; } .packet-filter-actions { width:100%; justify-content:flex-end; } }
+@media(max-width:700px) { .chart-header { padding:12px; } #node-packets { gap:8px !important; padding:12px; } #node-packets select { flex:1 1 0; min-width:0; padding-left:8px; padding-right:2px; } #node-packets #packet_port { flex-grow:1.2; } }
 </style>
 {% endblock %}
 
@@ -234,7 +234,6 @@
     </select>
 
     <div class="packet-filter-actions">
-        <button type="button" onclick="reloadPackets()">{{ tr("Apply") }}</button>
         <button type="button" class="chart-tool" onclick="exportPacketsCSV()" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
     </div>
 </div>
@@ -848,7 +847,10 @@ async function loadTrack(){
    PACKETS TABLE + NEIGHBOR OVERLAY
    ====================================================== */
 
+// Filters apply on change, so a slower earlier response must not overwrite a newer one.
+let packetsRequest = 0;
 async function loadPackets(filters = {}) {
+    const request = ++packetsRequest;
     const list = document.getElementById("packet_list");
     list.innerHTML = "";
 
@@ -865,9 +867,10 @@ async function loadPackets(filters = {}) {
     }
 
     const res = await fetch(url);
-    if (!res.ok) return;
+    if (!res.ok || request !== packetsRequest) return;
 
     const data = await res.json();
+    if (request !== packetsRequest) return;
     const packets = data.packets || [];
     currentPacketRows = packets;
 
@@ -1609,6 +1612,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         initPacketPortFilter();
+        for (const id of ["packet_since", "packet_port"]) {
+            document.getElementById(id).addEventListener("change", reloadPackets);
+        }
         await reloadPackets();
         await loadTelemetryCharts();
         await loadNeighborTimeSeries();
