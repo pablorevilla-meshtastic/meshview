@@ -20,6 +20,9 @@
 .mesh-data-page .mesh-content .net-sort:hover { background:transparent; }
 .mesh-data-page .mesh-content .net-sort:focus-visible { outline:2px solid #fff; outline-offset:2px; }
 .net-sort .sort-icon { font-size:10px; }
+/* The configured net tag, wherever it appears in a message. */
+.net-tag { padding:0 5px; border-radius:4px; background:var(--mesh-soft); white-space:nowrap; }
+#weekly-message .net-tag { background:var(--mesh-surface); border:1px solid var(--mesh-border); }
 #net-note { color:var(--mesh-muted); font-size:12px; margin-top:12px; }
 /* Phones: number, node and time on top, location and channel below, the message last. */
 .mesh-data-page .net-table.card-table.is-cards tbody tr { grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:"num node time" "loc loc chan" "msg msg msg"; }
@@ -53,6 +56,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const countEl = document.getElementById("net-count");
     const messageBox = document.getElementById("weekly-message");
     let netTranslations = {};
+    let netTag = "";
 
     function applyTranslations(root = document) {
         root.querySelectorAll("[data-translate-lang]").forEach(el => {
@@ -65,6 +69,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         list.replaceChildren();
         const row = list.insertRow(), cell = row.insertCell();
         cell.colSpan = 6; cell.className = "data-empty"; cell.textContent = text;
+    }
+
+    // Text with every occurrence of the net tag wrapped in a highlight.
+    function withTag(text, tag) {
+        const fragment = document.createDocumentFragment();
+        const source = String(text || "");
+        if (!tag) { fragment.append(source); return fragment; }
+        const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        let last = 0;
+        for (const match of source.matchAll(new RegExp(escaped, "gi"))) {
+            fragment.append(source.slice(last, match.index));
+            const mark = document.createElement("span");
+            mark.className = "net-tag";
+            mark.textContent = match[0];
+            fragment.append(mark);
+            last = match.index + match[0].length;
+        }
+        fragment.append(source.slice(last));
+        return fragment;
     }
 
     // Check-ins follow "(LONG NAME) - (CITY) #tag": the location is whatever
@@ -156,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const message = document.createElement("a");
             message.href = `/packet/${encodeURIComponent(packet.storage_id ?? packet.id)}`;
             message.title = netTranslations.view_packet_details || MeshI18n.t("View packet details");
-            message.textContent = packet.payload || "";
+            message.append(withTag(packet.payload, netTag));
             cell(row, "c-message", message);
         });
     }
@@ -170,11 +193,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         } catch (error) {
             console.error("Net translations:", error);
         }
+        const tag = (site.net_tag || "").trim();
+        netTag = tag;
         const weekly = (site.weekly_net_message || "").trim();
-        document.getElementById("weekly-message-text").textContent = weekly;
+        document.getElementById("weekly-message-text").replaceChildren(withTag(weekly, tag));
         messageBox.hidden = !weekly;
 
-        const tag = (site.net_tag || "").trim();
         if (!tag) {
             countEl.textContent = "0";
             showMessage(MeshI18n.t("No network check-in tag configured."));
