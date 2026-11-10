@@ -28,6 +28,13 @@ umbral en cada una forma el contorno.
 - **Fiabilidad**: por defecto `0.5` (mediana)
 - **Irregularidad del terreno**: por defecto `90 m` (terreno medio)
 
+### Requisitos
+
+El modelo necesita el paquete opcional `pyitm`. Está incluido en `requirements.txt`, y
+las instalaciones desde el paquete pueden añadirlo con el extra `coverage`
+(`pip install 'meshview[coverage]'`). Sin él, el botón de cobertura indica que la
+cobertura predicha no está disponible en el servidor.
+
 ### Limitaciones
 
 - No se usan datos de terreno ni de edificios (solo modo área).
