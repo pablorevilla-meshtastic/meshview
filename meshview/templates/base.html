@@ -266,7 +266,8 @@ body { min-height:100dvh; display:flex; flex-direction:column; }
 .map-filter-group:first-child > .map-filter:last-child { margin-right:10px; }
 .map-filter-group:empty { display:none; }
 .map-filter { display:inline-flex; align-items:center; gap:6px; min-height:30px; margin:0; padding:0 11px 0 9px; border:1px solid var(--mesh-border); border-radius:15px; background:var(--mesh-surface); color:var(--mesh-text); font-size:12px; white-space:nowrap; cursor:pointer; user-select:none; }
-.map-filter:hover { background:var(--mesh-soft); }
+/* Hover only darkens the border: the tinted background means "selected". */
+.map-filter:hover { border-color:var(--mesh-muted); }
 .map-filter:has(input:checked) { background:var(--mesh-soft); border-color:var(--mesh-hover); }
 .map-filter input { margin:0; accent-color:var(--mesh-primary); }
 .map-filter:has(input:focus-visible) { outline:2px solid var(--mesh-primary); outline-offset:2px; }
