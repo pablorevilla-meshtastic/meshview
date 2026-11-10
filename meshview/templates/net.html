@@ -5,8 +5,12 @@
 {% block css %}
 {% include "data-page-styles.html" %}
 <style>
-#weekly-message { display:flex; gap:12px; align-items:flex-start; padding:14px 18px; background:var(--mesh-soft); border:1px solid var(--mesh-border); border-radius:9px; color:var(--mesh-text); font-size:13px; line-height:1.5; margin-bottom:16px; overflow-wrap:anywhere; }
-#weekly-message .ti { flex-shrink:0; margin-top:2px; font-size:18px; color:var(--mesh-primary); }
+#weekly-message { display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:12px; align-items:start; padding:14px 18px; background:var(--mesh-soft); border:1px solid var(--mesh-border); border-radius:9px; color:var(--mesh-text); font-size:13px; line-height:1.5; margin-bottom:16px; overflow-wrap:anywhere; }
+/* The icon sits beside the first paragraph (centred on it); the rules line runs below. */
+#weekly-message > div { display:contents; }
+#weekly-message > .ti { grid-row:1; align-self:center; }
+#weekly-message p { grid-column:2; }
+#weekly-message .ti { flex-shrink:0; font-size:18px; color:var(--mesh-primary); }
 #weekly-message-text { margin:0 0 4px; white-space:pre-wrap; }
 #weekly-message-text[hidden] { display:none; }
 .weekly-rules { margin:0; color:var(--mesh-muted); font-size:12px; }
