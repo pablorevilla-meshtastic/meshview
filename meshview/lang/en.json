@@ -615,6 +615,7 @@
     "Neighbor": "Neighbor",
     "Neighbor Name": "Neighbor Name",
     "Neighbor Node ID": "Neighbor Node ID",
+    "Neighbors: {count}": "Neighbors: {count}",
     "Network map": "Network map",
     "Network nodes": "Network nodes",
     "Network summary": "Network summary",

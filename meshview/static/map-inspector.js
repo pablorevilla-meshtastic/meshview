@@ -170,21 +170,78 @@
         const values = deviceMetrics(packet);
         if (values.length && packetTime(packet) >= telemetryTime) showTelemetry(packet, values);
     }
+    // One readable line per packet type instead of the raw protobuf text.
+    function payloadField(payload, name) {
+        const match = payload.match(new RegExp(`(?:^|\\s)${name}:\\s*("(?:[^"\\\\]|\\\\.)*"|[^\\s}]+)`));
+        return match ? match[1].replace(/^"|"$/g, '') : null;
+    }
+    function packetSummary(packet) {
+        const payload = String(packet.payload || '');
+        const num = name => { const v = payloadField(payload, name); return v === null || isNaN(v) ? null : Number(v); };
+        const join = parts => parts.filter(Boolean).join(' · ');
+        switch (Number(packet.portnum)) {
+            case 1: return payload;
+            case 3: {
+                const lat = num('latitude_i'), lon = num('longitude_i'), alt = num('altitude');
+                if (lat === null || lon === null) break;
+                return join([`${(lat / 1e7).toFixed(5)}, ${(lon / 1e7).toFixed(5)}`, alt === null ? '' : `${alt} m`]);
+            }
+            case 4: case 73: {
+                const long = payloadField(payload, 'long_name'), short = payloadField(payload, 'short_name');
+                const name = long && short ? `${long} (${short})` : long || short;
+                return join([name, payloadField(payload, 'hw_model')]) || null;
+            }
+            case 67: {
+                const battery = num('battery_level'), voltage = num('voltage');
+                const temperature = num('temperature'), humidity = num('relative_humidity'), pressure = num('barometric_pressure');
+                const ch1 = num('ch1_voltage');
+                const text = join([
+                    battery === null ? '' : battery > 100 ? MeshI18n.t("External") : `${battery}%`,
+                    voltage === null ? '' : `${voltage.toFixed(2)} V`,
+                    temperature === null ? '' : `${temperature.toFixed(1)} °C`,
+                    humidity === null ? '' : `${humidity.toFixed(0)}%`,
+                    pressure === null ? '' : `${pressure.toFixed(0)} hPa`,
+                    ch1 === null || voltage !== null ? '' : `${ch1.toFixed(2)} V`
+                ]);
+                if (text) return text;
+                break;
+            }
+            case 71: return MeshI18n.t("Neighbors: {count}", {count: (payload.match(/(^|\n)neighbors \{/g) || []).length});
+        }
+        return payload.replace(/\s+/g, ' ').trim();
+    }
     function renderRecent() {
         const container = byId('inspector-recent');
         if (!recentPackets.length) { note(container, MeshI18n.t("No recent packets found.")); return; }
         container.replaceChildren();
         for (const packet of recentPackets) {
             const hasPacketLink = Number(packet.portnum) !== 73 && Number(packetId(packet)) > 0;
-            const button = document.createElement(hasPacketLink ? 'a' : 'div');
-            if (hasPacketLink) button.href = `/packet/${encodeURIComponent(packetId(packet))}`;
-            button.className = 'mesh-inspector-packet';
-            const heading = document.createElement('strong');
-            heading.textContent = `${portName(packet)} · ${timeText(packet.import_time_us)}`;
-            const preview = document.createElement('small');
-            preview.textContent = packet.payload || MeshI18n.t("From {name}", {name: nodeName(packet.from_node_id, packet.long_name)});
-            button.append(heading, preview);
-            container.append(button);
+            const item = document.createElement(hasPacketLink ? 'a' : 'div');
+            if (hasPacketLink) item.href = `/packet/${encodeURIComponent(packetId(packet))}`;
+            item.className = 'mesh-inspector-packet';
+            // Type chip, direction (sent → destination, received ← sender) and time on top.
+            const top = document.createElement('span'); top.className = 'mesh-inspector-packet-top';
+            const type = document.createElement('span'); type.className = 'mesh-traffic-type';
+            type.textContent = portName(packet);
+            type.style.setProperty('--port-color', window.PORT_COLOR_MAP?.[packet.portnum] || '#6c757d');
+            const direction = document.createElement('span'); direction.className = 'mesh-inspector-packet-peer';
+            direction.textContent = String(packet.from_node_id) === inspectedNodeId
+                ? `→ ${Number(packet.to_node_id) === 4294967295 ? MeshI18n.t("All")
+                    : Number(packet.to_node_id) === 1 ? MeshI18n.t("Direct to MQTT")
+                    : nodeName(packet.to_node_id, packet.to_long_name)}`
+                : `← ${nodeName(packet.from_node_id, packet.long_name)}`;
+            const time = document.createElement('span'); time.className = 'mesh-inspector-packet-time';
+            time.textContent = timeText(packet.import_time_us);
+            time.title = dateText(packet.import_time_us);
+            top.append(type, direction, time);
+            item.append(top);
+            const summary = packetSummary(packet);
+            if (summary) {
+                const preview = document.createElement('small');
+                preview.textContent = summary;
+                item.append(preview);
+            }
+            container.append(item);
         }
     }
     window.openMapNodeInspector = async (node, force = false) => {

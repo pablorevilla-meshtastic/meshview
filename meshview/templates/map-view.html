@@ -222,8 +222,10 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-inspector-actions a { font-size:12px; }
 .mesh-inspector-packet { display:block; width:100%; text-align:left; padding:10px 0; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font-size:12px; text-decoration:none; }
 a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
-.mesh-inspector-packet strong,.mesh-inspector-packet small { display:block; }
-.mesh-inspector-packet small { color:var(--mesh-muted); margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mesh-inspector-packet-top { display:flex; align-items:center; gap:8px; min-width:0; }
+.mesh-inspector-packet-peer { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--mesh-muted); }
+.mesh-inspector-packet-time { flex-shrink:0; color:var(--mesh-muted); font-variant-numeric:tabular-nums; }
+.mesh-inspector-packet small { display:block; color:var(--mesh-text); margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mesh-inspector-note { color:var(--mesh-muted); font-size:12px; margin:8px 0; }
 .mesh-inspector-telemetry { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 /* Values sit at the bottom so a row's numbers line up even when a label wraps. */

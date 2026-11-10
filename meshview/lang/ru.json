@@ -615,6 +615,7 @@
     "Neighbor": "Сосед",
     "Neighbor Name": "Имя соседа",
     "Neighbor Node ID": "ID соседнего узла",
+    "Neighbors: {count}": "Соседи: {count}",
     "Network map": "Карта сети",
     "Network nodes": "Узлы сети",
     "Network summary": "Сводка сети",
