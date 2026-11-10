@@ -8,6 +8,10 @@
 .node-info { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:20px; font-size:13px; }
 .node-info-col { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:20px; overflow-wrap:anywhere; }
 .node-info-col > div { padding:5px 0; }
+.node-info-col { position:relative; }
+.node-info-loading { position:absolute; left:20px; top:62px; margin:0; color:var(--mesh-muted); }
+.node-info:not(.is-ready) .node-info-col > div { visibility:hidden; }
+.node-info.is-ready .node-info-loading { display:none; }
 .node-info-col h2 { display:flex; align-items:center; gap:8px; margin:0 0 10px; padding-bottom:10px; border-bottom:1px solid var(--mesh-border); color:var(--mesh-text); font-size:15px; font-weight:650; }
 .node-info-col h2 .ti { color:var(--mesh-primary); font-size:18px; }
 .node-info strong { color:var(--mesh-muted); font-weight:500; }
@@ -38,10 +42,14 @@
 .mesh-dialog-body p { margin:0 0 10px; }
 .mesh-dialog-body ul { margin:0 0 10px; padding-left:20px; }
 .mesh-dialog-body code { padding:1px 5px; border-radius:4px; background:var(--mesh-soft); color:var(--mesh-text); font-size:12.5px; }
-.chart-container { width:100%; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:20px; overflow:hidden; }
+.chart-container { position:relative; width:100%; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:20px; overflow:hidden; }
 .chart-header { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid var(--mesh-border); font-size:14px; font-weight:600; }
 .chart-title { display:flex; align-items:center; gap:8px; min-width:0; margin:0; font-size:15px; font-weight:650; }
 .chart-title .ti { color:var(--mesh-primary); font-size:18px; }
+.chart-loading { position:absolute; left:0; right:0; top:66px; bottom:0; display:flex; align-items:center; justify-content:center; margin:0; color:var(--mesh-muted); pointer-events:none; }
+.packet-loading td { color:var(--mesh-muted); }
+#map { position:relative; }
+.map-loading { position:absolute; inset:0; z-index:500; display:flex; align-items:center; justify-content:center; margin:0; color:var(--mesh-muted); pointer-events:none; }
 .chart-actions { display:flex; gap:4px; flex-shrink:0; }
 .packet-filter-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
 .filter-container { display:flex; gap:10px; flex-wrap:wrap; padding:16px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:18px; }
@@ -107,6 +115,7 @@
     <div id="node-info" class="node-info">
         <section class="node-info-col" aria-labelledby="node-info-heading-0">
             <h2 id="node-info-heading-0"><span class="ti ti-id" aria-hidden="true"></span> {{ tr("Identity") }}</h2>
+            <p class="node-info-loading is-loading">{{ tr("Loading...") }}</p>
             <div><strong data-translate-lang="long_name">Long Name</strong><strong>: </strong> <span id="info-long-name">—</span></div>
             <div><strong data-translate-lang="short_name">Short Name</strong><strong>: </strong> <span id="info-short-name">—</span></div>
             <div><strong data-translate-lang="id">Hex ID</strong><strong>: </strong><span id="info-id">—</span></div>
@@ -114,6 +123,7 @@
         </section>
         <section class="node-info-col" aria-labelledby="node-info-heading-1">
             <h2 id="node-info-heading-1"><span class="ti ti-cpu" aria-hidden="true"></span> {{ tr("Device & network") }}</h2>
+            <p class="node-info-loading is-loading">{{ tr("Loading...") }}</p>
             <div><strong data-translate-lang="hw_model">Hardware Model</strong><strong>: </strong> <span id="info-hw-model">—</span></div>
             <div><strong data-translate-lang="firmware">Firmware</strong><strong>: </strong> <span id="info-firmware">—</span></div>
             <div><strong data-translate-lang="role">Role</strong><strong>: </strong> <span id="info-role">—</span></div>
@@ -122,12 +132,14 @@
         </section>
         <section class="node-info-col" aria-labelledby="node-info-heading-2">
             <h2 id="node-info-heading-2"><span class="ti ti-map-pin" aria-hidden="true"></span> {{ tr("Location") }}</h2>
+            <p class="node-info-loading is-loading">{{ tr("Loading...") }}</p>
             <div><strong data-translate-lang="latitude">Latitude</strong><strong>: </strong> <span id="info-lat">—</span></div>
             <div><strong data-translate-lang="longitude">Longitude</strong><strong>: </strong> <span id="info-lon">—</span></div>
             <div><strong>{{ tr("Altitude (above sea level)") }}</strong><strong>: </strong> <span id="info-altitude">—</span></div>
         </section>
         <section class="node-info-col" aria-labelledby="node-info-heading-3">
             <h2 id="node-info-heading-3"><span class="ti ti-activity" aria-hidden="true"></span> {{ tr("Activity") }}</h2>
+            <p class="node-info-loading is-loading">{{ tr("Loading...") }}</p>
             <div><strong data-translate-lang="first_update">First Update</strong><strong>: </strong> <span id="info-first-update">—</span></div>
             <div><strong data-translate-lang="last_update">Last Update</strong><strong>: </strong> <span id="info-last-update">—</span></div>
             <div>
@@ -135,13 +147,13 @@
                 <span id="info-stats"
                       data-label-24h="24h"
                       data-label-sent="{{ tr("Packets sent") }}"
-                      data-label-seen="{{ tr("Times seen") }}">—</span>
+                      data-label-seen="{{ tr("Times seen") }}" class="is-loading">{{ tr("Loading...") }}</span>
             </div>
         </section>
     </div>
 
     <!-- Map. -->
-    <div id="map"></div>
+    <div id="map"><p id="map-loading" class="map-loading is-loading">{{ tr("Loading...") }}</p></div>
 
     <!-- Battery Chart -->
     <div id="battery_voltage_container" class="chart-container">
@@ -152,6 +164,7 @@
                 <button type="button" class="chart-tool" onclick="exportCSV('battery_voltage')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
             </div>
         </div>
+        <p class="chart-loading is-loading">{{ tr("Loading...") }}</p>
         <div id="chart_battery_voltage" style="height:380px;"></div>
     </div>
 
@@ -164,6 +177,7 @@
                 <button type="button" class="chart-tool" onclick="exportCSV('power')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
             </div>
         </div>
+        <p class="chart-loading is-loading">{{ tr("Loading...") }}</p>
         <div id="chart_power" style="height:380px;"></div>
     </div>
 
@@ -176,6 +190,7 @@
                 <button type="button" class="chart-tool" onclick="exportCSV('air_channel')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
             </div>
         </div>
+        <p class="chart-loading is-loading">{{ tr("Loading...") }}</p>
         <div id="chart_air_channel" style="height:380px;"></div>
     </div>
 
@@ -188,6 +203,7 @@
                 <button type="button" class="chart-tool" onclick="exportCSV('environment')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
             </div>
         </div>
+        <p class="chart-loading is-loading">{{ tr("Loading...") }}</p>
         <div id="chart_environment" style="height:380px;"></div>
     </div>
 
@@ -201,6 +217,7 @@
                 <button type="button" class="chart-tool" onclick="exportCSV('neighbors')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
             </div>
     </div>
+    <p class="chart-loading is-loading">{{ tr("Loading...") }}</p>
     <div id="chart_neighbors" style="height:380px;"></div>
 </div>
 
@@ -213,6 +230,7 @@
                 <button type="button" class="chart-tool" onclick="exportCSV('packet_histogram')" title="{{ tr("Export CSV") }}" aria-label="{{ tr("Export CSV") }}"><span class="ti ti-download" aria-hidden="true"></span></button>
             </div>
     </div>
+    <p class="chart-loading is-loading">{{ tr("Loading...") }}</p>
     <div id="chart_packet_histogram" style="height:380px;"></div>
 </div>
 
@@ -255,7 +273,7 @@
         </tr>
     </thead>
 
-        <tbody id="packet_list"></tbody>
+        <tbody id="packet_list"><tr class="packet-loading"><td colspan="6"><span class="is-loading">{{ tr("Loading...") }}</span></td></tr></tbody>
     </table>
     </div>
 
@@ -520,6 +538,7 @@ async function loadNodeInfo(){
         }
         document.getElementById("info-first-update").textContent = firstSeen;
         document.getElementById("info-last-update").textContent = lastSeen;
+        document.getElementById("node-info").classList.add("is-ready");
         loadNodeStats(node.node_id);
     } catch (err) {
         console.error("Failed to load node info:", err);
@@ -1646,6 +1665,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Load the track first so neighbor links anchor to the same
         // visible current-node position shown on this page.
         await loadTrack();
+        document.getElementById("map-loading")?.remove();
 
         // ✅ DRAW LATEST NEIGHBORS ONCE
         const neighborIds = await loadLatestNeighborIds();
@@ -1658,9 +1678,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.getElementById(id).addEventListener("change", reloadPackets);
         }
         await reloadPackets();
-        await loadTelemetryCharts();
-        await loadNeighborTimeSeries();
-        await loadPacketHistogram();
+        // Each chart shows a loading line until its loader settles.
+        const settle = ids => () => ids.forEach(id =>
+            document.querySelector(`#${id} .chart-loading`)?.remove());
+        await loadTelemetryCharts().finally(settle(["battery_voltage_container",
+            "power_chart_container", "air_channel_container", "env_chart_container"]));
+        await loadNeighborTimeSeries().finally(settle(["neighbor_chart_container"]));
+        await loadPacketHistogram().finally(settle(["packet_histogram_container"]));
 
         ensureMapVisible();
         setTimeout(ensureMapVisible, 1000);
@@ -1703,10 +1727,12 @@ async function loadNodeStats(nodeId) {
         const packets = data?.total_packets ?? 0;
         const seen    = data?.total_seen ?? 0;
 
+        document.getElementById("info-stats").classList.remove("is-loading");
         document.getElementById("info-stats").textContent =
             MeshI18n.t("24h · Packets sent: {packets} · Times seen: {seen}", {packets: packets.toLocaleString(MeshI18n.language), seen: seen.toLocaleString(MeshI18n.language)});
     } catch (err) {
         console.error("Failed to load node stats:", err);
+        document.getElementById("info-stats").classList.remove("is-loading");
         document.getElementById("info-stats").textContent = "—";
     }
 }
