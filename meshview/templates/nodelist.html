@@ -35,7 +35,7 @@
 .mesh-data-page .mesh-content .sort-direction:focus-visible { outline:0; }
 .mesh-data-page .sort-control .sort-select { flex:1 1 auto; min-width:0; height:auto; padding:0 20px 0 7px; font-size:13px; background-position:right 4px center; border:0; border-radius:0; background-color:transparent; text-overflow:ellipsis; }
 .mesh-data-page .sort-control .sort-select:focus-visible { outline:0; }
-.clear-btn { order:6; }
+.filter-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; flex:1 0 auto; order:6; }
 /* Card mode above phones: search and sort on the first row (sort at the right end), the
    filters and "clear" on a second row of their own. */
 @media(min-width:701px) {
@@ -44,8 +44,6 @@
     .mesh-nodelist-page:has(#node-list .is-cards) .filter-panel { display:flex; flex:1 1 100%; flex-wrap:wrap; align-items:center; gap:8px; order:2; }
     .mesh-nodelist-page:has(#node-list .is-cards) .filter-panel > select { flex:1 1 150px; }
     .mesh-nodelist-page:has(#node-list .is-cards) .filter-panel .days-active { margin-left:4px; }
-    .mesh-data-page .mesh-content .mesh-nodelist-page:has(#node-list .is-cards) .clear-btn,
-    .mesh-nodelist-page:has(#node-list .is-cards) .mesh-content .clear-btn { margin-left:0; }
 }
 #node-list th { cursor:pointer; }
 .filter-container { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
@@ -66,7 +64,7 @@
     .filter-panel .days-active { margin-left:0; }
 }
 .days-active { white-space:nowrap; display:inline-flex; align-items:center; gap:6px; margin:0 0 0 4px; font-size:12px; color:var(--mesh-muted); }
-.mesh-data-page .mesh-content .clear-btn { margin-left:auto; border-color:transparent; background:transparent; }
+.mesh-data-page .mesh-content .clear-btn { flex-shrink:0; border-color:transparent; background:transparent; }
 .mesh-data-page .mesh-content .clear-btn:hover { background:var(--mesh-soft); }
 .search-box { flex:0 1 260px; }
 .node-status { opacity:0; padding:3px 8px; border-radius:20px; background:var(--mesh-soft); color:var(--mesh-primary); margin-left:10px; font-size:11px; }
@@ -145,6 +143,8 @@
         <option value="" data-translate-lang="all_firmware">All Firmware</option>
     </select>
 
+    <!-- Active days and "clear" move together: days on the left, clear on the right. -->
+    <div class="filter-footer">
     <label class="days-active" for="days-active-filter">
         <span>{{ tr("Active in the last") }}</span>
         <select id="days-active-filter">
@@ -158,6 +158,7 @@
     <button class="clear-btn" id="clear-btn" data-translate-lang="clear_filters">
         Clear Filters
     </button>
+    </div>
     </div>
 </div>
 
