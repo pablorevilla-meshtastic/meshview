@@ -514,6 +514,8 @@ async def run_server():
         ui_translations=ui_translations,
         ui_language=language,
         tr=lambda source: ui_translations.get(source, source),
+        # The site message is the installation's tagline: page description and footer.
+        site_description=CONFIG.get("site", {}).get("message", "").strip(),
     )
 
     app = web.Application()

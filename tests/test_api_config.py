@@ -31,3 +31,11 @@ async def test_conversations_option_controls_chat(monkeypatch, site, expected):
 async def test_meshviewworld_option(monkeypatch):
     assert (await site_config(monkeypatch, {}))["meshviewworld"] == "true"
     assert (await site_config(monkeypatch, {"meshviewworld": "False"}))["meshviewworld"] == "false"
+
+
+@pytest.mark.asyncio
+async def test_message_and_announcement(monkeypatch):
+    site = await site_config(monkeypatch, {})
+    assert site["message"] == "" and site["announcement"] == ""
+    site = await site_config(monkeypatch, {"message": "Tagline", "announcement": "Maintenance"})
+    assert site["message"] == "Tagline" and site["announcement"] == "Maintenance"

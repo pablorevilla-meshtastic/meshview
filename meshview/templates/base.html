@@ -4,6 +4,7 @@
     <title>Meshview</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% if site_description %}<meta name="description" content="{{ site_description }}">{% endif %}
 
     <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48 64x64 256x256" href="/static/favicon.ico">
     <link rel="icon" type="image/svg+xml" sizes="any" href="/static/meshview-icon.svg">
@@ -141,17 +142,24 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-menu-toggle:focus-visible { outline:2px solid white; outline-offset:3px; }
 .mesh-nav-section { display:none; }
 .mesh-content { max-width:1600px; margin:0 auto; padding:16px 28px; }
-.mesh-announcement { text-align:center; padding:10px 20px; background:var(--mesh-soft); color:var(--mesh-text); font-size:14px; }
-.mesh-announcement:empty { display:none; }
+.mesh-announcement { background:var(--mesh-soft); border-bottom:1px solid var(--mesh-border); color:var(--mesh-text); font-size:14px; }
+.mesh-announcement[hidden] { display:none; }
+.mesh-announcement-inner { display:flex; align-items:center; gap:10px; max-width:1600px; margin:auto; padding:8px 12px 8px 28px; }
+.mesh-announcement-inner > .ti { color:var(--mesh-primary); font-size:18px; }
+.mesh-announcement-inner p { flex:1; margin:0; overflow-wrap:anywhere; }
+#site-announcement-close { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:32px; height:32px; padding:0; border:0; border-radius:6px; background:transparent; color:var(--mesh-muted); font-size:16px; cursor:pointer; }
+#site-announcement-close:hover { background:var(--mesh-hover); color:var(--mesh-text); }
+#site-announcement-close:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:1px; }
 .mesh-footer { display:flex; justify-content:space-between; gap:16px; padding:20px 28px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:12px; }
+.mesh-footer-info { display:flex; flex-wrap:wrap; gap:4px 16px; }
+.mesh-footer-tagline:empty { display:none; }
+@media(max-width:700px) { .mesh-announcement-inner { padding-left:14px; } }
 .mesh-page-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:10px; }
 .mesh-eyebrow { font-size:10px; letter-spacing:1.6px; font-weight:700; color:var(--mesh-primary); }
 .mesh-page-heading h1 { font-size:28px; font-weight:650; margin:2px 0 3px; }
 .mesh-page-heading p { color:var(--mesh-muted); font-size:14px; margin:0; }
 .mesh-page-heading.is-compact { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:0 16px; min-height:40px; margin-bottom:12px; }
 .mesh-page-heading.is-compact h1 { font-size:22px; line-height:1.2; margin:0; }
-.mesh-page-heading .mesh-page-message { grid-column:1 / -1; margin-top:4px; }
-.mesh-page-heading .mesh-page-message:empty { display:none; }
 .mesh-secondary-button,.mesh-fit-button { border:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); padding:9px 14px; border-radius:6px; text-decoration:none; font-size:13px; }
 .mesh-secondary-button:hover,.mesh-fit-button:hover { background:var(--mesh-soft); }
 /* Live feed status: green live, grey paused, amber stale, red offline. */
@@ -279,12 +287,21 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
         <button class="mesh-theme-toggle" type="button" data-theme-toggle aria-label="{{ tr("Switch to night mode") }}" aria-pressed="false" title="{{ tr("Night mode") }}"><svg class="theme-icon theme-icon--sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-icon--moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg></button>
     </div>
 </header>
-<div id="site-message" class="mesh-announcement"></div>
+<div id="site-announcement" class="mesh-announcement" role="region" aria-label="{{ tr("Announcement") }}" hidden>
+    <div class="mesh-announcement-inner">
+        <span class="ti ti-speakerphone" aria-hidden="true"></span>
+        <p id="site-announcement-text"></p>
+        <button id="site-announcement-close" type="button" aria-label="{{ tr("Dismiss announcement") }}" title="{{ tr("Dismiss announcement") }}"><span class="ti ti-x" aria-hidden="true"></span></button>
+    </div>
+</div>
 <main class="mesh-content">
 {% block body %}{% endblock %}
 </main>
 <footer class="mesh-footer">
-    <span id="footer" data-translate="footer"></span>
+    <div class="mesh-footer-info">
+        <span id="site-tagline" class="mesh-footer-tagline">{{ site_description }}</span>
+        <span id="footer" data-translate="footer"></span>
+    </div>
     <span id="site-version">Meshview</span>
 </footer>
 
@@ -390,12 +407,9 @@ async function initializePage() {
         // Header & Message
         document.getElementById("site-header").textContent = site.title || "Meshview";
 
-        // The site message is documented as a homepage message.
-        // Pages with a #page-message slot show it there, under their title, instead of the band.
-        const isHome = ["/", "/index", "/index.html"].includes(location.pathname);
-        const pageMessage = document.getElementById("page-message");
-        if (pageMessage) pageMessage.textContent = isHome ? (site.message || "") : "";
-        document.getElementById("site-message").textContent = isHome && !pageMessage ? (site.message || "") : "";
+        // [site] announcement: a dismissible banner on every page. Dismissing it hides that
+        // text in this browser until the announcement changes.
+        showAnnouncement((site.announcement || "").trim());
 
         // Menu
         const menu = document.getElementById("site-menu");
@@ -435,6 +449,22 @@ async function initializePage() {
         console.error("Failed to initialize page:", err);
         document.body.classList.add("ready");
     }
+}
+
+// --- Announcement banner ---
+const ANNOUNCEMENT_KEY = "meshview-announcement-dismissed";
+function showAnnouncement(text) {
+    const banner = document.getElementById("site-announcement");
+    if (!banner || !text) return;
+    let dismissed = null;
+    try { dismissed = localStorage.getItem(ANNOUNCEMENT_KEY); } catch {}
+    if (dismissed === text) return;
+    document.getElementById("site-announcement-text").textContent = text;
+    banner.hidden = false;
+    document.getElementById("site-announcement-close").addEventListener("click", () => {
+        banner.hidden = true;
+        try { localStorage.setItem(ANNOUNCEMENT_KEY, text); } catch {}
+    }, {once: true});
 }
 
 // --- Site menu: every section on one line, overflow into "More" only when it does not fit ---
