@@ -127,10 +127,11 @@
         const channelUtil = value('channel_utilization');
         const airUtil = value('air_util_tx');
         return [
-            [MeshI18n.t("Battery"), battery === null ? null : battery > 100 ? MeshI18n.t("Powered") : `${battery}%`],
-            [MeshI18n.t("Voltage"), voltage === null ? null : `${voltage.toFixed(2)} V`],
-            [MeshI18n.t("Channel utilization"), channelUtil === null ? null : `${channelUtil.toFixed(1)}%`],
-            [MeshI18n.t("Air utilization TX"), airUtil === null ? null : `${airUtil.toFixed(1)}%`]
+            // Same icons as the node page charts.
+            [MeshI18n.t("Battery"), battery === null ? null : battery > 100 ? MeshI18n.t("Powered") : `${battery}%`, 'battery-2'],
+            [MeshI18n.t("Voltage"), voltage === null ? null : `${voltage.toFixed(2)} V`, 'bolt'],
+            [MeshI18n.t("Channel utilization"), channelUtil === null ? null : `${channelUtil.toFixed(1)}%`, 'antenna-bars-5'],
+            [MeshI18n.t("Air utilization TX"), airUtil === null ? null : `${airUtil.toFixed(1)}%`, 'broadcast']
         ].filter(([, value]) => value !== null);
     }
     function showTelemetry(packet, values) {
@@ -138,11 +139,13 @@
         const container = byId('inspector-telemetry');
         container.replaceChildren();
         const grid = document.createElement('div'); grid.className = 'mesh-inspector-telemetry';
-        for (const [label, value] of values) {
+        for (const [label, value, icon] of values) {
             const cell = document.createElement('div');
+            const span = document.createElement('span');
+            const mark = document.createElement('span'); mark.className = `ti ti-${icon}`; mark.setAttribute('aria-hidden', 'true');
+            span.append(mark, label);
             const strong = document.createElement('strong'); strong.textContent = value;
-            const span = document.createElement('span'); span.textContent = label;
-            cell.append(strong, span); grid.append(cell);
+            cell.append(span, strong); grid.append(cell);
         }
         const stamp = document.createElement('p'); stamp.className = 'mesh-inspector-note';
         stamp.textContent = MeshI18n.t("Reported {time}", {time: dateText(packet.import_time_us)});

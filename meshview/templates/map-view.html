@@ -224,8 +224,10 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-inspector-note { color:var(--mesh-muted); font-size:12px; margin:8px 0; }
 .mesh-inspector-telemetry { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .mesh-inspector-telemetry div { padding:10px; background:var(--mesh-soft); border-radius:6px; }
-.mesh-inspector-telemetry strong { display:block; font-size:18px; color:var(--mesh-primary); }
-.mesh-inspector-telemetry span { font-size:10px; color:var(--mesh-muted); }
+.mesh-inspector-telemetry strong { display:block; margin-top:2px; font-size:18px; line-height:1.25; color:var(--mesh-primary); }
+/* Icon and label on top, value below, like the home metric cards on phones. */
+.mesh-inspector-telemetry div > span { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--mesh-muted); }
+.mesh-inspector-telemetry .ti { width:14px; height:14px; vertical-align:0; color:var(--mesh-primary); }
 .mesh-traffic { margin-top:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
 .mesh-traffic-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:auto; }
 .mesh-traffic-actions { display:flex; gap:8px; align-items:center; }
