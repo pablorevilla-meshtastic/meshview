@@ -39,10 +39,10 @@
 .mesh-dialog-body ul { margin:0 0 10px; padding-left:20px; }
 .mesh-dialog-body code { padding:1px 5px; border-radius:4px; background:var(--mesh-soft); color:var(--mesh-text); font-size:12.5px; }
 .chart-container { width:100%; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:20px; overflow:hidden; }
-.chart-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:16px 20px; border-bottom:1px solid var(--mesh-border); font-size:14px; font-weight:600; }
-.chart-title { display:flex; align-items:center; gap:8px; margin:0; font-size:15px; font-weight:650; }
+.chart-header { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid var(--mesh-border); font-size:14px; font-weight:600; }
+.chart-title { display:flex; align-items:center; gap:8px; min-width:0; margin:0; font-size:15px; font-weight:650; }
 .chart-title .ti { color:var(--mesh-primary); font-size:18px; }
-.chart-actions { display:flex; gap:4px; }
+.chart-actions { display:flex; gap:4px; flex-shrink:0; }
 .packet-filter-actions { display:flex; align-items:center; gap:8px; margin-left:auto; }
 .filter-container { display:flex; gap:10px; flex-wrap:wrap; padding:16px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:18px; }
 #chartModal,#qrModal { display:none; position:fixed; inset:0; background:#17263c99; z-index:9999; align-items:center; justify-content:center; padding:16px; }
@@ -1063,8 +1063,8 @@ async function loadTelemetryCharts(){
             legend: { data:[MeshI18n.t("Battery Level"),MeshI18n.t("Voltage")], textStyle:{ color:'#64748b' } },
             xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#64748b' } },
             yAxis: [
-                { type:'value', name:'Battery (%)', axisLabel:{ color:'#64748b' } },
-                { type:'value', name:'Voltage (V)', axisLabel:{ color:'#64748b' } }
+                { type:'value', name:MeshI18n.t("Battery (%)"), axisLabel:{ color:'#64748b' } },
+                { type:'value', name:MeshI18n.t("Voltage (V)"), axisLabel:{ color:'#64748b' } }
             ],
             series: [
                 makeLine(MeshI18n.t("Battery Level"), 'rgba(255,214,82,1)', chartData.battery),
@@ -1162,8 +1162,8 @@ async function loadTelemetryCharts(){
             },
             xAxis: { type:'category', data:chartData.times, axisLabel:{ color:'#64748b' } },
             yAxis: [
-                { type:'value', name:'Voltage (V)', axisLabel:{ color:'#64748b' } },
-                { type:'value', name:'Current (mA)', axisLabel:{ color:'#64748b' } }
+                { type:'value', name:MeshI18n.t("Voltage (V)"), axisLabel:{ color:'#64748b' } },
+                { type:'value', name:MeshI18n.t("Current (mA)"), axisLabel:{ color:'#64748b' } }
             ],
             series: chartData.powerSeries.map(s => {
                 const line = makeLine(s.label, s.color, s.data, s.axis);
@@ -1180,8 +1180,9 @@ async function loadTelemetryCharts(){
     }
 
     // Resize charts that exist
+    [chart1, chart2, chart3, chart4].forEach(c => { if (c) fitLegend(c); });
     window.addEventListener("resize", () => {
-        [chart1, chart2, chart3, chart4].forEach(c => { if (c) c.resize(); });
+        [chart1, chart2, chart3, chart4].forEach(c => { if (c) { c.resize(); fitLegend(c); } });
     });
 }
 
@@ -1391,7 +1392,6 @@ async function loadNeighborTimeSeries() {
                 color: "#64748b",
                 formatter: value =>
                     new Date(value / 1000).toLocaleString(MeshI18n.language, {
-                        year: "2-digit",
                         month: "2-digit",
                         day: "2-digit",
                         hour: "2-digit",
@@ -1407,7 +1407,8 @@ async function loadNeighborTimeSeries() {
         series
     });
 
-    window.addEventListener("resize", () => chart.resize());
+    fitLegend(chart);
+    window.addEventListener("resize", () => { chart.resize(); fitLegend(chart); });
 }
 
 
@@ -1506,10 +1507,46 @@ async function loadPacketHistogram() {
         series
     });
 
-    window.addEventListener("resize", () => chart.resize());
+    fitLegend(chart);
+    window.addEventListener("resize", () => { chart.resize(); fitLegend(chart); });
 }
 
 
+
+/* Keep chart legends inside the card on narrow screens: the legend gets the
+   card width and wraps, and the plot starts below however many rows it
+   needs (ECharts does not move the grid for the legend by itself). */
+const legendCanvas = document.createElement("canvas").getContext("2d");
+function fitLegend(chart) {
+    const option = chart.getOption();
+    const legend = option.legend?.[0];
+    if (!legend) return;
+    const width = chart.getWidth() - 24;
+    const labels = legend.data?.length
+        ? legend.data.map(item => item?.name ?? item)
+        : (option.series || []).map(series => series.name);
+    let rows = 1;
+    if (legend.type !== "scroll") {
+        legendCanvas.font = "12px Inter, sans-serif";
+        let x = 0;
+        for (const label of labels) {
+            const item = legendCanvas.measureText(String(label)).width + 40;
+            if (x && x + item > width) { rows++; x = 0; }
+            x += item;
+        }
+    }
+    const yAxes = [].concat(option.yAxis || []);
+    const axisName = yAxes.some(axis => axis.name);
+    chart.setOption({
+        legend: { left: "center", top: 4, width },
+        // Axis names start (left axis) or end (right axis) at their axis so
+        // they are not cut by the card edge.
+        yAxis: yAxes.map((axis, i) => ({ nameTextStyle: { align: i ? "right" : "left" } })),
+        // A bottom subtitle (neighbors chart) needs room under the x labels.
+        grid: { left: 12, right: 12, bottom: option.title?.[0]?.subtext ? 30 : 8, containLabel: true,
+            top: 8 + rows * 22 + (axisName ? 30 : 12) }
+    });
+}
 
 /* ======================================================
    EXPAND / EXPORT BUTTONS
@@ -1526,6 +1563,7 @@ function expandChart(type){
     modal.style.display = "flex";
     modalChart.setOption(sourceChart.getOption());
     modalChart.resize();
+    fitLegend(modalChart);
 }
 function closeModal(){
     document.getElementById('chartModal').style.display = "none";
