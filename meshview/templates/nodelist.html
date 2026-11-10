@@ -27,10 +27,15 @@
 #node-list .is-cards .c-loc { grid-area:loc; font-size:12px; color:var(--mesh-muted); font-variant-numeric:tabular-nums; }
 .node-badge { display:inline-block; margin-left:4px; padding:1px 8px; border-radius:10px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:11px; font-weight:600; }
 /* The sort control only shows in card mode, where there are no column headers. */
-.sort-control { display:none; align-items:center; gap:6px; }
+/* Segmented sort control: direction toggle + field select, showing the current order. */
+.sort-control { display:none; align-items:stretch; height:38px; border:1px solid var(--mesh-border); border-radius:6px; background:var(--mesh-surface); overflow:hidden; order:5; }
 .mesh-nodelist-page:has(#node-list .is-cards) .sort-control { display:inline-flex; }
-.sort-control label { margin:0; font-size:12px; color:var(--mesh-muted); }
-.mesh-data-page .mesh-content .sort-direction { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0; font-size:18px; }
+.sort-control:focus-within { outline:2px solid var(--mesh-primary); outline-offset:1px; }
+.mesh-data-page .mesh-content .sort-direction { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:34px; height:auto; padding:0; border:0; border-right:1px solid var(--mesh-border); border-radius:0; background:var(--mesh-soft); color:var(--mesh-primary); font-size:18px; }
+.mesh-data-page .mesh-content .sort-direction:focus-visible { outline:0; }
+.mesh-data-page .sort-control .sort-select { flex:1 1 auto; min-width:0; height:auto; padding:0 20px 0 7px; font-size:13px; background-position:right 4px center; border:0; border-radius:0; background-color:transparent; text-overflow:ellipsis; }
+.mesh-data-page .sort-control .sort-select:focus-visible { outline:0; }
+.clear-btn { order:6; }
 #node-list th { cursor:pointer; }
 .filter-container { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
 .filter-panel { display:contents; }
@@ -39,8 +44,11 @@
 .filters-count { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--mesh-primary); color:var(--mesh-surface); font-size:11px; font-weight:700; }
 .filters-count[hidden] { display:none; }
 @media(max-width:700px) {
-    .search-box { flex:1 1 0!important; min-width:0; }
-    .mesh-data-page .mesh-content .filters-toggle { display:inline-flex; }
+    .search-box { flex:1 1 100%!important; min-width:0; }
+    /* Filters and sort share the row under the search box, half each. */
+    .mesh-data-page .mesh-content .filters-toggle { display:inline-flex; flex:0 0 calc(50% - 4px); min-width:0; justify-content:center; order:1; }
+    .mesh-nodelist-page:has(#node-list .is-cards) .sort-control { flex:0 0 calc(50% - 4px); min-width:0; order:2; }
+    .filter-panel { order:3; }
     .filter-panel { display:none; flex:1 1 100%; flex-wrap:wrap; align-items:center; gap:8px; padding:12px; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); }
     .filter-panel.is-open { display:flex; }
     .filter-panel > select { flex:1 1 130px; }
@@ -101,6 +109,13 @@
         <span id="filters-count" class="filters-count" hidden></span>
     </button>
 
+    <!-- Sorting is not a filter: it shows the current order and stays outside the panel. -->
+    <div class="sort-control" role="group" aria-label="{{ tr("Sort by") }}">
+        <button type="button" id="sort-direction" class="sort-direction" aria-pressed="false" aria-label="{{ tr("Ascending") }}" title="{{ tr("Ascending") }}"><span class="ti ti-sort-ascending" aria-hidden="true"></span></button>
+        <label for="sort-select" class="visually-hidden">{{ tr("Sort by") }}</label>
+        <select id="sort-select" class="sort-select"></select>
+    </div>
+
     <!-- On phones the rest folds behind the Filters button; elsewhere it lays out inline. -->
     <div id="filter-panel" class="filter-panel">
     <select id="role-filter" aria-label="{{ tr("Filter by role") }}">
@@ -128,12 +143,6 @@
         </select>
         <span>{{ tr("days") }}</span>
     </label>
-
-    <span class="sort-control">
-        <label for="sort-select">{{ tr("Sort by") }}</label>
-        <select id="sort-select"></select>
-        <button type="button" id="sort-direction" class="sort-direction" aria-pressed="false" aria-label="{{ tr("Ascending") }}" title="{{ tr("Ascending") }}"><span class="ti ti-sort-ascending" aria-hidden="true"></span></button>
-    </span>
 
     <button class="clear-btn" id="clear-btn" data-translate-lang="clear_filters">
         Clear Filters
@@ -435,10 +444,13 @@ document.addEventListener("DOMContentLoaded", async function() {
     // Card mode has no column headers: sort with the select and direction button instead.
     const sortSelect = document.getElementById("sort-select");
     const sortDir = document.getElementById("sort-direction");
-    headers.forEach((th, index) => {
-        if (!keyMap[index]) return;
-        sortSelect.add(new Option(th.textContent.replace(/[▲▼]/g, "").trim(), keyMap[index]));
-    });
+    // Short labels so the current order fits the compact sort button.
+    const SORT_LABELS = {
+        short_name: "Short name", long_name: "Long name", hw_model: "Hardware", firmware: "Firmware",
+        role: "Role", last_lat: "Latitude", last_long: "Longitude", last_altitude: "Altitude",
+        channel: "Channel", is_mqtt_gateway: "MQTT gateway", last_seen_us: "Last heard",
+    };
+    keyMap.forEach(key => sortSelect.add(new Option(MeshI18n.t(SORT_LABELS[key]), key)));
     sortSelect.addEventListener("change", () => {
         sortColumn = sortSelect.value;
         applyFilters();
