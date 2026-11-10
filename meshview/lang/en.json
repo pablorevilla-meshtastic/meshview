@@ -90,7 +90,7 @@
     "time_days_ago": "days ago"
   },
   "net": {
-    "net_title": "Weekly Net:",
+    "net_title": "Weekly Net",
     "total_messages": "Number of messages:",
     "view_packet_details": "More details"
   },
@@ -175,7 +175,7 @@
     "altitude_map_filtered_count": "Showing {located} of {total} routers at or above {minimum} m"
   },
   "top": {
-    "top_traffic_nodes": "Top Nodes Traffic",
+    "top_traffic_nodes": "Top Traffic Nodes",
     "channel": "Channel",
     "search": "Search",
     "search_placeholder": "Search nodes...",

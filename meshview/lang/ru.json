@@ -90,7 +90,7 @@
     "time_days_ago": "дней назад"
   },
   "net": {
-    "net_title": "Еженедельная сеть:",
+    "net_title": "Еженедельная сеть",
     "total_messages": "Количество сообщений:",
     "view_packet_details": "Больше деталей"
   },
@@ -175,7 +175,7 @@
     "altitude_map_filtered_count": "Показано {located} из {total} роутеров на высоте от {minimum} м"
   },
   "top": {
-    "top_traffic_nodes": " Трафик нод",
+    "top_traffic_nodes": "Крупнейшие ноды трафика",
     "channel": "Канал",
     "search": "Поиск",
     "search_placeholder": "Поиск нод...",

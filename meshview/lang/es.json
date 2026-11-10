@@ -92,7 +92,7 @@
     "time_days_ago": "días atrás"
   },
   "net": {
-    "net_title": "Red Semanal:",
+    "net_title": "Red semanal",
     "total_messages": "Número de mensajes:",
     "view_packet_details": "Más Detalles"
   },
@@ -178,7 +178,7 @@
     "altitude_map_filtered_count": "Mostrando {located} de {total} routers a {minimum} m o más"
   },
   "top": {
-    "top_traffic_nodes": "Tráfico de Nodos (24h)",
+    "top_traffic_nodes": "Nodos con mayor tráfico",
     "channel": "Canal",
     "search": "Buscar",
     "search_placeholder": "Buscar nodos...",

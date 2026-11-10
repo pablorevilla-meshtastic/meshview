@@ -6,12 +6,7 @@
 {% include "data-page-styles.html" %}
 <style>
 .top-container { width:100%; }
-.filter-bar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:18px; }
-.filter-bar > div { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
-.filter-bar label { color:var(--mesh-muted); font-size:13px; }
 #channelFilter { width:200px; }
-.top-count { color:var(--mesh-muted); font-size:13px; margin-bottom:14px; }
-#node-count { font-weight:650; color:var(--mesh-primary); }
 #nodesTable tbody tr { cursor:pointer; }
 #nodesTable td:nth-child(n+4) { font-variant-numeric:tabular-nums; }
 .good-x,.ok-x,.bad-x { display:inline-block; padding:3px 8px; border-radius:5px; font-weight:600; font-size:12px; }
@@ -26,22 +21,20 @@
 
 {% block body %}
 
-<header class="data-heading is-compact"><div class="data-title"><h1 data-translate-lang="top_traffic_nodes">Top nodes</h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/stats">{{ tr("View statistics ↗") }}</a></div></header>
+<header class="data-heading is-compact">
+    <div class="data-title">
+        <h1 data-translate-lang="top_traffic_nodes">Top nodes</h1>
+        <span id="node-count" class="data-count" aria-live="polite">0</span>
+        <span class="data-context">{{ tr("Last 24 hours") }}</span>
+    </div>
+    <div class="data-actions">
+        <label for="channelFilter" data-translate-lang="channel">Channel:</label>
+        <select id="channelFilter"></select>
+        <a class="mesh-secondary-button" href="/stats">{{ tr("View statistics ↗") }}</a>
+    </div>
+</header>
 
 <div class="top-container">
-
-    <div class="filter-bar">
-        <div>
-            <label for="channelFilter" data-translate-lang="channel">Channel:</label>
-            <select id="channelFilter"></select>
-        </div>
-    </div>
-
-    <div class="top-count">
-        <span data-translate-lang="showing_nodes">Showing</span>
-        <span id="node-count">0</span>
-        <span data-translate-lang="nodes_suffix">nodes</span>
-    </div>
 
     <div class="data-table-wrap" role="region" aria-label="{{ tr("Top nodes traffic table") }}" tabindex="0">
     <table id="nodesTable">
