@@ -147,13 +147,15 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
 @media(max-width:700px) { .mesh-map-only .mesh-content { height:calc(100dvh - 52px); } }
 /* Fit and share as a map control, with labels on wider screens. */
 .mesh-map-tools { display:flex; flex-direction:column; overflow:hidden; background:var(--mesh-surface); }
-.mesh-map-tools button { display:flex; align-items:center; gap:8px; min-height:34px; padding:0 12px 0 10px; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font:500 12px/1 inherit; white-space:nowrap; cursor:pointer; }
+/* Same frame as the layers control and the legend (thin border, soft shadow), not Leaflet's thick bar border. */
+.mesh-map-panel .mesh-map-tools.leaflet-bar { border:1px solid var(--mesh-border); border-radius:5px; box-shadow:0 2px 8px #0001; background-clip:padding-box; }
+.mesh-map-tools button { display:flex; align-items:center; gap:8px; min-height:34px; padding:0 12px 0 10px; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font:500 11px/1 inherit; white-space:nowrap; cursor:pointer; }
 .mesh-map-tools button:last-child { border-bottom:0; }
 .mesh-map-tools button:hover { background:var(--mesh-soft); }
 .mesh-map-tools button:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
 .mesh-map-tools .ti { font-size:16px; color:var(--mesh-primary); }
 .mesh-map-tools button.is-copied .ti { color:#198754; }
-@media(max-width:700px) { .mesh-map-tools button { justify-content:center; width:34px; padding:0; } .mesh-map-tool-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; } }
+@media(max-width:700px) { .mesh-map-tools button { justify-content:center; width:44px; min-height:38px; padding:0; } .mesh-map-tool-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; } }
 /* Reset sits at the end of the filter row. */
 .map-filter-reset { display:inline-flex; align-items:center; gap:6px; margin-left:auto; padding:6px 10px; border:0; border-radius:6px; background:transparent; color:var(--mesh-primary); font-size:12px; font-weight:500; white-space:nowrap; cursor:pointer; }
 .map-filter-reset:hover { background:var(--mesh-soft); }
