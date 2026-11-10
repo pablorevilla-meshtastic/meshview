@@ -42,6 +42,27 @@
 .reliability-status-skipped { color:var(--mesh-muted)!important; font-weight:600; }
 .reliability-row-skipped td { text-decoration:line-through; color:var(--mesh-muted)!important; }
 @media(max-width:1000px) { .reach-gateway-panels { grid-template-columns:minmax(0,1fr); gap:0; } }
+/* Phones: the bands table fits without scrolling. */
+@media(max-width:700px) {
+    .reach-table:not(.card-table) { min-width:0; }
+    .reach-table:not(.card-table) th { white-space:normal; }
+    .reach-count-bar-cell { min-width:0; width:55%; }
+}
+/* Card mode: wrappers drop their frame; the two gateway lists read as one. */
+.reach-table.is-cards { min-width:0; }
+:is(.reach-table-wrap,.reach-gateway-panel):has(> .card-table.is-cards) { border:0; background:none; overflow:visible; margin-bottom:10px; }
+.mesh-data-page .reach-gateway-table.card-table.is-cards tr.gateway-row { grid-template-areas:"gw rel" "heard hops"; }
+.mesh-data-page .reach-gateway-table.card-table.is-cards .c-gw { grid-area:gw; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mesh-data-page .reach-gateway-table.card-table.is-cards .c-rel { grid-area:rel; justify-self:end; font-weight:700; color:var(--mesh-primary); }
+.mesh-data-page .reach-gateway-table.card-table.is-cards .c-heard { grid-area:heard; font-size:13px; }
+.mesh-data-page .reach-gateway-table.card-table.is-cards .c-hops { grid-area:hops; justify-self:end; font-size:13px; }
+.mesh-data-page .packet-modal-table.card-table.is-cards tr.modal-packet-row { grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:"pkt pkt status" "time type hops"; }
+.mesh-data-page .packet-modal-table.card-table.is-cards .c-pkt { grid-area:pkt; font-weight:600; }
+.mesh-data-page .packet-modal-table.card-table.is-cards .c-status { grid-area:status; justify-self:end; font-weight:600; }
+.mesh-data-page .packet-modal-table.card-table.is-cards .c-time { grid-area:time; font-size:12px; color:var(--mesh-muted); white-space:nowrap; }
+.mesh-data-page .packet-modal-table.card-table.is-cards .c-type { grid-area:type; }
+.mesh-data-page .packet-modal-table.card-table.is-cards .c-hops { grid-area:hops; justify-self:end; font-size:12px; }
+.mesh-data-page :is(.reach-gateway-table,.packet-modal-table).card-table.is-cards :is(.c-heard,.c-hops)::before { content:attr(data-label) " "; color:var(--mesh-muted); }
 @media(max-width:600px) { .reach-controls { align-items:stretch; } .reach-search-label { width:100%; } .reach-search { flex-basis:100%; } .reach-summary { gap:10px; } .reach-metric { padding:16px; } .reach-metric-value { font-size:26px; } .reach-map { height:340px; } .reliability-modal-panel { padding:14px; } }
 </style>
 {% endblock %}
@@ -121,7 +142,7 @@
 
         <div class="reach-gateway-panels">
             <div class="reach-gateway-panel" role="region" aria-label="{{ tr("Gateway reliability table") }}" tabindex="0">
-                <table class="table table-sm reach-table reach-gateway-table">
+                <table class="table table-sm reach-table reach-gateway-table card-table">
                     <thead>
                         <tr>
                             <th>{{ tr("Gateway") }}</th>
@@ -138,7 +159,7 @@
                 </table>
             </div>
             <div class="reach-gateway-panel" role="region" aria-label="{{ tr("Gateway reliability table") }}" tabindex="0">
-                <table class="table table-sm reach-table reach-gateway-table">
+                <table class="table table-sm reach-table reach-gateway-table card-table">
                     <thead>
                         <tr>
                             <th>{{ tr("Gateway") }}</th>
@@ -165,7 +186,7 @@
             <button class="btn btn-sm btn-outline-secondary" type="button" onclick="closeGatewayPacketModal()">{{ tr("Close") }}</button>
         </div>
         <div class="reach-table-wrap" role="region" aria-label="{{ tr("Reliability report table") }}" tabindex="0">
-            <table class="table table-sm reach-table">
+            <table class="table table-sm reach-table card-table packet-modal-table">
                 <thead>
                     <tr>
                         <th>{{ tr("Packet") }}</th>
@@ -278,10 +299,21 @@ function nodeLatLng(node) {
     return [lat, lon];
 }
 
+let reliabilityMapFitted = false;
+
 function initReliabilityMap() {
     if (reliabilityMap) return reliabilityMap;
 
     reliabilityMap = L.map("reach-gateway-map", { preferCanvas: true }).setView([37.7749, -122.4194], 8);
+    // Start on the site's configured map area until a report fits the gateways.
+    window._siteConfigPromise?.then(cfg => {
+        const site = cfg?.site || {};
+        if (reliabilityMapFitted || site.map_top_left_lat == null) return;
+        reliabilityMap.fitBounds([
+            [Number(site.map_top_left_lat), Number(site.map_top_left_lon)],
+            [Number(site.map_bottom_right_lat), Number(site.map_bottom_right_lon)],
+        ]);
+    });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap",
         maxZoom: 19,
@@ -356,6 +388,7 @@ function renderReliabilityMap(gatewayRows, nodesById) {
     requestAnimationFrame(() => {
         reliabilityMap.invalidateSize();
         if (bounds.length) {
+            reliabilityMapFitted = true;
             reliabilityMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 12 });
         }
     });
@@ -381,12 +414,12 @@ function openGatewayPacketModal(nodeId) {
         const statusText = packet.heard ? MeshI18n.t("Heard") : MeshI18n.t("Missed");
 
         return `
-        <tr class="${packet.skipped ? "reliability-row-skipped" : ""}">
-            <td><a href="/packet/${packet.id}">${packet.id}</a></td>
-            <td>${escapeHtml(formatPacketTime(packet.import_time_us))}</td>
-            <td>${packetTypeTag(packet.portnum)}</td>
-            <td>${packet.hopCount ?? "—"}</td>
-            <td class="${statusClass}">${statusText}</td>
+        <tr class="modal-packet-row ${packet.skipped ? "reliability-row-skipped" : ""}">
+            <td class="c-pkt"><a href="/packet/${packet.id}">${packet.id}</a></td>
+            <td class="c-time">${escapeHtml(formatPacketTime(packet.import_time_us))}</td>
+            <td class="c-type">${packetTypeTag(packet.portnum)}</td>
+            <td class="c-hops" data-label="${MeshI18n.h("Hops")}">${packet.hopCount ?? "—"}</td>
+            <td class="c-status ${statusClass}">${statusText}</td>
         </tr>
         `;
     }).join("");
@@ -556,16 +589,16 @@ async function loadReachReport(nodeId = reachNodeId) {
 
         const renderGatewayRows = rows => rows.length
             ? rows.map(row => `
-                <tr>
-                    <td>${nodeLink(row.nodeId, nodesById)}</td>
-                    <td>
+                <tr class="gateway-row">
+                    <td class="c-gw">${nodeLink(row.nodeId, nodesById)}</td>
+                    <td class="c-heard" data-label="${MeshI18n.h("Heard")}">
                         <button class="reach-heard-link" type="button" onclick="openGatewayPacketModal(${row.nodeId})">
                             ${row.heardCount}
                         </button>
                         <span class="text-secondary">(${reportResults.length})</span>
                     </td>
-                    <td>${formatAverageHopCountWithActual(row.avgHopCount)}</td>
-                    <td>${row.percent.toFixed(1)}%</td>
+                    <td class="c-hops" data-label="${MeshI18n.h("Avg Hops")}">${formatAverageHopCountWithActual(row.avgHopCount)}</td>
+                    <td class="c-rel">${row.percent.toFixed(1)}%</td>
                 </tr>
             `).join("")
             : `<tr><td colspan="4" class="reach-muted">${MeshI18n.h("No gateways heard these packets.")}</td></tr>`;
