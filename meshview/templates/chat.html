@@ -10,8 +10,6 @@ body:has(#chat-container) .mesh-footer { display:none; }
 body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 #chat-container { display:flex; flex-direction:column; flex:1; min-width:0; min-height:0; background:var(--mesh-stripe); }
 .chat-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:12px 24px; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); flex-shrink:0; }
-.chat-heading { display:flex; align-items:center; gap:8px; margin:0 6px 0 0; font-size:15px; font-weight:650; }
-.chat-heading span:first-child { color:var(--mesh-primary); }
 .chat-channel-control { display:flex; align-items:center; gap:6px; color:var(--mesh-muted); }
 .chat-filter { width:170px; font-size:12px; border-color:var(--mesh-border); }
 .chat-search { width:210px; font-size:12px; border-color:var(--mesh-border); }
@@ -46,7 +44,6 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 @media(prefers-reduced-motion:reduce) { .chat-line.flash { animation:none; } }
 @media(max-width:700px) {
     .chat-toolbar { padding:10px 14px; gap:8px; }
-    .chat-heading { width:100%; }
     .chat-channel-control { flex:1 1 0; min-width:0; }
     .chat-filter { width:100%; min-width:0; }
     .chat-search { flex:1 1 0; width:auto; min-width:0; }
@@ -67,7 +64,7 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 {% block body %}
 <section id="chat-container" aria-label="{{ tr("Mesh chat") }}">
     <div class="chat-toolbar">
-        <h1 class="chat-heading"><span aria-hidden="true">#</span> <span data-chat-translate="chat_title">Mesh chat</span></h1>
+        <h1 class="visually-hidden" data-chat-translate="chat_title">Mesh chat</h1>
         <div class="chat-channel-control">
             <label for="channel-filter" class="visually-hidden" data-chat-translate="channel">Channel</label>
             <span aria-hidden="true">#</span>

@@ -641,7 +641,7 @@ function watchCardTable(table) {
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("table.card-table").forEach(watchCardTable);
     document.querySelectorAll(".data-heading.is-compact").forEach(heading => watchHeadingWrap(heading));
-    document.querySelectorAll(".chat-toolbar").forEach(toolbar => watchHeadingWrap(toolbar, ".chat-heading", ".chat-actions"));
+    document.querySelectorAll(".chat-toolbar").forEach(toolbar => watchHeadingWrap(toolbar, ".chat-channel-control", ".chat-actions"));
     document.querySelectorAll(".data-table-wrap").forEach(watchTableWidth);
 });
 
