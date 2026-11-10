@@ -899,8 +899,17 @@ fetch('/api/nodes?days_active=3')
     })
     .catch(error => {
         console.error(error);
-        const status = document.getElementById("mesh-node-list") || document.getElementById("map-load-status");
-        status.textContent = MeshI18n.t("Unable to load nodes. Reload to try again.");
+        const text = MeshI18n.t("Unable to load nodes. Reload to try again.");
+        const list = document.getElementById("mesh-node-list");
+        if (list) {
+            // Same look as the list's other messages ("No nodes match your search.").
+            const message = document.createElement("p");
+            message.className = "mesh-empty";
+            message.textContent = text;
+            list.replaceChildren(message);
+        } else {
+            document.getElementById("map-load-status").textContent = text;
+        }
     });
 
 /* ======================================================
