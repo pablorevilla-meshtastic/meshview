@@ -852,7 +852,6 @@ let packetsRequest = 0;
 async function loadPackets(filters = {}) {
     const request = ++packetsRequest;
     const list = document.getElementById("packet_list");
-    list.innerHTML = "";
 
     const url = new URL("/api/packets", window.location.origin);
     url.searchParams.set("node_id", fromNodeId);
@@ -867,12 +866,16 @@ async function loadPackets(filters = {}) {
     }
 
     const res = await fetch(url);
-    if (!res.ok || request !== packetsRequest) return;
+    if (request !== packetsRequest) return;
+    if (!res.ok) { list.innerHTML = ""; return; }
 
     const data = await res.json();
     if (request !== packetsRequest) return;
     const packets = data.packets || [];
     currentPacketRows = packets;
+    // Built off-page and swapped in at once: clearing the list first and
+    // adding rows one by one made the page jump while changing filters.
+    const rowsHtml = [];
 
     for (const pkt of packets.reverse()) {
 
@@ -916,7 +919,7 @@ async function loadPackets(filters = {}) {
             ? `<span class="text-secondary" title="${MeshI18n.h("MQTT map report")}">${MeshI18n.h("Not a Packet")}</span>`
             : `<span class="text-secondary" title="${MeshI18n.h("No Meshtastic packet ID")}">—</span>`;
 
-        list.insertAdjacentHTML("afterbegin", `
+        rowsHtml.unshift(`
         <tr class="packet-row">
             <td class="c-time">${localTime}</td>
             <td class="c-id"><button type="button" class="toggle-btn packet-toggle" aria-expanded="false" aria-label="${MeshI18n.h("Toggle payload for packet {id}", {id: pkt.packet_id ?? pkt.id})}"><span class="ti ti-chevron-right" aria-hidden="true"></span></button>
@@ -932,6 +935,7 @@ async function loadPackets(filters = {}) {
         </tr>`);
 
     }
+    list.innerHTML = rowsHtml.join("");
 }
 
 
