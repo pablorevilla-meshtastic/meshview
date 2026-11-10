@@ -9,7 +9,7 @@
 {% block css %}
 <style>
 /* The page fills the window under the header: the graph takes what the toolbar leaves. */
-.mesh-graph-page .mesh-content { display:flex; flex-direction:column; height:calc(100dvh - 48px); min-height:480px; box-sizing:border-box; }
+.mesh-graph-page .mesh-content { display:flex; flex-direction:column; max-width:none; height:calc(100dvh - 48px); min-height:480px; box-sizing:border-box; }
 @media(max-width:700px) { .mesh-graph-page .mesh-content { height:calc(100dvh - 52px); } }
 .graph-panel { display:flex; flex:1; flex-direction:column; min-height:0; overflow:hidden; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); }
 .graph-stage { position:relative; flex:1; min-height:300px; }
