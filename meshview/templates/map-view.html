@@ -122,12 +122,14 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
     #unmapped-packets > summary { margin-bottom:6px; }
     #unmapped-packets > summary h3 { margin:0; }
     #map-legend > summary { display:none; }
+    /* Zoom and legend side by side in the top-left corner. */
+    .mesh-map-panel .leaflet-top.leaflet-left { display:flex; align-items:flex-start; }
+    .mesh-map-panel #map-legend { margin-left:8px; font-size:11px; box-shadow:0 2px 8px #0001; border:1px solid var(--mesh-border); }
     .map-overlay-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--mesh-primary); color:var(--mesh-surface); font-size:11px; font-weight:700; }
     .map-overlay-count[hidden] { display:none; }
     @media(max-width:700px) {
         .mesh-map-panel .map-overlay:not([open]) { width:auto; padding:5px 10px; }
         .mesh-map-panel .map-overlay:not([open]) > summary { margin:0; }
-        #map-legend { pointer-events:auto!important; }
         #map-legend > summary { display:flex; font-weight:600; font-size:12px; }
         #map-legend[open] > summary { margin-bottom:6px; }
     }
@@ -174,7 +176,6 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-kiosk .mesh-map-only .mesh-map-panel #map-wrapper { height:100dvh; min-height:0; }
 .mesh-kiosk .mesh-map-panel #filter-container { position:absolute; bottom:24px; left:10px; z-index:700; max-width:calc(100% - 240px); max-height:25dvh; overflow:auto; padding:8px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:6px; }
 .mesh-kiosk #map-load-status:not(:empty) { position:absolute; top:10px; left:50px; z-index:800; background:var(--mesh-surface); padding:8px; border-radius:5px; }
-.mesh-kiosk .mesh-map-panel #map-legend { bottom:110px!important; }
 @media(max-width:700px) { .mesh-kiosk .mesh-map-panel #filter-container { max-width:calc(100% - 20px); bottom:24px; } .mesh-kiosk #unmapped-packets { display:none; } }
 /* Compact live-map node card. */
 .mesh-map-only .mesh-content { max-width:none; }
@@ -318,13 +319,7 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
             </li>
         </ul>
     </details>
-<details id="map-legend" open
-     class="legend map-overlay"
-     style="position:absolute;
-            bottom:30px;
-            right:15px;
-            z-index:500;
-            pointer-events:none;">
+<details id="map-legend" open class="legend map-overlay">
     <summary>{{ tr("Legend") }}</summary>
     <div>
         <i style="background:orange; width:15px; height:3px; border-radius:0;"></i>
@@ -479,6 +474,18 @@ function updateMapLayerTranslations() {
 }
 
 // Data structures
+// The legend sits next to the zoom buttons as a map control.
+const mapLegend = document.getElementById('map-legend');
+if (mapLegend) {
+    const MapLegend = L.Control.extend({
+        onAdd() {
+            L.DomEvent.disableClickPropagation(mapLegend);
+            L.DomEvent.disableScrollPropagation(mapLegend);
+            return mapLegend;
+        }
+    });
+    new MapLegend({position: 'topleft'}).addTo(map);
+}
 // Map page: fit and share as a control under the layer picker.
 const mapTools = document.getElementById('map-tools');
 if (mapTools) {
