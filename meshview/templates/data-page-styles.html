@@ -16,9 +16,12 @@
 .mesh-data-page .data-table-wrap { width:100%; overflow:clip; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); margin-bottom:20px; }
 .mesh-data-page table { width:100%; border-collapse:collapse; font-size:13px; margin:0; color:var(--mesh-text); }
 .mesh-data-page .data-table-wrap.is-wide { overflow:auto; }
-/* Sticky column headers sit under the header while it shows (--header-offset, base.html). */
-.mesh-data-page table th { position:sticky; top:var(--header-offset,0px); z-index:2; transition:top .2s ease; height:40px; padding:0 14px; background:var(--mesh-brand); color:white; border:0; font-weight:600; font-size:12px; white-space:nowrap; text-align:left; }
-.mesh-data-page table td { height:40px; padding:6px 14px; border:0; border-bottom:1px solid var(--mesh-border); text-align:left; }
+/* Sticky column headers. Only tables whose wrapper does not scroll stick to the page, so only
+   those sit under the auto-hiding header (--header-offset, base.html); inside a scrolling box
+   the offset would push the header over the first rows. */
+.mesh-data-page .data-table-wrap:not(.is-wide) > table th { top:var(--header-offset,0px); }
+.mesh-data-page table th { position:sticky; top:0; z-index:2; vertical-align:middle; transition:top .2s ease; height:40px; padding:0 14px; background:var(--mesh-brand); color:white; border:0; font-weight:600; font-size:12px; white-space:nowrap; text-align:left; }
+.mesh-data-page table td { vertical-align:middle; height:40px; padding:6px 14px; border:0; border-bottom:1px solid var(--mesh-border); text-align:left; }
 /* Compact page heading: title, live context and actions on one line. */
 .mesh-data-page .data-heading.is-compact { flex-wrap:wrap; gap:8px 14px; min-height:40px; margin-bottom:12px; }
 .mesh-data-page .data-heading.is-compact h1 { font-size:22px; line-height:1.2; margin:0; }
