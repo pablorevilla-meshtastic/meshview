@@ -172,6 +172,8 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 /* Compact live-map node card. */
 .mesh-map-only .mesh-content { max-width:none; }
 .mesh-map-only .mesh-node-panel { position:absolute; right:10px; top:var(--inspector-top,60px); width:280px; max-width:calc(100% - 20px); max-height:calc(100% - var(--inspector-top,60px) - 12px); overflow:auto; z-index:800; contain:none; padding:14px; box-shadow:0 4px 20px #0003; }
+/* Phones: little room below the controls, so the panel covers them at the top right; close it to use them. */
+@media(max-width:700px) { .mesh-map-only .mesh-node-panel { top:10px; z-index:1001; max-height:calc(100% - 20px); } }
 .mesh-map-only .mesh-node-panel[hidden] { display:none; }
 .mesh-map-only .mesh-panel-close { float:right; margin-left:8px; }
 .mesh-map-only .mesh-inspector-name { font-size:15px; margin:8px 0 4px; }
