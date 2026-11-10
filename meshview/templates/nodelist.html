@@ -36,6 +36,17 @@
 .mesh-data-page .sort-control .sort-select { flex:1 1 auto; min-width:0; height:auto; padding:0 20px 0 7px; font-size:13px; background-position:right 4px center; border:0; border-radius:0; background-color:transparent; text-overflow:ellipsis; }
 .mesh-data-page .sort-control .sort-select:focus-visible { outline:0; }
 .clear-btn { order:6; }
+/* Card mode above phones: search and sort on the first row (sort at the right end), the
+   filters and "clear" on a second row of their own. */
+@media(min-width:701px) {
+    .mesh-nodelist-page:has(#node-list .is-cards) .search-box { flex:1 1 260px; order:0; }
+    .mesh-nodelist-page:has(#node-list .is-cards) .sort-control { flex:0 0 230px; order:1; }
+    .mesh-nodelist-page:has(#node-list .is-cards) .filter-panel { display:flex; flex:1 1 100%; flex-wrap:wrap; align-items:center; gap:8px; order:2; }
+    .mesh-nodelist-page:has(#node-list .is-cards) .filter-panel > select { flex:1 1 150px; }
+    .mesh-nodelist-page:has(#node-list .is-cards) .filter-panel .days-active { margin-left:4px; }
+    .mesh-data-page .mesh-content .mesh-nodelist-page:has(#node-list .is-cards) .clear-btn,
+    .mesh-nodelist-page:has(#node-list .is-cards) .mesh-content .clear-btn { margin-left:0; }
+}
 #node-list th { cursor:pointer; }
 .filter-container { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
 .filter-panel { display:contents; }
@@ -54,7 +65,7 @@
     .filter-panel > select { flex:1 1 130px; }
     .filter-panel .days-active { margin-left:0; }
 }
-.days-active { display:inline-flex; align-items:center; gap:6px; margin:0 0 0 4px; font-size:12px; color:var(--mesh-muted); }
+.days-active { white-space:nowrap; display:inline-flex; align-items:center; gap:6px; margin:0 0 0 4px; font-size:12px; color:var(--mesh-muted); }
 .mesh-data-page .mesh-content .clear-btn { margin-left:auto; border-color:transparent; background:transparent; }
 .mesh-data-page .mesh-content .clear-btn:hover { background:var(--mesh-soft); }
 .search-box { flex:0 1 260px; }
