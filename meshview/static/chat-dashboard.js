@@ -25,7 +25,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         badge.textContent = unread;
         badge.hidden = !unread;
         latest.title = unread ? MeshI18n.t("{count} new messages", {count: unread}) : "";
+        syncLatest();
     }
+    // Nothing to jump to while the newest message is already in view.
+    function syncLatest() { latest.disabled = atBottom(); }
     function goLatest() { log.scrollTop = log.scrollHeight; unread = 0; showUnread(); }
 
     function render(scrollToBottom = false, highlights = new Set()) {
@@ -86,6 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         log.replaceChildren(fragment);
         document.getElementById('chat-count').textContent = MeshI18n.t(visible.length === 1 ? MeshI18n.t("{count} message") : MeshI18n.t("{count} messages"), {count: visible.length});
         if (scrollToBottom) goLatest(); else log.scrollTop = previousTop;
+        syncLatest();
     }
 
     async function fetchMessages() {
@@ -136,7 +140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     channel.addEventListener('change', () => render(true));
     search.addEventListener('input', () => render(true));
     latest.addEventListener('click', goLatest);
-    log.addEventListener('scroll', () => { if (atBottom()) { unread = 0; showUnread(); } });
+    log.addEventListener('scroll', () => { if (atBottom()) { unread = 0; showUnread(); } else syncLatest(); });
     pause.addEventListener('click', () => {
         paused = !paused; pause.setAttribute('aria-pressed', String(paused));
         pause.textContent = paused ? MeshI18n.t("Resume") : MeshI18n.t("Pause");

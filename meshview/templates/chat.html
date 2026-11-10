@@ -25,7 +25,8 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
 .chat-status[data-state="error"] { background:#fff0ed; color:#b23d2f; }
 .chat-status[data-state="paused"],.chat-status[data-state="loading"] { background:#eef2f7; color:var(--mesh-muted); }
 .chat-control { font-size:12px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:5px; padding:5px 9px; color:var(--mesh-text); }
-.chat-control:hover { background:var(--mesh-soft); }
+.chat-control:hover:not(:disabled) { background:var(--mesh-soft); }
+.chat-control:disabled { opacity:.5; cursor:default; }
 .chat-latest { display:inline-flex; align-items:center; gap:6px; }
 .chat-latest .ti { font-size:15px; color:var(--mesh-primary); }
 .chat-unread { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--mesh-primary); color:var(--mesh-surface); font-size:11px; font-weight:700; }
