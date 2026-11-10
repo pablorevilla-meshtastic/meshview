@@ -222,12 +222,14 @@ function timeAgoFromMs(msTimestamp) {
     const diff = Date.now() - msTimestamp;
 
     if (diff < 60000) return MeshI18n.t("just now");
+    // Intl picks the right plural for every language ("hace 1 día", "3 дня назад").
+    const short = new Intl.RelativeTimeFormat(MeshI18n.language, {numeric: "always", style: "short"});
+    const long = new Intl.RelativeTimeFormat(MeshI18n.language, {numeric: "always", style: "long"});
     const mins = Math.floor(diff / 60000);
-    if (mins < 60) return MeshI18n.t("{count} min ago", {count: mins});
+    if (mins < 60) return short.format(-mins, "minute");
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return MeshI18n.t("{count} hr ago", {count: hrs});
-    const days = Math.floor(hrs / 24);
-    return MeshI18n.t("{count} days ago", {count: days});
+    if (hrs < 24) return short.format(-hrs, "hour");
+    return long.format(-Math.floor(hrs / 24), "day");
 }
 
 // =====================================================
