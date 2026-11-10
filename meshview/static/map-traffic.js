@@ -40,7 +40,7 @@
         function nodeCell(id, label, isDestination = false) {
             const cell = document.createElement('td');
             if (Number(id) === 4294967295 || (isDestination && Number(id) === 1)) {
-                const muted = document.createElement('span'); muted.className = 'mesh-inspector-note';
+                const muted = document.createElement('span'); muted.className = 'to-mqtt';
                 muted.textContent = Number(id) === 4294967295 ? MeshI18n.t("All") : MeshI18n.t("Direct to MQTT"); cell.append(muted);
             } else {
                 const link = document.createElement('a'); link.href = `/node/${encodeURIComponent(id)}`;

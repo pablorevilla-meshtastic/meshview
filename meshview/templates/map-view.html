@@ -128,6 +128,8 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
     /* Zoom and legend side by side in the top-left corner. */
     .mesh-map-panel .leaflet-top.leaflet-left { display:flex; align-items:flex-start; }
     .mesh-map-panel #map-legend { margin-left:8px; font-size:11px; box-shadow:0 2px 8px #0001; border:1px solid var(--mesh-border); }
+    /* Wider screens: as tall as the zoom buttons beside it, its two lines centred. */
+    @media(min-width:701px) { .mesh-map-panel #map-legend { box-sizing:border-box; min-height:64px; padding-top:0; padding-bottom:0; display:flex; flex-direction:column; justify-content:center; } }
     .map-overlay-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--mesh-primary); color:var(--mesh-surface); font-size:11px; font-weight:700; }
     .map-overlay-count[hidden] { display:none; }
     @media(max-width:700px) {
@@ -152,13 +154,14 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
 .mesh-map-tools { display:flex; flex-direction:column; overflow:hidden; background:var(--mesh-surface); }
 /* Same frame as the layers control and the legend (thin border, soft shadow), not Leaflet's thick bar border. */
 .mesh-map-panel .mesh-map-tools.leaflet-bar { border:1px solid var(--mesh-border); border-radius:5px; box-shadow:0 2px 8px #0001; background-clip:padding-box; }
-.mesh-map-tools button { display:flex; align-items:center; gap:8px; min-height:34px; padding:0 12px 0 10px; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font:500 11px/1 inherit; white-space:nowrap; cursor:pointer; }
+.mesh-map-tools button { display:flex; align-items:center; justify-content:center; width:44px; min-height:38px; padding:0; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font:500 11px/1 inherit; white-space:nowrap; cursor:pointer; }
 .mesh-map-tools button:last-child { border-bottom:0; }
 .mesh-map-tools button:hover { background:var(--mesh-soft); }
 .mesh-map-tools button:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
 .mesh-map-tools .ti { font-size:16px; color:var(--mesh-primary); }
 .mesh-map-tools button.is-copied .ti { color:#198754; }
-@media(max-width:700px) { .mesh-map-tools button { justify-content:center; width:44px; min-height:38px; padding:0; } .mesh-map-tool-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; } }
+/* Icon buttons like the folded layer picker; the label stays for screen readers and the tooltip. */
+.mesh-map-tool-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 /* Reset sits at the end of the filter row. */
 .map-filter-reset { display:inline-flex; align-items:center; gap:6px; margin-left:auto; padding:6px 10px; border:0; border-radius:6px; background:transparent; color:var(--mesh-primary); font-size:12px; font-weight:500; white-space:nowrap; cursor:pointer; }
 .map-filter-reset:hover { background:var(--mesh-soft); }
@@ -184,7 +187,8 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 @media(max-width:700px) { .mesh-kiosk .mesh-map-panel #filter-container { max-width:calc(100% - 20px); bottom:24px; } .mesh-kiosk #unmapped-packets { display:none; } }
 /* Compact live-map node card. */
 .mesh-map-only .mesh-content { max-width:none; }
-.mesh-map-only .mesh-node-panel { position:absolute; right:10px; top:var(--inspector-top,60px); width:280px; max-width:calc(100% - 20px); max-height:calc(100% - var(--inspector-top,60px) - 12px); overflow:auto; z-index:800; contain:none; padding:14px; box-shadow:0 4px 20px #0003; }
+/* The node panel opens at the top right over the map controls; close it to use them. */
+.mesh-map-only .mesh-node-panel { position:absolute; right:10px; top:10px; width:280px; max-width:calc(100% - 20px); max-height:calc(100% - 20px); overflow:auto; z-index:1001; contain:none; padding:14px; box-shadow:0 4px 20px #0003; }
 .mesh-map-only .mesh-node-panel[hidden] { display:none; }
 .mesh-map-only .mesh-panel-close { float:right; margin-left:8px; }
 .mesh-map-only .mesh-inspector-name { font-size:15px; margin:8px 0 4px; }
@@ -229,13 +233,14 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-traffic-icon .ti { width:16px; height:16px; vertical-align:0; }
 .mesh-traffic-list { max-height:360px; overflow:auto; }
  .mesh-traffic-table { width:100%; min-width:780px; border-collapse:collapse; font-size:13px; color:var(--mesh-text); }
-.mesh-traffic-table th { position:sticky; top:0; z-index:1; padding:12px 14px; background:var(--mesh-brand); color:white; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
-.mesh-traffic-table td { padding:11px 14px; border-bottom:1px solid var(--mesh-border); text-align:left; }
+/* Same rows as the traffic page: 40px header and rows, plain underlined links, muted italic broadcast. */
+.mesh-traffic-table th { position:sticky; top:0; z-index:1; height:40px; padding:0 14px; background:var(--mesh-brand); color:white; font-weight:600; font-size:12px; white-space:nowrap; text-align:left; vertical-align:middle; }
+.mesh-traffic-table td { padding:6px 14px; border-bottom:1px solid var(--mesh-border); text-align:left; vertical-align:middle; }
 .mesh-traffic-row { background:var(--mesh-surface); }
-.mesh-traffic-row:hover { background:var(--mesh-soft); }
-.mesh-traffic-table a { color:var(--mesh-primary); text-decoration:none; }
-.mesh-traffic-table a:hover { text-decoration:underline; }
-.mesh-traffic-time { white-space:nowrap; font-size:12px; }
+.mesh-traffic-row:hover { background:var(--mesh-hover); }
+.mesh-traffic-table a { color:inherit; text-decoration:underline; }
+.mesh-traffic-table .to-mqtt { color:var(--mesh-muted); font-size:12px; font-style:italic; }
+.mesh-traffic-time { white-space:nowrap; }
 .mesh-traffic-type { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:11px; background:var(--mesh-soft); color:var(--mesh-text); font-size:12px; font-weight:500; line-height:1; white-space:nowrap; vertical-align:middle; }
 .mesh-traffic-type::before { content:""; flex-shrink:0; width:8px; height:8px; border-radius:50%; background:var(--port-color,#6c757d); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18); }
 .mesh-traffic-payload[hidden] { display:none; }
@@ -258,7 +263,7 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 <section class="mesh-metrics" aria-label="{{ tr("Network summary") }}">
     <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-antenna"></span></span><span>{{ tr("Recent nodes") }}</span><strong id="metric-nodes">—</strong><small>{{ tr("Seen in the last 3 days") }}</small></div>
     <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-activity"></span></span><span>{{ tr("Active nodes") }}</span><strong id="metric-active">—</strong><small>{{ tr("Seen in the last 24 hours") }}</small></div>
-    <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-cloud-upload"></span></span><span>{{ tr("MQTT gateways") }}</span><strong id="metric-gateways">—</strong><small>{{ tr("Among recent nodes") }}</small></div>
+    <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-router"></span></span><span>{{ tr("MQTT gateways") }}</span><strong id="metric-gateways">—</strong><small>{{ tr("Among recent nodes") }}</small></div>
     <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-package"></span></span><span>{{ tr("Total packets") }}</span><strong id="metric-packets">—</strong><small id="metric-status" role="status" aria-busy="true">{{ tr("Loading network totals…") }}</small></div>
 </section>
 {% else %}
@@ -455,9 +460,8 @@ var overlayLayers = {
     [MeshI18n.h("Packets Reach")]: packetSeenLayer,
     [MeshI18n.h("Traffic HeatMap")]: trafficHeatLayer
 };
-var mapLayerControl = L.control.layers(baseLayers, overlayLayers, {
-    collapsed: window.matchMedia("(max-width: 700px)").matches
-}).addTo(map);
+// Always folded: the choices are remembered, so it only needs opening to change them.
+var mapLayerControl = L.control.layers(baseLayers, overlayLayers, { collapsed: true }).addTo(map);
 const layerToggle = mapLayerControl.getContainer().querySelector('.leaflet-control-layers-toggle');
 layerToggle.title = MeshI18n.t("Map layers");
 layerToggle.setAttribute('aria-label', MeshI18n.t("Map layers"));
@@ -503,6 +507,18 @@ if (mapTools) {
         }
     });
     new MapTools({position: 'topright'}).addTo(map);
+}
+// The layer picker opens on click (or Enter) only, not on hover; clicking the
+// map or pressing Escape folds it again.
+{
+    const layerContainer = mapLayerControl.getContainer();
+    L.DomEvent.off(layerContainer, { mouseenter: mapLayerControl._expandSafely, mouseleave: mapLayerControl.collapse }, mapLayerControl);
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && layerContainer.classList.contains("leaflet-control-layers-expanded")) {
+            mapLayerControl.collapse();
+            layerToggle.focus({ preventScroll: true });
+        }
+    });
 }
 // Remember the base map and overlay choices in this browser, like the filters.
 const MAP_LAYERS_KEY = "mapLayers";
@@ -1449,11 +1465,28 @@ document.addEventListener("DOMContentLoaded", () => {
     loadTranslationsMap();
 });
 
-// Legend and unmapped packets: open on wider screens, folded to a pill on phones.
+// Legend and unmapped packets: open by default on wider screens, folded to a
+// pill on phones. Whatever the visitor opens or folds is remembered in this
+// browser, separately for phones and wider screens.
 (() => {
     const phone = window.matchMedia("(max-width:700px)");
     const overlays = document.querySelectorAll("details.map-overlay");
-    const sync = () => overlays.forEach(el => { el.open = !phone.matches; });
+    const key = () => phone.matches ? "mapOverlaysPhone" : "mapOverlaysWide";
+    const load = () => { try { return JSON.parse(localStorage.getItem(key()) || "{}"); } catch (_) { return {}; } };
+    let syncing = false;
+    const sync = () => {
+        const saved = load();
+        syncing = true;
+        overlays.forEach(el => { el.open = saved[el.id] ?? !phone.matches; });
+        // "toggle" fires after the change, so stop ignoring it on the next task.
+        setTimeout(() => { syncing = false; });
+    };
+    overlays.forEach(el => el.addEventListener("toggle", () => {
+        if (syncing) return;
+        const saved = load();
+        saved[el.id] = el.open;
+        try { localStorage.setItem(key(), JSON.stringify(saved)); } catch (_) { /* storage unavailable */ }
+    }));
     phone.addEventListener("change", sync);
     sync();
 })();
