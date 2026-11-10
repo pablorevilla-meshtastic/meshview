@@ -64,7 +64,7 @@
         <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-antenna"></span></span><span data-translate-lang="total_nodes">Total Nodes</span><strong id="summary_nodes">—</strong></div>
         <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-package"></span></span><span data-translate-lang="total_packets">Total Packets</span><strong id="summary_packets">—</strong></div>
         <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-eye"></span></span><span data-translate-lang="total_packets_seen">Total Packets Seen</span><strong id="summary_seen">—</strong></div>
-        <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-cloud-upload"></span></span><span data-translate-lang="total_gateways">Total Gateways</span><strong id="summary_gateways">—</strong></div>
+        <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-router"></span></span><span data-translate-lang="total_gateways">Total Gateways</span><strong id="summary_gateways">—</strong></div>
     </section>
 
     {% set ranges %}
@@ -410,12 +410,18 @@ async function loadAltitudeNodes(refreshNodes = false) {
         altitudeExportRows = altitudeRouterRows.filter(node => node.last_altitude >= 100).slice(0, 50);
         altitudeRows = altitudeExportRows.slice(0, 10);
         document.getElementById("altitude-map-button").disabled = altitudeRouterRows.length === 0;
-        chart.setOption({
+        const empty = altitudeRows.length === 0;
+        status.classList.toggle("visually-hidden", empty);
+        if (empty) {
+            chart.setOption({title:{text:statsText("altitude_empty"), left:"center", top:"middle",
+                textStyle:{fontSize:13, fontWeight:"normal", color:"#64748b"}}}, true);
+        } else chart.setOption({
             tooltip: {trigger:"axis", renderMode:"richText", valueFormatter:value => statsText("meters", {value})},
             grid: {left:10, right:20, top:55, bottom:10, containLabel:true},
             xAxis: {type:"category", data:altitudeRows.map(node => node.long_name || node.short_name || node.id),
                 axisLabel:{interval:0, rotate:35, width:85, overflow:"truncate"}},
-            yAxis: {type:"value", name:statsText("altitude_axis"), nameGap:30},
+            yAxis: {type:"value", name:statsText("altitude_axis"), nameGap:20,
+                nameTextStyle:{align:"left"}},
             series: [{type:"bar", name:statsText("altitude"), barMaxWidth:45,
                 itemStyle:{color:"#187346"},
                 label:{show:true, position:"top", formatter:params => statsText("meters", {value: params.value}), color:"#243247", textBorderWidth:0},
@@ -430,6 +436,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
         altitudeExportRows = [];
         altitudeRouterRows = [];
         chart.clear();
+        status.classList.remove("visually-hidden");
         status.removeAttribute("aria-busy");
         status.textContent = statsText("altitude_error");
         console.error(error);
@@ -640,15 +647,14 @@ function renderChart(domId,data,type,color){
     chart.setOption({
         backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
-        grid:hourly
-            ? {left:15, right:20, top:35, bottom:20, containLabel:true}
-            : {left:'6%', right:'6%', bottom:'18%'},
+        grid:{left:10, right:20, top:20, bottom:10, containLabel:true},
         xAxis:{
             type:'category',
             data:periods,
             axisLine:{lineStyle:{color:'#c3cfdf'}},
             axisLabel:hourly
-                ? {rotate:45, color:'#64748b', margin:16, hideOverlap:true}
+                // The tooltip keeps the full date; the axis only needs the hour.
+                ? {color:'#64748b', hideOverlap:true, formatter:value => value.slice(11) || value}
                 : {rotate:45,color:'#64748b'}
         },
         yAxis:{
@@ -752,7 +758,7 @@ function renderDailySnapshotPacketsChart(domId,data){
             data:[MeshI18n.t("Packets")],
             textStyle:{color:'#64748b'}
         },
-        grid:{left:'6%', right:'6%', bottom:'18%'},
+        grid:{left:10, right:20, top:40, bottom:10, containLabel:true},
         xAxis:{
             type:'category',
             data:labels,
@@ -786,7 +792,7 @@ function renderDailySnapshotNodesGatewaysChart(domId,data){
             data:[MeshI18n.t("Nodes"),MeshI18n.t("Gateways")],
             textStyle:{color:'#64748b'}
         },
-        grid:{left:'6%', right:'6%', bottom:'18%'},
+        grid:{left:10, right:20, top:40, bottom:10, containLabel:true},
         xAxis:{
             type:'category',
             data:labels,
