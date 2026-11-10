@@ -17,7 +17,7 @@ function renderNodeExplorer() {
     matches.sort((a, b) => (b.last_seen_us || 0) - (a.last_seen_us || 0));
     const list = document.getElementById('mesh-node-list');
     list.replaceChildren();
-    document.getElementById('node-result-count').textContent = matches.length;
+    document.querySelectorAll('.node-result-count').forEach(count => { count.textContent = matches.length; });
     if (!matches.length) {
         const empty = document.createElement('p');
         empty.className = 'mesh-empty';

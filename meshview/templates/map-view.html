@@ -206,6 +206,14 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-panel-toggle[aria-expanded="true"] .ti { transform:rotate(90deg); }
 .mesh-panel-toggle:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:3px; border-radius:4px; }
 .mesh-node-panel:has(.mesh-node-browser-body[hidden]) .mesh-panel-title { border-bottom:0; }
+/* Node list search: magnifier and result count inside the field. Beside the map it is the
+   list's heading (same height as the inspector's); stacked, the fold toggle stays above it. */
+.mesh-search-row { position:relative; display:flex; align-items:center; box-sizing:border-box; min-height:64px; padding:12px 16px; border-bottom:1px solid var(--mesh-border); }
+.mesh-search-row .ti-search { position:absolute; left:27px; color:var(--mesh-muted); pointer-events:none; }
+.mesh-search-row .mesh-search { width:100%; margin:0; padding:9px 64px 9px 34px; }
+.mesh-search-row .mesh-count { position:absolute; right:26px; pointer-events:none; }
+@media(min-width:1001px) { .mesh-explorer .mesh-node-browser > .mesh-panel-title { display:none; } }
+@media(max-width:1000px) { .mesh-search-row .mesh-count { display:none; } .mesh-search-row .mesh-search { padding-right:10px; } }
 .mesh-node-inspector { max-height:690px; overflow:auto; }
 /* Inspector heading: stays at the top while the inspector's own scroll moves, hides while
    scrolling down and comes back on scroll up, like the page header. Phones show the whole
@@ -291,11 +299,15 @@ a.mesh-inspector-packet:hover { background:var(--mesh-hover); }
     <div id="mesh-node-browser" class="mesh-node-browser">
     <div class="mesh-panel-title">
         <h2><button id="node-panel-toggle" class="mesh-panel-toggle" type="button" aria-expanded="true" aria-controls="mesh-node-browser-body" disabled>{{ tr("Network nodes") }}<span class="ti ti-chevron-right" aria-hidden="true"></span></button></h2>
-        <span id="node-result-count" class="mesh-count">—</span>
+        <span class="mesh-count node-result-count">—</span>
     </div>
     <div id="mesh-node-browser-body" class="mesh-node-browser-body">
-    <label class="mesh-search-label" for="node-search">{{ tr("Search nodes") }}</label>
-    <input id="node-search" class="mesh-search" type="search" placeholder="{{ tr("Name or node ID…") }}" autocomplete="off">
+    <div class="mesh-search-row">
+        <label class="visually-hidden" for="node-search">{{ tr("Search nodes") }}</label>
+        <span class="ti ti-search" aria-hidden="true"></span>
+        <input id="node-search" class="mesh-search" type="search" placeholder="{{ tr("Name or node ID…") }}" autocomplete="off">
+        <span class="mesh-count node-result-count" aria-hidden="true">—</span>
+    </div>
     <div id="mesh-node-list" class="mesh-node-list" aria-live="polite"><p class="mesh-empty is-loading">{{ tr("Loading nodes…") }}</p></div>
     </div>
     </div>
