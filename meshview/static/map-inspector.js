@@ -27,7 +27,9 @@
     }
     const closeButton = byId('map-panel-close');
     if (closeButton) {
-        const layers = map.getContainer().querySelector('.leaflet-control-layers');
+        // Sit below the whole right-hand control column (layers, then the
+        // fit/share tools), not just the layers control.
+        const layers = map.getContainer().querySelector('.leaflet-top.leaflet-right');
         const positionPanel = () => {
             if (!layers) return;
             const top = layers.getBoundingClientRect().bottom - byId('map-wrapper').getBoundingClientRect().top + 10;
