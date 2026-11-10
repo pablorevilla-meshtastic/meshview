@@ -223,7 +223,8 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-inspector-packet small { color:var(--mesh-muted); margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mesh-inspector-note { color:var(--mesh-muted); font-size:12px; margin:8px 0; }
 .mesh-inspector-telemetry { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.mesh-inspector-telemetry div { padding:10px; background:var(--mesh-soft); border-radius:6px; }
+/* Values sit at the bottom so a row's numbers line up even when a label wraps. */
+.mesh-inspector-telemetry > div { display:flex; flex-direction:column; justify-content:space-between; padding:10px; background:var(--mesh-soft); border-radius:6px; }
 .mesh-inspector-telemetry strong { display:block; margin-top:2px; font-size:18px; line-height:1.25; color:var(--mesh-primary); }
 /* Icon and label on top, value below, like the home metric cards on phones. */
 .mesh-inspector-telemetry div > span { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--mesh-muted); }

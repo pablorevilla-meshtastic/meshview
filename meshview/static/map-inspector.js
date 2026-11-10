@@ -128,7 +128,10 @@
         const airUtil = value('air_util_tx');
         return [
             // Same icons as the node page charts.
-            [MeshI18n.t("Battery"), battery === null ? null : battery > 100 ? MeshI18n.t("Powered") : `${battery}%`, 'battery-2'],
+            // Meshtastic reports a battery level above 100 when the node runs on external power.
+            battery !== null && battery > 100
+                ? [MeshI18n.t("Power"), MeshI18n.t("External"), 'plug']
+                : [MeshI18n.t("Battery"), battery === null ? null : `${battery}%`, 'battery-2'],
             [MeshI18n.t("Voltage"), voltage === null ? null : `${voltage.toFixed(2)} V`, 'bolt'],
             [MeshI18n.t("Channel utilization"), channelUtil === null ? null : `${channelUtil.toFixed(1)}%`, 'antenna-bars-5'],
             [MeshI18n.t("Air utilization TX"), airUtil === null ? null : `${airUtil.toFixed(1)}%`, 'broadcast']
