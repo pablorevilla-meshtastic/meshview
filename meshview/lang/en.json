@@ -61,8 +61,8 @@
     "all_channels": "All Channels",
     "all_hw": "All HW Models",
     "all_firmware": "All Firmware",
-    "show_favorites": "⭐ Show Favorites",
-    "show_all": "⭐ Show All",
+    "show_favorites": "Show Favorites",
+    "show_all": "Show All",
     "export_csv": "Export CSV",
     "clear_filters": "Clear Filters",
     "showing_nodes": "Showing",
@@ -199,7 +199,7 @@
     "node_not_found": "Node not found in current channel!"
   },
   "firehose": {
-    "live_feed": "📡 Live Traffic",
+    "live_feed": "Live Traffic",
     "pause": "Pause",
     "resume": "Resume",
     "time": "Time",
@@ -412,6 +412,7 @@
     "Active in the last": "Active in the last",
     "Active nodes": "Active nodes",
     "Activity": "Activity",
+    "Add to favorites": "Add to favorites",
     "Admin": "Admin",
     "Air Util Tx": "Air Util Tx",
     "Air utilization TX": "Air utilization TX",
@@ -738,6 +739,7 @@
     "Reliability ↗": "Reliability ↗",
     "Reliability:": "Reliability:",
     "Remote Hardware": "Remote Hardware",
+    "Remove from favorites": "Remove from favorites",
     "Reply": "Reply",
     "Replying to:": "Replying to:",
     "Reported reverse": "Reported reverse",
@@ -790,7 +792,9 @@
     "Short Name": "Short Name",
     "Short Name:": "Short Name:",
     "Show All": "Show All",
+    "Show Favorites": "Show Favorites",
     "Show MQTT gateways only": "Show MQTT gateways only",
+    "Show on map": "Show on map",
     "Show routers only": "Show routers only",
     "Showing {count} nodes · highest first": "Showing {count} nodes · highest first",
     "Showing {located} of the top {total} routers · altitude in meters above sea level": "Showing {located} of the top {total} routers · altitude in meters above sea level",
@@ -862,6 +866,7 @@
     "View map ↗": "View map ↗",
     "View packet details": "View packet details",
     "View statistics ↗": "View statistics ↗",
+    "View traceroute": "View traceroute",
     "Voltage": "Voltage",
     "Waypoint": "Waypoint",
     "Weekly check-ins and reports from your mesh.": "Weekly check-ins and reports from your mesh.",
@@ -978,7 +983,6 @@
     "{value} m": "{value} m",
     "← Nodes": "← Nodes",
     "↓ Latest": "↓ Latest",
-    "↓ Latest ({count})": "↓ Latest ({count})",
-    "⭐ Show Favorites": "⭐ Show Favorites"
+    "↓ Latest ({count})": "↓ Latest ({count})"
   }
 }

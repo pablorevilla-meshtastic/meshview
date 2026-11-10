@@ -298,7 +298,9 @@ async function fetchUpdates() {
                     const lon = parseInt(lonMatch[1]) / 1e7;
                     inlineLinks += ` <a class="inline-link"
                                         href="https://www.google.com/maps?q=${lat},${lon}"
-                                        target="_blank">📍</a>`;
+                                        target="_blank" rel="noopener"
+                                        title="${MeshI18n.h("Show on map")}"
+                                        aria-label="${MeshI18n.h("Show on map")}"><span class="ti ti-map-pin" aria-hidden="true"></span></a>`;
                 }
             }
 
@@ -310,7 +312,8 @@ async function fetchUpdates() {
 
                 inlineLinks += ` <a class="inline-link"
                                     href="/traceroute/${traceId}"
-                                    >⮕</a>`;
+                                    title="${MeshI18n.h("View traceroute")}"
+                                    aria-label="${MeshI18n.h("View traceroute")}"><span class="ti ti-route" aria-hidden="true"></span></a>`;
             }
 
             const safePayload = escapeHtml(pkt.payload || "");

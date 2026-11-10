@@ -41,7 +41,7 @@
 
     <div id="seen-container" class="mt-4 d-none">
         <h5 >
-            📡 <span data-translate-lang="seen_by">Seen By</span>
+            <span class="ti ti-access-point" aria-hidden="true"></span> <span data-translate-lang="seen_by">Seen By</span>
             <span id="seen-count" style="color:var(--mesh-primary);"></span>
         </h5>
 
@@ -449,7 +449,7 @@ seenTableBody.innerHTML = Object.keys(hopGroups)
                         border-top:1px solid var(--mesh-border);
                         padding:8px 12px;
                     ">
-                    🔁 ${hopLabel} (${hopGroups[hopKey].length})
+                    <span class="ti ti-repeat" aria-hidden="true"></span> ${hopLabel} (${hopGroups[hopKey].length})
                 </td>
             </tr>
             ${rows}

@@ -87,5 +87,35 @@
       "files/inter-vietnamese-wght-normal.woff2",
       "LICENSE"
     ]
+  },
+  "@tabler/icons": {
+    "version": "3.51.0",
+    "source": "https://registry.npmjs.org/@tabler/icons/-/icons-3.51.0.tgz",
+    "archive_sha256": "b30108713d3fa60aee862c2a133225da8e0f309be0708fe2925763ff810c766c",
+    "files": [
+      "icons/outline/access-point.svg",
+      "icons/outline/affiliate.svg",
+      "icons/outline/antenna-bars-5.svg",
+      "icons/outline/battery-2.svg",
+      "icons/outline/bolt.svg",
+      "icons/outline/broadcast.svg",
+      "icons/outline/chart-bar.svg",
+      "icons/outline/chart-line.svg",
+      "icons/outline/check.svg",
+      "icons/outline/copy.svg",
+      "icons/outline/link.svg",
+      "icons/outline/mail.svg",
+      "icons/outline/map-pin.svg",
+      "icons/outline/menu-2.svg",
+      "icons/outline/qrcode.svg",
+      "icons/outline/refresh.svg",
+      "icons/outline/repeat.svg",
+      "icons/outline/route.svg",
+      "icons/outline/star.svg",
+      "icons/outline/temperature.svg",
+      "icons/outline/x.svg",
+      "icons/filled/star.svg",
+      "LICENSE"
+    ]
   }
 }

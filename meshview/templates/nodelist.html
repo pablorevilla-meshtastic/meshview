@@ -16,8 +16,9 @@
 .search-box { flex:0 1 260px; }
 .node-status { opacity:0; padding:3px 8px; border-radius:20px; background:var(--mesh-soft); color:var(--mesh-primary); margin-left:10px; font-size:11px; }
 .node-status.active { opacity:1; }
-.favorite-star { cursor:pointer; font-size:20px; color:#8b98aa; user-select:none; }
-.favorite-star.active { color:#ad7800; }
+.mesh-data-page .mesh-content .favorite-star { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:0; border-radius:6px; background:transparent; color:var(--mesh-muted); font-size:18px; cursor:pointer; }
+.mesh-data-page .mesh-content .favorite-star:hover { background:var(--mesh-soft); }
+.mesh-data-page .mesh-content .favorite-star.active { color:#b7791f; }
 .mesh-data-page .favorites-btn.active { background:#fff3d6; border-color:#eacb80; color:#8b6200; }
 .node-pagination { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap; }
 .sort-icon { font-size:10px; }
@@ -38,8 +39,8 @@
         <span id="node-status" class="node-status" aria-live="polite"></span>
     </div>
     <div class="data-actions">
-        <button type="button" class="favorites-btn" id="favorites-btn" aria-pressed="false" data-translate-lang="show_favorites">
-            ⭐ Show Favorites
+        <button type="button" class="favorites-btn" id="favorites-btn" aria-pressed="false">
+            <span class="ti ti-star" aria-hidden="true"></span> <span id="favorites-label" data-translate-lang="show_favorites">Show Favorites</span>
         </button>
         <button class="export-btn" id="export-btn" data-translate-lang="export_csv">
             Export CSV
@@ -217,6 +218,12 @@ function isFavorite(nodeId) {
     return favoritesSet.has(nodeId);
 }
 
+function favoriteStar(nodeId, active) {
+    const label = active ? MeshI18n.h("Remove from favorites") : MeshI18n.h("Add to favorites");
+    return `<button type="button" class="favorite-star${active ? " active" : ""}" data-node-id="${nodeId}"
+        aria-pressed="${active}" aria-label="${label}" title="${label}"><span class="ti ${active ? "ti-star-filled" : "ti-star"}" aria-hidden="true"></span></button>`;
+}
+
 function timeAgoFromMs(msTimestamp) {
     if (!msTimestamp) return MeshI18n.t("N/A");
     const diff = Date.now() - msTimestamp;
@@ -349,17 +356,11 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     // Favorite star click handler (delegated)
     document.addEventListener("click", e => {
-        if (e.target.classList.contains('favorite-star')) {
-            const nodeId = parseInt(e.target.dataset.nodeId, 10);
+        const star = e.target.closest('.favorite-star');
+        if (star) {
+            const nodeId = parseInt(star.dataset.nodeId, 10);
             const fav = isFavorite(nodeId);
-
-            if (fav) {
-                e.target.classList.remove("active");
-                e.target.textContent = "☆";
-            } else {
-                e.target.classList.add("active");
-                e.target.textContent = "★";
-            }
+            star.outerHTML = favoriteStar(nodeId, !fav);
 
             toggleFavorite(nodeId);
             applyFilters();
@@ -422,7 +423,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             return;
         }
         showOnlyFavorites = true;
-        favoritesBtn.textContent = MeshI18n.t("Show All");
+        document.getElementById("favorites-label").textContent = MeshI18n.t("Show All");
         favoritesBtn.classList.add("active");
         favoritesBtn.setAttribute("aria-pressed", "true");
         applyFilters();
@@ -495,7 +496,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         nodes.forEach(node => {
             const fav = isFavorite(node.node_id);
-            const star = fav ? "★" : "☆";
+            const star = favoriteStar(node.node_id, fav);
 
             if (shouldRenderTable) {
                 // DESKTOP TABLE ROW
@@ -513,9 +514,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                     <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No"))}</td>
                     <td>${timeAgoFromMs(node.last_seen_ms)}</td>
                     <td style="text-align:center;">
-                        <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
-                            ${star}
-                        </span>
+                        ${star}
                     </td>
                 `;
                 tableFrag.appendChild(row);
@@ -526,9 +525,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 card.innerHTML = `
                     <div class="node-card-header">
                         <span>${escapeHtml(node.short_name || node.long_name || node.node_id)}</span>
-                        <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
-                            ${star}
-                        </span>
+                        ${star}
                     </div>
 
                     <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
@@ -575,7 +572,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         sortAsc = true;
         showOnlyFavorites = false;
 
-        favoritesBtn.textContent = nodelistTranslations.show_favorites || MeshI18n.t("⭐ Show Favorites");
+        document.getElementById("favorites-label").textContent = nodelistTranslations.show_favorites || MeshI18n.t("Show Favorites");
         favoritesBtn.classList.remove("active");
         favoritesBtn.setAttribute("aria-pressed", "false");
 

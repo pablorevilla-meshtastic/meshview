@@ -63,8 +63,8 @@
     "all_channels": "Todos los canales",
     "all_hw": "Todos los modelos",
     "all_firmware": "Todo el firmware",
-    "show_favorites": "⭐ Mostrar favoritos",
-    "show_all": "⭐ Mostrar todos",
+    "show_favorites": "Mostrar favoritos",
+    "show_all": "Mostrar todos",
     "export_csv": "Exportar CSV",
     "clear_filters": "Limpiar filtros",
     "showing_nodes": "Mostrando",
@@ -207,7 +207,7 @@
     "search_node_placeholder": "Buscar nodo..."
   },
   "firehose": {
-    "live_feed": "📡 Tráfico en vivo",
+    "live_feed": "Tráfico en vivo",
     "pause": "Pausar",
     "resume": "Reanudar",
     "time": "Hora",
@@ -420,6 +420,7 @@
     "Active in the last": "Activos en los últimos",
     "Active nodes": "Nodos activos",
     "Activity": "Actividad",
+    "Add to favorites": "Añadir a favoritos",
     "Admin": "Administración",
     "Air Util Tx": "Uso de aire TX",
     "Air utilization TX": "Uso de aire TX",
@@ -746,6 +747,7 @@
     "Reliability ↗": "Fiabilidad ↗",
     "Reliability:": "Fiabilidad:",
     "Remote Hardware": "Hardware remoto",
+    "Remove from favorites": "Quitar de favoritos",
     "Reply": "Respuesta",
     "Replying to:": "Respondiendo a:",
     "Reported reverse": "Ruta inversa comunicada",
@@ -798,7 +800,9 @@
     "Short Name": "Nombre corto",
     "Short Name:": "Nombre corto:",
     "Show All": "Mostrar todos",
+    "Show Favorites": "Mostrar favoritos",
     "Show MQTT gateways only": "Mostrar solo puertas de enlace MQTT",
+    "Show on map": "Ver en el mapa",
     "Show routers only": "Mostrar solo routers",
     "Showing {count} nodes · highest first": "Mostrando {count} nodos · de mayor a menor altitud",
     "Showing {located} of the top {total} routers · altitude in meters above sea level": "Mostrando {located} de los {total} routers más altos · altitud en metros sobre el nivel del mar",
@@ -870,6 +874,7 @@
     "View map ↗": "Ver mapa ↗",
     "View packet details": "Ver detalles del paquete",
     "View statistics ↗": "Ver estadísticas ↗",
+    "View traceroute": "Ver trazado de ruta",
     "Voltage": "Voltaje",
     "Waypoint": "Punto de ruta",
     "Weekly check-ins and reports from your mesh.": "Registros semanales e informes de su red mesh.",
@@ -986,7 +991,6 @@
     "{value} m": "{value} m",
     "← Nodes": "← Nodos",
     "↓ Latest": "↓ Más recientes",
-    "↓ Latest ({count})": "↓ Más recientes ({count})",
-    "⭐ Show Favorites": "⭐ Mostrar favoritos"
+    "↓ Latest ({count})": "↓ Más recientes ({count})"
   }
 }

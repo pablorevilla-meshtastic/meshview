@@ -61,8 +61,8 @@
     "all_channels": "Все каналы",
     "all_hw": "Все модели устройств",
     "all_firmware": "Все прошивки",
-    "show_favorites": "⭐ Показать избранные",
-    "show_all": "⭐ Показать все",
+    "show_favorites": "Показать избранные",
+    "show_all": "Показать все",
     "export_csv": "Экспорт CSV",
     "clear_filters": "Очистить фильтры",
     "showing_nodes": "Показать ноды",
@@ -199,7 +199,7 @@
     "node_not_found": "Узел не найден в текущем канале!"
   },
   "firehose": {
-    "live_feed": "📡 Трафик в реальном времени",
+    "live_feed": "Трафик в реальном времени",
     "pause": "Пауза",
     "resume": "Продолжить",
     "time": "Время",
@@ -412,6 +412,7 @@
     "Active in the last": "Активные за последние",
     "Active nodes": "Активные узлы",
     "Activity": "Активность",
+    "Add to favorites": "Добавить в избранное",
     "Admin": "Администрирование",
     "Air Util Tx": "Загрузка эфира TX",
     "Air utilization TX": "Загрузка эфира TX",
@@ -738,6 +739,7 @@
     "Reliability ↗": "Надёжность ↗",
     "Reliability:": "Надёжность:",
     "Remote Hardware": "Удалённое оборудование",
+    "Remove from favorites": "Убрать из избранного",
     "Reply": "Ответ",
     "Replying to:": "В ответ на:",
     "Reported reverse": "Переданный обратный путь",
@@ -790,7 +792,9 @@
     "Short Name": "Короткое имя",
     "Short Name:": "Короткое имя:",
     "Show All": "Показать все",
+    "Show Favorites": "Показать избранные",
     "Show MQTT gateways only": "Только шлюзы MQTT",
+    "Show on map": "Показать на карте",
     "Show routers only": "Только роутеры",
     "Showing {count} nodes · highest first": "Показано узлов: {count} · сначала самые высокие",
     "Showing {located} of the top {total} routers · altitude in meters above sea level": "Показано {located} из {total} самых высоких роутеров · высота в метрах над уровнем моря",
@@ -862,6 +866,7 @@
     "View map ↗": "Карта ↗",
     "View packet details": "Просмотреть детали пакета",
     "View statistics ↗": "Статистика ↗",
+    "View traceroute": "Открыть трассировку",
     "Voltage": "Напряжение",
     "Waypoint": "Путевая точка",
     "Weekly check-ins and reports from your mesh.": "Еженедельные отметки и отчёты вашей mesh-сети.",
@@ -978,7 +983,6 @@
     "{value} m": "{value} м",
     "← Nodes": "← Узлы",
     "↓ Latest": "↓ Последние",
-    "↓ Latest ({count})": "↓ Последние ({count})",
-    "⭐ Show Favorites": "⭐ Показать избранные"
+    "↓ Latest ({count})": "↓ Последние ({count})"
   }
 }

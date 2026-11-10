@@ -307,11 +307,11 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 
 {% if not dashboard %}
 <div style="text-align:center;margin-top:5px;">
-    <button id="share-button" onclick="shareCurrentView()" data-translate-lang="share_view">
-        🔗 Share This View
+    <button id="share-button" onclick="shareCurrentView()">
+        <span id="share-icon" class="ti ti-link" aria-hidden="true"></span> <span id="share-label" data-translate-lang="share_view">Share This View</span>
     </button>
-    <button id="reset-filters-button" onclick="resetFiltersToDefaults()" data-translate-lang="reset_filters">
-        ↺ Reset Filters To Defaults
+    <button id="reset-filters-button" onclick="resetFiltersToDefaults()">
+        <span class="ti ti-refresh" aria-hidden="true"></span> <span data-translate-lang="reset_filters">Reset Filters To Defaults</span>
     </button>
 </div>
 {% endif %}
@@ -1239,13 +1239,17 @@ function shareCurrentView() {
 
     navigator.clipboard.writeText(url).then(()=>{
         const btn = document.getElementById('share-button');
-        if (!btn.classList.contains('is-copied')) btn.dataset.shareLabel = btn.textContent;
+        const label = document.getElementById('share-label');
+        const icon = document.getElementById('share-icon');
+        if (!btn.classList.contains('is-copied')) btn.dataset.shareLabel = label.textContent;
         clearTimeout(shareViewResetTimer);
-        btn.textContent = '✓ ' + (mapTranslations.link_copied || MeshI18n.t("Link Copied!"));
+        label.textContent = mapTranslations.link_copied || MeshI18n.t("Link Copied!");
+        icon.className = 'ti ti-check';
         btn.classList.add('is-copied');
 
         shareViewResetTimer = setTimeout(()=>{
-            btn.textContent = btn.dataset.shareLabel;
+            label.textContent = btn.dataset.shareLabel;
+            icon.className = 'ti ti-link';
             btn.classList.remove('is-copied');
             delete btn.dataset.shareLabel;
         }, 2000);

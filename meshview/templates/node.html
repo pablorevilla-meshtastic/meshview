@@ -41,10 +41,10 @@
     <!-- Node Actions -->
     <div class="node-actions" id="nodeActions" style="display:none;">
         <button onclick="copyImportUrl()" id="copyUrlBtn">
-            <span>📋</span> <span data-translate-lang="copy_import_url">Copy Import URL</span>
+            <span class="ti ti-copy" aria-hidden="true"></span> <span data-translate-lang="copy_import_url">Copy Import URL</span>
         </button>
         <button onclick="showQrCode()" id="showQrBtn">
-            <span>🔳</span> <span data-translate-lang="show_qr_code">Show QR Code</span>
+            <span class="ti ti-qrcode" aria-hidden="true"></span> <span data-translate-lang="show_qr_code">Show QR Code</span>
         </button>
         <span class="qr-unavailable" id="qrUnavailable" style="display:none;" data-translate-lang="qr_no_public_key">
             No public key heard from this node yet, so it cannot be shared as a contact.
@@ -53,10 +53,10 @@
             This node has reported more than one public key, so it is not shared as a contact.
         </span>
         <button onclick="openReachReport()" id="reachReportBtn">
-            <span>📈</span> <span>{{ tr("Reliability") }}</span>
+            <span class="ti ti-chart-line" aria-hidden="true"></span> <span>{{ tr("Reliability") }}</span>
         </button>
         <button onclick="toggleCoverage()" id="toggleCoverageBtn" disabled title="{{ tr("Location required for coverage") }}">
-            <span>📡</span> <span data-translate-lang="toggle_coverage">Predicted Coverage</span>
+            <span class="ti ti-broadcast" aria-hidden="true"></span> <span data-translate-lang="toggle_coverage">Predicted Coverage</span>
         </button>
         <a class="inline-link" id="coverageHelpLink" href="/docs/COVERAGE.md" target="_blank" rel="noopener" data-translate-lang="coverage_help">
             Coverage Help
@@ -106,7 +106,7 @@
     <!-- Battery Chart -->
     <div id="battery_voltage_container" class="chart-container">
         <div class="chart-header">
-            🔋 <span data-translate-lang="battery_voltage">Battery & Voltage</span>
+            <span class="ti ti-battery-2" aria-hidden="true"></span> <span data-translate-lang="battery_voltage">Battery & Voltage</span>
             <div class="chart-actions">
                 <button onclick="expandChart('battery_voltage')" data-translate-lang="expand">Expand</button>
                 <button onclick="exportCSV('battery_voltage')" data-translate-lang="export_csv">Export CSV</button>
@@ -118,7 +118,7 @@
     <!-- Air/Channel -->
     <div id="air_channel_container" class="chart-container">
         <div class="chart-header">
-            📶 <span data-translate-lang="air_channel">Air & Channel Utilization</span>
+            <span class="ti ti-antenna-bars-5" aria-hidden="true"></span> <span data-translate-lang="air_channel">Air & Channel Utilization</span>
             <div class="chart-actions">
                 <button onclick="expandChart('air_channel')" data-translate-lang="expand">Expand</button>
                 <button onclick="exportCSV('air_channel')" data-translate-lang="export_csv">Export CSV</button>
@@ -130,7 +130,7 @@
     <!-- Env Metrics -->
     <div id="env_chart_container" class="chart-container" style="display:none;">
         <div class="chart-header">
-            🌡️ <span data-translate-lang="environment">Environment Metrics</span>
+            <span class="ti ti-temperature" aria-hidden="true"></span> <span data-translate-lang="environment">Environment Metrics</span>
             <div class="chart-actions">
                 <button onclick="expandChart('environment')" data-translate-lang="expand">Expand</button>
                 <button onclick="exportCSV('environment')" data-translate-lang="export_csv">Export CSV</button>
@@ -142,7 +142,7 @@
     <!-- Power Metrics -->
     <div id="power_chart_container" class="chart-container" style="display:none;">
         <div class="chart-header">
-            ⚡ <span data-translate-lang="power">Power Metrics</span>
+            <span class="ti ti-bolt" aria-hidden="true"></span> <span data-translate-lang="power">Power Metrics</span>
             <div class="chart-actions">
                 <button onclick="expandChart('power')" data-translate-lang="expand">Expand</button>
                 <button onclick="exportCSV('power')" data-translate-lang="export_csv">Export CSV</button>
@@ -155,7 +155,7 @@
 <!-- Neighbor Time-Series Chart -->
 <div id="neighbor_chart_container" class="chart-container">
     <div class="chart-header">
-        📡 <span data-translate-lang="neighbors_chart">Neighbors (SNR Over Time)</span>
+        <span class="ti ti-affiliate" aria-hidden="true"></span> <span data-translate-lang="neighbors_chart">Neighbors (SNR Over Time)</span>
         <div class="chart-actions">
             <button onclick="expandChart('neighbors')" data-translate-lang="expand">Expand</button>
             <button onclick="exportCSV('neighbors')" data-translate-lang="export_csv">Export CSV</button>
@@ -167,7 +167,7 @@
     <!-- Packet Histogram -->
 <div id="packet_histogram_container" class="chart-container">
     <div class="chart-header">
-        📊 <span data-translate-lang="packets_per_day">Packets per Day (Last 7 Days)</span>
+        <span class="ti ti-chart-bar" aria-hidden="true"></span> <span data-translate-lang="packets_per_day">Packets per Day (Last 7 Days)</span>
         <div class="chart-actions">
             <button onclick="expandChart('packet_histogram')" data-translate-lang="expand">Expand</button>
             <button onclick="exportCSV('packet_histogram')" data-translate-lang="export_csv">Export CSV</button>
@@ -224,7 +224,7 @@
 <div id="chartModal">
     <div>
         <div style="text-align:right;">
-            <button onclick="closeModal()" style="background:none;border:none;color:var(--mesh-muted);">✖</button>
+            <button onclick="closeModal()" aria-label="{{ tr("Close") }}" style="background:none;border:none;color:var(--mesh-muted);"><span class="ti ti-x" aria-hidden="true"></span></button>
         </div>
         <div id="modalChart" style="width:100%; height:90%;"></div>
     </div>
@@ -235,7 +235,7 @@
     <div>
         <div class="qr-header">
             <h3 class="qr-title" data-translate-lang="share_contact_qr">Share Contact QR</h3>
-            <button class="qr-close" onclick="closeQrModal()">✕</button>
+            <button class="qr-close" onclick="closeQrModal()" aria-label="{{ tr("Close") }}"><span class="ti ti-x" aria-hidden="true"></span></button>
         </div>
         <div class="qr-node-name" id="qrNodeName">{{ tr("Loading...") }}</div>
         <div class="qr-image">
@@ -246,7 +246,7 @@
         </div>
         <div class="qr-actions">
             <button class="qr-btn" onclick="copyQrUrl()" id="copyQrBtn">
-                <span>📋</span> <span data-translate-lang="copy_url">Copy URL</span>
+                <span class="ti ti-copy" aria-hidden="true"></span> <span data-translate-lang="copy_url">Copy URL</span>
             </button>
         </div>
     </div>
@@ -829,7 +829,7 @@ async function loadPackets(filters = {}) {
                 const lat = parseFloat(latMatch[1]) / 1e7;
                 const lon = parseFloat(lonMatch[1]) / 1e7;
                 inlineLinks +=
-                    ` <a class="inline-link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">📍</a>`;
+                    ` <a class="inline-link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener" title="${MeshI18n.h("Show on map")}" aria-label="${MeshI18n.h("Show on map")}"><span class="ti ti-map-pin" aria-hidden="true"></span></a>`;
             }
         }
 
@@ -838,7 +838,7 @@ async function loadPackets(filters = {}) {
             const match = pkt.payload?.match(/ID:\s*(\d+)/i);
             if (match) traceId = match[1];
             inlineLinks +=
-                ` <a class="inline-link" href="/traceroute/${traceId}" target="_blank">⮕</a>`;
+                ` <a class="inline-link" href="/traceroute/${traceId}" target="_blank" title="${MeshI18n.h("View traceroute")}" aria-label="${MeshI18n.h("View traceroute")}"><span class="ti ti-route" aria-hidden="true"></span></a>`;
         }
 
         const sizeBytes = packetSizeBytes(pkt);
@@ -1698,7 +1698,7 @@ function copyImportUrl() {
     navigator.clipboard.writeText(currentMeshtasticUrl).then(() => {
         const btn = document.getElementById("copyUrlBtn");
         const originalText = btn.innerHTML;
-        btn.innerHTML = `<span>✅</span> <span data-translate-lang="copied">${MeshI18n.h("Copied!")}</span>`;
+        btn.innerHTML = `<span class="ti ti-check" aria-hidden="true"></span> <span data-translate-lang="copied">${MeshI18n.h("Copied!")}</span>`;
         btn.classList.add("copy-success");
         setTimeout(() => {
             btn.innerHTML = originalText;
@@ -1736,7 +1736,7 @@ function copyQrUrl() {
     navigator.clipboard.writeText(currentMeshtasticUrl).then(() => {
         const btn = document.getElementById("copyQrBtn");
         const originalHTML = btn.innerHTML;
-        btn.innerHTML = `<span>✅</span> <span data-translate-lang="copied">${MeshI18n.h("Copied!")}</span>`;
+        btn.innerHTML = `<span class="ti ti-check" aria-hidden="true"></span> <span data-translate-lang="copied">${MeshI18n.h("Copied!")}</span>`;
         btn.classList.add("copied");
         setTimeout(() => {
             btn.innerHTML = originalHTML;

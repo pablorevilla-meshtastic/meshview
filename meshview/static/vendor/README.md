@@ -26,4 +26,8 @@ The Inter typeface is bundled from `@fontsource-variable/inter` 5.3.0 (SIL Open 
 License 1.1): only the variable weight axis, normal and italic, for every subset.
 Browsers download just the subsets a page uses through `unicode-range`.
 
+Icons come from `@tabler/icons` 3.51.0 (MIT): only the SVG files the UI uses,
+unmodified. `/static/icons.css` maps each one to a `.ti-<name>` class that paints
+it in the current text color through a CSS mask.
+
 Map tiles and other external data services still require network access.
