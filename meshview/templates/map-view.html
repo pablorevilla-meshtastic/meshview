@@ -1432,11 +1432,23 @@ document.addEventListener("DOMContentLoaded", () => {
     loadTranslationsMap();
 });
 
-// Legend and unmapped packets: open on wider screens, folded to a pill on phones.
+// Legend and unmapped packets: open on wider screens, folded to a pill on
+// phones unless the visitor opened them there before (remembered per browser).
 (() => {
     const phone = window.matchMedia("(max-width:700px)");
     const overlays = document.querySelectorAll("details.map-overlay");
-    const sync = () => overlays.forEach(el => { el.open = !phone.matches; });
+    const key = "mapOverlaysPhone";
+    const load = () => { try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch (_) { return {}; } };
+    const sync = () => {
+        const saved = load();
+        overlays.forEach(el => { el.open = phone.matches ? saved[el.id] === true : true; });
+    };
+    overlays.forEach(el => el.addEventListener("toggle", () => {
+        if (!phone.matches) return;
+        const saved = load();
+        saved[el.id] = el.open;
+        try { localStorage.setItem(key, JSON.stringify(saved)); } catch (_) { /* storage unavailable */ }
+    }));
     phone.addEventListener("change", sync);
     sync();
 })();
