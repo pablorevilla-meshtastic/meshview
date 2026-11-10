@@ -126,7 +126,7 @@ function portLabel(portnum, payload, linksHtml) {
     const safePayload = escapeHtml(payload || "");
 
     return `
-        <span class="port-tag" style="background-color:${color}" title="${safePayload}">
+        <span class="port-tag" style="--port-color:${color}" title="${safePayload}">
             ${name}
         </span>
         <span class="text-secondary">(${portnum})</span>

@@ -67,7 +67,7 @@
             const channelCell = document.createElement('td'); channelCell.textContent = packet.channel || '—';
             const port = document.createElement('td');
             const tag = document.createElement('span'); tag.className = 'mesh-traffic-type'; tag.textContent = portName(packet);
-            tag.style.backgroundColor = window.PORT_COLOR_MAP[packet.portnum] || '#6c757d';
+            tag.style.setProperty('--port-color', window.PORT_COLOR_MAP[packet.portnum] || '#6c757d');
             tag.title = packet.payload || '';
             const number = document.createElement('span'); number.className = 'mesh-traffic-port-number'; number.textContent = `(${packet.portnum ?? '?'})`;
             port.append(tag,number);
