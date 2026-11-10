@@ -13,8 +13,10 @@
 .good-x { background:#e8f5ee; color:#187346; }
 .ok-x { background:#fff4d9; color:#8a6200; }
 .bad-x { background:#fff0ed; color:#b23d2f; }
-.pagination { display:flex; align-items:center; justify-content:center; gap:16px; margin:20px 0 0; }
-#pageInfo { font-size:12px; color:var(--mesh-muted); }
+.top-load-more { display:flex; align-items:center; justify-content:center; padding:20px 0 6px; color:var(--mesh-muted); font-size:13px; }
+.top-load-more[hidden] { display:none; }
+.top-range { margin:10px 0 0; text-align:center; color:var(--mesh-muted); font-size:12px; }
+.top-range:empty { display:none; }
 @media(max-width:700px) { #channelFilter { width:180px; } }
 </style>
 {% endblock %}
@@ -37,7 +39,7 @@
 <div class="top-container">
 
     <div class="data-table-wrap" role="region" aria-label="{{ tr("Top nodes traffic table") }}" tabindex="0">
-    <table id="nodesTable" class="card-table top-table">
+    <table id="nodesTable" class="card-table top-table" data-cards-below="820">
         <thead>
             <tr>
                 <th data-translate-lang="long_name">Long Name</th>
@@ -52,11 +54,9 @@
     </table>
     </div>
 
-    <div class="pagination" aria-label="{{ tr("Leaderboard pagination") }}">
-        <button id="prevPage" class="btn btn-sm btn-secondary">{{ tr("Prev") }}</button>
-        <span id="pageInfo" role="status"></span>
-        <button id="nextPage" class="btn btn-sm btn-secondary">{{ tr("Next") }}</button>
-    </div>
+    <!-- Infinite scroll: the next page is requested as this comes into view. -->
+    <div id="top-load-more" class="top-load-more is-loading" hidden>{{ tr("Loading more nodes…") }}</div>
+    <p id="top-range" class="top-range" aria-live="polite"></p>
 
 </div>
 
@@ -85,9 +85,12 @@ async function loadTranslationsTop() {
 /* ======================================================
    CONFIG
    ====================================================== */
-const PAGE_SIZE = 20;
-let currentPage = 0;
+// The leaderboard is paged by the server: each request asks for the next PAGE_SIZE rows.
+const PAGE_SIZE = 50;
+let loadedRows = 0;
 let totalRows = 0;
+let loading = false;
+let requestId = 0;
 
 /* ======================================================
    HELPERS
@@ -125,23 +128,42 @@ async function loadChannels() {
 /* ======================================================
    FETCH + RENDER
    ====================================================== */
-async function renderTable() {
-    const tbody = document.querySelector("#nodesTable tbody");
-    tbody.innerHTML = "";
+function resetTable() {
+    document.querySelector("#nodesTable tbody").innerHTML = "";
+    loadedRows = 0;
+    totalRows = 0;
+    loading = false;
+    requestId++;
+    loadMore();
+}
 
-    const channel = document.getElementById("channelFilter").value;
-    const offset  = currentPage * PAGE_SIZE;
+async function loadMore() {
+    if (loading || (loadedRows && loadedRows >= totalRows)) return;
+    loading = true;
+    const request = requestId;
+    const tbody = document.querySelector("#nodesTable tbody");
+    const loader = document.getElementById("top-load-more");
+    loader.hidden = false;
 
     const url = new URL("/api/stats/top", window.location.origin);
     url.searchParams.set("limit", PAGE_SIZE);
-    url.searchParams.set("offset", offset);
+    url.searchParams.set("offset", loadedRows);
+    const channel = document.getElementById("channelFilter").value;
     if (channel) url.searchParams.set("channel", channel);
 
-    const res = await fetch(url);
-    const data = await res.json();
+    let data = {};
+    try {
+        const res = await fetch(url);
+        data = await res.json();
+    } catch (err) {
+        console.error("Top nodes request failed", err);
+    }
+    // A channel change while waiting started a new list: drop this answer.
+    if (request !== requestId) return;
 
     totalRows = data.total || 0;
-    if (!(data.nodes || []).length) {
+    const nodes = data.nodes || [];
+    if (!loadedRows && !nodes.length) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
         cell.colSpan = 6;
@@ -154,7 +176,7 @@ async function renderTable() {
     // Mobile cards label the counters with the column headings.
     // The page heading already states the 24 hour window.
     const headings = [...document.querySelectorAll("#nodesTable thead th")].map(th => escapeHtml(th.textContent.replace(/\s*\(24\s?h\)/i, "").trim()));
-    for (const n of data.nodes || []) {
+    for (const n of nodes) {
         const tr = document.createElement("tr");
         tr.onclick = () => location.href = `/node/${n.node_id}`;
 
@@ -173,15 +195,18 @@ async function renderTable() {
         `;
         tbody.appendChild(tr);
     }
-
-    const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+    loadedRows += nodes.length;
+    // Stop if the server returned nothing, even when its total says more remain.
+    if (!nodes.length) totalRows = loadedRows;
 
     document.getElementById("node-count").textContent = totalRows;
-    document.getElementById("pageInfo").textContent =
-        MeshI18n.t("Page {page} / {total}", {page: currentPage + 1, total: totalPages});
-
-    document.getElementById("prevPage").disabled = currentPage === 0;
-    document.getElementById("nextPage").disabled = currentPage >= totalPages - 1;
+    document.getElementById("top-range").textContent = totalRows
+        ? MeshI18n.t("Showing {shown} of {total} nodes", {shown: loadedRows, total: totalRows}) : "";
+    const more = loadedRows < totalRows;
+    loader.hidden = !more;
+    loading = false;
+    // Keep loading while the loader is still on screen (short pages, tall windows).
+    if (more && loader.getBoundingClientRect().top < window.innerHeight + 400) loadMore();
 }
 
 /* ======================================================
@@ -190,24 +215,12 @@ async function renderTable() {
 document.addEventListener("DOMContentLoaded", async () => {
     await loadTranslationsTop();
     await loadChannels();
-    await renderTable();
+    new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting)) loadMore();
+    }, {rootMargin: "400px 0px"}).observe(document.getElementById("top-load-more"));
+    resetTable();
 
-    channelFilter.onchange = () => {
-        currentPage = 0;
-        renderTable();
-    };
-
-    prevPage.onclick = () => {
-        if (currentPage > 0) {
-            currentPage--;
-            renderTable();
-        }
-    };
-
-    nextPage.onclick = () => {
-        currentPage++;
-        renderTable();
-    };
+    channelFilter.onchange = resetTable;
 });
 </script>
 
