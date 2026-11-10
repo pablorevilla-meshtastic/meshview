@@ -144,7 +144,9 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-menu-toggle:hover { background:#ffffff20; }
 .mesh-menu-toggle:focus-visible { outline:2px solid white; outline-offset:3px; }
 .mesh-nav-section { display:none; }
-.mesh-content { max-width:1600px; margin:0 auto; padding:16px 28px; }
+/* Short pages (an empty search, a missing node) keep the footer at the bottom of the window. */
+body { min-height:100dvh; display:flex; flex-direction:column; }
+.mesh-content { flex:1 0 auto; width:100%; max-width:1600px; margin:0 auto; padding:16px 28px; box-sizing:border-box; }
 .mesh-announcement { background:var(--mesh-soft); border-bottom:1px solid var(--mesh-border); color:var(--mesh-text); font-size:14px; }
 .mesh-announcement[hidden] { display:none; }
 .mesh-announcement-inner { display:flex; align-items:center; gap:10px; max-width:1600px; margin:auto; padding:8px 12px 8px 28px; }
