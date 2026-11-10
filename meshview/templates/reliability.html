@@ -48,7 +48,7 @@
 
 {% block body %}
 <section class="reach-page">
-    <header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("GATEWAY DIAGNOSTICS") }}</span><h1>{{ tr("Reliability") }}</h1><p>{{ tr("See how consistently gateways hear packets from a selected node.") }}</p></div><a class="mesh-secondary-button" href="/nodelist">{{ tr("All nodes ↗") }}</a></header>
+    <header class="data-heading is-compact"><div class="data-title"><h1>{{ tr("Reliability") }}</h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/nodelist">{{ tr("All nodes ↗") }}</a></div></header>
     <details class="reach-description"><summary>{{ tr("How reliability is calculated") }}</summary><p>{{ tr("Review how often each gateway hears packets from a selected node. The report uses the latest selected packet sample on the node’s recorded main channel and calculates reliability as heard packets divided by packets reviewed. The range table groups gateways by reliability bands, while the gateway list shows each gateway's heard count and percentage for the same sample. Reliability is calculated only from Text, Position, Node Info, and Telemetry packets; other packet types are shown in packet details but skipped from the calculation.") }}</p></details>
 
     <section class="reach-panel">

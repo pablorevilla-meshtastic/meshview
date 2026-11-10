@@ -36,7 +36,7 @@
 {% block body %}
 <div class="container">
 
-<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("DEVICE INSPECTOR") }}</span><h1><span id="nodeLabel">{{ tr("Node details") }}</span></h1><p>{{ tr("Device information, telemetry, and recent packet activity.") }}</p></div><a class="mesh-secondary-button" href="/nodelist">{{ tr("All nodes ↗") }}</a></header>
+<header class="data-heading is-compact"><div class="data-title"><h1><span id="nodeLabel">{{ tr("Node details") }}</span></h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/nodelist">{{ tr("All nodes ↗") }}</a></div></header>
 
     <!-- Node Actions -->
     <div class="node-actions" id="nodeActions" style="display:none;">

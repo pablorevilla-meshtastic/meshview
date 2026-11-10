@@ -32,7 +32,7 @@
 
 {% block body %}
 <div class="container packet-container">
-<header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("PACKET INSPECTOR") }}</span><h1>{{ tr("Packet details") }}</h1><p>{{ tr("Inspect the payload, route, and gateways that received this packet.") }}</p></div><a class="mesh-secondary-button" href="/firehose">{{ tr("Live packets ↗") }}</a></header>
+<header class="data-heading is-compact"><div class="data-title"><h1>{{ tr("Packet details") }}</h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/firehose">{{ tr("Live packets ↗") }}</a></div></header>
 
     <div id="loading" data-translate-lang="loading">Loading packet information...</div>
     <div id="packet-card" class="packet-card d-none"></div>

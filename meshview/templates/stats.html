@@ -51,7 +51,7 @@
 
 {% block body %}
 <div class="main-container">
-    <header class="data-heading"><div><span class="mesh-eyebrow">{{ tr("NETWORK ANALYTICS") }}</span><h1>{{ tr("Mesh statistics") }}</h1><p>{{ tr("Explore packet history, device activity, and gateway distribution.") }}</p></div><a class="mesh-secondary-button" href="/top">{{ tr("Top nodes ↗") }}</a></header>
+    <header class="data-heading is-compact"><div class="data-title"><h1>{{ tr("Mesh statistics") }}</h1></div><div class="data-actions"><a class="mesh-secondary-button" href="/top">{{ tr("Top nodes ↗") }}</a></div></header>
 
     <!-- Summary cards now fully driven by API + JS -->
     <div class="summary-container">
