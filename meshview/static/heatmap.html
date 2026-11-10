@@ -207,7 +207,7 @@ async function setMapBoundsFromConfig() {
     map.fitBounds([[topLat, topLon], [bottomLat, bottomLon]]);
   } catch (err) {
     console.error("Failed to load map bounds from config:", err);
-    map.setView([37.77, -122.42], 9);
+    map.setView([20, 0], 2);
   }
 }
 

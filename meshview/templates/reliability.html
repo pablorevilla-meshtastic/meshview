@@ -308,7 +308,6 @@ function nodeLatLng(node) {
     return [lat, lon];
 }
 
-let reliabilityMapFitted = false;
 
 // Gateway table sorting (table mode only; cards have no headers).
 const gatewaySort = {key: "reliability", asc: false, rows: [], render: null};
@@ -347,16 +346,9 @@ document.addEventListener("click", event => {
 function initReliabilityMap() {
     if (reliabilityMap) return reliabilityMap;
 
-    reliabilityMap = L.map("reach-gateway-map", { preferCanvas: true }).setView([37.7749, -122.4194], 8);
+    reliabilityMap = L.map("reach-gateway-map", { preferCanvas: true });
     // Start on the site's configured map area until a report fits the gateways.
-    window._siteConfigPromise?.then(cfg => {
-        const site = cfg?.site || {};
-        if (reliabilityMapFitted || site.map_top_left_lat == null) return;
-        reliabilityMap.fitBounds([
-            [Number(site.map_top_left_lat), Number(site.map_top_left_lon)],
-            [Number(site.map_bottom_right_lat), Number(site.map_bottom_right_lon)],
-        ]);
-    });
+    meshMapStartView(reliabilityMap);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap",
         maxZoom: 19,
@@ -431,7 +423,6 @@ function renderReliabilityMap(gatewayRows, nodesById) {
     requestAnimationFrame(() => {
         reliabilityMap.invalidateSize();
         if (bounds.length) {
-            reliabilityMapFitted = true;
             reliabilityMap.fitBounds(bounds, { padding: [24, 24], maxZoom: 12 });
         }
     });

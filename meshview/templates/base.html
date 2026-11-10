@@ -344,6 +344,28 @@ if (!window._siteConfigPromise) {
     })();
 }
 
+// Starting view for Leaflet maps: a known position, else the configured map
+// area (usually loaded already), else the whole world until the config
+// arrives. Never a hard-coded city; data that loads later fits as usual.
+window.meshMapStartView = (map, position, zoom = 12) => {
+    if (position) return map.setView(position, zoom);
+    const area = cfg => {
+        const s = cfg?.site || {};
+        const b = [[s.map_top_left_lat, s.map_top_left_lon], [s.map_bottom_right_lat, s.map_bottom_right_lon]]
+            .map(pair => pair.map(parseFloat));
+        return b.flat().every(Number.isFinite) ? b : null;
+    };
+    const known = area(window._siteConfig);
+    if (known) return map.fitBounds(known);
+    map.setView([20, 0], 2);
+    let moved = false;
+    map.once("movestart", () => { moved = true; });
+    window._siteConfigPromise?.then(cfg => {
+        const later = area(cfg);
+        if (later && !moved) map.fitBounds(later);
+    });
+};
+
 // --- Load language AFTER config ---
 if (!window._langPromise) {
     window._langPromise = (async () => {
