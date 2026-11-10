@@ -136,7 +136,10 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 #site-menu a { color:#e6effb; text-decoration:none; padding:6px 10px; border-radius:6px; font-size:14px; line-height:20px; white-space:nowrap; }
 #site-menu a:hover { color:white; background:#ffffff14; }
 #site-menu a.active { color:white; background:#ffffff2e; font-weight:500; }
-.mesh-menu-toggle { display:none; color:white; background:none; border:1px solid #ffffff70; border-radius:5px; width:36px; height:36px; padding:0; font-size:22px; line-height:1; }
+.mesh-menu-toggle { display:none; align-items:center; justify-content:center; color:white; background:none; border:1px solid #ffffff70; border-radius:6px; width:36px; height:36px; padding:0; font-size:20px; line-height:1; }
+.mesh-menu-toggle:hover { background:#ffffff20; }
+.mesh-menu-toggle:focus-visible { outline:2px solid white; outline-offset:3px; }
+.mesh-nav-section { display:none; }
 .mesh-content { max-width:1600px; margin:0 auto; padding:16px 28px; }
 .mesh-announcement { text-align:center; padding:10px 20px; background:var(--mesh-soft); color:var(--mesh-text); font-size:14px; }
 .mesh-announcement:empty { display:none; }
@@ -182,7 +185,22 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-map-panel #unmapped-packets { bottom:25px; right:10px; width:190px; }
 .mesh-map-panel .leaflet-control-layers { font-size:11px; border:1px solid var(--mesh-border); box-shadow:0 2px 8px #0001; }
 @media(max-width:1000px) { .mesh-explorer { grid-template-columns:240px minmax(0,1fr); } }
-@media(max-width:700px) { .mesh-header-inner { flex-wrap:wrap; gap:0; padding:6px 16px; justify-content:space-between; } .mesh-menu-toggle { display:block; } #site-menu { display:none; flex-basis:100%; padding-top:6px; } #site-menu.is-open { display:flex; } .mesh-nav-items { flex-wrap:wrap; overflow:visible; } }
+@media(max-width:700px) {
+    .mesh-header-inner { gap:8px; padding:0 12px 0 16px; min-height:52px; }
+    .mesh-brand { min-width:0; flex:1 1 auto; }
+    .mesh-brand #site-header { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mesh-menu-toggle { display:inline-flex; order:3; }
+    /* The menu opens as a panel under the header, grouped by section. */
+    #site-menu { display:none; position:absolute; top:100%; left:0; right:0; max-height:calc(100dvh - 52px); overflow:auto; padding:4px 0 10px; background:var(--mesh-surface); border-bottom:1px solid var(--mesh-border); box-shadow:0 12px 24px rgba(16,25,37,.25); }
+    #site-menu.is-open { display:block; }
+    .mesh-nav-items { flex-direction:column; align-items:stretch; gap:0; overflow:visible; }
+    .mesh-nav-section { display:block; padding:14px 20px 4px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--mesh-muted); }
+    #site-menu .mesh-nav-items a { display:flex; align-items:center; justify-content:space-between; min-height:48px; padding:0 20px; border-radius:0; color:var(--mesh-text); font-size:15px; }
+    #site-menu .mesh-nav-items a:hover { color:var(--mesh-text); background:var(--mesh-soft); }
+    #site-menu .mesh-nav-items a.active { color:var(--mesh-primary); background:var(--mesh-soft); font-weight:600; box-shadow:inset 3px 0 0 var(--mesh-primary); }
+    #site-menu .mesh-nav-items a:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
+    #site-menu .mesh-nav-external { color:var(--mesh-muted); opacity:1; }
+}
 @media(max-width:700px) { .mesh-content { padding:16px 14px; } .mesh-page-heading { align-items:flex-start; } .mesh-page-heading h1 { font-size:24px; } .mesh-secondary-button { white-space:nowrap; font-size:11px; padding:8px; } .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .mesh-metric { padding:14px; } .mesh-metric strong { font-size:26px; } .mesh-explorer { display:flex; flex-direction:column-reverse; gap:16px; } .mesh-map-panel #map-wrapper { height:440px; } .mesh-node-list { max-height:300px; } .mesh-map-panel #unmapped-packets { width:155px; font-size:10px; } .mesh-footer { flex-direction:column; } }
     </style>
 {% include "theme-styles.html" %}
@@ -356,12 +374,19 @@ async function initializePage() {
 // Groups that leave first when space runs out; anything not listed stays longest.
 const MENU_OVERFLOW_ORDER = ["links", "top", "net", "graphs", "stats", "chat", "home", "everything", "map", "nodes"];
 const MOBILE_MENU_QUERY = window.matchMedia("(max-width:700px)");
+// The mobile menu panel groups sections under these headings.
+const MENU_SECTIONS = {
+    home: "explore", nodes: "explore", map: "explore", everything: "explore", chat: "explore",
+    stats: "analysis", graphs: "analysis", net: "analysis", top: "analysis",
+    api: "links", world: "links",
+};
+const MENU_SECTION_LABELS = {explore: "Explore", analysis: "Analysis", links: "Links"};
 
 function setupSiteMenu(menu, items) {
     const template = document.createElement("template");
     const entries = items.map(({key, group, html}) => {
         template.innerHTML = html.trim();
-        return {key, group: group || key, el: template.content.firstElementChild};
+        return {key, group: group || key, section: MENU_SECTIONS[key] || "explore", el: template.content.firstElementChild};
     });
     const groups = [...new Set(entries.map(entry => entry.group))];
 
@@ -397,10 +422,26 @@ function setupSiteMenu(menu, items) {
     function layout() {
         setOpen(false);
         panel.replaceChildren();
-        list.replaceChildren(...entries.map(entry => entry.el));
         more.hidden = true;
         button.classList.remove("active");
-        if (MOBILE_MENU_QUERY.matches || !overflowing()) return;
+        if (MOBILE_MENU_QUERY.matches) {
+            const children = [];
+            let current = null;
+            for (const entry of entries) {
+                if (entry.section !== current) {
+                    current = entry.section;
+                    const heading = document.createElement("span");
+                    heading.className = "mesh-nav-section";
+                    heading.textContent = MeshI18n.t(MENU_SECTION_LABELS[current]);
+                    children.push(heading);
+                }
+                children.push(entry.el);
+            }
+            list.replaceChildren(...children);
+            return;
+        }
+        list.replaceChildren(...entries.map(entry => entry.el));
+        if (!overflowing()) return;
 
         more.hidden = false;
         const moved = new Set();
@@ -468,11 +509,35 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".data-table-wrap").forEach(watchTableWidth);
 });
 
-document.querySelector(".mesh-menu-toggle").addEventListener("click", function () {
-    const expanded = this.getAttribute("aria-expanded") !== "true";
-    this.setAttribute("aria-expanded", String(expanded));
-    document.getElementById("site-menu").classList.toggle("is-open", expanded);
-});
+// --- Mobile menu panel ---
+(() => {
+    const toggle = document.querySelector(".mesh-menu-toggle");
+    const menu = document.getElementById("site-menu");
+    const icon = toggle.querySelector(".ti");
+    const setOpen = open => {
+        toggle.setAttribute("aria-expanded", String(open));
+        menu.classList.toggle("is-open", open);
+        icon.classList.toggle("ti-menu-2", !open);
+        icon.classList.toggle("ti-x", open);
+    };
+    toggle.addEventListener("click", () => {
+        const open = toggle.getAttribute("aria-expanded") !== "true";
+        setOpen(open);
+        if (open) menu.querySelector("a")?.focus();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && menu.classList.contains("is-open")) {
+            setOpen(false);
+            toggle.focus();
+        }
+    });
+    document.addEventListener("click", event => {
+        if (menu.classList.contains("is-open") && !menu.contains(event.target) && !toggle.contains(event.target)) {
+            setOpen(false);
+        }
+    });
+    MOBILE_MENU_QUERY.addEventListener("change", () => setOpen(false));
+})();
 document.addEventListener("DOMContentLoaded", initializePage);
 </script>
 
