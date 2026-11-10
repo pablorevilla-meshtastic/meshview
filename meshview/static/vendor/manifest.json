@@ -63,5 +63,29 @@
       "qrcode.min.js",
       "LICENSE"
     ]
+  },
+  "@fontsource-variable/inter": {
+    "version": "5.3.0",
+    "source": "https://registry.npmjs.org/@fontsource-variable/inter/-/inter-5.3.0.tgz",
+    "archive_sha256": "d26710dd38e7217484a1d47ee76c024977ec550548876f26d06ed1844af09a14",
+    "files": [
+      "wght.css",
+      "wght-italic.css",
+      "files/inter-cyrillic-ext-wght-italic.woff2",
+      "files/inter-cyrillic-ext-wght-normal.woff2",
+      "files/inter-cyrillic-wght-italic.woff2",
+      "files/inter-cyrillic-wght-normal.woff2",
+      "files/inter-greek-ext-wght-italic.woff2",
+      "files/inter-greek-ext-wght-normal.woff2",
+      "files/inter-greek-wght-italic.woff2",
+      "files/inter-greek-wght-normal.woff2",
+      "files/inter-latin-ext-wght-italic.woff2",
+      "files/inter-latin-ext-wght-normal.woff2",
+      "files/inter-latin-wght-italic.woff2",
+      "files/inter-latin-wght-normal.woff2",
+      "files/inter-vietnamese-wght-italic.woff2",
+      "files/inter-vietnamese-wght-normal.woff2",
+      "LICENSE"
+    ]
   }
 }

@@ -19,6 +19,8 @@
     <!-- Scripts -->
     <script src="/static/vendor/bootstrap-5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <link href="/static/vendor/bootstrap-5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet" href="/static/vendor/inter-5.3.0/wght.css">
+    <link rel="stylesheet" href="/static/vendor/inter-5.3.0/wght-italic.css">
     <link rel="stylesheet" href="/static/vendor/leaflet-1.9.4/dist/leaflet.css" crossorigin=""/>
     <script src="/static/vendor/leaflet-1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="/static/html-escape.js"></script>
@@ -59,6 +61,7 @@
     <style>
 /* Shared dashboard chrome and map explorer. */
 :root,[data-bs-theme="light"],[data-bs-theme="dark"] {
+    --bs-body-font-family:"Inter Variable",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --bs-primary:var(--mesh-brand);
     --bs-primary-rgb:var(--mesh-primary-rgb);
     --bs-link-color:var(--mesh-primary);
@@ -87,7 +90,7 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .form-check-input:checked { background-color:var(--mesh-primary); border-color:var(--mesh-primary); }
 .form-check-input:focus { border-color:#91bda1; box-shadow:0 0 0 .25rem rgba(var(--mesh-primary-rgb),.2); }
 .page-link { --bs-pagination-color:var(--mesh-primary); --bs-pagination-hover-color:var(--mesh-primary-dark); --bs-pagination-active-bg:var(--mesh-primary); --bs-pagination-active-border-color:var(--mesh-primary); }
-[data-bs-theme="light"] body { background:var(--mesh-page); color:var(--mesh-text); font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; }
+[data-bs-theme="light"] body { background:var(--mesh-page); color:var(--mesh-text); }
 /* Tint whole cells: an edge-only shadow is too subtle on wide packet tables. */
 .packet-arrival-glow > td {
     animation:packet-arrival-beat 1s ease-in-out 1;
