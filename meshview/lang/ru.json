@@ -493,6 +493,7 @@
     "Errors: HTTP 400 for non-integer ID/length filters. Unsupported": "Ошибки: HTTP 400 для нецелых фильтров ID/длины. Неподдерживаемые значения",
     "Errors: HTTP 500 with": "Ошибки: HTTP 500 с",
     "Errors: storage/period failures return HTTP 200 with": "Ошибки: сбои хранилища или периода возвращают HTTP 200 с",
+    "Expand chart": "Развернуть диаграмму",
     "Expanded chart": "Развёрнутый график",
     "Explore": "Обзор",
     "Explore forward paths, reported return routes, and the nodes along the way.": "Просмотр прямых путей, переданных обратных маршрутов и узлов на пути.",

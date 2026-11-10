@@ -493,6 +493,7 @@
     "Errors: HTTP 400 for non-integer ID/length filters. Unsupported": "Errors: HTTP 400 for non-integer ID/length filters. Unsupported",
     "Errors: HTTP 500 with": "Errors: HTTP 500 with",
     "Errors: storage/period failures return HTTP 200 with": "Errors: storage/period failures return HTTP 200 with",
+    "Expand chart": "Expand chart",
     "Expanded chart": "Expanded chart",
     "Explore": "Explore",
     "Explore forward paths, reported return routes, and the nodes along the way.": "Explore forward paths, reported return routes, and the nodes along the way.",

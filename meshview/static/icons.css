@@ -40,3 +40,7 @@
 .ti-router { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/router.svg); }
 .ti-arrow-bar-to-down { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/arrow-bar-to-down.svg); }
 .ti-star-filled { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/filled/star.svg); }
+.ti-arrows-maximize { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/arrows-maximize.svg); }
+.ti-download { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/download.svg); }
+.ti-map-2 { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/map-2.svg); }
+.ti-eye { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/eye.svg); }

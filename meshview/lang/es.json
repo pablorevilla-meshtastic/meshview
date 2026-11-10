@@ -501,6 +501,7 @@
     "Errors: HTTP 400 for non-integer ID/length filters. Unsupported": "Errores: HTTP 400 si los filtros de ID o duración no son enteros. Los valores no admitidos de",
     "Errors: HTTP 500 with": "Errores: HTTP 500 con",
     "Errors: storage/period failures return HTTP 200 with": "Errores: los fallos de almacenamiento o período devuelven HTTP 200 con",
+    "Expand chart": "Ampliar gráfico",
     "Expanded chart": "Gráfico ampliado",
     "Explore": "Explorar",
     "Explore forward paths, reported return routes, and the nodes along the way.": "Explore las rutas de ida, las rutas de vuelta comunicadas y los nodos del recorrido.",
