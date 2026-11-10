@@ -210,7 +210,10 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-inspector-telemetry strong { display:block; font-size:18px; color:var(--mesh-primary); }
 .mesh-inspector-telemetry span { font-size:10px; color:var(--mesh-muted); }
 .mesh-traffic { margin-top:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
-.mesh-traffic-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.mesh-traffic-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:auto; }
+.mesh-traffic-actions { display:flex; gap:8px; align-items:center; }
+.mesh-traffic-icon { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; }
+.mesh-traffic-icon .ti { width:16px; height:16px; vertical-align:0; }
 .mesh-traffic-list { max-height:360px; overflow:auto; }
  .mesh-traffic-table { width:100%; min-width:780px; border-collapse:collapse; font-size:13px; color:var(--mesh-text); }
 .mesh-traffic-table th { position:sticky; top:0; z-index:1; padding:12px 14px; background:var(--mesh-brand); color:white; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
@@ -228,7 +231,8 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 #map-traffic-channel { border:1px solid var(--mesh-border); border-radius:5px; color:var(--mesh-text); background:var(--mesh-surface); font-size:12px; padding:6px 8px; max-width:180px; }
 :is(.mesh-traffic-toggle,.mesh-traffic-table a,#map-traffic-channel,.mesh-inspector-packet,.mesh-inspector-back,.mesh-traffic-control):focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
 .mesh-traffic-note { padding:8px 18px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:11px; margin:0; }
-@media(max-width:700px) { .mesh-node-inspector { max-height:none; } .mesh-traffic .mesh-panel-title { align-items:flex-start; flex-direction:column; } }
+/* Phones: title and buttons share the first row, channel and status the second. */
+@media(max-width:700px) { .mesh-node-inspector { max-height:none; } .mesh-traffic .mesh-panel-title { flex-wrap:wrap; row-gap:10px; } .mesh-traffic .mesh-panel-title h2 { flex:1; } .mesh-traffic-tools { order:3; width:100%; margin-left:0; } }
 </style>
 {% endblock %}
 
@@ -343,7 +347,7 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 </div>
 {% if dashboard %}
 <section class="mesh-traffic" aria-label="{{ tr("Live network traffic") }}">
-    <div class="mesh-panel-title"><h2>{{ tr("Live traffic") }}</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">{{ tr("Channel") }}</label><select id="map-traffic-channel"><option value="">{{ tr("All channels") }}</option></select><span id="map-traffic-status" class="live-status" role="status" data-state="loading">{{ tr("Loading packets…") }}</span><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="{{ tr("Pause the traffic list; map animations continue") }}">{{ tr("Pause feed") }}</button><button id="map-traffic-refresh" class="mesh-traffic-control" type="button">{{ tr("Refresh") }}</button></div></div>
+    <div class="mesh-panel-title"><h2>{{ tr("Live traffic") }}</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">{{ tr("Channel") }}</label><select id="map-traffic-channel"><option value="">{{ tr("All channels") }}</option></select><span id="map-traffic-status" class="live-status" role="status" data-state="loading">{{ tr("Loading packets…") }}</span></div><div class="mesh-traffic-actions"><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="{{ tr("Pause the traffic list; map animations continue") }}">{{ tr("Pause feed") }}</button><button id="map-traffic-refresh" class="mesh-traffic-control mesh-traffic-icon" type="button" title="{{ tr("Refresh") }}" aria-label="{{ tr("Refresh") }}"><span class="ti ti-refresh" aria-hidden="true"></span></button></div></div>
     <div id="map-traffic-list" class="mesh-traffic-list" role="region" aria-label="{{ tr("Live packet table") }}" tabindex="0">
         <table class="mesh-traffic-table card-table" data-cards-below="1100"><thead><tr><th>{{ tr("Time") }}</th><th>{{ tr("Packet ID") }}</th><th>{{ tr("From") }}</th><th>{{ tr("To") }}</th><th>{{ tr("Channel") }}</th><th>{{ tr("Port") }}</th></tr></thead><tbody id="map-traffic-body"><tr><td colspan="6" class="mesh-empty">{{ tr("Loading recent network traffic…") }}</td></tr></tbody></table>
     </div>
