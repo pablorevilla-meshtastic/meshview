@@ -4,132 +4,115 @@
 <script src="/static/vendor/echarts-5.5.0/dist/echarts.min.js"></script>
 {% endblock %}
 
+{% block body_class %}mesh-graph-page{% endblock %}
+
 {% block css %}
 <style>
-#mynetwork {
-    width: 100%;
-    height: 100vh;
-    border: 1px solid var(--mesh-border);
-    background-color: var(--mesh-surface);
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
+/* The page fills the window under the header: the graph takes what the toolbar leaves. */
+.mesh-graph-page .mesh-content { display:flex; flex-direction:column; height:calc(100dvh - 48px); min-height:480px; box-sizing:border-box; }
+@media(max-width:700px) { .mesh-graph-page .mesh-content { height:calc(100dvh - 52px); } }
+.graph-panel { display:flex; flex:1; flex-direction:column; min-height:0; overflow:hidden; border:1px solid var(--mesh-border); border-radius:9px; background:var(--mesh-surface); }
+.graph-stage { position:relative; flex:1; min-height:300px; }
+#mynetwork { position:absolute; inset:0; }
 
-/* Search UI */
-.search-container {
-    position: absolute;
-    bottom: 100px;
-    left: 10px;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-.search-container input,
-.search-container select,
-.search-container button {
-    padding: 8px;
-    border-radius: 8px;
-    border: 1px solid var(--mesh-border);
-}
-.search-container button {
-    background-color: var(--mesh-brand);
-    color: white;
-    cursor: pointer;
-}
-.search-container button:hover {
-    background-color: var(--mesh-brand-deep);
-}
+/* Overlays: legend top left, fit top right, node card bottom right (only when selected). */
+.graph-overlay { position:absolute; z-index:5; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:8px; box-shadow:0 2px 8px #0001; color:var(--mesh-text); font-size:12px; }
+#legend { top:10px; left:10px; padding:8px 10px; max-width:calc(100% - 80px); }
+#legend > summary { display:none; align-items:center; gap:6px; list-style:none; font-weight:600; cursor:pointer; }
+#legend > summary::-webkit-details-marker { display:none; }
+#legend > summary::after { content:""; width:12px; height:12px; margin-left:auto; background:currentColor; opacity:.6; -webkit-mask:url(/static/vendor/tabler-icons-3.51.0/icons/outline/chevron-right.svg) center / contain no-repeat; mask:url(/static/vendor/tabler-icons-3.51.0/icons/outline/chevron-right.svg) center / contain no-repeat; transition:transform .15s ease; }
+#legend[open] > summary::after { transform:rotate(90deg); }
+.legend-items { display:grid; grid-template-columns:repeat(4,auto); gap:4px 14px; }
+.legend-items > div { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.legend-items code { font-size:11px; color:inherit; }
+.legend-box { display:inline-block; flex-shrink:0; width:12px; height:12px; border-radius:3px; }
+.legend-box.line { height:3px; border-radius:0; }
+.circle { border-radius:50%; }
+.graph-tools { top:10px; right:10px; overflow:hidden; }
+.graph-tools button { display:flex; align-items:center; gap:8px; min-height:34px; padding:0 12px 0 10px; border:0; background:var(--mesh-surface); color:var(--mesh-text); font:500 12px/1 inherit; white-space:nowrap; cursor:pointer; }
+.graph-tools button:hover { background:var(--mesh-soft); }
+.graph-tools button:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
+.graph-tools .ti { font-size:16px; color:var(--mesh-primary); }
+#node-info { right:10px; bottom:10px; width:260px; max-width:calc(100% - 20px); padding:12px 14px; font-size:13px; }
+#node-info[hidden] { display:none; }
+#node-info h2 { margin:0 28px 6px 0; font-size:15px; font-weight:650; overflow-wrap:anywhere; }
+#node-info dl { display:grid; grid-template-columns:auto minmax(0,1fr); gap:3px 10px; margin:0 0 8px; }
+#node-info dt { font-weight:500; color:var(--mesh-muted); }
+#node-info dd { margin:0; overflow-wrap:anywhere; }
+#node-info-close { position:absolute; top:8px; right:8px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; padding:0; border:0; border-radius:6px; background:transparent; color:var(--mesh-muted); cursor:pointer; }
+#node-info-close:hover { background:var(--mesh-soft); color:var(--mesh-text); }
 
-/* Node info box */
-#node-info {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    background-color: rgba(255,255,255,0.95);
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid var(--mesh-border);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    font-size: 14px;
-    color: var(--mesh-text);
-    width: 260px;
-    max-height: 250px;
-    overflow-y: auto;
-}
+/* Toolbar under the graph: channel and search, like the map filters. */
+.graph-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:10px 12px; border-top:1px solid var(--mesh-border); font-size:13px; }
+.graph-toolbar label { margin:0; font-size:12px; color:var(--mesh-muted); }
+.graph-toolbar select, .graph-toolbar input { height:34px; padding:0 10px; border:1px solid var(--mesh-border); border-radius:6px; background:var(--mesh-surface); color:var(--mesh-text); font-size:13px; }
+.graph-search { display:flex; align-items:center; gap:6px; flex:1 1 260px; max-width:420px; }
+.graph-search input { flex:1; min-width:0; }
+.graph-search button { display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border:1px solid var(--mesh-border); border-radius:6px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:13px; font-weight:500; cursor:pointer; }
+.graph-search button:hover { background:var(--mesh-hover); }
+#graph-search-status { font-size:12px; color:#b42318; }
+[data-bs-theme="dark"] #graph-search-status { color:#ffb4a6; }
+:is(.graph-toolbar select,.graph-toolbar input,.graph-search button):focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
 
-/* Legend */
-#legend {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    background: rgba(255,255,255,0.9);
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid var(--mesh-border);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    font-size: 14px;
-    display: flex;
-    flex-wrap: wrap;
-    max-width: calc(100% - 20px);
-    color: var(--mesh-text);
+@media(max-width:700px) {
+    #legend > summary { display:flex; }
+    #legend[open] > summary { margin-bottom:6px; }
+    .legend-items { grid-template-columns:repeat(2,auto); }
+    .graph-tools button { justify-content:center; width:34px; padding:0; }
+    .graph-tool-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+    .graph-search { flex-basis:100%; max-width:none; }
 }
-.legend-category {
-    margin-right: 10px;
-}
-.legend-box {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    margin-right: 5px;
-    border-radius: 3px;
-}
-.circle { border-radius: 6px; }
 </style>
 {% endblock %}
 
 {% block body %}
-<div id="mynetwork"></div>
+<h1 class="visually-hidden">{{ tr("Mesh Graphs") }}</h1>
+<section class="graph-panel" aria-label="{{ tr("Mesh Graphs") }}">
+<div class="graph-stage">
+    <div id="mynetwork"></div>
 
-<!-- SEARCH + FILTER -->
-<div class="search-container">
-    <label style="color:var(--mesh-text);">{{ tr("Channel:") }}</label>
+    <details id="legend" class="graph-overlay" open>
+        <summary>{{ tr("Legend") }}</summary>
+        <div class="legend-items">
+            <div><span class="legend-box line" style="background-color:#ff5733"></span>{{ tr("Traceroute") }}</div>
+            <div><span class="legend-box circle" style="background-color:#ff5733"></span><code>ROUTER</code></div>
+            <div><span class="legend-box circle" style="background-color:#007bff"></span><code>CLIENT</code></div>
+            <div><span class="legend-box circle" style="background-color:#049acd"></span><code>CLIENT_BASE</code></div>
+            <div><span class="legend-box line" style="background-color:#049acd"></span>{{ tr("Neighbor") }}</div>
+            <div><span class="legend-box circle" style="background-color:#b65224"></span><code>ROUTER_LATE</code></div>
+            <div><span class="legend-box circle" style="background-color:#00c3ff"></span><code>CLIENT_MUTE</code></div>
+            <div><span class="legend-box circle" style="background-color:#ffbf00"></span>{{ tr("Other") }}</div>
+            <div></div><div></div><div></div>
+            <div><span class="legend-box circle" style="background-color:#6c757d"></span>{{ tr("Unknown") }}</div>
+        </div>
+    </details>
+
+    <div class="graph-overlay graph-tools">
+        <button type="button" id="graph-fit" title="{{ tr("Fit network") }}"><span class="ti ti-focus-centered" aria-hidden="true"></span><span class="graph-tool-label">{{ tr("Fit network") }}</span></button>
+    </div>
+
+    <aside id="node-info" class="graph-overlay" aria-live="polite" hidden>
+        <button type="button" id="node-info-close" aria-label="{{ tr("Close") }}" title="{{ tr("Close") }}"><span class="ti ti-x" aria-hidden="true"></span></button>
+        <h2 id="node-long-name"></h2>
+        <dl>
+            <dt>{{ tr("Short Name:") }}</dt><dd id="node-short-name"></dd>
+            <dt>{{ tr("Role:") }}</dt><dd id="node-role"></dd>
+            <dt>{{ tr("Hardware Model:") }}</dt><dd id="node-hw-model"></dd>
+        </dl>
+        <a id="node-info-link" href="/nodelist">{{ tr("Full node details ↗") }}</a>
+    </aside>
+</div>
+
+<div class="graph-toolbar">
+    <label for="channel-select">{{ tr("Channel:") }}</label>
     <select id="channel-select" onchange="filterByChannel()"></select>
-
-    <input type="text" id="node-search" placeholder="{{ tr("Search node...") }}">
-    <button onclick="searchNode()">{{ tr("Search") }}</button>
+    <form class="graph-search" role="search" onsubmit="event.preventDefault(); searchNode();">
+        <input type="search" id="node-search" aria-label="{{ tr("Search node...") }}" placeholder="{{ tr("Search node...") }}">
+        <button type="submit"><span class="ti ti-search" aria-hidden="true"></span>{{ tr("Search") }}</button>
+    </form>
+    <span id="graph-search-status" role="status"></span>
 </div>
-
-<!-- INFO BOX -->
-<div id="node-info">
-    <b>{{ tr("Long Name:") }}</b> <span id="node-long-name"></span><br>
-    <b>{{ tr("Short Name:") }}</b> <span id="node-short-name"></span><br>
-    <b>{{ tr("Role:") }}</b> <span id="node-role"></span><br>
-    <b>{{ tr("Hardware Model:") }}</b> <span id="node-hw-model"></span>
-</div>
-
-<!-- LEGEND -->
-<div id="legend">
-    <div class="legend-category">
-        <div><span class="legend-box" style="background-color: #ff5733"></span>{{ tr("Traceroute") }}</div>
-        <div><span class="legend-box" style="background-color: #049acd"></span>{{ tr("Neighbor") }}</div>
-    </div>
-    <div class="legend-category">
-        <div><span class="legend-box circle" style="background-color: #ff5733"></span><code>ROUTER</code></div>
-        <div><span class="legend-box circle" style="background-color: #b65224"></span><code>ROUTER_LATE</code></div>
-    </div>
-    <div class="legend-category">
-        <div><span class="legend-box circle" style="background-color: #007bff"></span><code>CLIENT</code></div>
-        <div><span class="legend-box circle" style="background-color: #00c3ff"></span><code>CLIENT_MUTE</code></div>
-    </div>
-    <div class="legend-category">
-        <div><span class="legend-box circle" style="background-color: #049acd"></span><code>CLIENT_BASE</code></div>
-        <div><span class="legend-box circle" style="background-color: #ffbf00"></span>{{ tr("Other") }}</div>
-    </div>
-    <div class="legend-category">
-        <div><span class="legend-box circle" style="background-color: #6c757d"></span>{{ tr("Unknown") }}</div>
-    </div>
-</div>
+</section>
 
 <script>
 // Initialize ECharts
@@ -280,6 +263,8 @@ function filterByChannel() {
     filteredEdges = edges.filter(e => allowed.has(e.source) && allowed.has(e.target));
 
     lastSelectedNode = null;
+    document.getElementById("node-info").hidden = true;
+    document.getElementById("graph-search-status").textContent = "";
     updateChart();
 }
 
@@ -340,12 +325,7 @@ chart.on("click", function(params){
     if (params.dataType === "node") {
         updateSelectedNode(params.data.name);
     } else {
-        lastSelectedNode = null;
-        updateChart();
-        document.getElementById("node-long-name").innerText = "";
-        document.getElementById("node-short-name").innerText = "";
-        document.getElementById("node-role").innerText = "";
-        document.getElementById("node-hw-model").innerText = "";
+        clearSelectedNode();
     }
 });
 
@@ -356,11 +336,27 @@ function updateSelectedNode(id) {
     const n = filteredNodes.find(n => n.name === id);
     if (!n) return;
 
-    document.getElementById("node-long-name").innerText = n.long_name;
-    document.getElementById("node-short-name").innerText = n.short_name;
-    document.getElementById("node-role").innerText = n.role;
-    document.getElementById("node-hw-model").innerText = n.hw_model;
+    document.getElementById("node-long-name").innerText = n.long_name || n.short_name || n.name;
+    document.getElementById("node-short-name").innerText = n.short_name || "—";
+    document.getElementById("node-role").innerText = n.role || "—";
+    document.getElementById("node-hw-model").innerText = n.hw_model || "—";
+    document.getElementById("node-info-link").href = `/node/${encodeURIComponent(n.node_id)}`;
+    document.getElementById("node-info").hidden = false;
 }
+
+function clearSelectedNode() {
+    lastSelectedNode = null;
+    updateChart();
+    document.getElementById("node-info").hidden = true;
+}
+document.getElementById("node-info-close").addEventListener("click", clearSelectedNode);
+
+// Back to the initial framing after panning or zooming.
+document.getElementById("graph-fit").addEventListener("click", () => {
+    chart.setOption({series: [{zoom: 1, center: null}]});
+    chart.dispatchAction({type: "restore"});
+    updateChart();
+});
 
 // -----------------------------------
 // SEARCH
@@ -375,13 +371,23 @@ function searchNode() {
         (n.short_name || "").toLowerCase().includes(q)
     );
 
+    const status = document.getElementById("graph-search-status");
+    status.textContent = found ? "" : MeshI18n.t("Node not found in current channel!");
     if (found) updateSelectedNode(found.name);
-    else alert(MeshI18n.t("Node not found in current channel!"));
 }
 
 // -----------------------------------
 loadData();
 window.addEventListener("resize", () => chart.resize());
+new ResizeObserver(() => chart.resize()).observe(document.getElementById("mynetwork"));
+// Legend open on wider screens, folded to a pill on phones.
+(() => {
+    const phone = window.matchMedia("(max-width:700px)");
+    const legend = document.getElementById("legend");
+    const sync = () => { legend.open = !phone.matches; };
+    phone.addEventListener("change", sync);
+    sync();
+})();
 </script>
 
 {% endblock %}
