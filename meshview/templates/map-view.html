@@ -139,13 +139,14 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
 .mesh-map-tools { display:flex; flex-direction:column; overflow:hidden; background:var(--mesh-surface); }
 /* Same frame as the layers control and the legend (thin border, soft shadow), not Leaflet's thick bar border. */
 .mesh-map-panel .mesh-map-tools.leaflet-bar { border:1px solid var(--mesh-border); border-radius:5px; box-shadow:0 2px 8px #0001; background-clip:padding-box; }
-.mesh-map-tools button { display:flex; align-items:center; gap:8px; min-height:34px; padding:0 12px 0 10px; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font:500 11px/1 inherit; white-space:nowrap; cursor:pointer; }
+.mesh-map-tools button { display:flex; align-items:center; justify-content:center; width:44px; min-height:38px; padding:0; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font:500 11px/1 inherit; white-space:nowrap; cursor:pointer; }
 .mesh-map-tools button:last-child { border-bottom:0; }
 .mesh-map-tools button:hover { background:var(--mesh-soft); }
 .mesh-map-tools button:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
 .mesh-map-tools .ti { font-size:16px; color:var(--mesh-primary); }
 .mesh-map-tools button.is-copied .ti { color:#198754; }
-@media(max-width:700px) { .mesh-map-tools button { justify-content:center; width:44px; min-height:38px; padding:0; } .mesh-map-tool-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; } }
+/* Icon buttons like the folded layer picker; the label stays for screen readers and the tooltip. */
+.mesh-map-tool-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 /* Reset sits at the end of the filter row. */
 .map-filter-reset { display:inline-flex; align-items:center; gap:6px; margin-left:auto; padding:6px 10px; border:0; border-radius:6px; background:transparent; color:var(--mesh-primary); font-size:12px; font-weight:500; white-space:nowrap; cursor:pointer; }
 .map-filter-reset:hover { background:var(--mesh-soft); }
@@ -171,9 +172,8 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 @media(max-width:700px) { .mesh-kiosk .mesh-map-panel #filter-container { max-width:calc(100% - 20px); bottom:24px; } .mesh-kiosk #unmapped-packets { display:none; } }
 /* Compact live-map node card. */
 .mesh-map-only .mesh-content { max-width:none; }
-.mesh-map-only .mesh-node-panel { position:absolute; right:10px; top:var(--inspector-top,60px); width:280px; max-width:calc(100% - 20px); max-height:calc(100% - var(--inspector-top,60px) - 12px); overflow:auto; z-index:800; contain:none; padding:14px; box-shadow:0 4px 20px #0003; }
-/* Phones: little room below the controls, so the panel covers them at the top right; close it to use them. */
-@media(max-width:700px) { .mesh-map-only .mesh-node-panel { top:10px; z-index:1001; max-height:calc(100% - 20px); } }
+/* The node panel opens at the top right over the map controls; close it to use them. */
+.mesh-map-only .mesh-node-panel { position:absolute; right:10px; top:10px; width:280px; max-width:calc(100% - 20px); max-height:calc(100% - 20px); overflow:auto; z-index:1001; contain:none; padding:14px; box-shadow:0 4px 20px #0003; }
 .mesh-map-only .mesh-node-panel[hidden] { display:none; }
 .mesh-map-only .mesh-panel-close { float:right; margin-left:8px; }
 .mesh-map-only .mesh-inspector-name { font-size:15px; margin:8px 0 4px; }
@@ -444,9 +444,8 @@ var overlayLayers = {
     [MeshI18n.h("Packets Reach")]: packetSeenLayer,
     [MeshI18n.h("Traffic HeatMap")]: trafficHeatLayer
 };
-var mapLayerControl = L.control.layers(baseLayers, overlayLayers, {
-    collapsed: window.matchMedia("(max-width: 700px)").matches
-}).addTo(map);
+// Always folded: the choices are remembered, so it only needs opening to change them.
+var mapLayerControl = L.control.layers(baseLayers, overlayLayers, { collapsed: true }).addTo(map);
 const layerToggle = mapLayerControl.getContainer().querySelector('.leaflet-control-layers-toggle');
 layerToggle.title = MeshI18n.t("Map layers");
 layerToggle.setAttribute('aria-label', MeshI18n.t("Map layers"));
@@ -492,6 +491,18 @@ if (mapTools) {
         }
     });
     new MapTools({position: 'topright'}).addTo(map);
+}
+// The layer picker opens on click (or Enter) only, not on hover; clicking the
+// map or pressing Escape folds it again.
+{
+    const layerContainer = mapLayerControl.getContainer();
+    L.DomEvent.off(layerContainer, { mouseenter: mapLayerControl._expandSafely, mouseleave: mapLayerControl.collapse }, mapLayerControl);
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && layerContainer.classList.contains("leaflet-control-layers-expanded")) {
+            mapLayerControl.collapse();
+            layerToggle.focus({ preventScroll: true });
+        }
+    });
 }
 // Remember the base map and overlay choices in this browser, like the filters.
 const MAP_LAYERS_KEY = "mapLayers";

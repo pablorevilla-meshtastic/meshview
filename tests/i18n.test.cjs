@@ -93,10 +93,10 @@ test('map layer registration translates labels while preserving providers and ov
         let registered;
         vm.runInNewContext(registration, {
             MeshI18n: api, nodeLayer, packetSeenLayer, trafficHeatLayer, baseLayers, map: {},
-            window: {matchMedia: () => ({matches: false})},
+            window: {matchMedia: () => ({matches: false, addEventListener() {}})},
             L: {control: {layers(bases, overlays, options) {
                 registered = {bases, overlays, options};
-                return {addTo: () => ({getContainer: () => ({querySelector: () => toggle})})};
+                return {addTo() {return this;}, getContainer: () => ({querySelector: () => toggle}), expand() {}, collapse() {}};
             }}}
         });
         assert.equal(registered.bases, baseLayers);
@@ -124,9 +124,10 @@ test('fresh map catalog replaces layer labels missing from the startup catalog',
             addTo() {return this;},
             getContainer: () => ({querySelector: () => toggle}),
             removeLayer(layer) {overlays.delete(layer);},
-            addOverlay(layer, label) {overlays.set(layer, label);}
+            addOverlay(layer, label) {overlays.set(layer, label);},
+            expand() {}, collapse() {}
         };
-        const window = {matchMedia: () => ({matches: false}), _siteConfigPromise: Promise.resolve({site:{language}})};
+        const window = {matchMedia: () => ({matches: false, addEventListener() {}}), _siteConfigPromise: Promise.resolve({site:{language}})};
         const context = vm.createContext({
             MeshI18n: api, nodeLayer, packetSeenLayer, trafficHeatLayer, baseLayers: {}, map: {}, window,
             document: {querySelectorAll: () => []},

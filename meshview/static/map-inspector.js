@@ -27,16 +27,6 @@
     }
     const closeButton = byId('map-panel-close');
     if (closeButton) {
-        // Sit below the whole right-hand control column (layers, then the
-        // fit/share tools), not just the layers control.
-        const layers = map.getContainer().querySelector('.leaflet-top.leaflet-right');
-        const positionPanel = () => {
-            if (!layers) return;
-            const top = layers.getBoundingClientRect().bottom - byId('map-wrapper').getBoundingClientRect().top + 10;
-            panel.style.setProperty('--inspector-top', `${top}px`);
-        };
-        if (layers) new ResizeObserver(positionPanel).observe(layers);
-        positionPanel();
         let returnFocus = null;
         const close = () => {
             panel.hidden = true;
