@@ -105,12 +105,25 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 @media(prefers-reduced-motion:reduce) {
     .packet-arrival-glow > td { animation:none; background:var(--mesh-soft); }
 }
-.mesh-header { background:var(--mesh-brand); color:white; box-shadow:0 2px 8px #193d6918; }
+.mesh-header { position:relative; z-index:1100; background:var(--mesh-brand); color:white; box-shadow:0 2px 8px #193d6918; }
 .mesh-header-inner { max-width:1600px; margin:auto; padding:0 20px; min-height:48px; display:flex; align-items:center; gap:20px; }
 .mesh-brand { display:flex; align-items:center; gap:8px; font-size:17px; font-weight:700; color:white; text-decoration:none; flex-shrink:0; }
 .mesh-brand:hover { color:white; }
 .mesh-brand-icon { width:28px; height:28px; display:block; flex-shrink:0; }
-#site-menu { display:flex; align-items:center; flex-wrap:wrap; gap:2px; }
+#site-menu { display:flex; align-items:center; gap:2px; flex:1 1 auto; min-width:0; }
+.mesh-nav-items { display:flex; align-items:center; gap:2px; min-width:0; overflow:hidden; }
+.mesh-more { position:relative; flex-shrink:0; }
+.mesh-more[hidden] { display:none; }
+.mesh-more-button { display:inline-flex; align-items:center; gap:4px; color:#e6effb; background:transparent; border:0; padding:6px 6px 6px 8px; border-radius:5px; font-size:14px; line-height:20px; white-space:nowrap; cursor:pointer; }
+.mesh-more-button svg { width:16px; height:16px; flex-shrink:0; }
+.mesh-more-button:hover,.mesh-more-button.active,.mesh-more-button[aria-expanded="true"] { color:white; background:#ffffff26; }
+.mesh-more-button:focus-visible,#site-menu a:focus-visible { outline:2px solid white; outline-offset:2px; }
+.mesh-more-menu { position:absolute; top:calc(100% + 8px); right:0; min-width:230px; padding:6px; display:flex; flex-direction:column; gap:2px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; box-shadow:0 8px 24px rgba(16,25,37,.22); }
+.mesh-more-menu[hidden] { display:none; }
+#site-menu .mesh-more-menu a { color:var(--mesh-text); padding:9px 12px; }
+#site-menu .mesh-more-menu a:hover { color:var(--mesh-text); background:var(--mesh-soft); }
+#site-menu .mesh-more-menu a.active { color:var(--mesh-primary); background:var(--mesh-soft); font-weight:600; }
+#site-menu .mesh-more-menu a:focus-visible { outline-color:var(--mesh-primary); outline-offset:-2px; }
 #site-menu a { color:#e6effb; text-decoration:none; padding:6px 8px; border-radius:5px; font-size:14px; line-height:20px; white-space:nowrap; text-transform:capitalize; }
 #site-menu a:hover, #site-menu a.active { color:white; background:#ffffff26; }
 .mesh-menu-toggle { display:none; color:white; background:none; border:1px solid #ffffff70; border-radius:5px; width:36px; height:36px; padding:0; font-size:22px; line-height:1; }
@@ -158,7 +171,8 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-map-panel #map-legend { bottom:80px!important; left:12px; right:auto!important; box-shadow:0 2px 8px #0001; font-size:11px; }
 .mesh-map-panel #unmapped-packets { bottom:25px; right:10px; width:190px; }
 .mesh-map-panel .leaflet-control-layers { font-size:11px; border:1px solid var(--mesh-border); box-shadow:0 2px 8px #0001; }
-@media(max-width:1000px) { .mesh-header-inner { flex-wrap:wrap; gap:0; padding:6px 16px; justify-content:space-between; } .mesh-menu-toggle { display:block; } #site-menu { display:none; width:100%; padding-top:6px; } #site-menu.is-open { display:flex; } .mesh-explorer { grid-template-columns:240px minmax(0,1fr); } }
+@media(max-width:1000px) { .mesh-explorer { grid-template-columns:240px minmax(0,1fr); } }
+@media(max-width:700px) { .mesh-header-inner { flex-wrap:wrap; gap:0; padding:6px 16px; justify-content:space-between; } .mesh-menu-toggle { display:block; } #site-menu { display:none; flex-basis:100%; padding-top:6px; } #site-menu.is-open { display:flex; } .mesh-nav-items { flex-wrap:wrap; overflow:visible; } }
 @media(max-width:700px) { .mesh-content { padding:16px 14px; } .mesh-page-heading { align-items:flex-start; } .mesh-page-heading h1 { font-size:24px; } .mesh-secondary-button { white-space:nowrap; font-size:11px; padding:8px; } .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .mesh-metric { padding:14px; } .mesh-metric strong { font-size:26px; } .mesh-explorer { display:flex; flex-direction:column-reverse; gap:16px; } .mesh-map-panel #map-wrapper { height:440px; } .mesh-node-list { max-height:300px; } .mesh-map-panel #unmapped-packets { width:155px; font-size:10px; } .mesh-footer { flex-direction:column; } }
     </style>
 {% include "theme-styles.html" %}
@@ -289,22 +303,22 @@ async function initializePage() {
         // Menu
         const menu = document.getElementById("site-menu");
         if (menu) {
-            const items = ['<a href="/"' + (["/", "/index", "/index.html"].includes(location.pathname) ? ' class="active" aria-current="page"' : "") + '>' + escapeHtml(MeshI18n.t("Home")) + '</a>'];
+            const items = [{key: "home", html: '<a href="/"' + (["/", "/index", "/index.html"].includes(location.pathname) ? ' class="active" aria-current="page"' : "") + '>' + escapeHtml(MeshI18n.t("Home")) + '</a>'}];
             const keys = ["nodes", "chat", "everything", "graphs", "net", "map", "stats", "top"];
             const urls = ["/nodelist", "/chat", "/firehose", "/nodegraph", "/net", "/map", "/stats", "/top"];
 
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];
                 if (site[key] === "true" || site[key] === true) {
-                    items.push(`<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || (key === "everything" ? MeshI18n.t("Live Traffic") : key))}</a>`);
+                    items.push({key, html: `<a href="${urls[i]}"${(location.pathname === urls[i] || (key === "map" && location.pathname === "/map.html")) ? ' class="active" aria-current="page"' : ""}>${escapeHtml(dict[key] || (key === "everything" ? MeshI18n.t("Live Traffic") : key))}</a>`});
                 }
             }
             if (site.api !== "false" && site.api !== false) {
-                items.push('<a href="/api.html">API</a>');
+                items.push({key: "api", html: '<a href="/api.html">API</a>'});
             }
-            items.push('<a href="https://meshview.world" target="_blank" rel="noopener noreferrer">MeshviewWorld</a>');
+            items.push({key: "world", html: '<a href="https://meshview.world" target="_blank" rel="noopener noreferrer">MeshviewWorld</a>'});
 
-            menu.innerHTML = items.join("");
+            setupSiteMenu(menu, items);
         }
 
         // Version
@@ -320,6 +334,92 @@ async function initializePage() {
         console.error("Failed to initialize page:", err);
         document.body.classList.add("ready");
     }
+}
+
+// --- Site menu: every section on one line, overflow into "More" only when it does not fit ---
+// Sections that leave first when space runs out; anything not listed stays longest.
+const MENU_OVERFLOW_ORDER = ["world", "api", "top", "net", "graphs", "stats", "chat", "home", "everything", "map", "nodes"];
+const MOBILE_MENU_QUERY = window.matchMedia("(max-width:700px)");
+
+function setupSiteMenu(menu, items) {
+    const template = document.createElement("template");
+    const entries = items.map(({key, html}) => {
+        template.innerHTML = html.trim();
+        return {key, el: template.content.firstElementChild};
+    });
+
+    const list = document.createElement("div");
+    list.className = "mesh-nav-items";
+    const more = document.createElement("div");
+    more.className = "mesh-more";
+    more.hidden = true;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mesh-more-button";
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-controls", "mesh-more-menu");
+    button.innerHTML = escapeHtml(MeshI18n.t("More")) +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+    const panel = document.createElement("div");
+    panel.className = "mesh-more-menu";
+    panel.id = "mesh-more-menu";
+    panel.hidden = true;
+    more.append(button, panel);
+    menu.replaceChildren(list, more);
+
+    const setOpen = open => {
+        panel.hidden = !open;
+        button.setAttribute("aria-expanded", String(open));
+    };
+    const rank = entry => {
+        const index = MENU_OVERFLOW_ORDER.indexOf(entry.key);
+        return index === -1 ? MENU_OVERFLOW_ORDER.length : index;
+    };
+    const overflowing = () => list.scrollWidth > list.clientWidth + 1;
+
+    function layout() {
+        setOpen(false);
+        panel.replaceChildren();
+        list.replaceChildren(...entries.map(entry => entry.el));
+        more.hidden = true;
+        button.classList.remove("active");
+        if (MOBILE_MENU_QUERY.matches || !overflowing()) return;
+
+        more.hidden = false;
+        const moved = new Set();
+        for (const entry of [...entries].sort((a, b) => rank(a) - rank(b))) {
+            if (!overflowing()) break;
+            entry.el.remove();
+            moved.add(entry);
+        }
+        const hidden = entries.filter(entry => moved.has(entry));
+        panel.replaceChildren(...hidden.map(entry => entry.el));
+        button.classList.toggle("active", hidden.some(entry => entry.el.classList.contains("active")));
+    }
+
+    button.addEventListener("click", () => setOpen(panel.hidden));
+    more.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !panel.hidden) {
+            setOpen(false);
+            button.focus();
+        }
+    });
+    more.addEventListener("focusout", event => {
+        if (!more.contains(event.relatedTarget)) setOpen(false);
+    });
+    document.addEventListener("click", event => {
+        if (!more.contains(event.target)) setOpen(false);
+    });
+
+    let frame = 0;
+    const schedule = () => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(layout);
+    };
+    new ResizeObserver(schedule).observe(menu.closest(".mesh-header-inner") || menu);
+    MOBILE_MENU_QUERY.addEventListener("change", schedule);
+    document.fonts?.ready.then(schedule);
+    layout();
 }
 
 document.querySelector(".mesh-menu-toggle").addEventListener("click", function () {
