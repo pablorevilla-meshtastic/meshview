@@ -210,6 +210,9 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-inspector-back,.mesh-traffic-control { padding:6px 10px; background:var(--mesh-soft); color:var(--mesh-primary); border:1px solid var(--mesh-border); border-radius:5px; font-size:12px; }
 .mesh-inspector-body { padding:16px; }
 .mesh-inspector-name { font-size:17px; font-weight:650; overflow-wrap:anywhere; margin:0 0 5px; }
+/* Node name with the refresh icon on its right. */
+.mesh-inspector-title { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.mesh-inspector-title .mesh-traffic-icon { flex-shrink:0; }
 .mesh-inspector-meta { color:var(--mesh-muted); font-size:11px; margin:0 0 16px; overflow-wrap:anywhere; }
 .mesh-inspector-facts { display:grid; grid-template-columns:90px minmax(0,1fr); gap:8px; font-size:12px; }
 .mesh-inspector-facts dt { color:var(--mesh-muted); font-weight:500; }
@@ -289,10 +292,10 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
     <section id="mesh-node-inspector" class="mesh-node-inspector" aria-label="{{ tr("Selected node") }}" hidden>
         <div class="mesh-panel-title"><h2>{{ tr("Node inspector") }}</h2><button id="inspector-back" class="mesh-inspector-back" type="button">{{ tr("← Nodes") }}</button></div>
         <div class="mesh-inspector-body">
-            <h3 id="inspector-name" class="mesh-inspector-name"></h3>
+            <div class="mesh-inspector-title"><h3 id="inspector-name" class="mesh-inspector-name"></h3><button id="inspector-refresh" class="mesh-traffic-control mesh-traffic-icon" type="button" title="{{ tr("Refresh data") }}" aria-label="{{ tr("Refresh data") }}"><span class="ti ti-refresh" aria-hidden="true"></span></button></div>
             <p id="inspector-node-meta" class="mesh-inspector-meta"></p>
             <dl id="inspector-facts" class="mesh-inspector-facts"></dl>
-            <div class="mesh-inspector-actions"><a id="inspector-node-link" href="/nodelist">{{ tr("Full node details ↗") }}</a><a id="inspector-reliability-link" href="/reliability">{{ tr("Reliability ↗") }}</a><button id="inspector-refresh" class="mesh-inspector-back" type="button">{{ tr("Refresh data") }}</button></div>
+            <div class="mesh-inspector-actions"><a id="inspector-node-link" href="/nodelist">{{ tr("Full node details ↗") }}</a><a id="inspector-reliability-link" href="/reliability">{{ tr("Reliability ↗") }}</a></div>
             <h3 class="mesh-inspector-section">{{ tr("Latest device telemetry") }}</h3>
             <div id="inspector-telemetry" aria-live="polite"></div>
             <h3 class="mesh-inspector-section">{{ tr("Recent packets · sent & received") }}</h3>
