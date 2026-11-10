@@ -254,9 +254,11 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-node-role { font-size:10px; color:var(--mesh-muted); }
 .mesh-empty { color:var(--mesh-muted); padding:20px 16px; font-size:13px; }
 .mesh-map-panel #map-wrapper { height:520px; }
-.mesh-map-panel #filter-container { display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; margin:0; padding:10px 12px; font-size:12px; border-top:1px solid var(--mesh-border); }
+.mesh-map-panel #filter-container { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin:0; padding:10px 12px; font-size:12px; border-top:1px solid var(--mesh-border); }
 /* Map filters are pills: the checkbox and its text never wrap apart. */
-.map-filter-group { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+/* Groups flow as one row of pills, so a trailing button (map reset) can share the last line. */
+.map-filter-group { display:contents; }
+.map-filter-group:first-child > .map-filter:last-child { margin-right:10px; }
 .map-filter-group:empty { display:none; }
 .map-filter { display:inline-flex; align-items:center; gap:6px; min-height:30px; margin:0; padding:0 11px 0 9px; border:1px solid var(--mesh-border); border-radius:15px; background:var(--mesh-surface); color:var(--mesh-text); font-size:12px; white-space:nowrap; cursor:pointer; user-select:none; }
 .map-filter:hover { background:var(--mesh-soft); }

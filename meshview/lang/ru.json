@@ -573,6 +573,7 @@
     "Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes at least 100 m above sea level are included. Click a bar to view the node.": "Последняя переданная высота в метрах над уровнем моря. Включены только узлы ROUTER, ROUTER_CLIENT и ROUTER_LATE на высоте не менее 100 м. Нажмите на столбец, чтобы открыть узел.",
     "Latitude": "Широта",
     "Leaderboard pagination": "Страницы рейтинга",
+    "Legend": "Легенда",
     "Link Copied!": "Ссылка скопирована!",
     "Links": "Ссылки",
     "Live": "В реальном времени",

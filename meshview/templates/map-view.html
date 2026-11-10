@@ -115,6 +115,22 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
         border-bottom: 1px dotted #e0e0e0;
     }
     #unmapped-list li:last-child { border-bottom: none; }
+    .map-overlay > summary { display:flex; align-items:center; gap:6px; list-style:none; cursor:pointer; }
+    .map-overlay > summary::-webkit-details-marker { display:none; }
+    .map-overlay > summary::after { content:""; flex-shrink:0; width:12px; height:12px; margin-left:auto; background:currentColor; opacity:.6; -webkit-mask:url(/static/vendor/tabler-icons-3.51.0/icons/outline/chevron-right.svg) center / contain no-repeat; mask:url(/static/vendor/tabler-icons-3.51.0/icons/outline/chevron-right.svg) center / contain no-repeat; transition:transform .15s ease; }
+    .map-overlay[open] > summary::after { transform:rotate(90deg); }
+    #unmapped-packets > summary { margin-bottom:6px; }
+    #unmapped-packets > summary h3 { margin:0; }
+    #map-legend > summary { display:none; }
+    .map-overlay-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--mesh-primary); color:var(--mesh-surface); font-size:11px; font-weight:700; }
+    .map-overlay-count[hidden] { display:none; }
+    @media(max-width:700px) {
+        .mesh-map-panel .map-overlay:not([open]) { width:auto; padding:5px 10px; }
+        .mesh-map-panel .map-overlay:not([open]) > summary { margin:0; }
+        #map-legend { pointer-events:auto!important; }
+        #map-legend > summary { display:flex; font-weight:600; font-size:12px; }
+        #map-legend[open] > summary { margin-bottom:6px; }
+    }
     .unmapped-node { font-weight: 400; color: #000; }
     .unmapped-empty { color: #666; font-style: italic; }
 
@@ -293,21 +309,23 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
     </aside>
     {% endif %}
 
-    <div id="unmapped-packets">
-        <h3 data-translate-lang="unmapped_packets_title">Unmapped Packets</h3>
+    <!-- Map overlays fold to a small pill on phones (opened by script on wider screens). -->
+    <details id="unmapped-packets" class="map-overlay" open>
+        <summary><h3 data-translate-lang="unmapped_packets_title">Unmapped Packets</h3><span id="unmapped-count" class="map-overlay-count" hidden></span></summary>
         <ul id="unmapped-list">
             <li class="unmapped-empty" data-translate-lang="unmapped_packets_empty">
                 No recent unmapped packets.
             </li>
         </ul>
-    </div>
-<div id="map-legend"
-     class="legend"
+    </details>
+<details id="map-legend" open
+     class="legend map-overlay"
      style="position:absolute;
             bottom:30px;
             right:15px;
             z-index:500;
             pointer-events:none;">
+    <summary>{{ tr("Legend") }}</summary>
     <div>
         <i style="background:orange; width:15px; height:3px; border-radius:0;"></i>
         <span data-translate-lang="legend_traceroute">Traceroute Path (arrowed)</span>
@@ -317,7 +335,7 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
         <i style="background:gray; width:15px; height:3px; border-radius:0;"></i>
         <span data-translate-lang="legend_neighbor">Neighbor Link</span>
     </div>
-</div>
+</details>
 
 
 </div>
@@ -899,6 +917,11 @@ function renderUnmappedPackets(){
     const list = document.getElementById("unmapped-list");
     if (!list) return;
     list.innerHTML = "";
+    const count = document.getElementById("unmapped-count");
+    if (count) {
+        count.textContent = unmappedPackets.length;
+        count.hidden = unmappedPackets.length === 0;
+    }
 
     if(unmappedPackets.length === 0){
         const empty = document.createElement("li");
@@ -1307,6 +1330,15 @@ function resetFiltersToDefaults(){
 document.addEventListener("DOMContentLoaded", () => {
     loadTranslationsMap();
 });
+
+// Legend and unmapped packets: open on wider screens, folded to a pill on phones.
+(() => {
+    const phone = window.matchMedia("(max-width:700px)");
+    const overlays = document.querySelectorAll("details.map-overlay");
+    const sync = () => overlays.forEach(el => { el.open = !phone.matches; });
+    phone.addEventListener("change", sync);
+    sync();
+})();
 </script>
 
 <script src="/static/map-dashboard.js"></script>

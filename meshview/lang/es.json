@@ -581,6 +581,7 @@
     "Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes at least 100 m above sea level are included. Click a bar to view the node.": "Última altitud comunicada en metros sobre el nivel del mar. Solo se incluyen nodos ROUTER, ROUTER_CLIENT y ROUTER_LATE a 100 m o más sobre el nivel del mar. Pulse una barra para ver el nodo.",
     "Latitude": "Latitud",
     "Leaderboard pagination": "Paginación de la clasificación",
+    "Legend": "Leyenda",
     "Link Copied!": "¡Enlace copiado!",
     "Links": "Enlaces",
     "Live": "En directo",
