@@ -617,6 +617,19 @@ function watchTableWidth(wrap) {
     if (table) observer.observe(table);
     update();
 }
+// Compact headings: mark when the actions wrapped under the title, so they align left there.
+function watchHeadingWrap(heading) {
+    const title = heading.querySelector(".data-title");
+    const actions = heading.querySelector(".data-actions");
+    if (!title || !actions) return;
+    const update = () => {
+        heading.classList.remove("is-wrapped");
+        heading.classList.toggle("is-wrapped", actions.offsetTop > title.offsetTop + title.offsetHeight / 2);
+    };
+    new ResizeObserver(update).observe(heading);
+    update();
+}
+
 // Card tables: each one switches to cards below its own data-cards-below width.
 function watchCardTable(table) {
     const query = window.matchMedia(`(max-width:${Number(table.dataset.cardsBelow) || 700}px)`);
@@ -626,6 +639,7 @@ function watchCardTable(table) {
 }
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("table.card-table").forEach(watchCardTable);
+    document.querySelectorAll(".data-heading.is-compact").forEach(watchHeadingWrap);
     document.querySelectorAll(".data-table-wrap").forEach(watchTableWidth);
 });
 

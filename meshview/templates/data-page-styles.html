@@ -27,6 +27,8 @@
 .mesh-data-page .data-heading.is-compact h1 { font-size:22px; line-height:1.2; margin:0; }
 .mesh-data-page .data-title { display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; min-width:0; }
 .mesh-data-page .data-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-left:auto; }
+/* Once the actions drop under the title (base.html marks it), they line up on the left. */
+.mesh-data-page .data-heading.is-wrapped .data-actions { margin-left:0; }
 .mesh-data-page .data-actions label { margin:0; font-size:12px; color:var(--mesh-muted); }
 .mesh-data-page .data-actions .mesh-secondary-button { padding:7px 12px; }
 .mesh-data-page .data-count { display:inline-flex; align-items:center; height:24px; padding:0 9px; border-radius:6px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
