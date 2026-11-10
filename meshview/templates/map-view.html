@@ -207,6 +207,12 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-panel-toggle:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:3px; border-radius:4px; }
 .mesh-node-panel:has(.mesh-node-browser-body[hidden]) .mesh-panel-title { border-bottom:0; }
 .mesh-node-inspector { max-height:690px; overflow:auto; }
+/* Inspector heading: stays at the top while the inspector's own scroll moves, hides while
+   scrolling down and comes back on scroll up, like the page header. Phones show the whole
+   inspector in the page, so there it simply scrolls away. */
+#mesh-node-inspector > .mesh-panel-title { position:sticky; top:0; z-index:5; background:var(--mesh-surface); transition:transform .2s ease; }
+#mesh-node-inspector > .mesh-panel-title.is-hidden { transform:translateY(-100%); }
+@media(max-width:700px) { #mesh-node-inspector > .mesh-panel-title { position:static; } }
 .mesh-inspector-back,.mesh-traffic-control { padding:6px 10px; background:var(--mesh-soft); color:var(--mesh-primary); border:1px solid var(--mesh-border); border-radius:5px; font-size:12px; }
 .mesh-inspector-body { padding:16px; }
 .mesh-inspector-name { font-size:17px; font-weight:650; overflow-wrap:anywhere; margin:0 0 5px; }

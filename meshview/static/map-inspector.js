@@ -289,6 +289,26 @@
             })
         ]);
     };
+    // Inspector heading auto-hide while the inspector's own scroll moves (wide screens).
+    {
+        const inspector = byId('mesh-node-inspector');
+        const heading = inspector.querySelector('.mesh-panel-title');
+        let lastY = inspector.scrollTop, frame = 0;
+        const update = () => {
+            const y = inspector.scrollTop;
+            if (y <= heading.offsetHeight || heading.contains(document.activeElement)) {
+                heading.classList.remove('is-hidden'); lastY = y; return;
+            }
+            if (Math.abs(y - lastY) < 6) return;
+            heading.classList.toggle('is-hidden', y > lastY);
+            lastY = y;
+        };
+        inspector.addEventListener('scroll', () => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(update);
+        }, {passive: true});
+        heading.addEventListener('focusin', () => heading.classList.remove('is-hidden'));
+    }
     byId('inspector-refresh').addEventListener('click', () => {
         if (inspectedNodeId) openMapNodeInspector(findNode(inspectedNodeId) || {key:Number(inspectedNodeId)}, true);
     });
