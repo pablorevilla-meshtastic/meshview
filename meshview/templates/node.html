@@ -153,6 +153,18 @@
         <div id="chart_battery_voltage" style="height:380px;"></div>
     </div>
 
+    <!-- Power Metrics -->
+    <div id="power_chart_container" class="chart-container" style="display:none;">
+        <div class="chart-header">
+            <h2 class="chart-title"><span class="ti ti-bolt" aria-hidden="true"></span> <span data-translate-lang="power">Power Metrics</span></h2>
+            <div class="chart-actions">
+                <button onclick="expandChart('power')" data-translate-lang="expand">Expand</button>
+                <button onclick="exportCSV('power')" data-translate-lang="export_csv">Export CSV</button>
+            </div>
+        </div>
+        <div id="chart_power" style="height:380px;"></div>
+    </div>
+
     <!-- Air/Channel -->
     <div id="air_channel_container" class="chart-container">
         <div class="chart-header">
@@ -175,18 +187,6 @@
             </div>
         </div>
         <div id="chart_environment" style="height:380px;"></div>
-    </div>
-
-    <!-- Power Metrics -->
-    <div id="power_chart_container" class="chart-container" style="display:none;">
-        <div class="chart-header">
-            <h2 class="chart-title"><span class="ti ti-bolt" aria-hidden="true"></span> <span data-translate-lang="power">Power Metrics</span></h2>
-            <div class="chart-actions">
-                <button onclick="expandChart('power')" data-translate-lang="expand">Expand</button>
-                <button onclick="exportCSV('power')" data-translate-lang="export_csv">Export CSV</button>
-            </div>
-        </div>
-        <div id="chart_power" style="height:380px;"></div>
     </div>
 
     <!-- Neighbor chart -->
