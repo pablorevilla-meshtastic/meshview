@@ -12,6 +12,25 @@
 .node-info strong { color:var(--mesh-muted); font-weight:500; }
 .node-actions .qr-unavailable { align-self:center; color:var(--mesh-muted); font-size:13px; }
 .node-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
+/* Coverage and its help button read as one split button. */
+.node-action-group { display:inline-flex; }
+.mesh-data-page .mesh-content .node-action-group > button:first-child { border-top-right-radius:0; border-bottom-right-radius:0; }
+.mesh-data-page .mesh-content .node-help-btn { display:inline-flex; align-items:center; justify-content:center; width:36px; padding:0; border-left:0; border-top-left-radius:0; border-bottom-left-radius:0; font-size:16px; }
+/* Help dialog. */
+.mesh-dialog { width:min(640px, calc(100vw - 32px)); max-height:min(80vh, 720px); padding:0; border:1px solid var(--mesh-border); border-radius:12px; background:var(--mesh-surface); color:var(--mesh-text); box-shadow:0 20px 48px rgba(16,25,37,.3); }
+.mesh-dialog::backdrop { background:rgba(16,25,37,.45); }
+.mesh-dialog[open] { display:flex; flex-direction:column; }
+.mesh-dialog-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px 12px 22px; border-bottom:1px solid var(--mesh-border); }
+.mesh-dialog-header h2 { margin:0; font-size:17px; font-weight:650; }
+.mesh-data-page .mesh-content .mesh-dialog-close { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:0; background:transparent; color:var(--mesh-muted); font-size:18px; }
+.mesh-data-page .mesh-content .mesh-dialog-close:hover { background:var(--mesh-soft); color:var(--mesh-text); }
+.mesh-dialog-body { overflow:auto; padding:16px 22px 22px; font-size:14px; line-height:1.6; }
+.mesh-dialog-body h3 { margin:18px 0 6px; font-size:15px; font-weight:650; }
+.mesh-dialog-body h4 { margin:16px 0 4px; font-size:14px; font-weight:650; color:var(--mesh-primary); }
+.mesh-dialog-body > :first-child { margin-top:0; }
+.mesh-dialog-body p { margin:0 0 10px; }
+.mesh-dialog-body ul { margin:0 0 10px; padding-left:20px; }
+.mesh-dialog-body code { padding:1px 5px; border-radius:4px; background:var(--mesh-soft); color:var(--mesh-text); font-size:12.5px; }
 .chart-container { width:100%; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; margin-bottom:20px; overflow:hidden; }
 .chart-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:16px 20px; border-bottom:1px solid var(--mesh-border); font-size:14px; font-weight:600; }
 .chart-actions { display:flex; gap:6px; }
@@ -55,13 +74,24 @@
         <button onclick="openReachReport()" id="reachReportBtn">
             <span class="ti ti-chart-line" aria-hidden="true"></span> <span>{{ tr("Reliability") }}</span>
         </button>
-        <button onclick="toggleCoverage()" id="toggleCoverageBtn" disabled title="{{ tr("Location required for coverage") }}">
-            <span class="ti ti-broadcast" aria-hidden="true"></span> <span data-translate-lang="toggle_coverage">Predicted Coverage</span>
-        </button>
-        <a class="inline-link" id="coverageHelpLink" href="/docs/COVERAGE.md" target="_blank" rel="noopener" data-translate-lang="coverage_help">
-            Coverage Help
-        </a>
+        <span class="node-action-group">
+            <button onclick="toggleCoverage()" id="toggleCoverageBtn" disabled title="{{ tr("Location required for coverage") }}">
+                <span class="ti ti-broadcast" aria-hidden="true"></span> <span data-translate-lang="toggle_coverage">Predicted Coverage</span>
+            </button>
+            <button type="button" id="coverageHelpBtn" class="node-help-btn" aria-haspopup="dialog" aria-controls="coverage-help" aria-label="{{ tr("Coverage help") }}" title="{{ tr("Coverage help") }}">
+                <span class="ti ti-help-circle" aria-hidden="true"></span>
+            </button>
+        </span>
     </div>
+
+    <!-- Coverage help: docs/COVERAGE.md rendered in a dialog. -->
+    <dialog id="coverage-help" class="mesh-dialog" aria-labelledby="coverage-help-title">
+        <div class="mesh-dialog-header">
+            <h2 id="coverage-help-title">{{ tr("Coverage help") }}</h2>
+            <button type="button" class="mesh-dialog-close" aria-label="{{ tr("Close") }}" title="{{ tr("Close") }}"><span class="ti ti-x" aria-hidden="true"></span></button>
+        </div>
+        <div id="coverage-help-body" class="mesh-dialog-body"><p class="is-loading">{{ tr("Loading...") }}</p></div>
+    </dialog>
 
     <!-- Node Info -->
     <div id="node-info" class="node-info">
@@ -455,7 +485,7 @@ async function loadNodeInfo(){
         document.getElementById("info-altitude").textContent =
             node.last_altitude != null ? `${node.last_altitude} m` : "—";
         const coverageBtn = document.getElementById("toggleCoverageBtn");
-        const coverageHelp = document.getElementById("coverageHelpLink");
+        const coverageHelp = document.getElementById("coverageHelpBtn");
         if (coverageBtn) {
             const hasLocation = Boolean(node.last_lat && node.last_long);
             coverageBtn.disabled = !hasLocation;
@@ -1691,6 +1721,65 @@ async function loadNodeQr() {
         actionsDiv.style.display = "none";
     }
 }
+
+// --- Coverage help dialog ---
+// Small Markdown subset (headings, paragraphs, lists, **bold**, `code`, links) for docs/*.md.
+// Everything is HTML-escaped first, so only the markup built here reaches the page.
+function renderSimpleMarkdown(markdown) {
+    const inline = text => escapeHtml(text)
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    const out = [];
+    let paragraph = [], list = [];
+    const flush = () => {
+        if (paragraph.length) out.push(`<p>${inline(paragraph.join(" "))}</p>`);
+        if (list.length) out.push(`<ul>${list.map(item => `<li>${inline(item)}</li>`).join("")}</ul>`);
+        paragraph = []; list = [];
+    };
+    for (const raw of markdown.split("\n")) {
+        const line = raw.trim();
+        const heading = line.match(/^(#{1,6})\s+(.*)$/);
+        if (!line) { flush(); continue; }
+        if (heading) {
+            flush();
+            // The dialog has its own title: skip the document's h1 and shift the rest down.
+            const level = heading[1].length;
+            if (level > 1) out.push(`<h${level + 1}>${inline(heading[2])}</h${level + 1}>`);
+            continue;
+        }
+        if (/^[-*]\s+/.test(line)) {
+            if (paragraph.length) flush();
+            list.push(line.replace(/^[-*]\s+/, ""));
+            continue;
+        }
+        if (list.length) flush();
+        paragraph.push(line);
+    }
+    flush();
+    return out.join("");
+}
+
+(() => {
+    const dialog = document.getElementById("coverage-help");
+    const body = document.getElementById("coverage-help-body");
+    let loaded = false;
+    document.getElementById("coverageHelpBtn").addEventListener("click", async () => {
+        dialog.showModal();
+        if (loaded) return;
+        try {
+            const res = await fetch("/docs/COVERAGE.md");
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            body.innerHTML = renderSimpleMarkdown(await res.text());
+            loaded = true;
+        } catch (err) {
+            body.innerHTML = `<p>${escapeHtml(MeshI18n.t("Unable to load the help text."))}</p>`;
+        }
+    });
+    dialog.querySelector(".mesh-dialog-close").addEventListener("click", () => dialog.close());
+    // A click on the backdrop lands on the dialog element itself.
+    dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+})();
 
 function copyImportUrl() {
     if (!currentMeshtasticUrl) return;
