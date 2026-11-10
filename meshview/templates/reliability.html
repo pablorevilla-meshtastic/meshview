@@ -62,6 +62,12 @@
 }
 /* Card mode: wrappers drop their frame; the two gateway lists read as one. */
 .reach-table.is-cards { min-width:0; }
+.mesh-data-page .mesh-content .reach-sort { display:inline-flex; align-items:center; gap:2px; padding:0; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; }
+.mesh-data-page .mesh-content .reach-sort:hover { background:transparent; text-decoration:underline; }
+.mesh-data-page .mesh-content .reach-sort:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+.reach-sort .sort-icon { font-size:10px; }
+/* Cards: sorting is table-only, so keep the hidden header buttons out of the tab order. */
+.reach-gateway-table.is-cards thead { visibility:hidden; }
 :is(.reach-table-wrap,.reach-gateway-panel):has(> .card-table.is-cards) { border:0; background:none; overflow:visible; margin-bottom:10px; }
 .mesh-data-page .reach-gateway-table.card-table.is-cards tr.gateway-row { grid-template-areas:"gw rel" "heard hops"; }
 .mesh-data-page .reach-gateway-table.card-table.is-cards .c-gw { grid-area:gw; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -166,10 +172,10 @@
             <table class="table table-sm reach-table reach-gateway-table card-table">
                 <thead>
                     <tr>
-                        <th>{{ tr("Gateway") }}</th>
-                        <th>{{ tr("Heard") }}</th>
-                        <th>{{ tr("Avg Hops") }}</th>
-                        <th>{{ tr("Reliability") }}</th>
+                        <th data-sort="gateway"><button type="button" class="reach-sort">{{ tr("Gateway") }}<span class="sort-icon" aria-hidden="true"></span></button></th>
+                        <th data-sort="heard"><button type="button" class="reach-sort">{{ tr("Heard") }}<span class="sort-icon" aria-hidden="true"></span></button></th>
+                        <th data-sort="hops"><button type="button" class="reach-sort">{{ tr("Avg Hops") }}<span class="sort-icon" aria-hidden="true"></span></button></th>
+                        <th data-sort="reliability" aria-sort="descending"><button type="button" class="reach-sort">{{ tr("Reliability") }}<span class="sort-icon" aria-hidden="true"></span></button></th>
                     </tr>
                 </thead>
                 <tbody id="reach-gateway-body">
@@ -303,6 +309,40 @@ function nodeLatLng(node) {
 }
 
 let reliabilityMapFitted = false;
+
+// Gateway table sorting (table mode only; cards have no headers).
+const gatewaySort = {key: "reliability", asc: false, rows: [], render: null};
+const GATEWAY_SORT_VALUE = {
+    gateway: row => row.label.toLowerCase(),
+    heard: row => row.heardCount,
+    hops: row => row.avgHopCount ?? Infinity,
+    reliability: row => row.percent,
+};
+function renderSortedGateways() {
+    if (!gatewaySort.render) return;
+    const value = GATEWAY_SORT_VALUE[gatewaySort.key];
+    const rows = [...gatewaySort.rows].sort((a, b) => {
+        const A = value(a), B = value(b);
+        const order = A < B ? -1 : A > B ? 1 : 0;
+        return (gatewaySort.asc ? order : -order) || b.percent - a.percent || a.nodeId - b.nodeId;
+    });
+    gatewaySort.render(rows);
+    document.querySelectorAll(".reach-gateway-table th[data-sort]").forEach(th => {
+        const active = th.dataset.sort === gatewaySort.key;
+        if (active) th.setAttribute("aria-sort", gatewaySort.asc ? "ascending" : "descending");
+        else th.removeAttribute("aria-sort");
+        th.querySelector(".sort-icon").textContent = active ? (gatewaySort.asc ? " ▲" : " ▼") : "";
+    });
+}
+document.addEventListener("click", event => {
+    const th = event.target.closest(".reach-gateway-table th[data-sort]");
+    if (!th) return;
+    const key = th.dataset.sort;
+    // Names start ascending; counts and percentages start with the highest.
+    gatewaySort.asc = gatewaySort.key === key ? !gatewaySort.asc : key === "gateway" || key === "hops";
+    gatewaySort.key = key;
+    renderSortedGateways();
+});
 
 function initReliabilityMap() {
     if (reliabilityMap) return reliabilityMap;
@@ -619,8 +659,10 @@ async function loadReachReport(nodeId = reachNodeId) {
                 }),
             }
         ]));
-        // One ranked list, most reliable first.
-        gatewayBodyEl.innerHTML = renderGatewayRows(gatewayRows);
+        // One ranked list, most reliable first; the column headers re-sort it in table mode.
+        gatewaySort.rows = gatewayRows.map(row => ({...row, label: gatewayLabel(row.nodeId, nodesById)}));
+        gatewaySort.render = rows => { gatewayBodyEl.innerHTML = renderGatewayRows(rows); };
+        renderSortedGateways();
         renderReliabilityMap(gatewayRows, nodesById);
     } catch (err) {
         console.error("Failed to load reach report:", err);
