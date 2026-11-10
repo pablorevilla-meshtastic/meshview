@@ -617,16 +617,17 @@ function watchTableWidth(wrap) {
     if (table) observer.observe(table);
     update();
 }
-// Compact headings: mark when the actions wrapped under the title, so they align left there.
-function watchHeadingWrap(heading) {
-    const title = heading.querySelector(".data-title");
-    const actions = heading.querySelector(".data-actions");
-    if (!title || !actions) return;
+// Rows with a right-aligned actions block (compact headings, chat toolbar): mark the row
+// .is-wrapped when the actions dropped below its first item, so they align left there.
+function watchHeadingWrap(row, leadSelector = ".data-title", actionsSelector = ".data-actions") {
+    const lead = row.querySelector(leadSelector);
+    const actions = row.querySelector(actionsSelector);
+    if (!lead || !actions) return;
     const update = () => {
-        heading.classList.remove("is-wrapped");
-        heading.classList.toggle("is-wrapped", actions.offsetTop > title.offsetTop + title.offsetHeight / 2);
+        row.classList.remove("is-wrapped");
+        row.classList.toggle("is-wrapped", actions.offsetTop > lead.offsetTop + lead.offsetHeight / 2);
     };
-    new ResizeObserver(update).observe(heading);
+    new ResizeObserver(update).observe(row);
     update();
 }
 
@@ -639,7 +640,8 @@ function watchCardTable(table) {
 }
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll("table.card-table").forEach(watchCardTable);
-    document.querySelectorAll(".data-heading.is-compact").forEach(watchHeadingWrap);
+    document.querySelectorAll(".data-heading.is-compact").forEach(heading => watchHeadingWrap(heading));
+    document.querySelectorAll(".chat-toolbar").forEach(toolbar => watchHeadingWrap(toolbar, ".chat-heading", ".chat-actions"));
     document.querySelectorAll(".data-table-wrap").forEach(watchTableWidth);
 });
 

@@ -50,7 +50,7 @@
     "go to node": "Ir al nodo"
   },
   "chat": {
-    "chat_title": "Conversaciones:",
+    "chat_title": "Conversaciones",
     "replying_to": "Respondiendo a:",
     "view_packet_details": "Ver detalles del paquete",
     "channel": "Canal",

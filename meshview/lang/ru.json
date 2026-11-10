@@ -48,7 +48,7 @@
     }
   },
   "chat": {
-    "chat_title": "Чаты:",
+    "chat_title": "Чат",
     "replying_to": "В ответ на:",
     "view_packet_details": "Просмотреть детали пакета",
     "channel": "Канал",

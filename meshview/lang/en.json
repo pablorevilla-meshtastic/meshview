@@ -48,7 +48,7 @@
     }
   },
   "chat": {
-    "chat_title": "Chats:",
+    "chat_title": "Chat",
     "replying_to": "Replying to:",
     "view_packet_details": "View packet details",
     "channel": "Channel",
