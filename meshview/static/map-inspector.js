@@ -2,6 +2,29 @@
 (() => {
     const byId = id => document.getElementById(id);
     const panel = byId('mesh-node-panel');
+    // Home stacks the node list under the map below 1000px; there it starts folded.
+    const STACKED = matchMedia('(max-width: 1000px)');
+    const listToggle = byId('node-panel-toggle');
+    const listBody = byId('mesh-node-browser-body');
+    function setNodeListOpen(open) {
+        if (!listToggle || !listBody) return;
+        listToggle.setAttribute('aria-expanded', String(open));
+        listBody.hidden = !open;
+    }
+    function syncNodeListLayout() {
+        if (!listToggle) return;
+        listToggle.disabled = !STACKED.matches;
+        setNodeListOpen(!STACKED.matches);
+    }
+    if (listToggle) {
+        listToggle.addEventListener('click', () => {
+            const open = listBody.hidden;
+            setNodeListOpen(open);
+            if (open) byId('node-search')?.focus({preventScroll:true});
+        });
+        STACKED.addEventListener('change', syncNodeListLayout);
+        syncNodeListLayout();
+    }
     const closeButton = byId('map-panel-close');
     if (closeButton) {
         const layers = map.getContainer().querySelector('.leaflet-control-layers');
@@ -161,7 +184,7 @@
         facts(node);
         note(byId('inspector-telemetry'), MeshI18n.t("Loading telemetry…"));
         note(byId('inspector-recent'), MeshI18n.t("Loading recent packets…"));
-        if (matchMedia('(max-width: 700px)').matches) byId('mesh-node-inspector').scrollIntoView({block:'nearest'});
+        if (STACKED.matches) byId('mesh-node-inspector').scrollIntoView({block:'nearest'});
         // A sender/gateway may be outside the map's recent-node snapshot.
         if (force || !findNode(id)) {
             fetchJson(`/api/nodes?node_id=${encodeURIComponent(id)}`, request.signal).then(data => {
@@ -200,6 +223,7 @@
         nodeRequest?.abort(); inspectedNodeId = null;
         byId('mesh-node-inspector').hidden = true;
         byId('mesh-node-browser').hidden = false;
+        setNodeListOpen(true);
         byId('node-search').focus({preventScroll:true});
     });
 

@@ -247,7 +247,8 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .mesh-map-panel #map-legend { bottom:80px!important; left:12px; right:auto!important; box-shadow:0 2px 8px #0001; font-size:11px; }
 .mesh-map-panel #unmapped-packets { bottom:25px; right:10px; width:190px; }
 .mesh-map-panel .leaflet-control-layers { font-size:11px; border:1px solid var(--mesh-border); box-shadow:0 2px 8px #0001; }
-@media(max-width:1000px) { .mesh-explorer { grid-template-columns:240px minmax(0,1fr); } }
+/* Below 1000px the node list stacks under the map instead of squeezing it. */
+@media(max-width:1000px) { .mesh-explorer { display:flex; flex-direction:column-reverse; gap:12px; } .mesh-node-list { max-height:300px; } }
 @media(max-width:700px) {
     .mesh-header-inner { gap:8px; padding:0 12px 0 16px; min-height:52px; }
     .mesh-brand { min-width:0; flex:1 1 auto; }

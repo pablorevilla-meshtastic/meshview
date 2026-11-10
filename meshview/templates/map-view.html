@@ -133,9 +133,10 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
 .mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 220px); min-height:650px; }
 @media(max-width:700px) { .mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 240px); min-height:500px; } }
 /* Let the map determine the desktop row height; scroll longer node panels. */
-@media(min-width:701px) {
+@media(min-width:1001px) {
     .mesh-explorer .mesh-node-panel { contain:size; }
     .mesh-explorer .mesh-node-browser:not([hidden]) { height:100%; display:flex; flex-direction:column; }
+    .mesh-explorer .mesh-node-browser-body { flex:1; min-height:0; display:flex; flex-direction:column; }
     .mesh-explorer .mesh-node-list { flex:1; min-height:0; max-height:none; }
     .mesh-explorer .mesh-node-inspector { max-height:100%; }
 }
@@ -163,7 +164,16 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-map-only .mesh-inspector-short-name { font-size:14px; font-weight:650; }
 .mesh-map-actions { display:flex; align-items:center; gap:8px; }
 /* Map-side inspection and shared live packet stream. */
-.mesh-node-browser[hidden],.mesh-node-inspector[hidden] { display:none; }
+.mesh-node-browser[hidden],.mesh-node-inspector[hidden],.mesh-node-browser-body[hidden] { display:none; }
+/* Node list heading: plain title beside the map, a fold toggle once stacked under it. */
+.mesh-panel-toggle { display:inline-flex; align-items:center; gap:6px; padding:0; border:0; background:none; color:inherit; font:inherit; text-align:left; }
+.mesh-panel-toggle .ti { display:none; color:var(--mesh-muted); transition:transform .15s ease; }
+.mesh-panel-toggle:disabled { cursor:default; opacity:1; }
+.mesh-panel-toggle:not(:disabled) { cursor:pointer; }
+.mesh-panel-toggle:not(:disabled) .ti { display:inline-block; }
+.mesh-panel-toggle[aria-expanded="true"] .ti { transform:rotate(90deg); }
+.mesh-panel-toggle:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:3px; border-radius:4px; }
+.mesh-node-panel:has(.mesh-node-browser-body[hidden]) .mesh-panel-title { border-bottom:0; }
 .mesh-node-inspector { max-height:690px; overflow:auto; }
 .mesh-inspector-back,.mesh-traffic-control { padding:6px 10px; background:var(--mesh-soft); color:var(--mesh-primary); border:1px solid var(--mesh-border); border-radius:5px; font-size:12px; }
 .mesh-inspector-body { padding:16px; }
@@ -227,10 +237,15 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 {% if dashboard %}
 <aside id="mesh-node-panel" class="mesh-node-panel" aria-label="{{ tr("Node explorer") }}"{% if not dashboard %} hidden{% endif %}>
     <div id="mesh-node-browser" class="mesh-node-browser">
-    <div class="mesh-panel-title"><h2>{{ tr("Network nodes") }}</h2><span id="node-result-count" class="mesh-count">—</span></div>
+    <div class="mesh-panel-title">
+        <h2><button id="node-panel-toggle" class="mesh-panel-toggle" type="button" aria-expanded="true" aria-controls="mesh-node-browser-body" disabled>{{ tr("Network nodes") }}<span class="ti ti-chevron-right" aria-hidden="true"></span></button></h2>
+        <span id="node-result-count" class="mesh-count">—</span>
+    </div>
+    <div id="mesh-node-browser-body" class="mesh-node-browser-body">
     <label class="mesh-search-label" for="node-search">{{ tr("Search nodes") }}</label>
     <input id="node-search" class="mesh-search" type="search" placeholder="{{ tr("Name or node ID…") }}" autocomplete="off">
     <div id="mesh-node-list" class="mesh-node-list" aria-live="polite"><p class="mesh-empty">{{ tr("Loading nodes…") }}</p></div>
+    </div>
     </div>
     <section id="mesh-node-inspector" class="mesh-node-inspector" aria-label="{{ tr("Selected node") }}" hidden>
         <div class="mesh-panel-title"><h2>{{ tr("Node inspector") }}</h2><button id="inspector-back" class="mesh-inspector-back" type="button">{{ tr("← Nodes") }}</button></div>
