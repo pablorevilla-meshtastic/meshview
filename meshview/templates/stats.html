@@ -15,7 +15,7 @@
 .summary-card:nth-child(4) .summary-count { color:var(--mesh-primary); }
 .stats-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .card-section { min-width:0; display:flex; align-items:center; align-content:flex-start; flex-wrap:wrap; gap:10px; padding:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
-.section-header { text-transform:lowercase; width:100%; font-size:15px; font-weight:600; color:var(--mesh-text); padding-bottom:6px; margin:0; border-bottom:1px solid var(--mesh-border); }
+.section-header { width:100%; font-size:15px; font-weight:600; color:var(--mesh-text); padding-bottom:6px; margin:0; border-bottom:1px solid var(--mesh-border); }
 .total-count { font-size:12px; color:var(--mesh-muted); margin-right:auto; }
 .chart { width:100%; min-width:0; height:340px; margin-top:8px; }
 #chart_hourly_all,#chart_portnum_1 { height:380px; }
@@ -222,7 +222,7 @@
 <div id="altitude-map-modal" role="dialog" aria-modal="true" aria-labelledby="altitude-map-title" hidden>
     <div class="altitude-map-dialog">
         <div class="altitude-map-heading">
-            <h2 id="altitude-map-title" data-translate-lang="altitude_map_title">highest routers · top 50</h2>
+            <h2 id="altitude-map-title" data-translate-lang="altitude_map_title">Highest routers · top 50</h2>
             <div class="altitude-map-controls">
                 <label class="altitude-map-filter" for="altitude-map-minimum">
                     <span data-translate-lang="minimum_altitude">{{ tr("Minimum altitude (m)") }}</span>

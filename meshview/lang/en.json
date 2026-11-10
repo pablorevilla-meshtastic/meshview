@@ -127,7 +127,7 @@
     "refresh_report": "Refresh report",
     "map_top_50": "Map top 50",
     "altitude_description": "Latest reported altitude in meters above sea level. Only ROUTER, ROUTER_CLIENT, and ROUTER_LATE nodes at least 100 m above sea level are included. Click a bar to view the node.",
-    "altitude_map_title": "highest routers · top 50",
+    "altitude_map_title": "Highest routers · top 50",
     "close_router_map": "Close router map",
     "router_map_label": "Map of highest routers and their altitudes",
     "sample_matches": "{matched} of {sample} sampled packets match main channels",

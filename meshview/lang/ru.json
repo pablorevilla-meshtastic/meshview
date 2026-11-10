@@ -245,7 +245,7 @@
     "air_channel": "Использование сети и каналов",
     "environment": "Метрики среды",
     "power": "Метрики питания",
-    "neighbors_chart": "Соседи (Соотношение сигнал/шум)",
+    "neighbors_chart": "Соседи (соотношение сигнал/шум)",
     "neighbors_chart_subtitle": "Последние {days} дн. — {n} соседей",
     "neighbors_chart_subtitle_capped": "Последние {days} дн. — {n} соседей с наибольшим числом точек, из {total}",
     "expand": "Расширить",
