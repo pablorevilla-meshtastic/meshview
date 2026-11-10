@@ -25,6 +25,13 @@ MQTT_DIRECT_NODE_ID = 1
 # result must still fit the BigInteger columns.
 NODE_ID_PATTERN = re.compile(r"^!([0-9a-fA-F]{1,16})$")
 MAX_NODE_ID = 2**63 - 1
+# A mesh packet is small: the largest MeshPacket the firmware can encode is 381 bytes, and in
+# 14 days of traffic on a public broker the largest of 4.35 million messages was 312 bytes and
+# no topic was longer than 50 characters. MQTT allows a 256 MB message and a 64 KB topic, and
+# whatever is accepted here is stored and later sent to every browser, so a message no node
+# could have produced is not stored at all.
+MAX_ENVELOPE_BYTES = 1024
+MAX_TOPIC_CHARS = 256
 
 
 def parse_node_id(value: str | None) -> int | None:
@@ -193,6 +200,16 @@ async def capture_daily_snapshot() -> None:
 
 
 async def process_envelope(topic, env):
+    envelope_bytes = env.ByteSize()
+    if envelope_bytes > MAX_ENVELOPE_BYTES or len(topic) > MAX_TOPIC_CHARS:
+        # Sizes only: the content is whatever the sender chose.
+        logger.warning(
+            "Skipping oversized MQTT message: %d bytes, topic of %d characters",
+            envelope_bytes,
+            len(topic),
+        )
+        return
+
     # MAP_REPORT_APP
     if env.packet.decoded.portnum == PortNum.MAP_REPORT_APP:
         node_id = getattr(env.packet, "from")
