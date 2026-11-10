@@ -124,7 +124,7 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 #site-menu .mesh-more-menu a:hover { color:var(--mesh-text); background:var(--mesh-soft); }
 #site-menu .mesh-more-menu a.active { color:var(--mesh-primary); background:var(--mesh-soft); font-weight:600; }
 #site-menu .mesh-more-menu a:focus-visible { outline-color:var(--mesh-primary); outline-offset:-2px; }
-#site-menu a { color:#e6effb; text-decoration:none; padding:6px 8px; border-radius:5px; font-size:14px; line-height:20px; white-space:nowrap; text-transform:capitalize; }
+#site-menu a { color:#e6effb; text-decoration:none; padding:6px 8px; border-radius:5px; font-size:14px; line-height:20px; white-space:nowrap; }
 #site-menu a:hover, #site-menu a.active { color:white; background:#ffffff26; }
 .mesh-menu-toggle { display:none; color:white; background:none; border:1px solid #ffffff70; border-radius:5px; width:36px; height:36px; padding:0; font-size:22px; line-height:1; }
 .mesh-content { max-width:1600px; margin:0 auto; padding:16px 28px; }
@@ -304,8 +304,9 @@ async function initializePage() {
         const menu = document.getElementById("site-menu");
         if (menu) {
             const items = [{key: "home", html: '<a href="/"' + (["/", "/index", "/index.html"].includes(location.pathname) ? ' class="active" aria-current="page"' : "") + '>' + escapeHtml(MeshI18n.t("Home")) + '</a>'}];
-            const keys = ["nodes", "chat", "everything", "graphs", "net", "map", "stats", "top"];
-            const urls = ["/nodelist", "/chat", "/firehose", "/nodegraph", "/net", "/map", "/stats", "/top"];
+            // Most used sections first.
+            const keys = ["nodes", "map", "everything", "chat", "stats", "graphs", "net", "top"];
+            const urls = ["/nodelist", "/map", "/firehose", "/chat", "/stats", "/nodegraph", "/net", "/top"];
 
             for (let i = 0; i < keys.length; i++) {
                 const key = keys[i];

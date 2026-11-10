@@ -2,10 +2,10 @@
   "base": {
     "chat": "Chat",
     "nodes": "Nodes",
-    "everything": "Live Traffic",
+    "everything": "Traffic",
     "graphs": "Mesh Graphs",
     "net": "Weekly Net",
-    "map": "Live Map",
+    "map": "Map",
     "stats": "Stats",
     "top": "Top Traffic Nodes",
     "footer": "Visit <strong><a href=\"https://github.com/pablorevilla-meshtastic/meshview\">Meshview</a></strong> on GitHub",

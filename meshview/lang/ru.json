@@ -2,10 +2,10 @@
   "base": {
     "chat": "Чат",
     "nodes": "Ноды",
-    "everything": "Трафик в реальном времени",
+    "everything": "Трафик",
     "graphs": "Mesh графики",
     "net": "Недельная сеть",
-    "map": "Живая карта",
+    "map": "Карта",
     "stats": "Статистика",
     "top": "Крупнейшие ноды трафика",
     "footer": "Посетите <strong><a href=\"https://github.com/pablorevilla-meshtastic/meshview\">Meshview</a></strong> на GitHub",
