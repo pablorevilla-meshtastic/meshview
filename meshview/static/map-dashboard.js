@@ -59,8 +59,10 @@ document.getElementById('fit-network').addEventListener('click', () => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const counts = await response.json();
         document.getElementById('metric-packets').textContent = Number(counts.total_packets || 0).toLocaleString(MeshI18n.language);
+        document.getElementById('metric-status').removeAttribute('aria-busy');
         document.getElementById('metric-status').textContent = MeshI18n.t("All packets in database");
     } catch (error) {
+        document.getElementById('metric-status').removeAttribute('aria-busy');
         document.getElementById('metric-status').textContent = MeshI18n.t("Packet totals unavailable");
         console.error('Dashboard totals:', error);
     }

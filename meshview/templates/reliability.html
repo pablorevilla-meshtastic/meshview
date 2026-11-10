@@ -132,7 +132,7 @@
                 </thead>
                 <tbody id="reach-bucket-body">
                     <tr>
-                        <td colspan="2" class="reach-muted">{{ tr("Loading statistics...") }}</td>
+                        <td colspan="2" class="reach-muted is-loading">{{ tr("Loading statistics...") }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -153,7 +153,7 @@
                     </thead>
                     <tbody id="reach-packet-body-left">
                         <tr>
-                            <td colspan="4" class="reach-muted">{{ tr("Loading packets...") }}</td>
+                            <td colspan="4" class="reach-muted is-loading">{{ tr("Loading packets...") }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -170,7 +170,7 @@
                     </thead>
                     <tbody id="reach-packet-body-right">
                         <tr>
-                            <td colspan="4" class="reach-muted">{{ tr("Loading packets...") }}</td>
+                            <td colspan="4" class="reach-muted is-loading">{{ tr("Loading packets...") }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -489,8 +489,8 @@ async function loadReachReport(nodeId = reachNodeId) {
     gatewayCountEl.textContent = "...";
     reliabilityGatewayDetails = new Map();
     nodeLinkEl.href = `/node/${encodeURIComponent(reachNodeId)}`;
-    bucketBodyEl.innerHTML = `<tr><td colspan="2" class="reach-muted">${MeshI18n.h("Loading statistics...")}</td></tr>`;
-    setGatewayTables(`<tr><td colspan="4" class="reach-muted">${MeshI18n.h("Loading packets...")}</td></tr>`);
+    bucketBodyEl.innerHTML = `<tr><td colspan="2" class="reach-muted is-loading">${MeshI18n.h("Loading statistics...")}</td></tr>`;
+    setGatewayTables(`<tr><td colspan="4" class="reach-muted is-loading">${MeshI18n.h("Loading packets...")}</td></tr>`);
     resetReliabilityMap();
 
     try {

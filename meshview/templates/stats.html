@@ -111,7 +111,7 @@
     <div class="card-section">
         <p class="section-header" data-translate-lang="text_senders_title">Top text senders · main channel</p>
         <button id="text-nodes-refresh" type="button" data-translate-lang="refresh_sample">Refresh sample</button>
-        <span class="total-count" id="text-nodes-status" role="status" data-translate-lang="loading">Loading…</span>
+        <span class="total-count" id="text-nodes-status" role="status" aria-busy="true" data-translate-lang="loading">Loading…</span>
         <button class="expand-btn" data-chart="chart_text_nodes" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_text_nodes" data-translate-lang="export_top_50">Export top 50 CSV</button>
         <div id="chart_text_nodes" class="chart"></div>
@@ -121,7 +121,7 @@
     <div class="card-section">
         <p class="section-header" data-translate-lang="altitude_title">10 highest routers · altitude</p>
         <button id="altitude-refresh" type="button" data-translate-lang="refresh_report">Refresh report</button>
-        <span class="total-count" id="altitude-status" role="status" data-translate-lang="loading">Loading…</span>
+        <span class="total-count" id="altitude-status" role="status" aria-busy="true" data-translate-lang="loading">Loading…</span>
         <button class="expand-btn" data-chart="chart_altitude" data-translate-lang="expand_chart">Expand Chart</button>
         <button class="export-btn" data-chart="chart_altitude" data-translate-lang="export_top_50">Export top 50 CSV</button>
         <button id="altitude-map-button" type="button" disabled data-translate-lang="map_top_50">Map top 50</button>
@@ -322,6 +322,7 @@ async function loadTextNodes() {
     const status = document.getElementById("text-nodes-status");
     const chart = initMeshChart(document.getElementById("chart_text_nodes"));
     status.textContent = statsText("loading");
+    status.setAttribute("aria-busy", "true");
     textNodeRows = [];
     textNodeExportRows = [];
     chart.clear();
@@ -341,6 +342,7 @@ async function loadTextNodes() {
         textNodeExportRows = ranked.slice(0, 50);
         textNodeRows = textNodeExportRows.slice(0, 10);
         const matched = ranked.reduce((sum, node) => sum + node.packet_count, 0);
+        status.removeAttribute("aria-busy");
         status.textContent = matched
             ? statsText("sample_matches", {matched, sample: sample.length})
             : statsText("sample_no_matches", {sample: sample.length});
@@ -369,6 +371,7 @@ async function loadTextNodes() {
         });
     } catch (error) {
         if (request !== textNodesRequest) return;
+        status.removeAttribute("aria-busy");
         status.textContent = statsText("text_senders_error");
         console.error("Top text senders:", error);
     }
@@ -398,6 +401,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
     refresh.disabled = true;
     document.getElementById("altitude-map-button").disabled = true;
     status.textContent = statsText("loading");
+    status.setAttribute("aria-busy", "true");
     chart.off("click");
     chart.on("click", openAltitudeNode);
     try {
@@ -416,6 +420,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
                 label:{show:true, position:"top", formatter:params => statsText("meters", {value: params.value}), color:"#243247", textBorderWidth:0},
                 data:altitudeRows.map(node => node.last_altitude)}]
         }, true);
+        status.removeAttribute("aria-busy");
         status.textContent = altitudeRows.length
             ? statsText("altitude_count", {count: altitudeRows.length})
             : statsText("altitude_empty");
@@ -424,6 +429,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
         altitudeExportRows = [];
         altitudeRouterRows = [];
         chart.clear();
+        status.removeAttribute("aria-busy");
         status.textContent = statsText("altitude_error");
         console.error(error);
     } finally {

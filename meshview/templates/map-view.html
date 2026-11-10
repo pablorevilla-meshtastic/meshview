@@ -227,7 +227,7 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
     <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-antenna"></span></span><span>{{ tr("Recent nodes") }}</span><strong id="metric-nodes">—</strong><small>{{ tr("Seen in the last 3 days") }}</small></div>
     <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-activity"></span></span><span>{{ tr("Active nodes") }}</span><strong id="metric-active">—</strong><small>{{ tr("Seen in the last 24 hours") }}</small></div>
     <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-cloud-upload"></span></span><span>{{ tr("MQTT gateways") }}</span><strong id="metric-gateways">—</strong><small>{{ tr("Among recent nodes") }}</small></div>
-    <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-package"></span></span><span>{{ tr("Total packets") }}</span><strong id="metric-packets">—</strong><small id="metric-status" role="status">{{ tr("Loading network totals…") }}</small></div>
+    <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-package"></span></span><span>{{ tr("Total packets") }}</span><strong id="metric-packets">—</strong><small id="metric-status" role="status" aria-busy="true">{{ tr("Loading network totals…") }}</small></div>
 </section>
 {% else %}
 <section class="mesh-page-heading is-compact"><h1>{{ tr("Network map") }}</h1><a class="mesh-secondary-button" href="/">{{ tr("Home ↗") }}</a></section>
@@ -243,7 +243,7 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
     <div id="mesh-node-browser-body" class="mesh-node-browser-body">
     <label class="mesh-search-label" for="node-search">{{ tr("Search nodes") }}</label>
     <input id="node-search" class="mesh-search" type="search" placeholder="{{ tr("Name or node ID…") }}" autocomplete="off">
-    <div id="mesh-node-list" class="mesh-node-list" aria-live="polite"><p class="mesh-empty">{{ tr("Loading nodes…") }}</p></div>
+    <div id="mesh-node-list" class="mesh-node-list" aria-live="polite"><p class="mesh-empty is-loading">{{ tr("Loading nodes…") }}</p></div>
     </div>
     </div>
     <section id="mesh-node-inspector" class="mesh-node-inspector" aria-label="{{ tr("Selected node") }}" hidden>
@@ -332,7 +332,7 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 </div>
 {% if dashboard %}
 <section class="mesh-traffic" aria-label="{{ tr("Live network traffic") }}">
-    <div class="mesh-panel-title"><h2>{{ tr("Live traffic") }}</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">{{ tr("Channel") }}</label><select id="map-traffic-channel"><option value="">{{ tr("All channels") }}</option></select><span id="map-traffic-status" class="live-status" role="status">{{ tr("Loading packets…") }}</span><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="{{ tr("Pause the traffic list; map animations continue") }}">{{ tr("Pause feed") }}</button><button id="map-traffic-refresh" class="mesh-traffic-control" type="button">{{ tr("Refresh") }}</button></div></div>
+    <div class="mesh-panel-title"><h2>{{ tr("Live traffic") }}</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">{{ tr("Channel") }}</label><select id="map-traffic-channel"><option value="">{{ tr("All channels") }}</option></select><span id="map-traffic-status" class="live-status" role="status" data-state="loading">{{ tr("Loading packets…") }}</span><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="{{ tr("Pause the traffic list; map animations continue") }}">{{ tr("Pause feed") }}</button><button id="map-traffic-refresh" class="mesh-traffic-control" type="button">{{ tr("Refresh") }}</button></div></div>
     <div id="map-traffic-list" class="mesh-traffic-list" role="region" aria-label="{{ tr("Live packet table") }}" tabindex="0">
         <table class="mesh-traffic-table card-table" data-cards-below="1100"><thead><tr><th>{{ tr("Time") }}</th><th>{{ tr("Packet ID") }}</th><th>{{ tr("From") }}</th><th>{{ tr("To") }}</th><th>{{ tr("Channel") }}</th><th>{{ tr("Port") }}</th></tr></thead><tbody id="map-traffic-body"><tr><td colspan="6" class="mesh-empty">{{ tr("Loading recent network traffic…") }}</td></tr></tbody></table>
     </div>

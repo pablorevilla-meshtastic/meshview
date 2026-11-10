@@ -96,9 +96,10 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json();
     }
-    function note(container, text) {
+    function note(container, text, loading = false) {
         const p = document.createElement('p');
         p.className = 'mesh-inspector-note'; p.textContent = text;
+        p.classList.toggle('is-loading', loading);
         container.replaceChildren(p);
     }
     function facts(node) {
@@ -182,8 +183,8 @@
         byId('inspector-node-link').href = `/node/${encodeURIComponent(id)}`;
         byId('inspector-reliability-link').href = `/reliability?node_id=${encodeURIComponent(id)}`;
         facts(node);
-        note(byId('inspector-telemetry'), MeshI18n.t("Loading telemetry…"));
-        note(byId('inspector-recent'), MeshI18n.t("Loading recent packets…"));
+        note(byId('inspector-telemetry'), MeshI18n.t("Loading telemetry…"), true);
+        note(byId('inspector-recent'), MeshI18n.t("Loading recent packets…"), true);
         if (STACKED.matches) byId('mesh-node-inspector').scrollIntoView({block:'nearest'});
         // A sender/gateway may be outside the map's recent-node snapshot.
         if (force || !findNode(id)) {

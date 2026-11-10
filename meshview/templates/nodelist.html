@@ -183,7 +183,7 @@
         </thead>
         <tbody id="node-table-body">
             <tr>
-                <td colspan="12" style="text-align:center; color:var(--mesh-muted);" data-translate-lang="loading_nodes">
+                <td colspan="12" class="is-loading" style="text-align:center; color:var(--mesh-muted);" data-translate-lang="loading_nodes">
                     Loading nodes...
                 </td>
             </tr>
@@ -722,6 +722,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             statusShownAt = Date.now();
             console.log("[nodelist] status:", message);
             statusSpan.textContent = message;
+            statusSpan.setAttribute("aria-busy", "true");
             statusSpan.classList.add("active");
             isBusy = true;
             return;
@@ -734,6 +735,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 statusHideTimer = null;
                 console.log("[nodelist] status: cleared");
                 statusSpan.textContent = "";
+                statusSpan.removeAttribute("aria-busy");
                 statusSpan.classList.remove("active");
                 isBusy = false;
             }, remaining);
@@ -742,6 +744,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         console.log("[nodelist] status: cleared");
         statusSpan.textContent = "";
+        statusSpan.removeAttribute("aria-busy");
         statusSpan.classList.remove("active");
         isBusy = false;
     }

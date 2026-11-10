@@ -80,7 +80,7 @@ body:has(#chat-container) .mesh-announcement { flex-shrink:0; }
             <button id="chat-latest" class="chat-control" type="button">{{ tr("↓ Latest") }}</button>
         </div>
     </div>
-    <div id="chat-log" class="chat-messages" role="region" aria-label="{{ tr("Messages, oldest to newest") }}" tabindex="0"><p class="chat-empty">{{ tr("Loading messages…") }}</p></div>
+    <div id="chat-log" class="chat-messages" role="region" aria-label="{{ tr("Messages, oldest to newest") }}" tabindex="0"><p class="chat-empty is-loading">{{ tr("Loading messages…") }}</p></div>
     <div class="chat-bottom"><p>{{ tr("Received text messages · updates every 5 seconds") }}</p><span id="chat-updated" role="status"></span></div>
 </section>
 <script src="/static/chat-dashboard.js"></script>

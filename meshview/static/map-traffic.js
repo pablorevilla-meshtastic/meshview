@@ -107,7 +107,7 @@
         let text = MeshI18n.t("Live");
         if (paused) { state = 'paused'; text = MeshI18n.t("Paused"); }
         else if (trafficState === 'error') { state = 'offline'; text = MeshI18n.t("Connection lost"); }
-        else if (trafficState === 'loading') { state = 'paused'; text = MeshI18n.t("Loading packets…"); }
+        else if (trafficState === 'loading') { state = 'loading'; text = MeshI18n.t("Loading packets…"); }
         else if (mapInterval <= 0) { state = 'paused'; text = MeshI18n.t("Snapshot · auto-refresh off"); }
         else if (newest && Date.now() - newest / 1000 > STALE_AFTER_MS) { state = 'stale'; text = MeshI18n.t("No recent packets"); }
         el.dataset.state = state;
