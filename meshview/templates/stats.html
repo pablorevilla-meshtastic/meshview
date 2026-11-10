@@ -17,6 +17,8 @@
 .chart-tool:disabled { opacity:.4; cursor:default; }
 .chart-controls { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; min-height:31px; }
 .chart-filter { width:auto; max-width:100%; }
+.chart-wrap { position:relative; }
+.chart-overlay { position:absolute; top:0; left:0; z-index:1; }
 .total-count,.chart-note { font-size:12px; color:var(--mesh-muted); margin:0; }
 .chart { width:100%; min-width:0; height:340px; flex:1 0 auto; }
 #chart_hourly_all,#chart_portnum_1 { height:380px; }
@@ -82,10 +84,10 @@
             <h2 class="section-header" data-translate-lang="daily_snapshot_packets_history">Daily Packet Snapshot History</h2>
             <div class="chart-tools">{{ chart_tools("chart_daily_snapshot_packets", export_csv) }}</div>
         </div>
-        <div class="chart-controls">
-            <select id="snapshotPacketsRange" class="chart-filter" aria-label="{{ tr("Snapshot packet timeframe") }}">{{ ranges }}</select>
+        <div class="chart-wrap">
+            <select id="snapshotPacketsRange" class="chart-filter chart-overlay" aria-label="{{ tr("Snapshot packet timeframe") }}">{{ ranges }}</select>
+            <div id="chart_daily_snapshot_packets" class="chart"></div>
         </div>
-        <div id="chart_daily_snapshot_packets" class="chart"></div>
     </section>
 
     <section class="card-section">
@@ -93,10 +95,10 @@
             <h2 class="section-header" data-translate-lang="daily_snapshot_nodes_gateways_history">Daily Node/Gateway Snapshot History</h2>
             <div class="chart-tools">{{ chart_tools("chart_daily_snapshot_nodes_gateways", export_csv) }}</div>
         </div>
-        <div class="chart-controls">
-            <select id="snapshotNodesGatewaysRange" class="chart-filter" aria-label="{{ tr("Snapshot node and gateway timeframe") }}">{{ ranges }}</select>
+        <div class="chart-wrap">
+            <select id="snapshotNodesGatewaysRange" class="chart-filter chart-overlay" aria-label="{{ tr("Snapshot node and gateway timeframe") }}">{{ ranges }}</select>
+            <div id="chart_daily_snapshot_nodes_gateways" class="chart"></div>
         </div>
-        <div id="chart_daily_snapshot_nodes_gateways" class="chart"></div>
     </section>
 
     <section class="card-section">
@@ -754,11 +756,13 @@ function renderDailySnapshotPacketsChart(domId,data){
     chart.setOption({
         backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
+        // Sits on the right of the timeframe select, which overlays the chart.
         legend:{
+            right:0, top:6,
             data:[MeshI18n.t("Packets")],
             textStyle:{color:'#64748b'}
         },
-        grid:{left:10, right:20, top:40, bottom:10, containLabel:true},
+        grid:{left:10, right:20, top:48, bottom:10, containLabel:true},
         xAxis:{
             type:'category',
             data:labels,
@@ -789,10 +793,11 @@ function renderDailySnapshotNodesGatewaysChart(domId,data){
         backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
         legend:{
+            right:0, top:6,
             data:[MeshI18n.t("Nodes"),MeshI18n.t("Gateways")],
             textStyle:{color:'#64748b'}
         },
-        grid:{left:10, right:20, top:40, bottom:10, containLabel:true},
+        grid:{left:10, right:20, top:48, bottom:10, containLabel:true},
         xAxis:{
             type:'category',
             data:labels,
