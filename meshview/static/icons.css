@@ -30,4 +30,6 @@
 .ti-chevron-right { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/chevron-right.svg); }
 .ti-speakerphone { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/speakerphone.svg); }
 .ti-brand-github { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/brand-github.svg); }
+.ti-sort-ascending { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/sort-ascending.svg); }
+.ti-sort-descending { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/outline/sort-descending.svg); }
 .ti-star-filled { --ti:url(/static/vendor/tabler-icons-3.51.0/icons/filled/star.svg); }

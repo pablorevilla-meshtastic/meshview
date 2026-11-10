@@ -8,6 +8,29 @@
 #node-list { margin-bottom:0; }
 #node-list table { min-width:1150px; }
 #node-list :is(th,td) { padding-left:10px; padding-right:10px; }
+/* Card layout: short name chip, long name and favourite / role · hardware · firmware /
+   channel and MQTT badge, last seen / location when known. */
+.card-only { display:none; }
+#node-list table.is-cards { min-width:0; }
+#node-list .is-cards td { padding:0; }
+#node-list .is-cards td.card-only { display:block; }
+#node-list .is-cards td.card-only:empty { display:none; }
+#node-list .is-cards :is(.c-hw,.c-fw,.c-role,.c-lat,.c-lon,.c-alt,.c-channel,.c-mqtt) { display:none; }
+#node-list .is-cards tbody tr { grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:"short long fav" "meta meta meta" "net net seen" "loc loc loc"; }
+#node-list .is-cards .c-short { grid-area:short; }
+#node-list .is-cards .node-short { display:inline-block; padding:2px 7px; border-radius:5px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:12px; font-weight:600; }
+#node-list .is-cards .c-long { grid-area:long; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#node-list .is-cards .c-fav { grid-area:fav; justify-self:end; }
+#node-list .is-cards .c-meta { grid-area:meta; font-size:12px; color:var(--mesh-muted); }
+#node-list .is-cards .c-net { grid-area:net; font-size:12px; }
+#node-list .is-cards .c-seen { grid-area:seen; justify-self:end; white-space:nowrap; font-size:12px; color:var(--mesh-muted); }
+#node-list .is-cards .c-loc { grid-area:loc; font-size:12px; color:var(--mesh-muted); font-variant-numeric:tabular-nums; }
+.node-badge { display:inline-block; margin-left:4px; padding:1px 8px; border-radius:10px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:11px; font-weight:600; }
+/* The sort control only shows in card mode, where there are no column headers. */
+.sort-control { display:none; align-items:center; gap:6px; }
+.mesh-nodelist-page:has(#node-list .is-cards) .sort-control { display:inline-flex; }
+.sort-control label { margin:0; font-size:12px; color:var(--mesh-muted); }
+.mesh-data-page .mesh-content .sort-direction { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0; font-size:18px; }
 #node-list th { cursor:pointer; }
 .filter-container { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
 .days-active { display:inline-flex; align-items:center; gap:6px; margin:0 0 0 4px; font-size:12px; color:var(--mesh-muted); }
@@ -22,12 +45,7 @@
 .mesh-data-page .favorites-btn.active { background:#fff3d6; border-color:#eacb80; color:#8b6200; }
 .node-pagination { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:14px; flex-wrap:wrap; }
 .sort-icon { font-size:10px; }
-#mobile-node-list { display:none; }
-.node-card { background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; padding:16px; margin-bottom:12px; font-size:13px; overflow-wrap:anywhere; }
-.node-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:16px; font-weight:600; }
-.node-card-field { padding:3px 0; }
-.node-card-field b { color:var(--mesh-muted); font-weight:500; }
-@media(max-width:768px) { #node-list { display:none; } #mobile-node-list { display:block!important; } .filter-container select { flex:1 1 130px; } .search-box { flex:1 1 100%; } }
+@media(max-width:768px) { .filter-container select { flex:1 1 130px; } .search-box { flex:1 1 100%; } }
 </style>
 {% endblock %}
 
@@ -84,6 +102,12 @@
         <span>{{ tr("days") }}</span>
     </label>
 
+    <span class="sort-control">
+        <label for="sort-select">{{ tr("Sort by") }}</label>
+        <select id="sort-select"></select>
+        <button type="button" id="sort-direction" class="sort-direction" aria-pressed="false" aria-label="{{ tr("Ascending") }}" title="{{ tr("Ascending") }}"><span class="ti ti-sort-ascending" aria-hidden="true"></span></button>
+    </span>
+
     <button class="clear-btn" id="clear-btn" data-translate-lang="clear_filters">
         Clear Filters
     </button>
@@ -91,7 +115,7 @@
 
 <!-- Desktop table -->
 <div id="node-list" class="data-table-wrap">
-    <table>
+    <table class="card-table nodes-table" data-cards-below="1339">
         <thead>
             <tr>
                 <th data-translate-lang="short_name">Short <span class="sort-icon">▲</span></th>
@@ -119,7 +143,6 @@
 </div>
 
 <!-- Mobile Card View -->
-<div id="mobile-node-list" style="display:none;"></div>
 <nav class="node-pagination" aria-label="{{ tr("Node list pages") }}">
     <span id="node-page-range" class="reach-muted" aria-live="polite"></span>
     <button type="button" class="btn btn-outline-secondary btn-sm" id="node-page-previous" disabled>{{ tr("Previous") }}</button>
@@ -248,7 +271,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     loadFavorites();
 
     const tbody = document.getElementById("node-table-body");
-    const mobileList = document.getElementById("mobile-node-list");
 
     const roleFilter = document.getElementById("role-filter");
     const channelFilter = document.getElementById("channel-filter");
@@ -268,7 +290,6 @@ document.addEventListener("DOMContentLoaded", async function() {
     const previousPage = document.getElementById("node-page-previous");
     const nextPage = document.getElementById("node-page-next");
 
-    let lastIsMobile = (window.innerWidth <= 768);
 
     async function loadNodesForActiveDays() {
         const daysActive = Number(daysActiveFilter.value) || 3;
@@ -341,7 +362,6 @@ document.addEventListener("DOMContentLoaded", async function() {
                 <td colspan="12" style="text-align:center; color:red;">
                     ${nodelistTranslations.error_loading_nodes || MeshI18n.t("Error loading nodes")}
                 </td></tr>`;
-            mobileList.innerHTML = "";
             countSpan.textContent = 0;
             setStatus("");
         }
@@ -380,14 +400,21 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
     });
 
-    // Re-render on breakpoint change so mobile/desktop view switches instantly
-    window.addEventListener("resize", debounce(() => {
-        const isMobile = (window.innerWidth <= 768);
-        if (isMobile !== lastIsMobile) {
-            lastIsMobile = isMobile;
-            applyFilters();
-        }
-    }, 150));
+    // Card mode has no column headers: sort with the select and direction button instead.
+    const sortSelect = document.getElementById("sort-select");
+    const sortDir = document.getElementById("sort-direction");
+    headers.forEach((th, index) => {
+        if (!keyMap[index]) return;
+        sortSelect.add(new Option(th.textContent.replace(/[▲▼]/g, "").trim(), keyMap[index]));
+    });
+    sortSelect.addEventListener("change", () => {
+        sortColumn = sortSelect.value;
+        applyFilters();
+    });
+    sortDir.addEventListener("click", () => {
+        sortAsc = !sortAsc;
+        applyFilters();
+    });
 
     function populateFilters(nodes) {
         const roles = new Set(), channels = new Set(), hws = new Set(), fws = new Set();
@@ -465,30 +492,15 @@ document.addEventListener("DOMContentLoaded", async function() {
         previousPage.disabled = currentPage === 1;
         nextPage.disabled = start + pageSize >= total;
         nodes = nodes.slice(start, start + pageSize);
-        const isMobile = window.innerWidth <= 768;
-        const shouldRenderTable = !isMobile;
-
-        if (shouldRenderTable) {
-            tbody.innerHTML = "";
-        } else {
-            mobileList.innerHTML = "";
-        }
-
-        const tableFrag = shouldRenderTable ? document.createDocumentFragment() : null;
-        const mobileFrag = shouldRenderTable ? null : document.createDocumentFragment();
+        tbody.innerHTML = "";
+        const tableFrag = document.createDocumentFragment();
 
         if (!nodes.length) {
-            if (shouldRenderTable) {
-                tbody.innerHTML = `<tr>
-                    <td colspan="12" style="text-align:center; color:var(--mesh-muted);">
-                        ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
-                    </td>
-                </tr>`;
-            } else {
-                mobileList.innerHTML = `<div style="text-align:center; color:var(--mesh-muted);">
+            tbody.innerHTML = `<tr>
+                <td colspan="12" style="text-align:center; color:var(--mesh-muted);">
                     ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
-                </div>`;
-            }
+                </td>
+            </tr>`;
 
             countSpan.textContent = 0;
             return;
@@ -496,69 +508,40 @@ document.addEventListener("DOMContentLoaded", async function() {
 
         nodes.forEach(node => {
             const fav = isFavorite(node.node_id);
-            const star = favoriteStar(node.node_id, fav);
-
-            if (shouldRenderTable) {
-                // DESKTOP TABLE ROW
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${escapeHtml(node.short_name || MeshI18n.t("N/A"))}</td>
-                    <td><a href="/node/${node.node_id}">${escapeHtml(node.long_name || MeshI18n.t("N/A"))}</a></td>
-                    <td>${escapeHtml(node.hw_model || MeshI18n.t("N/A"))}</td>
-                    <td>${escapeHtml(node.firmware || MeshI18n.t("N/A"))}</td>
-                    <td>${escapeHtml(node.role || MeshI18n.t("N/A"))}</td>
-                    <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : MeshI18n.t("N/A")}</td>
-                    <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : MeshI18n.t("N/A")}</td>
-                    <td>${node.last_altitude != null ? escapeHtml(String(node.last_altitude)) : MeshI18n.t("N/A")}</td>
-                    <td>${escapeHtml(node.channel || MeshI18n.t("N/A"))}</td>
-                    <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No"))}</td>
-                    <td>${timeAgoFromMs(node.last_seen_ms)}</td>
-                    <td style="text-align:center;">
-                        ${star}
-                    </td>
-                `;
-                tableFrag.appendChild(row);
-            } else {
-                // MOBILE CARD VIEW
-                const card = document.createElement("div");
-                card.className = "node-card";
-                card.innerHTML = `
-                    <div class="node-card-header">
-                        <span>${escapeHtml(node.short_name || node.long_name || node.node_id)}</span>
-                        ${star}
-                    </div>
-
-                    <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Name:")}</b> ${escapeHtml(node.long_name || MeshI18n.t("N/A"))}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("HW:")}</b> ${escapeHtml(node.hw_model || MeshI18n.t("N/A"))}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Firmware:")}</b> ${escapeHtml(node.firmware || MeshI18n.t("N/A"))}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Role:")}</b> ${escapeHtml(node.role || MeshI18n.t("N/A"))}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Location:")}</b>
-                        ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : MeshI18n.t("N/A")},
-                        ${node.last_long ? (node.last_long / 1e7).toFixed(5) : MeshI18n.t("N/A")}
-                    </div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Altitude:")}</b> ${node.last_altitude != null ? MeshI18n.h("{altitude} m above sea level", {altitude: node.last_altitude}) : MeshI18n.t("N/A")}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Channel:")}</b> ${escapeHtml(node.channel || MeshI18n.t("N/A"))}</div>
-                    <div class="node-card-field"><b>${MeshI18n.h("Last Seen:")}</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
-
-                    <a href="/node/${node.node_id}" style="color:var(--mesh-primary); text-decoration:none; margin-top:10px; display:block;">
-                        ${MeshI18n.h("View Node →")}
-                    </a>
-                `;
-                mobileFrag.appendChild(card);
-            }
+            const na = MeshI18n.t("N/A");
+            const lat = node.last_lat ? (node.last_lat / 1e7).toFixed(7) : null;
+            const lon = node.last_long ? (node.last_long / 1e7).toFixed(7) : null;
+            const alt = node.last_altitude != null ? String(node.last_altitude) : null;
+            // Card-only cells (.card-only) combine fields into one line for the card layout.
+            const meta = [node.role, node.hw_model, node.firmware].filter(Boolean).map(escapeHtml).join(" · ");
+            const mqttBadge = node.is_mqtt_gateway ? `<span class="node-badge">${MeshI18n.h("MQTT gateway")}</span>` : "";
+            const net = [node.channel ? escapeHtml(node.channel) : "", mqttBadge].filter(Boolean).join(" ");
+            const location = lat && lon
+                ? `<span class="ti ti-map-pin" aria-hidden="true"></span> ${lat.slice(0, -2)}, ${lon.slice(0, -2)}${alt ? ` · ${escapeHtml(alt)} m` : ""}`
+                : "";
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td class="c-short"><span class="node-short">${escapeHtml(node.short_name || na)}</span></td>
+                <td class="c-long"><a href="/node/${node.node_id}">${escapeHtml(node.long_name || na)}</a></td>
+                <td class="c-hw">${escapeHtml(node.hw_model || na)}</td>
+                <td class="c-fw">${escapeHtml(node.firmware || na)}</td>
+                <td class="c-role">${escapeHtml(node.role || na)}</td>
+                <td class="c-lat">${lat || na}</td>
+                <td class="c-lon">${lon || na}</td>
+                <td class="c-alt">${alt != null ? escapeHtml(alt) : na}</td>
+                <td class="c-channel">${escapeHtml(node.channel || na)}</td>
+                <td class="c-mqtt">${node.is_mqtt_gateway ? (nodelistTranslations.yes || MeshI18n.t("Yes")) : (nodelistTranslations.no || MeshI18n.t("No"))}</td>
+                <td class="c-seen">${timeAgoFromMs(node.last_seen_ms)}</td>
+                <td class="c-fav" style="text-align:center;">${favoriteStar(node.node_id, fav)}</td>
+                <td class="c-meta card-only">${meta}</td>
+                <td class="c-net card-only">${net}</td>
+                <td class="c-loc card-only">${location}</td>
+            `;
+            tableFrag.appendChild(row);
         });
 
-        // Toggle correct view
-        mobileList.style.display = isMobile ? "block" : "none";
-
         countSpan.textContent = total;
-
-        if (shouldRenderTable) {
-            tbody.appendChild(tableFrag);
-        } else {
-            mobileList.appendChild(mobileFrag);
-        }
+        tbody.appendChild(tableFrag);
     }
 
     function clearFilters() {
@@ -636,6 +619,16 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
 
     function updateSortIcons() {
+        const select = document.getElementById("sort-select");
+        const direction = document.getElementById("sort-direction");
+        if (select) select.value = sortColumn;
+        if (direction) {
+            direction.setAttribute("aria-pressed", String(!sortAsc));
+            direction.querySelector(".ti").className = `ti ${sortAsc ? "ti-sort-ascending" : "ti-sort-descending"}`;
+            const label = sortAsc ? MeshI18n.t("Ascending") : MeshI18n.t("Descending");
+            direction.setAttribute("aria-label", label);
+            direction.title = label;
+        }
         headers.forEach((th, i) => {
             const span = th.querySelector(".sort-icon");
             if (!span) return;
