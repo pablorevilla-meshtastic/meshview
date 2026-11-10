@@ -179,38 +179,45 @@ input[type="checkbox"],input[type="radio"] { accent-color:var(--mesh-primary); }
 .packet-toggle .ti { transition:transform .15s ease; }
 .packet-toggle[aria-expanded="true"] .ti { transform:rotate(90deg); }
 .packet-toggle:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:1px; }
-@media(max-width:700px) {
-    /* Tables marked .card-table become one card per row. */
-    :is(.mesh-data-page,.mesh-dashboard) .card-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
-    :is(.mesh-data-page,.mesh-dashboard) :is(.card-table, .card-table tbody) { display:block; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table tbody tr { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:4px 12px; padding:12px 14px; border-bottom:1px solid var(--mesh-border); }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table tbody td { display:block; height:auto; min-width:0; padding:0; border:0; overflow-wrap:anywhere; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table tbody td[colspan] { grid-column:1 / -1; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table tr:is(.packet-row,.mesh-traffic-row) { grid-template-areas:"port time" "from from" "to to" "meta id"; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table .c-port { grid-area:port; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table .c-time { grid-area:time; text-align:right; white-space:nowrap; font-size:12px; color:var(--mesh-muted); }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table .c-from { grid-area:from; font-weight:600; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table .c-to { grid-area:to; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table .c-to::before { content:"→ "; color:var(--mesh-muted); }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table :is(.c-channel,.c-size) { grid-area:meta; font-size:12px; color:var(--mesh-muted); }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table .c-id { grid-area:id; text-align:right; white-space:nowrap; font-size:12px; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table tr.payload-row { display:none; padding:0; }
-    :is(.mesh-data-page,.mesh-dashboard) .packet-table.card-table tr.expanded + .payload-row { display:block; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table .payload-cell { padding:12px 14px; }
-    :is(.mesh-data-page,.mesh-dashboard) .top-table tbody tr { grid-template-areas:"name avg" "short channel" "sent seen"; }
-    :is(.mesh-data-page,.mesh-dashboard) .top-table .c-name { grid-area:name; font-weight:600; }
-    :is(.mesh-data-page,.mesh-dashboard) .top-table .c-avg { grid-area:avg; justify-self:end; }
-    :is(.mesh-data-page,.mesh-dashboard) .top-table .c-short { grid-area:short; font-size:12px; color:var(--mesh-muted); }
-    :is(.mesh-data-page,.mesh-dashboard) .top-table .c-channel { grid-area:channel; text-align:right; }
-    :is(.mesh-data-page,.mesh-dashboard) .top-table .c-sent { grid-area:sent; font-size:13px; }
-    :is(.mesh-data-page,.mesh-dashboard) .top-table .c-seen { grid-area:seen; text-align:right; font-size:13px; }
-    :is(.mesh-data-page,.mesh-dashboard) .top-table :is(.c-sent,.c-seen)::before { content:attr(data-label) " "; color:var(--mesh-muted); }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table tr.mesh-traffic-payload { display:block; padding:0; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table tr.mesh-traffic-payload td { padding:12px 14px; }
-    :is(.mesh-data-page,.mesh-dashboard) .card-table tr[hidden] { display:none; }
-    .mesh-traffic-table.card-table { min-width:0; }
-    .mesh-traffic-list { max-height:70vh; }
-}
+/* Tables marked .card-table switch to cards (.is-cards, set below) under the viewport width in
+   their data-cards-below attribute, 700px by default. Cards flow in a grid: one column on
+   phones, two or three at medium widths. */
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards { display:block; min-width:0; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tbody { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr)); gap:10px; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tbody tr { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:4px 12px; padding:12px 14px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tbody td { display:block; height:auto; min-width:0; padding:0; border:0; background:none; overflow-wrap:anywhere; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tbody td[colspan] { grid-column:1 / -1; }
+:is(.mesh-data-page,.mesh-dashboard) .data-table-wrap:has(> .card-table.is-cards) { border:0; background:none; overflow:visible; }
+.mesh-traffic-list:has(> .card-table.is-cards) { padding:12px; max-height:70vh; }
+/* Packets: port and time / sender → recipient / channel or size and packet ID. */
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr:is(.packet-row,.mesh-traffic-row) { grid-template-columns:minmax(0,max-content) minmax(0,1fr) auto; grid-template-areas:"port port time" "from to to" "meta meta id"; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-port { grid-area:port; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-time { grid-area:time; text-align:right; white-space:nowrap; font-size:12px; color:var(--mesh-muted); }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-from { grid-area:from; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-to { grid-area:to; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-to::before { content:" → "; color:var(--mesh-muted); }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards :is(.c-channel,.c-size) { grid-area:meta; font-size:12px; color:var(--mesh-muted); }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .c-id { grid-area:id; text-align:right; white-space:nowrap; font-size:12px; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr.payload-row { display:none; grid-column:1 / -1; padding:0; overflow:hidden; }
+:is(.mesh-data-page,.mesh-dashboard) .packet-table.card-table.is-cards tr.expanded + .payload-row { display:block; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards .payload-cell { padding:12px 14px; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr.mesh-traffic-payload { display:block; grid-column:1 / -1; padding:0; overflow:hidden; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr.mesh-traffic-payload td { padding:12px 14px; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr[hidden] { display:none; }
+/* An open packet takes the full row and its payload joins the card from below. */
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr:is(.packet-row.expanded,.mesh-traffic-row:has(+ .mesh-traffic-payload:not([hidden]))) { grid-column:1 / -1; border-bottom-left-radius:0; border-bottom-right-radius:0; }
+:is(.mesh-data-page,.mesh-dashboard) .card-table.is-cards tr:is(.payload-row,.mesh-traffic-payload) { margin-top:-11px; border-top:0; border-top-left-radius:0; border-top-right-radius:0; background:var(--mesh-soft); }
+/* Top nodes: name, short name and average gateways / channel, sent and seen. */
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards tbody tr { grid-template-columns:minmax(0,1fr) auto auto; grid-template-areas:"name short avg" "channel sent seen"; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-name { grid-area:name; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-short { grid-area:short; font-size:12px; color:var(--mesh-muted); }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-avg { grid-area:avg; justify-self:end; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-channel { grid-area:channel; font-size:12px; color:var(--mesh-muted); }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards :is(.c-sent,.c-seen) { font-size:13px; white-space:nowrap; text-align:right; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-sent { grid-area:sent; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards .c-seen { grid-area:seen; }
+:is(.mesh-data-page,.mesh-dashboard) .top-table.is-cards :is(.c-sent,.c-seen)::before { content:attr(data-label) " "; color:var(--mesh-muted); }
 /* Four columns while every card fits on its lines, then two; all cards share one height. */
 .mesh-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-auto-rows:1fr; gap:12px; margin-bottom:12px; }
 @media(max-width:1199px) { .mesh-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
@@ -604,7 +611,15 @@ function watchTableWidth(wrap) {
     if (table) observer.observe(table);
     update();
 }
+// Card tables: each one switches to cards below its own data-cards-below width.
+function watchCardTable(table) {
+    const query = window.matchMedia(`(max-width:${Number(table.dataset.cardsBelow) || 700}px)`);
+    const apply = () => table.classList.toggle("is-cards", query.matches);
+    query.addEventListener("change", apply);
+    apply();
+}
 document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("table.card-table").forEach(watchCardTable);
     document.querySelectorAll(".data-table-wrap").forEach(watchTableWidth);
 });
 

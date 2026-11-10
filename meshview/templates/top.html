@@ -152,7 +152,8 @@ async function renderTable() {
     }
 
     // Mobile cards label the counters with the column headings.
-    const headings = [...document.querySelectorAll("#nodesTable thead th")].map(th => escapeHtml(th.textContent.trim()));
+    // The page heading already states the 24 hour window.
+    const headings = [...document.querySelectorAll("#nodesTable thead th")].map(th => escapeHtml(th.textContent.replace(/\s*\(24\s?h\)/i, "").trim()));
     for (const n of data.nodes || []) {
         const tr = document.createElement("tr");
         tr.onclick = () => location.href = `/node/${n.node_id}`;
