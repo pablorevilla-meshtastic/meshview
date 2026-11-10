@@ -137,6 +137,11 @@ async def wait_for_migrations(
     This should be called by the reader app to wait until
     the database schema is up to date before proceeding.
 
+    While the writer app reports a migration in progress, the wait does not
+    use up retries: some migrations (e.g. building an index on a large packet
+    table) take much longer than ``max_retries * retry_delay``. Retries only
+    count down while the schema is out of date and no migration is running.
+
     Args:
         engine: Async SQLAlchemy engine
         database_url: Database connection string
@@ -146,7 +151,8 @@ async def wait_for_migrations(
     Returns:
         True if database is up to date, False if max retries exceeded
     """
-    for attempt in range(max_retries):
+    attempt = 0
+    while attempt < max_retries:
         try:
             if await is_database_up_to_date(engine, database_url):
                 logger.info("Database schema is up to date")
@@ -155,16 +161,23 @@ async def wait_for_migrations(
             current = await get_current_revision(engine)
             head = await get_head_revision(database_url)
 
-            logger.info(
-                f"Database schema not up to date (current: {current}, head: {head}). "
-                f"Waiting... (attempt {attempt + 1}/{max_retries})"
-            )
+            if await is_migration_in_progress(engine):
+                logger.info(
+                    f"Database migration in progress (current: {current}, head: {head}). Waiting..."
+                )
+            else:
+                attempt += 1
+                logger.info(
+                    f"Database schema not up to date (current: {current}, head: {head}). "
+                    f"Waiting... (attempt {attempt}/{max_retries})"
+                )
 
             await asyncio.sleep(retry_delay)
 
         except Exception as e:
+            attempt += 1
             logger.warning(
-                f"Error checking database version (attempt {attempt + 1}/{max_retries}): {e}"
+                f"Error checking database version (attempt {attempt}/{max_retries}): {e}"
             )
             await asyncio.sleep(retry_delay)
 
