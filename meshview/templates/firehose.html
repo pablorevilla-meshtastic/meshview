@@ -316,7 +316,7 @@ async function fetchUpdates() {
                                     aria-label="${MeshI18n.h("View traceroute")}"><span class="ti ti-route" aria-hidden="true"></span></a>`;
             }
 
-            const safePayload = escapeHtml(pkt.payload || "");
+            const safePayload = escapeHtml(pkt.payload || MeshI18n.t("(No decoded payload)"));
             const packetIdCell = pkt.packet_id
                 ? `<a href="/packet/${pkt.storage_id || pkt.id}"
                       style="text-decoration:underline; color:inherit;">
@@ -332,7 +332,7 @@ async function fetchUpdates() {
     <td class="c-time">${formatTimes(pkt.import_time_us).local}</td>
 
     <td class="c-id">
-        <span class="toggle-btn">▶</span>
+        <button type="button" class="toggle-btn packet-toggle" aria-expanded="false" aria-label="${MeshI18n.h("Toggle payload for packet {id}", {id: pkt.packet_id ?? pkt.id})}"><span class="ti ti-chevron-right" aria-hidden="true"></span></button>
         ${packetIdCell}
     </td>
 
@@ -396,9 +396,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const row = btn.closest(".packet-row");
         row.classList.toggle("expanded");
-
-        btn.textContent =
-            row.classList.contains("expanded") ? "▼" : "▶";
+        btn.setAttribute("aria-expanded", String(row.classList.contains("expanded")));
     });
 
     await loadTranslationsFirehose();

@@ -27,13 +27,6 @@
 .mesh-data-page .data-actions .mesh-secondary-button { padding:7px 12px; }
 .mesh-data-page .data-count { display:inline-flex; align-items:center; height:24px; padding:0 9px; border-radius:6px; background:var(--mesh-soft); color:var(--mesh-primary); font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
 .mesh-data-page .data-context { font-size:12px; color:var(--mesh-muted); }
-.mesh-data-page .live-status { display:inline-flex; align-items:center; gap:7px; font-size:12px; color:var(--mesh-muted); }
-.mesh-data-page .live-status::before { content:""; width:8px; height:8px; border-radius:50%; background:#198754; }
-.mesh-data-page .live-status[data-state="paused"]::before { background:var(--mesh-muted); }
-.mesh-data-page .live-status[data-state="stale"]::before { background:#d99a00; }
-.mesh-data-page .live-status[data-state="offline"] { color:#b42318; font-weight:600; }
-.mesh-data-page .live-status[data-state="offline"]::before { background:#dc3545; }
-[data-bs-theme="dark"] .mesh-data-page .live-status[data-state="offline"] { color:#ffb4a6; }
 .mesh-data-page table tbody tr { background:var(--mesh-surface); }
 .mesh-data-page table tbody tr:nth-child(even) { background:var(--mesh-stripe); }
 .mesh-data-page table tbody tr:hover { background:var(--mesh-hover); }
@@ -45,7 +38,6 @@
 .mesh-data-page .payload-row { display:none; }
 .mesh-data-page .packet-table tr.expanded + .payload-row { display:table-row; }
 .mesh-data-page .payload-cell { font:12px/1.7 ui-monospace,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; background:var(--mesh-soft); color:var(--mesh-text); }
-.mesh-data-page .toggle-btn { cursor:pointer; color:var(--mesh-muted); display:inline-block; margin-right:7px; }
 .mesh-data-page .inline-link { margin-left:6px; color:var(--mesh-primary); text-decoration:none; }
 .mesh-data-page #map { width:100%; height:650px; border:1px solid var(--mesh-border); border-radius:9px; margin:18px 0 24px; }
 .mesh-data-page .leaflet-container { background:var(--mesh-stripe); z-index:1; }
@@ -57,32 +49,7 @@
     .mesh-data-page .data-toolbar { padding:12px; gap:8px; }
     .mesh-data-page .data-table-wrap { overflow:auto; }
     .mesh-data-page .data-table-wrap table { min-width:700px; }
-    /* Tables marked .card-table become one card per row. */
     .mesh-data-page .data-table-wrap table.card-table { min-width:0; }
-    .mesh-data-page .card-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
-    .mesh-data-page .card-table, .mesh-data-page .card-table tbody { display:block; }
-    .mesh-data-page .card-table tbody tr { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:4px 12px; padding:12px 14px; border-bottom:1px solid var(--mesh-border); }
-    .mesh-data-page .card-table tbody td { display:block; height:auto; min-width:0; padding:0; border:0; overflow-wrap:anywhere; }
-    .mesh-data-page .card-table tbody td[colspan] { grid-column:1 / -1; }
-    .mesh-data-page .card-table tr.packet-row { grid-template-areas:"port time" "from from" "to to" "meta id"; }
-    .mesh-data-page .card-table .c-port { grid-area:port; }
-    .mesh-data-page .card-table .c-time { grid-area:time; text-align:right; white-space:nowrap; font-size:12px; color:var(--mesh-muted); }
-    .mesh-data-page .card-table .c-from { grid-area:from; font-weight:600; }
-    .mesh-data-page .card-table .c-to { grid-area:to; }
-    .mesh-data-page .card-table .c-to::before { content:"→ "; color:var(--mesh-muted); }
-    .mesh-data-page .card-table :is(.c-channel,.c-size) { grid-area:meta; font-size:12px; color:var(--mesh-muted); }
-    .mesh-data-page .card-table .c-id { grid-area:id; text-align:right; white-space:nowrap; font-size:12px; }
-    .mesh-data-page .card-table tr.payload-row { display:none; padding:0; }
-    .mesh-data-page .packet-table.card-table tr.expanded + .payload-row { display:block; }
-    .mesh-data-page .card-table .payload-cell { padding:12px 14px; }
-    .mesh-data-page .top-table tbody tr { grid-template-areas:"name avg" "short channel" "sent seen"; }
-    .mesh-data-page .top-table .c-name { grid-area:name; font-weight:600; }
-    .mesh-data-page .top-table .c-avg { grid-area:avg; justify-self:end; }
-    .mesh-data-page .top-table .c-short { grid-area:short; font-size:12px; color:var(--mesh-muted); }
-    .mesh-data-page .top-table .c-channel { grid-area:channel; text-align:right; }
-    .mesh-data-page .top-table .c-sent { grid-area:sent; font-size:13px; }
-    .mesh-data-page .top-table .c-seen { grid-area:seen; text-align:right; font-size:13px; }
-    .mesh-data-page .top-table :is(.c-sent,.c-seen)::before { content:attr(data-label) " "; color:var(--mesh-muted); }
     .mesh-data-page .data-actions { margin-left:0; width:100%; }
     .mesh-data-page #map { height:500px; }
     .mesh-data-page .data-heading a { font-size:11px; padding:8px; }

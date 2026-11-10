@@ -814,7 +814,7 @@ async function loadPackets(filters = {}) {
         // ================================
         // TABLE ROW
         // ================================
-        const safePayload = escapeHtml(pkt.payload || "");
+        const safePayload = escapeHtml(pkt.payload || MeshI18n.t("(No decoded payload)"));
 
         const localTime = formatLocalTime(pkt.import_time_us);
         const fromCell  = nodeLink(pkt.from_node_id, pkt.long_name);
@@ -854,7 +854,7 @@ async function loadPackets(filters = {}) {
         list.insertAdjacentHTML("afterbegin", `
         <tr class="packet-row">
             <td class="c-time">${localTime}</td>
-            <td class="c-id"><span class="toggle-btn">▶</span>
+            <td class="c-id"><button type="button" class="toggle-btn packet-toggle" aria-expanded="false" aria-label="${MeshI18n.h("Toggle payload for packet {id}", {id: pkt.packet_id ?? pkt.id})}"><span class="ti ti-chevron-right" aria-hidden="true"></span></button>
                 ${packetIdCell}
             </td>
             <td class="c-from">${fromCell}</td>
@@ -1518,7 +1518,7 @@ document.addEventListener("click", e => {
     if (!btn) return;
     const row = btn.closest(".packet-row");
     row.classList.toggle("expanded");
-    btn.textContent = row.classList.contains("expanded") ? "▼" : "▶";
+    btn.setAttribute("aria-expanded", String(row.classList.contains("expanded")));
 });
 
 /* ======================================================

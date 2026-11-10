@@ -188,8 +188,6 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-inspector-telemetry span { font-size:10px; color:var(--mesh-muted); }
 .mesh-traffic { margin-top:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
 .mesh-traffic-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.mesh-traffic-status { font-size:11px; color:var(--mesh-primary); }
-.mesh-traffic-status[data-state="error"] { color:#b23d2f; }
 .mesh-traffic-list { max-height:360px; overflow:auto; }
  .mesh-traffic-table { width:100%; min-width:780px; border-collapse:collapse; font-size:13px; color:var(--mesh-text); }
 .mesh-traffic-table th { position:sticky; top:0; z-index:1; padding:12px 14px; background:var(--mesh-brand); color:white; font-weight:500; font-size:12px; white-space:nowrap; text-align:left; }
@@ -201,8 +199,6 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 .mesh-traffic-time { white-space:nowrap; font-size:12px; }
 .mesh-traffic-type { display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:11px; background:var(--mesh-soft); color:var(--mesh-text); font-size:12px; font-weight:500; line-height:1; white-space:nowrap; vertical-align:middle; }
 .mesh-traffic-type::before { content:""; flex-shrink:0; width:8px; height:8px; border-radius:50%; background:var(--port-color,#6c757d); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18); }
-.mesh-traffic-toggle { border:1px solid var(--mesh-border); background:var(--mesh-soft); color:var(--mesh-primary); border-radius:5px; font-size:11px; padding:4px 7px; white-space:nowrap; }
-.mesh-traffic-toggle { margin-right:7px; }
 .mesh-traffic-payload[hidden] { display:none; }
 .mesh-traffic-payload td { background:var(--mesh-soft); }
 .mesh-traffic-payload pre { margin:0; max-height:180px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.7 ui-monospace,monospace; }
@@ -323,9 +319,9 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 </div>
 {% if dashboard %}
 <section class="mesh-traffic" aria-label="{{ tr("Live network traffic") }}">
-    <div class="mesh-panel-title"><h2>{{ tr("Live traffic") }}</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">{{ tr("Channel") }}</label><select id="map-traffic-channel"><option value="">{{ tr("All channels") }}</option></select><span id="map-traffic-status" class="mesh-traffic-status" role="status">{{ tr("Loading packets…") }}</span><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="{{ tr("Pause the traffic list; map animations continue") }}">{{ tr("Pause feed") }}</button><button id="map-traffic-refresh" class="mesh-traffic-control" type="button">{{ tr("Refresh") }}</button></div></div>
+    <div class="mesh-panel-title"><h2>{{ tr("Live traffic") }}</h2><div class="mesh-traffic-tools"><label for="map-traffic-channel" class="visually-hidden">{{ tr("Channel") }}</label><select id="map-traffic-channel"><option value="">{{ tr("All channels") }}</option></select><span id="map-traffic-status" class="live-status" role="status">{{ tr("Loading packets…") }}</span><button id="map-traffic-pause" class="mesh-traffic-control" type="button" aria-pressed="false" title="{{ tr("Pause the traffic list; map animations continue") }}">{{ tr("Pause feed") }}</button><button id="map-traffic-refresh" class="mesh-traffic-control" type="button">{{ tr("Refresh") }}</button></div></div>
     <div id="map-traffic-list" class="mesh-traffic-list" role="region" aria-label="{{ tr("Live packet table") }}" tabindex="0">
-        <table class="mesh-traffic-table"><thead><tr><th>{{ tr("Time") }}</th><th>{{ tr("Packet ID") }}</th><th>{{ tr("From") }}</th><th>{{ tr("To") }}</th><th>{{ tr("Channel") }}</th><th>{{ tr("Port") }}</th></tr></thead><tbody id="map-traffic-body"><tr><td colspan="6" class="mesh-empty">{{ tr("Loading recent network traffic…") }}</td></tr></tbody></table>
+        <table class="mesh-traffic-table card-table"><thead><tr><th>{{ tr("Time") }}</th><th>{{ tr("Packet ID") }}</th><th>{{ tr("From") }}</th><th>{{ tr("To") }}</th><th>{{ tr("Channel") }}</th><th>{{ tr("Port") }}</th></tr></thead><tbody id="map-traffic-body"><tr><td colspan="6" class="mesh-empty">{{ tr("Loading recent network traffic…") }}</td></tr></tbody></table>
     </div>
     <p class="mesh-traffic-note">{{ tr("Latest 30 packets · expand the arrow to view payloads · follow packet IDs or node names for details.") }}</p>
 </section>
