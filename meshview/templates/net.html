@@ -15,6 +15,11 @@
 .net-table .c-node { font-weight:600; }
 .net-table .c-message { color:var(--mesh-muted); font-size:12px; }
 .net-table .c-message a { color:inherit; }
+/* Sortable headers, as on the reliability gateway table. */
+.mesh-data-page .mesh-content .net-sort { display:inline-flex; align-items:center; gap:2px; padding:0; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; }
+.mesh-data-page .mesh-content .net-sort:hover { background:transparent; }
+.mesh-data-page .mesh-content .net-sort:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+.net-sort .sort-icon { font-size:10px; }
 #net-note { color:var(--mesh-muted); font-size:12px; margin-top:12px; }
 /* Phones: number, node and time on top, location and channel below, the message last. */
 .mesh-data-page .net-table.card-table.is-cards tbody tr { grid-template-columns:auto minmax(0,1fr) auto; grid-template-areas:"num node time" "loc loc chan" "msg msg msg"; }
@@ -35,7 +40,7 @@
 
 <div class="data-table-wrap" role="region" aria-label="{{ tr("Check-ins") }}" tabindex="0">
 <table class="net-table card-table" data-cards-below="760">
-    <thead><tr><th class="c-num">#</th><th>{{ tr("Time") }}</th><th>{{ tr("Node") }}</th><th>{{ tr("Location") }}</th><th>{{ tr("Channel") }}</th><th>{{ tr("Message") }}</th></tr></thead>
+    <thead><tr><th class="c-num">#</th><th data-sort="time" aria-sort="ascending"><button type="button" class="net-sort">{{ tr("Time") }}<span class="sort-icon" aria-hidden="true"></span></button></th><th data-sort="node"><button type="button" class="net-sort">{{ tr("Node") }}<span class="sort-icon" aria-hidden="true"></span></button></th><th data-sort="location"><button type="button" class="net-sort">{{ tr("Location") }}<span class="sort-icon" aria-hidden="true"></span></button></th><th data-sort="channel"><button type="button" class="net-sort">{{ tr("Channel") }}<span class="sort-icon" aria-hidden="true"></span></button></th><th>{{ tr("Message") }}</th></tr></thead>
     <tbody id="net-list"><tr><td colspan="6" class="data-empty"><span class="is-loading">{{ tr("Loading...") }}</span></td></tr></tbody>
 </table>
 </div>
@@ -92,20 +97,61 @@ document.addEventListener("DOMContentLoaded", async () => {
             showMessage(MeshI18n.t("No check-ins received in the last six days."));
             return;
         }
+        // The number keeps the arrival order whatever the table is sorted by.
+        netRows = checkIns.map((packet, index) => ({
+            packet, num: index + 1,
+            name: (packet.long_name || "").trim() || MeshI18n.t("Node {id}", {id: packet.from_node_id}),
+            location: locationFrom(packet.payload, tag),
+            channel: packet.channel || ""
+        }));
+        drawSorted();
+    }
+
+    // Header sorting (table view; cards keep the chosen order). Text sorts
+    // ascending first; rows without a value go last; ties keep arrival order.
+    let netRows = [];
+    const netSort = {key: "time", asc: true};
+    const collator = new Intl.Collator(MeshI18n.language, {sensitivity: "base", numeric: true});
+    const sortValue = {time: row => row.num, node: row => row.name, location: row => row.location, channel: row => row.channel};
+    function drawSorted() {
+        const value = sortValue[netSort.key];
+        const rows = [...netRows].sort((a, b) => {
+            const A = value(a), B = value(b);
+            if (A === "" || B === "") return (A === "") - (B === "") || a.num - b.num;
+            const order = typeof A === "number" ? A - B : collator.compare(A, B);
+            return (netSort.asc ? order : -order) || a.num - b.num;
+        });
+        draw(rows);
+        document.querySelectorAll(".net-table th[data-sort]").forEach(th => {
+            const active = th.dataset.sort === netSort.key;
+            if (active) th.setAttribute("aria-sort", netSort.asc ? "ascending" : "descending");
+            else th.removeAttribute("aria-sort");
+            th.querySelector(".sort-icon").textContent = active ? (netSort.asc ? " ▲" : " ▼") : "";
+        });
+    }
+    document.querySelector(".net-table thead").addEventListener("click", event => {
+        const th = event.target.closest("th[data-sort]");
+        if (!th || !netRows.length) return;
+        netSort.asc = netSort.key === th.dataset.sort ? !netSort.asc : true;
+        netSort.key = th.dataset.sort;
+        drawSorted();
+    });
+
+    function draw(rows) {
         list.replaceChildren();
-        checkIns.forEach((packet, index) => {
+        rows.forEach(({packet, num, name, location}) => {
             const row = list.insertRow();
             const date = new Date(packet.import_time_us / 1000);
-            cell(row, "c-num", String(index + 1));
+            cell(row, "c-num", String(num));
             const time = cell(row, "c-time", date.toLocaleString(MeshI18n.language, {
                 weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
             }));
             time.title = date.toLocaleString(MeshI18n.language);
             const node = document.createElement("a");
             node.href = `/node/${encodeURIComponent(packet.from_node_id)}`;
-            node.textContent = (packet.long_name || "").trim() || MeshI18n.t("Node {id}", {id: packet.from_node_id});
+            node.textContent = name;
             cell(row, "c-node", node);
-            cell(row, "c-location", locationFrom(packet.payload, tag) || "—");
+            cell(row, "c-location", location || "—");
             cell(row, "c-channel", packet.channel || "—");
             const message = document.createElement("a");
             message.href = `/packet/${encodeURIComponent(packet.storage_id ?? packet.id)}`;
