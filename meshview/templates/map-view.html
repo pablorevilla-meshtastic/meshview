@@ -178,7 +178,6 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-map-only .mesh-inspector-meta { margin-bottom:10px; }
 .mesh-map-only .mesh-inspector-facts { grid-template-columns:70px minmax(0,1fr); gap:5px; margin:0; }
 .mesh-map-only .mesh-inspector-short-name { font-size:14px; font-weight:650; }
-.mesh-map-actions { display:flex; align-items:center; gap:8px; }
 /* Map-side inspection and shared live packet stream. */
 .mesh-node-browser[hidden],.mesh-node-inspector[hidden],.mesh-node-browser-body[hidden] { display:none; }
 /* Node list heading: plain title beside the map, a fold toggle once stacked under it. */
@@ -279,15 +278,13 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 {% endif %}
 
 <section class="mesh-map-panel" aria-label="{{ tr("Network map") }}">
-{% if dashboard %}
-<div class="mesh-panel-title"><h2>{{ tr("Network map") }}</h2><div class="mesh-map-actions"><button class="mesh-fit-button" type="button" id="fit-network">{{ tr("Fit network") }}</button></div></div>
-{% else %}
-<!-- Map page: fit and share live in a map control under the layer picker (moved in by script). -->
+<!-- Fit (and share, on the map page) live in a map control under the layer picker (moved in by script). -->
 <div id="map-tools" class="mesh-map-tools leaflet-bar">
     <button type="button" id="fit-network" title="{{ tr("Fit network") }}"><span class="ti ti-focus-centered" aria-hidden="true"></span><span class="mesh-map-tool-label">{{ tr("Fit network") }}</span></button>
+    {% if not dashboard %}
     <button type="button" id="share-button" onclick="shareCurrentView()" title="{{ tr("Share this view") }}"><span id="share-icon" class="ti ti-link" aria-hidden="true"></span><span id="share-label" class="mesh-map-tool-label" data-translate-lang="share_view">Share This View</span></button>
+    {% endif %}
 </div>
-{% endif %}
 <p id="map-load-status" role="status" style="margin:0; color:#b23d2f;"></p>
 
 <div id="map-wrapper">
