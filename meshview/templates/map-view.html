@@ -1432,22 +1432,27 @@ document.addEventListener("DOMContentLoaded", () => {
     loadTranslationsMap();
 });
 
-// Legend and unmapped packets: open on wider screens, folded to a pill on
-// phones unless the visitor opened them there before (remembered per browser).
+// Legend and unmapped packets: open by default on wider screens, folded to a
+// pill on phones. Whatever the visitor opens or folds is remembered in this
+// browser, separately for phones and wider screens.
 (() => {
     const phone = window.matchMedia("(max-width:700px)");
     const overlays = document.querySelectorAll("details.map-overlay");
-    const key = "mapOverlaysPhone";
-    const load = () => { try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch (_) { return {}; } };
+    const key = () => phone.matches ? "mapOverlaysPhone" : "mapOverlaysWide";
+    const load = () => { try { return JSON.parse(localStorage.getItem(key()) || "{}"); } catch (_) { return {}; } };
+    let syncing = false;
     const sync = () => {
         const saved = load();
-        overlays.forEach(el => { el.open = phone.matches ? saved[el.id] === true : true; });
+        syncing = true;
+        overlays.forEach(el => { el.open = saved[el.id] ?? !phone.matches; });
+        // "toggle" fires after the change, so stop ignoring it on the next task.
+        setTimeout(() => { syncing = false; });
     };
     overlays.forEach(el => el.addEventListener("toggle", () => {
-        if (!phone.matches) return;
+        if (syncing) return;
         const saved = load();
         saved[el.id] = el.open;
-        try { localStorage.setItem(key, JSON.stringify(saved)); } catch (_) { /* storage unavailable */ }
+        try { localStorage.setItem(key(), JSON.stringify(saved)); } catch (_) { /* storage unavailable */ }
     }));
     phone.addEventListener("change", sync);
     sync();
