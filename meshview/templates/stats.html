@@ -742,7 +742,7 @@ function renderDailySnapshotPacketsChart(domId,data){
         backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
         legend:{
-            data:['Packets'],
+            data:[MeshI18n.t("Packets")],
             textStyle:{color:'#64748b'}
         },
         grid:{left:'6%', right:'6%', bottom:'18%'},
@@ -758,7 +758,7 @@ function renderDailySnapshotPacketsChart(domId,data){
             axisLabel:{color:'#64748b'}
         },
         series:[
-            makeTelemetryLine("Packets", "rgba(255,214,82,1)", packetCounts)
+            makeTelemetryLine(MeshI18n.t("Packets"), "rgba(255,214,82,1)", packetCounts)
         ]
     });
     return chart;
@@ -776,7 +776,7 @@ function renderDailySnapshotNodesGatewaysChart(domId,data){
         backgroundColor:'#ffffff',
         tooltip:{trigger:'axis'},
         legend:{
-            data:[MeshI18n.t("Nodes"),'Gateways'],
+            data:[MeshI18n.t("Nodes"),MeshI18n.t("Gateways")],
             textStyle:{color:'#64748b'}
         },
         grid:{left:'6%', right:'6%', bottom:'18%'},
@@ -793,7 +793,7 @@ function renderDailySnapshotNodesGatewaysChart(domId,data){
         },
         series:[
             makeTelemetryLine(MeshI18n.t("Nodes"), "rgba(79,155,255,1)", nodeCounts),
-            makeTelemetryLine("Gateways", "rgba(138,255,108,1)", gatewayCounts)
+            makeTelemetryLine(MeshI18n.t("Gateways"), "rgba(138,255,108,1)", gatewayCounts)
         ]
     });
     return chart;
