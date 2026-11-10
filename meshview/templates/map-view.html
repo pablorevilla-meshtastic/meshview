@@ -13,17 +13,6 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
     .legend i { width:12px;height:12px;display:inline-block;margin-right:6px;border-radius:50%; }
 
 
-    #share-button,
-    #reset-filters-button {
-        padding:5px 15px;border:none;border-radius:4px;font-size:14px;cursor:pointer;color:white;
-    }
-    #share-button { margin-left:20px; background-color:#4CAF50; }
-    #share-button:hover { background-color:#45a049; }
-    #share-button:active { background-color:#3d8b40; }
-
-    #reset-filters-button { margin-left:10px; background-color:#f44336; }
-    #reset-filters-button:hover { background-color:#da190b; }
-    #reset-filters-button:active { background-color:#c41e0d; }
 
     .blinking-tooltip {
         background: var(--mesh-surface);
@@ -130,8 +119,27 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
     .unmapped-empty { color: #666; font-style: italic; }
 
 /* Give the standalone map more vertical space. */
-.mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 220px); min-height:650px; }
-@media(max-width:700px) { .mesh-map-only .mesh-map-panel #map-wrapper { height:calc(100dvh - 240px); min-height:500px; } }
+/* Map page: the content fills the window under the header and the map takes every pixel the
+   filter row leaves, whatever its height. */
+.mesh-map-only .mesh-content { display:flex; flex-direction:column; height:calc(100dvh - 48px); min-height:480px; box-sizing:border-box; }
+.mesh-map-only .mesh-explorer { display:flex; flex:1; min-height:0; }
+.mesh-map-only .mesh-map-panel { display:flex; flex:1; flex-direction:column; min-width:0; min-height:0; }
+.mesh-map-only .mesh-map-panel #map-wrapper { display:flex; flex:1; flex-direction:column; height:auto; min-height:300px; }
+.mesh-map-only .mesh-map-panel #map { flex:1; height:auto; min-height:0; }
+@media(max-width:700px) { .mesh-map-only .mesh-content { height:calc(100dvh - 52px); } }
+/* Fit and share as a map control, with labels on wider screens. */
+.mesh-map-tools { display:flex; flex-direction:column; overflow:hidden; background:var(--mesh-surface); }
+.mesh-map-tools button { display:flex; align-items:center; gap:8px; min-height:34px; padding:0 12px 0 10px; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font:500 12px/1 inherit; white-space:nowrap; cursor:pointer; }
+.mesh-map-tools button:last-child { border-bottom:0; }
+.mesh-map-tools button:hover { background:var(--mesh-soft); }
+.mesh-map-tools button:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
+.mesh-map-tools .ti { font-size:16px; color:var(--mesh-primary); }
+.mesh-map-tools button.is-copied .ti { color:#198754; }
+@media(max-width:700px) { .mesh-map-tools button { justify-content:center; width:34px; padding:0; } .mesh-map-tool-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; } }
+/* Reset sits at the end of the filter row. */
+.map-filter-reset { display:inline-flex; align-items:center; gap:6px; margin-left:auto; padding:6px 10px; border:0; border-radius:6px; background:transparent; color:var(--mesh-primary); font-size:12px; font-weight:500; white-space:nowrap; cursor:pointer; }
+.map-filter-reset:hover { background:var(--mesh-soft); }
+.map-filter-reset:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:2px; }
 /* Let the map determine the desktop row height; scroll longer node panels. */
 @media(min-width:1001px) {
     .mesh-explorer .mesh-node-panel { contain:size; }
@@ -154,7 +162,6 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 @media(max-width:700px) { .mesh-kiosk .mesh-map-panel #filter-container { max-width:calc(100% - 20px); bottom:24px; } .mesh-kiosk #unmapped-packets { display:none; } }
 /* Compact live-map node card. */
 .mesh-map-only .mesh-content { max-width:none; }
-.mesh-map-only .mesh-explorer { display:block; }
 .mesh-map-only .mesh-node-panel { position:absolute; right:10px; top:var(--inspector-top,60px); width:280px; max-width:calc(100% - 20px); max-height:calc(100% - var(--inspector-top,60px) - 12px); overflow:auto; z-index:800; contain:none; padding:14px; box-shadow:0 4px 20px #0003; }
 .mesh-map-only .mesh-node-panel[hidden] { display:none; }
 .mesh-map-only .mesh-panel-close { float:right; margin-left:8px; }
@@ -230,7 +237,7 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
     <div class="mesh-metric"><span class="mesh-metric-icon" aria-hidden="true"><span class="ti ti-package"></span></span><span>{{ tr("Total packets") }}</span><strong id="metric-packets">—</strong><small id="metric-status" role="status" aria-busy="true">{{ tr("Loading network totals…") }}</small></div>
 </section>
 {% else %}
-<section class="mesh-page-heading is-compact"><h1>{{ tr("Network map") }}</h1><a class="mesh-secondary-button" href="/">{{ tr("Home ↗") }}</a></section>
+<h1 class="visually-hidden">{{ tr("Network map") }}</h1>
 {% endif %}
 <div class="mesh-explorer">
 {% if dashboard %}
@@ -263,7 +270,15 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
 {% endif %}
 
 <section class="mesh-map-panel" aria-label="{{ tr("Network map") }}">
+{% if dashboard %}
 <div class="mesh-panel-title"><h2>{{ tr("Network map") }}</h2><div class="mesh-map-actions"><button class="mesh-fit-button" type="button" id="fit-network">{{ tr("Fit network") }}</button></div></div>
+{% else %}
+<!-- Map page: fit and share live in a map control under the layer picker (moved in by script). -->
+<div id="map-tools" class="mesh-map-tools leaflet-bar">
+    <button type="button" id="fit-network" title="{{ tr("Fit network") }}"><span class="ti ti-focus-centered" aria-hidden="true"></span><span class="mesh-map-tool-label">{{ tr("Fit network") }}</span></button>
+    <button type="button" id="share-button" onclick="shareCurrentView()" title="{{ tr("Share this view") }}"><span id="share-icon" class="ti ti-link" aria-hidden="true"></span><span id="share-label" class="mesh-map-tool-label" data-translate-lang="share_view">Share This View</span></button>
+</div>
+{% endif %}
 <p id="map-load-status" role="status" style="margin:0; color:#b23d2f;"></p>
 
 <div id="map-wrapper">
@@ -313,18 +328,12 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
         <label class="map-filter"><input type="checkbox" class="filter-checkbox" id="filter-mqtt-only"> <span data-translate-lang="show_mqtt_only">Show MQTT Gateways Only</span></label>
     </div>
     <div id="map-channel-filters" class="map-filter-group" role="group" aria-label="{{ tr("Channels") }}"></div>
-</div>
-
-{% if not dashboard %}
-<div style="text-align:center;margin-top:5px;">
-    <button id="share-button" onclick="shareCurrentView()">
-        <span id="share-icon" class="ti ti-link" aria-hidden="true"></span> <span id="share-label" data-translate-lang="share_view">Share This View</span>
-    </button>
-    <button id="reset-filters-button" onclick="resetFiltersToDefaults()">
+    {% if not dashboard %}
+    <button id="reset-filters-button" class="map-filter-reset" type="button" onclick="resetFiltersToDefaults()">
         <span class="ti ti-refresh" aria-hidden="true"></span> <span data-translate-lang="reset_filters">Reset Filters To Defaults</span>
     </button>
+    {% endif %}
 </div>
-{% endif %}
 
 
 
@@ -452,6 +461,18 @@ function updateMapLayerTranslations() {
 }
 
 // Data structures
+// Map page: fit and share as a control under the layer picker.
+const mapTools = document.getElementById('map-tools');
+if (mapTools) {
+    const MapTools = L.Control.extend({
+        onAdd() {
+            L.DomEvent.disableClickPropagation(mapTools);
+            L.DomEvent.disableScrollPropagation(mapTools);
+            return mapTools;
+        }
+    });
+    new MapTools({position: 'topright'}).addTo(map);
+}
 var nodes = [], markers = {}, markerById = {}, nodeMap = new Map();
 var selectedNodeId = null;
 var activeBlinks = new Map(), lastImportTime = null;
