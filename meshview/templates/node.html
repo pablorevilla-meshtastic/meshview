@@ -48,6 +48,8 @@
 .chart-title .ti { color:var(--mesh-primary); font-size:18px; }
 .chart-loading { position:absolute; left:0; right:0; top:66px; bottom:0; display:flex; align-items:center; justify-content:center; margin:0; color:var(--mesh-muted); pointer-events:none; }
 .packet-loading td { color:var(--mesh-muted); }
+.packet-load-more { margin:0; padding:18px 0 6px; text-align:center; color:var(--mesh-muted); font-size:13px; }
+.packet-load-more[hidden] { display:none; }
 #map { position:relative; }
 .map-loading { position:absolute; inset:0; z-index:500; display:flex; align-items:center; justify-content:center; margin:0; color:var(--mesh-muted); pointer-events:none; }
 .chart-actions { display:flex; gap:4px; flex-shrink:0; }
@@ -276,6 +278,7 @@
         <tbody id="packet_list"><tr class="packet-loading"><td colspan="6"><span class="is-loading">{{ tr("Loading...") }}</span></td></tr></tbody>
     </table>
     </div>
+    <p id="packet-load-more" class="packet-load-more" hidden><span class="is-loading">{{ tr("Loading more packets…") }}</span></p>
 
 </div>
 
@@ -869,93 +872,139 @@ async function loadTrack(){
 
 // Filters apply on change, so a slower earlier response must not overwrite a newer one.
 let packetsRequest = 0;
+// Packets come in pages, newest first; scrolling to the end loads the next, older page.
+const PACKET_PAGE_SIZE = 200;
+let packetsFilters = {};
+let packetsNextBefore = null;
+let packetsPageLoading = false;
+
+function packetsUrl(filters, before) {
+    const url = new URL("/api/packets", window.location.origin);
+    url.searchParams.set("node_id", fromNodeId);
+    url.searchParams.set("limit", PACKET_PAGE_SIZE);
+    if (filters.since) url.searchParams.set("since", filters.since);
+    if (filters.portnum) url.searchParams.set("portnum", filters.portnum);
+    if (before) url.searchParams.set("before", before);
+    return url;
+}
+
 async function loadPackets(filters = {}) {
     const request = ++packetsRequest;
     const list = document.getElementById("packet_list");
+    packetsFilters = filters;
+    packetsNextBefore = null;
+    packetsPageLoading = true;
 
-    const url = new URL("/api/packets", window.location.origin);
-    url.searchParams.set("node_id", fromNodeId);
-    url.searchParams.set("limit", 1000);
-
-    if (filters.since) {
-        url.searchParams.set("since", filters.since);
+    let res;
+    try {
+        res = await fetch(packetsUrl(filters));
+    } finally {
+        if (request === packetsRequest) packetsPageLoading = false;
     }
-
-    if (filters.portnum) {
-        url.searchParams.set("portnum", filters.portnum);
-    }
-
-    const res = await fetch(url);
     if (request !== packetsRequest) return;
-    if (!res.ok) { list.innerHTML = ""; return; }
+    if (!res.ok) { list.innerHTML = ""; updatePacketLoadMore(); return; }
 
     const data = await res.json();
     if (request !== packetsRequest) return;
     const packets = data.packets || [];
     currentPacketRows = packets;
+    packetsNextBefore = data.next_before ?? null;
     // Built off-page and swapped in at once: clearing the list first and
     // adding rows one by one made the page jump while changing filters.
-    const rowsHtml = [];
+    list.innerHTML = packets.map(packetRowHtml).join("");
+    updatePacketLoadMore();
+}
 
-    for (const pkt of packets.reverse()) {
-
-        // ================================
-        // TABLE ROW
-        // ================================
-        const safePayload = escapeHtml(pkt.payload || MeshI18n.t("(No decoded payload)"));
-
-        const localTime = formatLocalTime(pkt.import_time_us);
-        const fromCell  = nodeLink(pkt.from_node_id, pkt.long_name);
-        const toCell    = nodeLink(pkt.to_node_id, pkt.to_long_name);
-
-        let inlineLinks = "";
-
-        if (pkt.portnum === 3 && pkt.payload) {
-            const latMatch = pkt.payload.match(/latitude_i:\s*(-?\d+)/);
-            const lonMatch = pkt.payload.match(/longitude_i:\s*(-?\d+)/);
-            if (latMatch && lonMatch) {
-                const lat = parseFloat(latMatch[1]) / 1e7;
-                const lon = parseFloat(lonMatch[1]) / 1e7;
-                inlineLinks +=
-                    ` <a class="inline-link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener" title="${MeshI18n.h("Show on map")}" aria-label="${MeshI18n.h("Show on map")}"><span class="ti ti-map-pin" aria-hidden="true"></span></a>`;
-            }
-        }
-
-        if (pkt.portnum === 70) {
-            let traceId = pkt.id;
-            const match = pkt.payload?.match(/ID:\s*(\d+)/i);
-            if (match) traceId = match[1];
-            inlineLinks +=
-                ` <a class="inline-link" href="/traceroute/${traceId}" target="_blank" title="${MeshI18n.h("View traceroute")}" aria-label="${MeshI18n.h("View traceroute")}"><span class="ti ti-route" aria-hidden="true"></span></a>`;
-        }
-
-        const sizeBytes = packetSizeBytes(pkt);
-        const packetIdCell = pkt.packet_id
-            ? `<a href="/packet/${pkt.storage_id || pkt.id}"
-                  style="text-decoration:underline; color:inherit;">
-                   ${pkt.packet_id}
-               </a>`
-            : pkt.portnum === 73
-            ? `<span class="text-secondary" title="${MeshI18n.h("MQTT map report")}">${MeshI18n.h("Not a Packet")}</span>`
-            : `<span class="text-secondary" title="${MeshI18n.h("No Meshtastic packet ID")}">—</span>`;
-
-        rowsHtml.unshift(`
-        <tr class="packet-row">
-            <td class="c-time">${localTime}</td>
-            <td class="c-id"><button type="button" class="toggle-btn packet-toggle" aria-expanded="false" aria-label="${MeshI18n.h("Toggle payload for packet {id}", {id: pkt.packet_id ?? pkt.id})}"><span class="ti ti-chevron-right" aria-hidden="true"></span></button>
-                ${packetIdCell}
-            </td>
-            <td class="c-from">${fromCell}</td>
-            <td class="c-to">${toCell}</td>
-            <td class="c-port">${portLabel(pkt.portnum)}${inlineLinks}</td>
-            <td class="c-size">${sizeBytes.toLocaleString(MeshI18n.language)} B</td>
-        </tr>
-        <tr class="payload-row">
-            <td colspan="6" class="payload-cell">${safePayload}</td>
-        </tr>`);
-
+async function loadMorePackets() {
+    if (packetsPageLoading || packetsNextBefore == null) return;
+    const request = packetsRequest;
+    packetsPageLoading = true;
+    try {
+        const res = await fetch(packetsUrl(packetsFilters, packetsNextBefore));
+        if (!res.ok) throw new Error(`/api/packets returned ${res.status}`);
+        const data = await res.json();
+        if (request !== packetsRequest) return;
+        const packets = data.packets || [];
+        currentPacketRows = currentPacketRows.concat(packets);
+        packetsNextBefore = data.next_before ?? null;
+        document.getElementById("packet_list").insertAdjacentHTML("beforeend", packets.map(packetRowHtml).join(""));
+    } catch (err) {
+        console.error("Failed to load older packets:", err);
+        packetsNextBefore = null;
+    } finally {
+        if (request === packetsRequest) packetsPageLoading = false;
     }
-    list.innerHTML = rowsHtml.join("");
+    updatePacketLoadMore();
+}
+
+function updatePacketLoadMore() {
+    const more = document.getElementById("packet-load-more");
+    more.hidden = packetsNextBefore == null;
+    // A short page may not reach the end of the screen: keep going until it does.
+    if (!more.hidden && more.getBoundingClientRect().top < window.innerHeight + 400) {
+        requestAnimationFrame(loadMorePackets);
+    }
+}
+
+new IntersectionObserver(entries => {
+    if (entries.some(entry => entry.isIntersecting)) loadMorePackets();
+}, {rootMargin: "400px 0px"}).observe(document.getElementById("packet-load-more"));
+
+function packetRowHtml(pkt) {
+    // ================================
+    // TABLE ROW
+    // ================================
+    const safePayload = escapeHtml(pkt.payload || MeshI18n.t("(No decoded payload)"));
+
+    const localTime = formatLocalTime(pkt.import_time_us);
+    const fromCell  = nodeLink(pkt.from_node_id, pkt.long_name);
+    const toCell    = nodeLink(pkt.to_node_id, pkt.to_long_name);
+
+    let inlineLinks = "";
+
+    if (pkt.portnum === 3 && pkt.payload) {
+        const latMatch = pkt.payload.match(/latitude_i:\s*(-?\d+)/);
+        const lonMatch = pkt.payload.match(/longitude_i:\s*(-?\d+)/);
+        if (latMatch && lonMatch) {
+            const lat = parseFloat(latMatch[1]) / 1e7;
+            const lon = parseFloat(lonMatch[1]) / 1e7;
+            inlineLinks +=
+                ` <a class="inline-link" href="https://www.google.com/maps?q=${lat},${lon}" target="_blank" rel="noopener" title="${MeshI18n.h("Show on map")}" aria-label="${MeshI18n.h("Show on map")}"><span class="ti ti-map-pin" aria-hidden="true"></span></a>`;
+        }
+    }
+
+    if (pkt.portnum === 70) {
+        let traceId = pkt.id;
+        const match = pkt.payload?.match(/ID:\s*(\d+)/i);
+        if (match) traceId = match[1];
+        inlineLinks +=
+            ` <a class="inline-link" href="/traceroute/${traceId}" target="_blank" title="${MeshI18n.h("View traceroute")}" aria-label="${MeshI18n.h("View traceroute")}"><span class="ti ti-route" aria-hidden="true"></span></a>`;
+    }
+
+    const sizeBytes = packetSizeBytes(pkt);
+    const packetIdCell = pkt.packet_id
+        ? `<a href="/packet/${pkt.storage_id || pkt.id}"
+              style="text-decoration:underline; color:inherit;">
+               ${pkt.packet_id}
+           </a>`
+        : pkt.portnum === 73
+        ? `<span class="text-secondary" title="${MeshI18n.h("MQTT map report")}">${MeshI18n.h("Not a Packet")}</span>`
+        : `<span class="text-secondary" title="${MeshI18n.h("No Meshtastic packet ID")}">—</span>`;
+
+    return `
+    <tr class="packet-row">
+        <td class="c-time">${localTime}</td>
+        <td class="c-id"><button type="button" class="toggle-btn packet-toggle" aria-expanded="false" aria-label="${MeshI18n.h("Toggle payload for packet {id}", {id: pkt.packet_id ?? pkt.id})}"><span class="ti ti-chevron-right" aria-hidden="true"></span></button>
+            ${packetIdCell}
+        </td>
+        <td class="c-from">${fromCell}</td>
+        <td class="c-to">${toCell}</td>
+        <td class="c-port">${portLabel(pkt.portnum)}${inlineLinks}</td>
+        <td class="c-size">${sizeBytes.toLocaleString(MeshI18n.language)} B</td>
+    </tr>
+    <tr class="payload-row">
+        <td colspan="6" class="payload-cell">${safePayload}</td>
+    </tr>`;
 }
 
 
@@ -1756,8 +1805,33 @@ async function loadNodeStats(nodeId) {
     return loadPackets(filters);
 }
 
-    function exportPacketsCSV() {
-    if (!currentPacketRows.length) {
+// The export holds the packets matching the filters, not only the pages scrolled so far,
+// up to a cap that keeps "All time" on a busy node within reason.
+const PACKET_EXPORT_MAX = 10000;
+async function fetchPacketsForExport() {
+    const packets = [];
+    let before = null;
+    do {
+        const url = packetsUrl(packetsFilters, before);
+        url.searchParams.set("limit", 1000);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`/api/packets returned ${res.status}`);
+        const data = await res.json();
+        packets.push(...(data.packets || []));
+        before = data.next_before ?? null;
+    } while (before != null && packets.length < PACKET_EXPORT_MAX);
+    return packets.slice(0, PACKET_EXPORT_MAX);
+}
+
+    async function exportPacketsCSV() {
+    let exportRows;
+    try {
+        exportRows = await fetchPacketsForExport();
+    } catch (err) {
+        console.error("Failed to export packets:", err);
+        exportRows = currentPacketRows;
+    }
+    if (!exportRows.length) {
         alert(MeshI18n.t("No packets to export."));
         return;
     }
@@ -1766,7 +1840,7 @@ async function loadNodeStats(nodeId) {
         [MeshI18n.t("Time"), MeshI18n.t("Packet ID"), MeshI18n.t("From Node"), MeshI18n.t("To Node"), MeshI18n.t("Port"), MeshI18n.t("Port Name"), MeshI18n.t("Payload")]
     ];
 
-    for (const pkt of currentPacketRows) {
+    for (const pkt of exportRows) {
         const time = pkt.import_time_us
             ? new Date(pkt.import_time_us / 1000).toISOString()
             : "";
