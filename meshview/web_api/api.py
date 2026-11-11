@@ -15,7 +15,7 @@ from sqlalchemy import func, or_, select
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import database, decode_payload, store, traceroute
 from meshview.__version__ import __version__, _git_revision_short, get_version_info
-from meshview.config import CONFIG
+from meshview.config import CONFIG, map_tiles
 from meshview.i18n import load_catalogs
 from meshview.models import DailySnapshot, Node
 from meshview.models import Packet as PacketModel
@@ -897,6 +897,7 @@ async def api_config(request):
             "map_bottom_right_lat": get_float(site, "map_bottom_right_lat", 36.0),
             "map_bottom_right_lon": get_float(site, "map_bottom_right_lon", -121.0),
             "map_interval": get_int(site, "map_interval", 3),
+            **{f"map_tile_{key}": value for key, value in map_tiles(site).items()},
             "map_channel_colors": {
                 channel: color.strip()
                 for channel, color in CONFIG.get("map_channel_colors", {}).items()

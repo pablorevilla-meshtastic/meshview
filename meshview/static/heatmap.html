@@ -112,10 +112,7 @@ body { background:var(--mesh-page); color:var(--mesh-text); }
 (async () => {
 await MeshI18n.ready;
 const map = L.map("map");
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution: "© OpenStreetMap"
-}).addTo(map);
+let tilesAdded = false;
 
 let heatLayer = null;
 let nodeCoords = [];
@@ -195,6 +192,7 @@ async function setMapBoundsFromConfig() {
   try {
     const res = await fetch("/api/config");
     const config = await res.json();
+    addTiles(config.site);
     const topLat = parseFloat(config.site.map_top_left_lat);
     const topLon = parseFloat(config.site.map_top_left_lon);
     const bottomLat = parseFloat(config.site.map_bottom_right_lat);
@@ -207,8 +205,19 @@ async function setMapBoundsFromConfig() {
     map.fitBounds([[topLat, topLon], [bottomLat, bottomLon]]);
   } catch (err) {
     console.error("Failed to load map bounds from config:", err);
+    addTiles({});
     map.setView([20, 0], 2);
   }
+}
+
+// Base map tiles from the [site] map_tile_* options, OpenStreetMap by default.
+function addTiles(site) {
+  if (tilesAdded) return;
+  tilesAdded = true;
+  L.tileLayer(site.map_tile_url || "https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: Number(site.map_tile_max_zoom) || 19,
+    attribution: site.map_tile_url ? (site.map_tile_attribution || "") : "&copy; OpenStreetMap contributors"
+  }).addTo(map);
 }
 
 // --- Count nearby nodes ---
