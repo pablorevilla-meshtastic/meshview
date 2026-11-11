@@ -231,7 +231,6 @@ async function loadTranslationsNodelist() {
 // =====================================================
 // GLOBALS
 // =====================================================
-let allNodes = [];
 let sortColumn = "short_name";
 let sortAsc = true;
 let showOnlyFavorites = false;
@@ -332,62 +331,86 @@ document.addEventListener("DOMContentLoaded", async function() {
     const clearBtn = document.getElementById("clear-btn");
     const favoritesBtn = document.getElementById("favorites-btn");
 
-    const BATCH_SIZE = 50;
-    let renderedCount = 0;
-    let filteredNodes = [];
+    // The server filters, sorts and pages the list: a big mesh has thousands of nodes,
+    // megabytes the browser no longer downloads to show fifty rows.
+    const PAGE_SIZE = 50;
+    let loadedNodes = [];   // rows shown so far, in order
+    let totalNodes = 0;     // matching nodes on the server
+    let listGeneration = 0; // bumps on every new query, so late pages are dropped
+    let pageLoading = false;
     const loadMore = document.getElementById("node-load-more");
     new IntersectionObserver(entries => {
-        if (entries.some(entry => entry.isIntersecting) && renderedCount < filteredNodes.length) {
-            requestAnimationFrame(appendBatch);
-        }
+        if (entries.some(entry => entry.isIntersecting)) loadNextPage();
     }, {rootMargin: "400px 0px"}).observe(loadMore);
 
+    function normalizeNode(n) {
+        const last_seen_us = n.last_seen_us || 0;
+        return {
+            ...n,
+            firmware: n.firmware || n.firmware_version || "",
+            last_seen_us,
+            last_seen_ms: last_seen_us ? last_seen_us / 1000 : 0,
+        };
+    }
+
+    // The filters, search, favourites and order as /api/nodes parameters.
+    function listQuery() {
+        const params = new URLSearchParams();
+        params.set("days_active", Number(daysActiveFilter.value) || 3);
+        if (roleFilter.value) params.set("role", roleFilter.value);
+        if (channelFilter.value) params.set("channel", channelFilter.value);
+        if (hwFilter.value) params.set("hw_model", hwFilter.value);
+        if (firmwareFilter.value) params.set("firmware", firmwareFilter.value);
+        const term = searchBox.value.trim();
+        if (term) params.set("search", term.slice(0, 100));
+        // The API takes up to 500 ids in one request.
+        if (showOnlyFavorites) params.set("ids", [...favoritesSet].slice(0, 500).join(","));
+        params.set("sort", `${sortAsc ? "" : "-"}${sortColumn}`);
+        return params;
+    }
+
+    async function fetchNodeList(params) {
+        const res = await fetch(`/api/nodes?${params}`);
+        if (!res.ok) throw new Error(`/api/nodes returned ${res.status}`);
+        return res.json();
+    }
+
+    function showListError(err) {
+        console.error("Failed to load nodes:", err);
+        tbody.innerHTML = `<tr>
+            <td colspan="12" style="text-align:center; color:red;">
+                ${nodelistTranslations.error_loading_nodes || MeshI18n.t("Error loading nodes")}
+            </td></tr>`;
+        loadedNodes = [];
+        totalNodes = 0;
+        countSpan.textContent = 0;
+        updateLoadMore();
+    }
+
+    // Filter menus list the values present among the nodes of the selected period.
+    async function loadFilterOptions() {
+        const days = Number(daysActiveFilter.value) || 3;
+        const res = await fetch(`/api/nodes/facets?days_active=${encodeURIComponent(days)}`);
+        if (!res.ok) throw new Error(`/api/nodes/facets returned ${res.status}`);
+        const {facets} = await res.json();
+        const values = facet => new Set((facet || []).map(item => item.value).filter(Boolean));
+        fillSelect(roleFilter, values(facets.role));
+        fillSelect(channelFilter, values(facets.channel));
+        fillSelect(hwFilter, values(facets.hw_model));
+        fillSelect(firmwareFilter, values(facets.firmware));
+    }
 
     async function loadNodesForActiveDays() {
-        const daysActive = Number(daysActiveFilter.value) || 3;
         setStatus(MeshI18n.t("Loading nodes…"));
-        await nextFrame();
-        const res = await fetch(`/api/nodes?days_active=${encodeURIComponent(daysActive)}`);
-        if (!res.ok) throw new Error("Failed to fetch nodes");
-
-        const data = await res.json();
         await translationsReady;
-
-        allNodes = data.nodes.map(n => {
-            const firmware = n.firmware || n.firmware_version || "";
-            const last_seen_us = n.last_seen_us || 0;
-            const last_seen_ms = last_seen_us ? (last_seen_us / 1000) : 0;
-
-            return {
-                ...n,
-                firmware,
-                last_seen_us,
-                last_seen_ms,
-                _search: [
-                    n.node_id,
-                    n.id,
-                    n.long_name,
-                    n.short_name
-                ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .toLowerCase()
-            };
-        });
-
-        populateFilters(allNodes);
-        await applyFilters(); // ensures initial sort + render uses same path
-        updateSortIcons();
-        setStatus("");
+        await loadFilterOptions();
+        await applyFilters();
     }
 
     try {
         await loadNodesForActiveDays();
     } catch (err) {
-        tbody.innerHTML = `<tr>
-            <td colspan="12" style="text-align:center; color:red;">
-                ${nodelistTranslations.error_loading_nodes || MeshI18n.t("Error loading nodes")}
-            </td></tr>`;
+        showListError(err);
         setStatus("");
         return;
     }
@@ -409,12 +432,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         try {
             await loadNodesForActiveDays();
         } catch (err) {
-            console.error("Failed to reload nodes:", err);
-            tbody.innerHTML = `<tr>
-                <td colspan="12" style="text-align:center; color:red;">
-                    ${nodelistTranslations.error_loading_nodes || MeshI18n.t("Error loading nodes")}
-                </td></tr>`;
-            countSpan.textContent = 0;
+            showListError(err);
             setStatus("");
         }
     });
@@ -472,22 +490,6 @@ document.addEventListener("DOMContentLoaded", async function() {
         applyFilters();
     });
 
-    function populateFilters(nodes) {
-        const roles = new Set(), channels = new Set(), hws = new Set(), fws = new Set();
-
-        nodes.forEach(n => {
-            if (n.role) roles.add(n.role);
-            if (n.channel) channels.add(n.channel);
-            if (n.hw_model) hws.add(n.hw_model);
-            if (n.firmware) fws.add(n.firmware);
-        });
-
-        fillSelect(roleFilter, roles);
-        fillSelect(channelFilter, channels);
-        fillSelect(hwFilter, hws);
-        fillSelect(firmwareFilter, fws);
-    }
-
     function fillSelect(select, values) {
         const currentValue = select.value;
         select.querySelectorAll("option:not(:first-child)").forEach(opt => opt.remove());
@@ -519,68 +521,74 @@ document.addEventListener("DOMContentLoaded", async function() {
         badge.hidden = active === 0;
     }
 
+    // A new query: load its first page; its rows replace the shown ones in one go, so the
+    // list neither flashes empty nor jumps while it loads.
     async function applyFilters() {
         updateFiltersCount();
-        setStatus(MeshI18n.t("Updating…"));
-        await nextFrame();
-        const searchTerm = searchBox.value.trim().toLowerCase();
-
-        let filtered = allNodes.filter(n => {
-            const roleMatch = !roleFilter.value || n.role === roleFilter.value;
-            const channelMatch = !channelFilter.value || n.channel === channelFilter.value;
-            const hwMatch = !hwFilter.value || n.hw_model === hwFilter.value;
-            const fwMatch = !firmwareFilter.value || n.firmware === firmwareFilter.value;
-
-            const searchMatch = !searchTerm || n._search.includes(searchTerm);
-            const favMatch = !showOnlyFavorites || isFavorite(n.node_id);
-
-            return roleMatch && channelMatch && hwMatch && fwMatch && searchMatch && favMatch;
-        });
-
-        // IMPORTANT: Always sort the filtered subset to preserve expected behavior
-        filtered = sortNodes(filtered, sortColumn, sortAsc);
-
-        filteredNodes = filtered;
-        renderTable(filtered);
         updateSortIcons();
-        setStatus("");
-    }
-
-    // Infinite scroll: render the filtered list in batches as the end comes into view.
-    function renderTable(nodes) {
-        renderedCount = 0;
-        tbody.innerHTML = "";
-        countSpan.textContent = nodes.length;
-        if (!nodes.length) {
-            tbody.innerHTML = `<tr>
-                <td colspan="12" style="text-align:center; color:var(--mesh-muted);">
-                    ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
-                </td>
-            </tr>`;
-            updateLoadMore();
-            return;
+        const generation = ++listGeneration;
+        loadedNodes = [];
+        totalNodes = 0;
+        pageLoading = false;
+        setStatus(MeshI18n.t("Updating…"));
+        try {
+            await loadPage(generation);
+        } catch (err) {
+            if (generation === listGeneration) showListError(err);
+        } finally {
+            if (generation === listGeneration) setStatus("");
         }
-        appendBatch();
     }
 
-    function appendBatch() {
-        const batch = filteredNodes.slice(renderedCount, renderedCount + BATCH_SIZE);
+    async function loadPage(generation) {
+        const params = listQuery();
+        params.set("limit", PAGE_SIZE);
+        params.set("offset", loadedNodes.length);
+        pageLoading = true;
+        let data;
+        try {
+            data = await fetchNodeList(params);
+        } finally {
+            if (generation === listGeneration) pageLoading = false;
+        }
+        if (generation !== listGeneration) return;
+
+        const first = loadedNodes.length === 0;
+        const page = (data.nodes || []).map(normalizeNode);
+        loadedNodes.push(...page);
+        totalNodes = data.total ?? loadedNodes.length;
+        countSpan.textContent = totalNodes;
+
         const fragment = document.createDocumentFragment();
-        batch.forEach(node => fragment.appendChild(nodeRow(node)));
+        page.forEach(node => fragment.appendChild(nodeRow(node)));
+        if (first) {
+            tbody.innerHTML = "";
+            if (!page.length) {
+                tbody.innerHTML = `<tr>
+                    <td colspan="12" style="text-align:center; color:var(--mesh-muted);">
+                        ${nodelistTranslations.no_nodes_found || MeshI18n.t("No nodes found")}
+                    </td>
+                </tr>`;
+            }
+        }
         tbody.appendChild(fragment);
-        renderedCount += batch.length;
         updateLoadMore();
     }
 
+    function loadNextPage() {
+        if (pageLoading || loadedNodes.length >= totalNodes) return;
+        const generation = listGeneration;
+        loadPage(generation).catch(err => console.error("Failed to load more nodes:", err));
+    }
+
     function updateLoadMore() {
-        const total = filteredNodes.length;
-        const more = renderedCount < total;
+        const more = loadedNodes.length < totalNodes;
         loadMore.hidden = !more;
-        document.getElementById("node-page-range").textContent = total
-            ? MeshI18n.t("Showing {shown} of {total} nodes", {shown: renderedCount, total}) : "";
+        document.getElementById("node-page-range").textContent = totalNodes
+            ? MeshI18n.t("Showing {shown} of {total} nodes", {shown: loadedNodes.length, total: totalNodes}) : "";
         // A short list may not fill the screen: keep loading until it does or nothing is left.
         if (more && loadMore.getBoundingClientRect().top < window.innerHeight + 400) {
-            requestAnimationFrame(appendBatch);
+            requestAnimationFrame(loadNextPage);
         }
     }
 
@@ -637,9 +645,20 @@ document.addEventListener("DOMContentLoaded", async function() {
         updateSortIcons();
     }
 
-    function exportToCSV() {
+    // The export holds every node matching the filters, not only the pages loaded so far.
+    async function exportToCSV() {
+        exportBtn.disabled = true;
+        let nodes;
+        try {
+            nodes = ((await fetchNodeList(listQuery())).nodes || []).map(normalizeNode);
+        } catch (err) {
+            console.error("Failed to export nodes:", err);
+            return;
+        } finally {
+            exportBtn.disabled = false;
+        }
         const rows = [Array.from(headers).map(h => h.innerText.replace(/▲|▼/g,''))];
-        filteredNodes.forEach(node => {
+        nodes.forEach(node => {
             rows.push([
                 node.short_name || MeshI18n.t("N/A"), node.long_name || MeshI18n.t("N/A"), node.hw_model || MeshI18n.t("N/A"),
                 node.firmware || MeshI18n.t("N/A"), node.role || MeshI18n.t("N/A"),
@@ -659,37 +678,6 @@ document.addEventListener("DOMContentLoaded", async function() {
         a.href = URL.createObjectURL(blob);
         a.download = "nodelist.csv";
         a.click();
-    }
-
-    function sortNodes(nodes, key, asc) {
-        return [...nodes].sort((a, b) => {
-            let A = a[key];
-            let B = b[key];
-
-            if (key === "last_altitude") {
-                if (A == null && B == null) return 0;
-                if (A == null) return 1;
-                if (B == null) return -1;
-            }
-
-            if (key === "last_seen_us") {
-                A = A || 0;
-                B = B || 0;
-            }
-
-            if (key === "is_mqtt_gateway") {
-                A = A ? 1 : 0;
-                B = B ? 1 : 0;
-            }
-
-            // Normalize strings for stable sorting
-            if (typeof A === "string") A = A.toLowerCase();
-            if (typeof B === "string") B = B.toLowerCase();
-
-            if (A < B) return asc ? -1 : 1;
-            if (A > B) return asc ? 1 : -1;
-            return 0;
-        });
     }
 
     function updateSortIcons() {
