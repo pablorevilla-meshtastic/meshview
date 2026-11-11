@@ -375,6 +375,8 @@ async def api_node_facets(request):
 
 @routes.get("/api/packets")
 async def api_packets(request):
+    # Read first: a bad value answers 400, not the 500 below.
+    before = _query_int(request, "before", None, 0, None)
     try:
         # --- Parse query parameters ---
         packet_id_str = request.query.get("packet_id")
@@ -474,7 +476,11 @@ async def api_packets(request):
             contains=contains_for_query,
             limit=limit,
             channel=channel,
+            before=before,
         )
+        # A full page may have older packets after it. The cursor comes from the rows read,
+        # not the ones returned: text messages are filtered below and can leave a short page.
+        next_before = packets[-1].import_time_us if len(packets) == limit and packets else None
 
         ui_packets = [Packet.from_model(p) for p in packets]
 
@@ -527,6 +533,8 @@ async def api_packets(request):
         response = {"packets": packets_data}
         if latest_import_time is not None:
             response["latest_import_time"] = latest_import_time
+        if next_before is not None:
+            response["next_before"] = next_before
 
         return web.json_response(response)
 

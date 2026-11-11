@@ -168,6 +168,8 @@ Query Parameters
 - `packet_id` (optional, decimal int): Return one packet by database row ID (overrides other filters).
 - `limit` (optional, int): Max packets to return, clamped 1-1000. Default: `50`.
 - `since` (optional, int): Only packets imported after this microsecond timestamp.
+- `before` (optional, int): Only packets imported before this microsecond timestamp:
+  pass the previous response's `next_before` to load the next, older page.
 - `portnum` (optional, int): Filter by port number.
 - `contains` (optional, string): Payload substring filter.
 - `from_node_id` (optional, int): Filter by sender node ID.
@@ -194,7 +196,8 @@ Response Example
       "reply_id": 122
     }
   ],
-  "latest_import_time": 1736370123456789
+  "latest_import_time": 1736370123456789,
+  "next_before": 1736370023456789
 }
 ```
 
@@ -206,6 +209,10 @@ Notes
   this endpoint is not a durable cursor or backfill API.
 - `latest_import_time` is returned only when the list response has a positive import
   timestamp; it is absent for empty results and single-packet lookups.
+- `next_before` is returned when the database filled the page, so older packets may
+  follow; it is absent on the last page. Pass it as `before` for the next page. It is
+  the timestamp of the oldest packet read, which with `portnum=1` can be older than the
+  last packet returned, because sequence-only messages are dropped after reading.
 - `packet_id` lookup returns `{"packets":[]}` with HTTP 200 when missing. Its objects
   omit `to_long_name` and `reply_id`; nullable `portnum` is possible in this mode.
 - `contains` is case-insensitive. With `portnum=1`, matching is performed on decoded
@@ -213,7 +220,7 @@ Notes
   may be returned. For other requests, it searches stored payload bytes cast to text;
   this is not a general search over decoded protobuf fields.
 - Invalid `limit` falls back to 50. Invalid `since`, `portnum`, and node filters are
-  logged and ignored. Invalid single-packet IDs return HTTP 400; handler failures
+  logged and ignored. Invalid `before` values and single-packet IDs return HTTP 400; handler failures
   return HTTP 500 with `{"error":"Failed to fetch packets"}`.
 
 ---

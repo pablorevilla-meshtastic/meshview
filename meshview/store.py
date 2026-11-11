@@ -39,6 +39,7 @@ async def get_packets(
     contains=None,  # substring search
     limit=50,
     channel=None,
+    before=None,
 ):
     async with database.async_session() as session:
         stmt = select(models.Packet)
@@ -71,6 +72,9 @@ async def get_packets(
         # Timestamp filter using microseconds
         if after is not None:
             conditions.append(models.Packet.import_time_us > after)
+        # Cursor for older pages: strictly before the oldest packet already shown.
+        if before is not None:
+            conditions.append(models.Packet.import_time_us < before)
 
         # Case-insensitive substring search on payload (BLOB → TEXT)
         if contains:
