@@ -316,11 +316,8 @@ bind = *
 # Port to run the web server on.
 port = 8081
 
-# Path to TLS certificate (leave blank to disable HTTPS).
+# PEM file containing the TLS certificate and private key (blank disables HTTPS).
 tls_cert =
-
-# Path for the ACME challenge if using Let's Encrypt.
-acme_challenge =
 
 
 # -------------------------
@@ -341,7 +338,7 @@ message = Real time data from around the bay area and beyond.
 
 # Enable or disable site features (as strings: "True" or "False").
 nodes = True
-conversations = True
+chat = True
 everything = True
 graphs = True
 stats = True
@@ -374,8 +371,8 @@ net_tag = #BayMeshNet
 # MQTT server hostname or IP.
 server = mqtt.bayme.sh
 
-# Topics to subscribe to (as JSON-like list, but still a string).
-topics = ["msh/US/bayarea/#", "msh/US/CA/mrymesh/#", "msh/US/CA/sacvalley"]
+# Topics as a valid JSON array of strings. /# includes all descendant topics.
+topics = ["msh/US/bayarea/#", "msh/US/CA/mrymesh/#", "msh/US/CA/sacvalley/#"]
 
 # Port used by MQTT (typically 1883 for unencrypted).
 port = 1883
@@ -416,7 +413,7 @@ vacuum = False
 # -------------------------
 [logging]
 # Enable or disable HTTP access logs from the web server
-# When disabled, request logs like "GET /api/chat" will not appear
+# When disabled, request logs like "GET /api/packets" will not appear
 # Application logs (errors, startup messages, etc.) are unaffected
 # Set to True to enable, False to disable (default: False)
 access_log = False

@@ -780,8 +780,8 @@ async def api_config(request):
             "message": get_str(site, "message", ""),
             "announcement": get_str(site, "announcement", ""),
             "nodes": get_bool(site, "nodes", True),
-            # Documented as "conversations"; "chat" is still read for older configs.
-            "chat": get_bool(site, "conversations", get(site, "chat", True)),
+            # "chat" is preferred; retain "conversations" for existing configurations.
+            "chat": get_bool(site, "chat", get(site, "conversations", True)),
             "everything": get_bool(site, "everything", True),
             "graphs": get_bool(site, "graphs", True),
             "stats": get_bool(site, "stats", True),

@@ -394,8 +394,8 @@ with `api = False` in `[site]`. This setting does not disable documentation or A
 routes. `site.meshviewworld` does the same for the MeshviewWorld link
 (`meshviewworld = False`). `site.message` is the installation's tagline (page footer
 and description) and `site.announcement` the text of the dismissible banner shown on
-every page; both are empty when unset. `site.chat` follows `conversations` in `[site]`
-(the older `chat` key is still read when `conversations` is absent). Restart the web
+every page; both are empty when unset. `site.chat` follows `chat` in `[site]`
+(the legacy `conversations` key is still read when `chat` is absent). Restart the web
 server and reload the page after changing it. Handler failures return HTTP 500.
 
 Restart the web server and reload the map after changing these settings. Omitting

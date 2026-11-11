@@ -40,7 +40,7 @@ if (new URLSearchParams(location.search).get('kiosk') === '1') {
     .packet-seen-trace {
         stroke-dasharray: 0.01px var(--packet-trace-gap, 999px);
         stroke-linecap: round;
-        animation: packetTrace var(--packet-trace-duration, 6.5s) linear 1 forwards;
+        animation: packetTrace var(--packet-trace-duration, 3.25s) linear 1 forwards;
     }
     .packet-seen-landing {
         transform-box: fill-box;
@@ -588,9 +588,9 @@ const UNMAPPED_TTL_MS = 5000;
 // sender keeps blinking, faster for the last 3 s, so the reach follows it.
 const PACKET_SEEN_DELAY_MS = 10000;
 const PACKET_SEEN_COLOR = "#1f2937";
-const PACKET_TRACE_MIN_DURATION_MS = 1500;
-const PACKET_TRACE_MAX_DURATION_MS = 6500;
-const PACKET_TRACE_MS_PER_PIXEL = 18;
+const PACKET_TRACE_MIN_DURATION_MS = 750;
+const PACKET_TRACE_MAX_DURATION_MS = 3250;
+const PACKET_TRACE_MS_PER_PIXEL = 9;
 const PACKET_LANDING_DURATION_MS = 1400;
 
 const portMap = window.PORT_LABEL_MAP;

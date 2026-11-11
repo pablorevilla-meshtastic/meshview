@@ -200,7 +200,7 @@ async function configureFirehose() {
     try {
         const cfg = await window._siteConfigPromise;
         const sec = cfg?.site?.firehose_interval;
-        if (sec && !isNaN(sec)) updateInterval = sec * 1000;
+        if (Number.isFinite(sec)) updateInterval = sec * 1000;
     } catch {}
 }
 
@@ -405,7 +405,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadChannels();
 
     fetchUpdates();
-    setInterval(fetchUpdates, updateInterval);
+    if (updateInterval > 0) setInterval(fetchUpdates, updateInterval);
 });
 </script>
 
