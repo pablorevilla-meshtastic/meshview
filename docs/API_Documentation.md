@@ -43,21 +43,61 @@ curl 'http://localhost:8081/api/coverage/1234?mode=perimeter&radius_km=20'
 ## 1. Nodes API
 
 ### GET `/api/nodes`
-Returns a list of nodes, with optional filtering.
+Returns a list of nodes, with optional filtering, sorting and paging.
 
 Query Parameters
 - `node_id` (optional, int): Exact node ID.
 - `role` (optional, string): Node role.
 - `channel` (optional, string): Channel name.
 - `hw_model` (optional, string): Hardware model.
+- `firmware` (optional, string): Firmware version.
 - `days_active` (optional, int): Nodes seen within the last N days. Omit for all
-  nodes with a non-null last-seen timestamp; invalid integers are ignored.
+  nodes with a non-null last-seen timestamp; invalid or empty values are ignored.
+- `search` (optional, string, up to 100 characters): Case-insensitive substring of the
+  long name, short name, decimal node ID or `!hex` ID.
+- `ids` (optional, comma-separated ints, up to 500): Only these node IDs. Ask for more
+  in several requests: longer URLs can exceed the server's or a proxy's limit.
+- `is_mqtt_gateway` (optional, `true`/`false`): Only nodes that are, or are not, MQTT
+  gateways.
+- `has_position` (optional, `true`/`false`): Only nodes with, or without, a known
+  position (zero coordinates count as unknown).
+- `sort` (optional, string): Field to sort by, prefixed with `-` for descending order:
+  `short_name`, `long_name`, `hw_model`, `firmware`, `role`, `channel`, `last_lat`,
+  `last_long`, `last_altitude`, `is_mqtt_gateway`, `first_seen_us`, `last_seen_us` or
+  `node_id`.
+- `limit` (optional, int): Page size, clamped 1-1000. Default: all matching nodes.
+- `offset` (optional, int): Matching nodes to skip before the page. Default: `0`.
+- `fields` (optional, comma-separated): Only these node fields in the response
+  (`node_id` is always included).
 
-Nodes are sorted by `short_name` ascending. `role` is normalized to uppercase;
-channel and hardware filters are exact matches. No pagination is implemented.
+All filters combine. `role` is normalized to uppercase; channel, hardware and firmware
+filters are exact matches.
 
-Errors: HTTP 500 with `{"error":"Failed to fetch nodes"}` for handler failures;
-the storage helper may return an empty list for database failures.
+Without `sort`, nodes are sorted by `short_name` ascending as stored (case-sensitive), as
+in earlier versions. With `sort`, text fields compare case-insensitively and nodes
+without a value go last in either direction. Ties always break on `node_id`, so pages of
+the same query never overlap or skip nodes.
+
+With `limit` or `offset`, the response also has `total` (matching nodes before paging),
+`limit` and `offset`; without them it holds every matching node, as in earlier versions.
+
+Errors: HTTP 400 with `{"error": "..."}` for an invalid `ids`, `search`,
+`is_mqtt_gateway`, `has_position`, `sort`, `limit`, `offset` or `fields`; HTTP 500 with
+`{"error":"Failed to fetch nodes"}` for handler failures; the storage helper may return
+an empty list for database failures.
+
+Paged Response Example (`/api/nodes?days_active=3&sort=-last_seen_us&limit=2&fields=short_name,last_seen_us`)
+```json
+{
+  "nodes": [
+    {"node_id": 1234, "short_name": "A", "last_seen_us": 1736370123456789},
+    {"node_id": 5678, "short_name": "B", "last_seen_us": 1736370023456789}
+  ],
+  "total": 596,
+  "limit": 2,
+  "offset": 0
+}
+```
 
 Response Example
 ```json
@@ -88,6 +128,34 @@ when unknown. It updates with valid node locations from position packets and map
 Position packets without altitude preserve the previous value. Map reports lack altitude
 field presence, so zero values in map reports also preserve the previous value.
 Existing nodes receive altitude as new reports arrive.
+
+### GET `/api/nodes/facets`
+Returns how many nodes match and, for each of `role`, `channel`, `hw_model` and
+`firmware`, its distinct values with their node counts: what filter menus and summary
+charts need without downloading every node.
+
+Query Parameters
+- The filters of `/api/nodes`: `node_id`, `role`, `channel`, `hw_model`, `firmware`,
+  `days_active`, `search`, `ids`, `is_mqtt_gateway` and `has_position`.
+
+Values are sorted by count, highest first, then by value. A `null` value counts the
+nodes without one.
+
+Errors: HTTP 400 for invalid filters, as in `/api/nodes`; HTTP 500 with
+`{"error":"Failed to fetch node facets"}` for handler failures.
+
+Response Example (`/api/nodes/facets?days_active=3&is_mqtt_gateway=true`)
+```json
+{
+  "total": 38,
+  "facets": {
+    "role": [{"value": "CLIENT_BASE", "count": 20}, {"value": "ROUTER", "count": 18}],
+    "channel": [{"value": "LongFast", "count": 38}],
+    "hw_model": [{"value": "HELTEC_V3", "count": 25}, {"value": "RAK4631", "count": 13}],
+    "firmware": [{"value": "2.7.15", "count": 30}, {"value": null, "count": 8}]
+  }
+}
+```
 
 ---
 

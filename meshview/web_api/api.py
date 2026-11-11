@@ -243,55 +243,134 @@ async def api_channels(request: web.Request):
         return web.json_response({"channels": [], "error": str(e)})
 
 
+# Every field a node has in /api/nodes responses, in response order.
+NODE_FIELDS = (
+    "id",
+    "node_id",
+    "long_name",
+    "short_name",
+    "hw_model",
+    "firmware",
+    "role",
+    "last_lat",
+    "last_long",
+    "last_altitude",
+    "channel",
+    "is_mqtt_gateway",
+    "first_seen_us",
+    "last_seen_us",
+)
+NODE_PAGE_MAX = 1000
+# Ids travel in the URL, which aiohttp (like many proxies) caps at about 8 KB.
+NODE_IDS_MAX = 500
+NODE_SEARCH_MAX = 100
+
+
+def _bad_request(message):
+    return web.HTTPBadRequest(text=json.dumps({"error": message}), content_type="application/json")
+
+
+def _query_bool(request, name):
+    """Read an optional true/false query parameter (None when absent)."""
+    raw = request.query.get(name)
+    if raw is None or raw == "":
+        return None
+    value = raw.strip().lower()
+    if value in ("1", "true", "yes", "on"):
+        return True
+    if value in ("0", "false", "no", "off"):
+        return False
+    raise _bad_request(f"{name} must be true or false")
+
+
+def _query_list(request, name, allowed=None, maximum=None, integers=False):
+    """Read an optional comma-separated query parameter (None when absent)."""
+    raw = request.query.get(name)
+    if raw is None:
+        return None
+    items = [item.strip() for item in raw.split(",") if item.strip()]
+    if maximum is not None and len(items) > maximum:
+        raise _bad_request(f"{name} accepts at most {maximum} values")
+    if integers:
+        try:
+            return tuple(parse_db_int(item) for item in items)
+        except ValueError:
+            raise _bad_request(f"{name} must be a comma-separated list of integers") from None
+    if allowed is not None and not set(items) <= set(allowed):
+        raise _bad_request(f"{name} must be a comma-separated list of: {', '.join(allowed)}")
+    return tuple(items)
+
+
+def _node_filters(request):
+    """Filters shared by /api/nodes and /api/nodes/facets."""
+    days_active = request.query.get("days_active")
+    try:
+        days_active = int(days_active) if days_active else None
+    except ValueError:
+        days_active = None  # invalid values have always been ignored
+    search = request.query.get("search", "").strip()
+    if len(search) > NODE_SEARCH_MAX:
+        raise _bad_request(f"search accepts at most {NODE_SEARCH_MAX} characters")
+    return {
+        "node_id": request.query.get("node_id"),
+        "role": request.query.get("role"),
+        "channel": request.query.get("channel"),
+        "hw_model": request.query.get("hw_model"),
+        "firmware": request.query.get("firmware"),
+        "days_active": days_active,
+        "search": search or None,
+        "ids": _query_list(request, "ids", maximum=NODE_IDS_MAX, integers=True),
+        "is_mqtt_gateway": _query_bool(request, "is_mqtt_gateway"),
+        "has_position": _query_bool(request, "has_position"),
+    }
+
+
 @routes.get("/api/nodes")
 async def api_nodes(request):
+    # Read every parameter first: a bad one answers 400, not the 500 below.
+    filters = _node_filters(request)
+    sort = request.query.get("sort") or None
+    descending = bool(sort) and sort.startswith("-")
+    sort = sort.removeprefix("-") if sort else None
+    if sort is not None and sort not in store.NODE_SORT_FIELDS:
+        raise _bad_request(f"sort must be one of: {', '.join(store.NODE_SORT_FIELDS)}")
+    limit = _query_int(request, "limit", None, 1, NODE_PAGE_MAX)
+    offset = _query_int(request, "offset", 0, 0, None)
+    paged = "limit" in request.query or "offset" in request.query
+    fields = _query_list(request, "fields", allowed=NODE_FIELDS)
+
     try:
-        # Optional query parameters
-        node_id = request.query.get("node_id")
-        role = request.query.get("role")
-        channel = request.query.get("channel")
-        hw_model = request.query.get("hw_model")
-        days_active = request.query.get("days_active")
-
-        if days_active:
-            try:
-                days_active = int(days_active)
-            except ValueError:
-                days_active = None
-
-        # Fetch nodes from database
         nodes = await store.get_nodes(
-            node_id=node_id, role=role, channel=channel, hw_model=hw_model, days_active=days_active
+            sort=sort, descending=descending, limit=limit, offset=offset, **filters
         )
 
-        # Prepare the JSON response
-        nodes_data = []
-        for n in nodes:
-            nodes_data.append(
-                {
-                    "id": getattr(n, "id", None),
-                    "node_id": n.node_id,
-                    "long_name": n.long_name,
-                    "short_name": n.short_name,
-                    "hw_model": n.hw_model,
-                    "firmware": n.firmware,
-                    "role": n.role,
-                    "last_lat": getattr(n, "last_lat", None),
-                    "last_long": getattr(n, "last_long", None),
-                    "last_altitude": n.last_altitude,
-                    "channel": n.channel,
-                    "is_mqtt_gateway": getattr(n, "is_mqtt_gateway", None),
-                    # "last_update": n.last_update.isoformat(),
-                    "first_seen_us": n.first_seen_us,
-                    "last_seen_us": n.last_seen_us,
-                }
-            )
-
-        return web.json_response({"nodes": nodes_data})
+        # node_id identifies a node, so it always comes back even when not asked for.
+        keys = (
+            NODE_FIELDS
+            if fields is None
+            else [k for k in NODE_FIELDS if k in fields or k == "node_id"]
+        )
+        response = {"nodes": [{key: getattr(n, key, None) for key in keys} for n in nodes]}
+        if paged:
+            response.update(total=await store.count_nodes(**filters), limit=limit, offset=offset)
+        return web.json_response(response)
 
     except Exception as e:
         logger.error(f"Error in /api/nodes: {e}")
         return web.json_response({"error": "Failed to fetch nodes"}, status=500)
+
+
+@routes.get("/api/nodes/facets")
+async def api_node_facets(request):
+    """Distinct roles, channels, hardware models and firmware versions, with counts."""
+    filters = _node_filters(request)
+    try:
+        total = await store.count_nodes(**filters)
+        facets = await store.get_node_facets(**filters)
+        return web.json_response({"total": total, "facets": facets})
+    except Exception as e:
+        logger.error(f"Error in /api/nodes/facets: {e}")
+        return web.json_response({"error": "Failed to fetch node facets"}, status=500)
 
 
 @routes.get("/api/packets")
