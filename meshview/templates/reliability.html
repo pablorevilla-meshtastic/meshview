@@ -221,7 +221,9 @@ const defaultReachNodeId = 3530776522;
 const defaultReachPacketLimit = 20;
 const initialReachNodeId = Number(new URLSearchParams(window.location.search).get("node_id")) || defaultReachNodeId;
 let reachNodeId = initialReachNodeId;
-let reachNodes = [];
+// Nodes fetched so far, by node_id: the selected node, its gateways and search matches.
+const reachNodeCache = new Map();
+const unknownReachNodes = new Set();  // asked for and not in the database
 let reliabilityGatewayDetails = new Map();
 let reliabilityMap = null;
 let reliabilityMapLayer = null;
@@ -473,7 +475,7 @@ function parseNodeSearchValue(value) {
     if (rawId) return Number(trimmed);
 
     const lower = trimmed.toLowerCase();
-    const node = reachNodes.find(n =>
+    const node = [...reachNodeCache.values()].find(n =>
         (n.long_name || "").toLowerCase() === lower ||
         (n.short_name || "").toLowerCase() === lower
     );
@@ -488,17 +490,36 @@ async function fetchJson(url) {
     return res.json();
 }
 
-async function loadReachNodes() {
-    const data = await fetchJson("/api/nodes?days_active=3");
-    reachNodes = data.nodes || [];
+// Fetch the given nodes that are not cached yet, instead of the whole node list.
+async function loadNodesById(ids) {
+    const missing = ids.map(Number).filter(id => !reachNodeCache.has(id) && !unknownReachNodes.has(id));
+    (await meshFetchNodes(missing)).forEach(node => reachNodeCache.set(Number(node.node_id), node));
+    missing.filter(id => !reachNodeCache.has(id)).forEach(id => unknownReachNodes.add(id));
+}
 
-    const optionsEl = document.getElementById("reach-node-options");
-    optionsEl.innerHTML = reachNodes
-        .filter(node => node.node_id)
-        .map(node => `<option value="${escapeHtml(nodeSearchLabel(node))}"></option>`)
-        .join("");
-
-    return reachNodes;
+// Suggestions come from the server as the user types: nodes seen in the last three days
+// whose name or id contains the text.
+let nodeSuggestionRequest = 0;
+async function suggestReachNodes(text) {
+    const term = text.trim();
+    if (term.length < 2 || /\(\d+\)\s*$/.test(term)) return;
+    const request = ++nodeSuggestionRequest;
+    const url = new URL("/api/nodes", window.location.origin);
+    url.searchParams.set("days_active", 3);
+    url.searchParams.set("search", term.slice(0, 100));
+    url.searchParams.set("sort", "long_name");
+    url.searchParams.set("limit", 20);
+    try {
+        const data = await fetchJson(url);
+        if (request !== nodeSuggestionRequest) return;
+        const nodes = (data.nodes || []).filter(node => node.node_id);
+        nodes.forEach(node => reachNodeCache.set(Number(node.node_id), node));
+        document.getElementById("reach-node-options").innerHTML = nodes
+            .map(node => `<option value="${escapeHtml(nodeSearchLabel(node))}"></option>`)
+            .join("");
+    } catch (err) {
+        console.error("Failed to search nodes:", err);
+    }
 }
 
 async function loadReachReport(nodeId = reachNodeId) {
@@ -523,7 +544,8 @@ async function loadReachReport(nodeId = reachNodeId) {
     resetReliabilityMap();
 
     try {
-        const nodesById = new Map(reachNodes.map(node => [Number(node.node_id), node]));
+        await loadNodesById([reachNodeId]);
+        const nodesById = reachNodeCache;
         const mainChannel = nodesById.get(reachNodeId)?.channel;
         document.getElementById("reach-channel").textContent = mainChannel
             ? MeshI18n.t("Main channel: {channel}", {channel: mainChannel}) : MeshI18n.t("Main channel unknown — no report available yet.");
@@ -583,6 +605,8 @@ async function loadReachReport(nodeId = reachNodeId) {
                 gatewayStats.set(nodeId, stats);
             });
         });
+
+        await loadNodesById([...gatewayStats.keys()]);
 
         const gatewayRows = [...gatewayStats.entries()]
             .map(([nodeId, stats]) => ({
@@ -685,16 +709,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         loadReachReport(nodeId);
     });
 
+    const searchEl = document.getElementById("reach-node-search");
+    let suggestTimer = null;
+    searchEl.addEventListener("input", () => {
+        clearTimeout(suggestTimer);
+        suggestTimer = setTimeout(() => suggestReachNodes(searchEl.value), 250);
+    });
+
     try {
-        await loadReachNodes();
+        await loadNodesById([initialReachNodeId]);
     } catch (err) {
-        console.error("Failed to load node list:", err);
+        console.error("Failed to load the selected node:", err);
     }
     initReliabilityMap();
 
-    const searchEl = document.getElementById("reach-node-search");
     searchEl.value = nodeSearchLabel(
-        reachNodes.find(node => Number(node.node_id) === initialReachNodeId) ||
+        reachNodeCache.get(initialReachNodeId) ||
         { node_id: initialReachNodeId, long_name: MeshI18n.t("Node") }
     );
     loadReachReport(initialReachNodeId);
