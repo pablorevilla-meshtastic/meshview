@@ -275,6 +275,25 @@ a.mesh-inspector-packet:hover { background:var(--mesh-hover); }
 .mesh-traffic-note { padding:8px 18px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:11px; margin:0; }
 /* Phones: title and buttons share the first row, channel and status the second. */
 @media(max-width:700px) { .mesh-node-inspector { max-height:none; } .mesh-traffic .mesh-panel-title { flex-wrap:wrap; row-gap:10px; } .mesh-traffic .mesh-panel-title h2 { flex:1; } .mesh-traffic-tools { order:3; width:100%; margin-left:0; } }
+/* Picker for nodes that overlap where the map was clicked: a Leaflet popup in
+   a pane of its own above the map controls (see nodePickerPane). */
+.leaflet-pane.node-picker-pane { z-index:1100; }
+.mesh-node-picker .leaflet-popup-content-wrapper { padding:4px; border-radius:9px; box-shadow:0 8px 24px rgba(16,25,37,.22); }
+.mesh-node-picker .leaflet-popup-content { margin:0; width:260px !important; max-width:calc(100vw - 64px); }
+.node-picker-head { display:flex; align-items:center; gap:8px; padding:2px 2px 2px 8px; }
+.mesh-node-picker .node-picker-title { flex:1; margin:0; color:var(--mesh-muted); font-size:12px; font-weight:500; }
+.node-picker-zoom { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border:0; border-radius:6px; background:transparent; color:var(--mesh-muted); cursor:pointer; }
+.node-picker-zoom:hover { background:var(--mesh-hover); color:var(--mesh-text); }
+.node-picker-zoom:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
+.node-picker-list { display:flex; flex-direction:column; gap:1px; overflow-y:auto; margin:0; padding:0; list-style:none; }
+.node-picker-item { display:grid; grid-template-columns:10px minmax(0,1fr) auto; align-items:center; gap:9px; width:100%; min-height:40px; padding:6px 8px; border:0; border-radius:6px; background:transparent; color:var(--mesh-text); font-size:13px; line-height:1.3; text-align:left; cursor:pointer; }
+.node-picker-item:hover, .node-picker-item:focus-visible { background:var(--mesh-hover); }
+.node-picker-item:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:-2px; }
+.node-picker-dot { width:10px; height:10px; border-radius:50%; background:var(--node-color); box-shadow:0 0 0 1px #fff, 0 0 0 2px rgba(0,0,0,.18); }
+.node-picker-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.node-picker-name strong { font-weight:600; margin-right:6px; }
+.node-picker-name span, .node-picker-seen { color:var(--mesh-muted); font-size:12px; }
+.node-picker-seen { white-space:nowrap; }
 </style>
 {% endblock %}
 
@@ -941,7 +960,7 @@ function renderNodesOnMap(){
             if(e.originalEvent){
                 L.DomEvent.stopPropagation(e.originalEvent);
             }
-            onNodeClick(node);
+            pickNodeAt(e.containerPoint, e.originalEvent) || onNodeClick(node);
         });
     });
 
@@ -1149,10 +1168,165 @@ async function onNodeClick(node){
 map.on('click', e=>{
     if(e.originalEvent.defaultPrevented) return;
 
-    if(!e.originalEvent.target.classList.contains('leaflet-interactive')){
+    if(!e.originalEvent.target.classList.contains('leaflet-interactive')
+        && !pickNodeAt(e.containerPoint, e.originalEvent)){
         clearMapSelection();
     }
 });
+
+/* ======================================================
+   NODE PICKER FOR OVERLAPPING NODES
+   ====================================================== */
+
+/* Nodes this close (in pixels) to a click count as clicked: the dots are 12px
+   wide, so neighbours that touch or overlap the one under the pointer join it.
+   A finger covers more, so touch gets a wider reach, which also lets a tap
+   just beside a small dot still hit it. */
+const NODE_PICK_RADIUS_PX = 12;
+const NODE_PICK_RADIUS_TOUCH_PX = 22;
+
+function nodePickRadius(event){
+    const touch = event?.pointerType
+        ? event.pointerType !== "mouse"
+        : matchMedia("(pointer: coarse)").matches;
+    return touch ? NODE_PICK_RADIUS_TOUCH_PX : NODE_PICK_RADIUS_PX;
+}
+
+function nodesNearPoint(point, radius){
+    if(!map.hasLayer(nodeLayer)) return [];
+    const found = [];
+    nodeLayer.eachLayer(marker => {
+        const node = nodeMap.get(marker.nodeId);
+        if(!node) return;
+        const distance = map.latLngToContainerPoint(marker.getLatLng()).distanceTo(point);
+        if(distance <= radius) found.push({ node, marker, distance });
+    });
+    return found.sort((a, b) => a.distance - b.distance);
+}
+
+/* Opens the node under the click, or a list to choose from when several nodes
+   overlap there. Returns false when there is no node within reach. */
+function pickNodeAt(point, event){
+    const found = nodesNearPoint(point, nodePickRadius(event));
+    if(found.length === 0) return false;
+    if(found.length === 1) onNodeClick(found[0].node);
+    else showNodePicker(found, map.containerPointToLatLng(point));
+    return true;
+}
+
+let nodePickerPreview = null;
+function previewPickerNode(marker){
+    nodePickerPreview?.remove();
+    nodePickerPreview = null;
+    if(!marker) return;
+    const primary = getComputedStyle(document.documentElement).getPropertyValue("--mesh-primary").trim() || "#1f5fae";
+    nodePickerPreview = L.circleMarker(marker.getLatLng(), {
+        radius: 11, color: primary, weight: 3, fill: false, interactive: false
+    }).addTo(map);
+}
+
+function showNodePicker(found, latlng){
+    const box = document.createElement("div");
+    const head = document.createElement("div");
+    head.className = "node-picker-head";
+    const title = document.createElement("p");
+    title.className = "node-picker-title";
+    title.id = "node-picker-title";
+    title.textContent = MeshI18n.t("{count} nodes here", { count: found.length });
+    const list = document.createElement("ul");
+    list.className = "node-picker-list";
+    list.setAttribute("aria-labelledby", title.id);
+    // Zooming in on the group separates its dots, handier than a long list.
+    const zoom = document.createElement("button");
+    zoom.type = "button";
+    zoom.className = "node-picker-zoom";
+    zoom.title = MeshI18n.t("Zoom in");
+    zoom.setAttribute("aria-label", zoom.title);
+    zoom.innerHTML = '<span class="ti ti-zoom-in" aria-hidden="true"></span>';
+    zoom.addEventListener("click", () => {
+        closeNodePicker();
+        const bounds = L.latLngBounds(found.map(({ marker }) => marker.getLatLng()));
+        // Dots at nearly the same spot only separate close in (they are spread
+        // about 15 m apart), so allow zooming in that far.
+        map.flyToBounds(bounds, { padding: [60, 60], maxZoom: 18 });
+    });
+    head.append(title, zoom);
+
+    found.forEach(({ node, marker }) => {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "node-picker-item";
+        button.style.setProperty("--node-color", marker.originalColor || hashToColor(node.channel));
+
+        const dot = document.createElement("span");
+        dot.className = "node-picker-dot";
+        dot.setAttribute("aria-hidden", "true");
+        const name = document.createElement("span");
+        name.className = "node-picker-name";
+        const shortName = document.createElement("strong");
+        shortName.textContent = node.short_name || node.id || node.key;
+        name.append(shortName);
+        if(node.long_name){
+            const longName = document.createElement("span");
+            longName.textContent = node.long_name;
+            name.append(longName);
+        }
+        name.title = [node.short_name, node.long_name].filter(Boolean).join(" · ");
+        const seen = document.createElement("span");
+        seen.className = "node-picker-seen";
+        seen.textContent = node.last_seen_us ? timeAgoFromUs(node.last_seen_us) : "";
+
+        button.append(dot, name, seen);
+        button.addEventListener("mouseenter", () => previewPickerNode(marker));
+        button.addEventListener("focus", () => previewPickerNode(marker));
+        button.addEventListener("mouseleave", () => previewPickerNode(null));
+        button.addEventListener("click", () => {
+            closeNodePicker();
+            onNodeClick(node);
+        });
+        item.append(button);
+        list.append(item);
+    });
+
+    box.append(head, list);
+    box.addEventListener("keydown", e => {
+        if(e.key === "Escape") closeNodePicker();
+    });
+    L.DomEvent.disableClickPropagation(box);
+    L.DomEvent.disableScrollPropagation(box);
+
+    // Never taller than the map, which is short on phones.
+    const mapHeight = map.getContainer().clientHeight;
+    list.style.maxHeight = `${Math.max(120, Math.min(264, mapHeight - 110))}px`;
+
+    syncNodePickerPane();
+    L.popup({
+        pane: "nodePicker",
+        className: "mesh-node-picker",
+        closeButton: false,
+        autoPanPadding: [12, 12],
+        offset: [0, -4]
+    }).setLatLng(latlng).setContent(box).openOn(map);
+}
+
+/* Leaflet popups live in the map pane, under the map controls (z-index 1000).
+   The picker gets a pane of its own on the map container, above them, moved
+   along with the map pane so the popup keeps its place and autopan works. */
+const nodePickerPane = map.createPane("nodePicker", map.getContainer());
+nodePickerPane.classList.add("node-picker-pane");
+function syncNodePickerPane(){
+    L.DomUtil.setPosition(nodePickerPane, map._getMapPanePos());
+}
+map.on("move viewreset zoomend", syncNodePickerPane);
+
+function closeNodePicker(){
+    map.closePopup();
+    previewPickerNode(null);
+}
+
+map.on("popupclose", () => previewPickerNode(null));
+map.on("zoomstart", closeNodePicker);
 
 /* ======================================================
    BLINKING
