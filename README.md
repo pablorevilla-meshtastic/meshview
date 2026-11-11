@@ -297,6 +297,12 @@ Edit `config.ini` to match your MQTT and web server settings:
 nano config.ini
 ```
 
+At startup, Meshview logs a warning for unrecognized `[site]` keys, including a
+suggested spelling when a close match exists. For example, `firehose_interal`
+produces a warning suggesting `firehose_interval`. Unknown settings are ignored;
+their values are not logged. Use `chat = False` to hide the Chat link; the old
+`conversations` key is ignored and produces a warning suggesting `chat`.
+
 > **NOTE**
 > On MacOS set the bind configuration line to 
 > ```

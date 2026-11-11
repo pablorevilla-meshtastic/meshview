@@ -395,8 +395,9 @@ routes. `site.meshviewworld` does the same for the MeshviewWorld link
 (`meshviewworld = False`). `site.message` is the installation's tagline (page footer
 and description) and `site.announcement` the text of the dismissible banner shown on
 every page; both are empty when unset. `site.chat` follows `chat` in `[site]`
-(the legacy `conversations` key is still read when `chat` is absent). Restart the web
-server and reload the page after changing it. Handler failures return HTTP 500.
+and defaults to `True`.
+
+Restart the web server and reload the page after changing it. Handler failures return HTTP 500.
 
 Restart the web server and reload the map after changing these settings. Omitting
 the section uses generated colors for every channel.
