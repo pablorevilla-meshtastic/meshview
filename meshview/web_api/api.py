@@ -7,6 +7,7 @@ import logging
 import math
 import os
 import re
+import time
 
 from aiohttp import web
 from sqlalchemy import func, select
@@ -664,30 +665,22 @@ async def api_daily_snapshots(request):
         return web.json_response({"error": "Failed to fetch daily snapshots"}, status=500)
 
 
-@routes.get("/api/edges")
-async def api_edges(request):
-    since = datetime.datetime.now() - datetime.timedelta(hours=12)
-    filter_type = request.query.get("type")
+# Edges are rebuilt from 12 hours of traceroutes and neighbour reports, which is heavy on a
+# big mesh, while the map asks for one node's edges on every click: keep the built graph
+# for a minute.
+EDGES_WINDOW = datetime.timedelta(hours=12)
+EDGES_CACHE_SECONDS = 60
+_edges_cache: dict[str | None, tuple[float, list[dict]]] = {}
 
-    # NEW → optional single-node filter
-    node_filter_str = request.query.get("node_id")
-    node_filter = None
-    if node_filter_str:
-        try:
-            node_filter = int(node_filter_str)
-        except ValueError:
-            return web.json_response({"error": "node_id must be integer"}, status=400)
 
+async def build_edges(filter_type):
+    """All edges seen in the last 12 hours, as a list of {from, to, type} dicts."""
+    since = datetime.datetime.now() - EDGES_WINDOW
     edges = {}
-    traceroute_count = 0
-    edges_added_tr = 0
-    edges_added_neighbor = 0
 
     # --- Traceroute edges ---
     if filter_type in (None, "traceroute"):
         async for tr in store.get_traceroutes(since):
-            traceroute_count += 1
-
             try:
                 route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
             except Exception:
@@ -704,33 +697,56 @@ async def api_edges(request):
             )
 
             for a, b in traceroute.edges(path):
-                if (a, b) not in edges:
-                    edges[(a, b)] = "traceroute"
-                    edges_added_tr += 1
+                edges.setdefault((a, b), "traceroute")
 
     # --- Neighbor edges ---
+    # Only each node's latest report in the window: it lists the node's current neighbours,
+    # and the work grows with the number of nodes rather than with the number of reports.
     if filter_type in (None, "neighbor"):
-        packets = await store.get_packets(portnum=71)
-        for packet in packets:
+        since_us = int(since.timestamp() * 1_000_000)
+        packets = await store.get_packets(
+            portnum=PortNum.NEIGHBORINFO_APP, after=since_us, limit=None
+        )
+        reported = set()
+        for packet in packets:  # newest first
+            if packet.from_node_id in reported:
+                continue
             try:
                 _, neighbor_info = decode_payload.decode(packet)
             except Exception:
                 continue
             if neighbor_info is None:  # payload did not parse as NeighborInfo
                 continue
+            reported.add(packet.from_node_id)
 
             for node in neighbor_info.neighbors:
-                edge = (node.node_id, packet.from_node_id)
-                if edge not in edges:
-                    edges[edge] = "neighbor"
-                    edges_added_neighbor += 1
+                edges.setdefault((node.node_id, packet.from_node_id), "neighbor")
 
-    # Convert to list
-    edges_list = [
-        {"from": frm, "to": to, "type": edge_type} for (frm, to), edge_type in edges.items()
-    ]
+    return [{"from": frm, "to": to, "type": edge_type} for (frm, to), edge_type in edges.items()]
 
-    # NEW → apply node_id filtering
+
+@routes.get("/api/edges")
+async def api_edges(request):
+    filter_type = request.query.get("type")
+    if filter_type not in (None, "traceroute", "neighbor"):
+        return web.json_response({"edges": []})
+
+    node_filter_str = request.query.get("node_id")
+    node_filter = None
+    if node_filter_str:
+        try:
+            node_filter = int(node_filter_str)
+        except ValueError:
+            return web.json_response({"error": "node_id must be integer"}, status=400)
+
+    now = time.monotonic()
+    cached = _edges_cache.get(filter_type)
+    if cached and cached[0] > now:
+        edges_list = cached[1]
+    else:
+        edges_list = await build_edges(filter_type)
+        _edges_cache[filter_type] = (now + EDGES_CACHE_SECONDS, edges_list)
+
     if node_filter is not None:
         edges_list = [e for e in edges_list if e["from"] == node_filter or e["to"] == node_filter]
 

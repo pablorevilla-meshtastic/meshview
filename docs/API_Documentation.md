@@ -306,9 +306,10 @@ return HTTP 500; any `period_type` other than the literal `hour` is treated as d
 ## 5. Edges API
 
 ### GET `/api/edges`
-Returns network edges (connections between nodes) based on traceroutes and neighbor info.
-Traceroute edges are collected over the last 12 hours. Neighbor edges are based on
-port 71 packets.
+Returns network edges (connections between nodes) based on traceroutes and neighbor info,
+both collected over the last 12 hours. Neighbor edges come from each node's latest
+NeighborInfo (port 71) report in that window, which lists its current neighbours.
+The built graph is cached for 60 seconds, so new edges can take up to a minute to appear.
 
 A completed traceroute is observed as a response packet, whose `from`/`to` are reversed
 with respect to the traced path, so edges are built as `to -> route[] -> from`. `route[]`
@@ -334,8 +335,7 @@ Response Example
 
 Unknown `type` values return an empty edge list. Invalid `node_id` returns HTTP 400;
 storage failures can return HTTP 500. A missing node is not an error and normally
-returns an empty list. Neighbor edges come from the latest stored port-71 sample
-(the storage helper defaults to 50 packets), not the traceroute 12-hour window.
+returns an empty list.
 
 ## 6. Daily Snapshots and Configuration
 
