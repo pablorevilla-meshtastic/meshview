@@ -141,10 +141,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const p = packetData.packets[0];
 
     /* ---------------------------------------------
-       Load nodes for names & positions
+       Load the gateways that heard it, then only the nodes involved
+       (sender, destination, gateways) for names & positions
     ----------------------------------------------*/
-    const nodesRes = await fetch("/api/nodes");
-    const nodesData = await nodesRes.json();
+    const seenRes  = await fetch(`/api/packets_seen/${packetId}`);
+    const seenData = await seenRes.json();
+    const seenList = seenData.seen ?? [];
+    const involvedNodes = await meshFetchNodes([p.from_node_id, p.to_node_id, ...seenList.map(s => s.node_id)])
+        .catch(err => { console.error("Failed to load nodes", err); return []; });
+    const nodesData = { nodes: involvedNodes };
     const nodeLookup = {};
     (nodesData.nodes || []).forEach(n => nodeLookup[n.node_id] = n);
 
@@ -317,13 +322,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             Math.sin(dLon/2)**2;
         return R * (2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
     }
-
-    /* ---------------------------------------------
-   Load packets_seen
-----------------------------------------------*/
-const seenRes  = await fetch(`/api/packets_seen/${packetId}`);
-const seenData = await seenRes.json();
-const seenList = seenData.seen ?? [];
 
 /* ---------------------------------------------
    Sort by hop count (highest first)

@@ -13,6 +13,23 @@
     <script>
         window.meshTranslations = {{ ui_translations|tojson }};
         window.meshLanguage = {{ ui_language|tojson }};
+        // Only the nodes a page needs, by node_id, instead of the whole node list (megabytes
+        // on a big mesh). Ids go in batches of 500, the API's limit for one URL.
+        window.meshFetchNodes = async (ids, fields) => {
+            const unique = [...new Set(ids.map(Number))]
+                .filter(id => Number.isSafeInteger(id) && id > 1 && id !== 4294967295);
+            const batches = [];
+            for (let i = 0; i < unique.length; i += 500) batches.push(unique.slice(i, i + 500));
+            const lists = await Promise.all(batches.map(async batch => {
+                const url = new URL("/api/nodes", location.origin);
+                url.searchParams.set("ids", batch.join(","));
+                if (fields) url.searchParams.set("fields", fields);
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`/api/nodes returned ${res.status}`);
+                return (await res.json()).nodes || [];
+            }));
+            return lists.flat();
+        };
     </script>
     <script src="/static/i18n.js"></script>
     <script src="/static/theme.js"></script>

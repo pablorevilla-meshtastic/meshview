@@ -101,23 +101,13 @@ async function loadTraceroute() {
     const packetId = packetIdFromPath();
     document.getElementById("traceroute-title").textContent = `#${packetId}`;
 
-    const [res, nodesRes] = await Promise.all([
-        fetch(`/api/traceroute/${packetId}`),
-        fetch("/api/nodes"),
-    ]);
+    const res = await fetch(`/api/traceroute/${packetId}`);
     if (!res.ok) {
         document.getElementById("traceroute-error").textContent = MeshI18n.t("Traceroute not found.");
         return;
     }
 
     const data = await res.json();
-    const nodesData = nodesRes.ok ? await nodesRes.json() : { nodes: [] };
-    const nodeShortNameById = new Map(
-        (nodesData.nodes || []).map(n => [String(n.node_id), n.short_name || n.long_name || String(n.node_id)])
-    );
-    const nodeLongNameById = new Map(
-        (nodesData.nodes || []).map(n => [String(n.node_id), n.long_name || n.short_name || String(n.node_id)])
-    );
     const nodes = new Map();
     const edges = [];
 
@@ -163,6 +153,17 @@ async function loadTraceroute() {
         path.forEach(id => nodes.set(String(id), { name: String(id) }));
         addPathEdges(path, edges, { color: "#ff3b30", width: 2, type: "dashed" });
     });
+
+    // Names only for the nodes on these routes, not the whole node list.
+    const routeNodes = await meshFetchNodes([...nodes.keys()], "short_name,long_name")
+        .catch(err => { console.error("Failed to load nodes", err); return []; });
+    const nodesData = { nodes: routeNodes };
+    const nodeShortNameById = new Map(
+        (nodesData.nodes || []).map(n => [String(n.node_id), n.short_name || n.long_name || String(n.node_id)])
+    );
+    const nodeLongNameById = new Map(
+        (nodesData.nodes || []).map(n => [String(n.node_id), n.long_name || n.short_name || String(n.node_id)])
+    );
 
     const graphNodes = Array.from(nodes.values()).map(n => {
         const isColorStart = colorStartId && n.name === colorStartId;

@@ -166,9 +166,12 @@ let selectedChannel = null;
 // -----------------------------------
 async function loadData() {
 
-    // 1. Load nodes
-    const n = await fetch("/api/nodes").then(r => r.json());
-    nodes = n.nodes.map(x => ({
+    // 1. Load edges, then only the nodes they connect: the graph leaves out nodes without
+    //    edges, so there is no need for the whole node list.
+    const e = await fetch("/api/edges").then(r => r.json());
+    const edgeNodeIds = e.edges.flatMap(ed => [ed.from, ed.to]);
+    const graphNodes = await meshFetchNodes(edgeNodeIds, "long_name,short_name,hw_model,role,channel");
+    nodes = graphNodes.map(x => ({
         name: String(x.node_id),
         node_id: x.node_id,
         long_name: x.long_name,
@@ -193,10 +196,7 @@ async function loadData() {
 
     const allNodeIDs = new Set(nodes.map(n => n.name));
 
-    // 2. Load edges
-    const e = await fetch("/api/edges").then(r => r.json());
-
-    // Only keep edges that reference valid nodes
+    // 2. Only keep edges that reference valid nodes
     edges = e.edges
         .filter(ed =>
             allNodeIDs.has(String(ed.from)) &&
