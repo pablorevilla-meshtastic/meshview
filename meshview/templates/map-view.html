@@ -206,10 +206,27 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-panel-toggle[aria-expanded="true"] .ti { transform:rotate(90deg); }
 .mesh-panel-toggle:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:3px; border-radius:4px; }
 .mesh-node-panel:has(.mesh-node-browser-body[hidden]) .mesh-panel-title { border-bottom:0; }
+/* Node list search: magnifier and result count inside the field. Beside the map it is the
+   list's heading (same height as the inspector's); stacked, the fold toggle stays above it. */
+.mesh-search-row { position:relative; display:flex; align-items:center; box-sizing:border-box; min-height:64px; padding:12px 16px; border-bottom:1px solid var(--mesh-border); }
+.mesh-search-row .ti-search { position:absolute; left:27px; color:var(--mesh-muted); pointer-events:none; }
+.mesh-search-row .mesh-search { width:100%; margin:0; padding:9px 64px 9px 34px; }
+.mesh-search-row .mesh-count { position:absolute; right:26px; pointer-events:none; }
+@media(min-width:1001px) { .mesh-explorer .mesh-node-browser > .mesh-panel-title { display:none; } }
+@media(max-width:1000px) { .mesh-search-row .mesh-count { display:none; } .mesh-search-row .mesh-search { padding-right:10px; } }
 .mesh-node-inspector { max-height:690px; overflow:auto; }
+/* Inspector heading: stays at the top while the inspector's own scroll moves, hides while
+   scrolling down and comes back on scroll up, like the page header. Phones show the whole
+   inspector in the page, so there it simply scrolls away. */
+#mesh-node-inspector > .mesh-panel-title { position:sticky; top:0; z-index:5; background:var(--mesh-surface); transition:transform .2s ease; }
+#mesh-node-inspector > .mesh-panel-title.is-hidden { transform:translateY(-100%); }
+@media(max-width:700px) { #mesh-node-inspector > .mesh-panel-title { position:static; } }
 .mesh-inspector-back,.mesh-traffic-control { padding:6px 10px; background:var(--mesh-soft); color:var(--mesh-primary); border:1px solid var(--mesh-border); border-radius:5px; font-size:12px; }
 .mesh-inspector-body { padding:16px; }
 .mesh-inspector-name { font-size:17px; font-weight:650; overflow-wrap:anywhere; margin:0 0 5px; }
+/* Node name with the refresh icon on its right. */
+.mesh-inspector-title { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.mesh-inspector-title .mesh-traffic-icon { flex-shrink:0; }
 .mesh-inspector-meta { color:var(--mesh-muted); font-size:11px; margin:0 0 16px; overflow-wrap:anywhere; }
 .mesh-inspector-facts { display:grid; grid-template-columns:90px minmax(0,1fr); gap:8px; font-size:12px; }
 .mesh-inspector-facts dt { color:var(--mesh-muted); font-weight:500; }
@@ -217,15 +234,22 @@ html.mesh-kiosk, .mesh-kiosk body { width:100%; height:100%; margin:0; overflow:
 .mesh-inspector-section { margin:18px 0 10px; font-size:12px; font-weight:650; padding-top:14px; border-top:1px solid var(--mesh-border); }
 .mesh-inspector-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
 .mesh-inspector-actions a { font-size:12px; }
-.mesh-inspector-packet { display:block; width:100%; text-align:left; padding:10px 0; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font-size:12px; text-decoration:none; }
-a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
-.mesh-inspector-packet strong,.mesh-inspector-packet small { display:block; }
-.mesh-inspector-packet small { color:var(--mesh-muted); margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Rows bleed into the body padding so the hover tint does not stop at the letters. */
+.mesh-inspector-packet { display:block; width:auto; margin:0 -8px; text-align:left; padding:10px 8px; border:0; border-bottom:1px solid var(--mesh-border); background:var(--mesh-surface); color:var(--mesh-text); font-size:12px; text-decoration:none; }
+.mesh-inspector-packet:last-child { border-bottom:0; }
+a.mesh-inspector-packet:hover { background:var(--mesh-hover); }
+.mesh-inspector-packet-top { display:flex; align-items:center; gap:8px; min-width:0; }
+.mesh-inspector-packet-peer { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--mesh-muted); }
+.mesh-inspector-packet-time { flex-shrink:0; color:var(--mesh-muted); font-variant-numeric:tabular-nums; }
+.mesh-inspector-packet small { display:block; color:var(--mesh-text); margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mesh-inspector-note { color:var(--mesh-muted); font-size:12px; margin:8px 0; }
 .mesh-inspector-telemetry { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.mesh-inspector-telemetry div { padding:10px; background:var(--mesh-soft); border-radius:6px; }
-.mesh-inspector-telemetry strong { display:block; font-size:18px; color:var(--mesh-primary); }
-.mesh-inspector-telemetry span { font-size:10px; color:var(--mesh-muted); }
+/* Values sit at the bottom so a row's numbers line up even when a label wraps. */
+.mesh-inspector-telemetry > div { display:flex; flex-direction:column; justify-content:space-between; padding:10px; background:var(--mesh-soft); border-radius:6px; }
+.mesh-inspector-telemetry strong { display:block; margin-top:2px; font-size:18px; line-height:1.25; color:var(--mesh-primary); }
+/* Icon and label on top, value below, like the home metric cards on phones. */
+.mesh-inspector-telemetry div > span { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--mesh-muted); }
+.mesh-inspector-telemetry .ti { width:14px; height:14px; vertical-align:0; color:var(--mesh-primary); }
 .mesh-traffic { margin-top:20px; background:var(--mesh-surface); border:1px solid var(--mesh-border); border-radius:9px; overflow:hidden; }
 .mesh-traffic-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-left:auto; }
 .mesh-traffic-actions { display:flex; gap:8px; align-items:center; }
@@ -275,21 +299,25 @@ a.mesh-inspector-packet:hover { background:var(--mesh-soft); }
     <div id="mesh-node-browser" class="mesh-node-browser">
     <div class="mesh-panel-title">
         <h2><button id="node-panel-toggle" class="mesh-panel-toggle" type="button" aria-expanded="true" aria-controls="mesh-node-browser-body" disabled>{{ tr("Network nodes") }}<span class="ti ti-chevron-right" aria-hidden="true"></span></button></h2>
-        <span id="node-result-count" class="mesh-count">—</span>
+        <span class="mesh-count node-result-count">—</span>
     </div>
     <div id="mesh-node-browser-body" class="mesh-node-browser-body">
-    <label class="mesh-search-label" for="node-search">{{ tr("Search nodes") }}</label>
-    <input id="node-search" class="mesh-search" type="search" placeholder="{{ tr("Name or node ID…") }}" autocomplete="off">
+    <div class="mesh-search-row">
+        <label class="visually-hidden" for="node-search">{{ tr("Search nodes") }}</label>
+        <span class="ti ti-search" aria-hidden="true"></span>
+        <input id="node-search" class="mesh-search" type="search" placeholder="{{ tr("Name or node ID…") }}" autocomplete="off">
+        <span class="mesh-count node-result-count" aria-hidden="true">—</span>
+    </div>
     <div id="mesh-node-list" class="mesh-node-list" aria-live="polite"><p class="mesh-empty is-loading">{{ tr("Loading nodes…") }}</p></div>
     </div>
     </div>
     <section id="mesh-node-inspector" class="mesh-node-inspector" aria-label="{{ tr("Selected node") }}" hidden>
         <div class="mesh-panel-title"><h2>{{ tr("Node inspector") }}</h2><button id="inspector-back" class="mesh-inspector-back" type="button">{{ tr("← Nodes") }}</button></div>
         <div class="mesh-inspector-body">
-            <h3 id="inspector-name" class="mesh-inspector-name"></h3>
+            <div class="mesh-inspector-title"><h3 id="inspector-name" class="mesh-inspector-name"></h3><button id="inspector-refresh" class="mesh-traffic-control mesh-traffic-icon" type="button" title="{{ tr("Refresh data") }}" aria-label="{{ tr("Refresh data") }}"><span class="ti ti-refresh" aria-hidden="true"></span></button></div>
             <p id="inspector-node-meta" class="mesh-inspector-meta"></p>
             <dl id="inspector-facts" class="mesh-inspector-facts"></dl>
-            <div class="mesh-inspector-actions"><a id="inspector-node-link" href="/nodelist">{{ tr("Full node details ↗") }}</a><a id="inspector-reliability-link" href="/reliability">{{ tr("Reliability ↗") }}</a><button id="inspector-refresh" class="mesh-inspector-back" type="button">{{ tr("Refresh data") }}</button></div>
+            <div class="mesh-inspector-actions"><a id="inspector-node-link" href="/nodelist">{{ tr("Full node details ↗") }}</a><a id="inspector-reliability-link" href="/reliability">{{ tr("Reliability ↗") }}</a></div>
             <h3 class="mesh-inspector-section">{{ tr("Latest device telemetry") }}</h3>
             <div id="inspector-telemetry" aria-live="polite"></div>
             <h3 class="mesh-inspector-section">{{ tr("Recent packets · sent & received") }}</h3>
@@ -871,8 +899,17 @@ fetch('/api/nodes?days_active=3')
     })
     .catch(error => {
         console.error(error);
-        const status = document.getElementById("mesh-node-list") || document.getElementById("map-load-status");
-        status.textContent = MeshI18n.t("Unable to load nodes. Reload to try again.");
+        const text = MeshI18n.t("Unable to load nodes. Reload to try again.");
+        const list = document.getElementById("mesh-node-list");
+        if (list) {
+            // Same look as the list's other messages ("No nodes match your search.").
+            const message = document.createElement("p");
+            message.className = "mesh-empty";
+            message.textContent = text;
+            list.replaceChildren(message);
+        } else {
+            document.getElementById("map-load-status").textContent = text;
+        }
     });
 
 /* ======================================================
