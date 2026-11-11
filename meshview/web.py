@@ -518,6 +518,42 @@ routes.get("/{page}")(serve_page)
 VERSIONED_VENDOR_PATH = re.compile(r"^/static/vendor/[^/]+-\d+(?:\.\d+)*/")
 
 
+# Text responses worth compressing; images other than SVG are compressed already.
+COMPRESSIBLE_TYPES = {
+    "application/json",
+    "image/svg+xml",
+    "text/html",
+    "text/markdown",
+    "text/plain",
+}
+# Below this size gzip saves too little to pay for itself.
+COMPRESS_MIN_BYTES = 1024
+
+
+@web.middleware
+async def compress_responses(request, handler):
+    """Gzip API and page responses for browsers that accept it.
+
+    The node list alone is about 200 KB of JSON for a few hundred nodes and shrinks to
+    about a sixth. Files under /static/ are served by aiohttp's file sender instead and
+    are not touched here.
+    """
+    response = await handler(request)
+    if (
+        type(response) is web.Response
+        and not response.prepared
+        and isinstance(response.body, bytes)
+        and len(response.body) >= COMPRESS_MIN_BYTES
+        and response.content_type in COMPRESSIBLE_TYPES
+        and "Content-Encoding" not in response.headers
+    ):
+        # Caches in between must keep the gzipped and plain copies apart.
+        response.headers.add("Vary", "Accept-Encoding")
+        if "gzip" in request.headers.get("Accept-Encoding", "").lower():
+            response.enable_compression(web.ContentCoding.gzip)
+    return response
+
+
 async def set_static_cache_headers(request, response):
     """Tell browsers how long they may reuse /static/ files.
 
@@ -563,7 +599,7 @@ async def run_server():
         site_description=CONFIG.get("site", {}).get("message", "").strip(),
     )
 
-    app = web.Application()
+    app = web.Application(middlewares=[compress_responses])
     app.on_response_prepare.append(set_static_cache_headers)
     app.router.add_static("/static/", pathlib.Path(__file__).parent / "static")
     app.add_routes(api.routes)  # Add API routes
