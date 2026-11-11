@@ -10,7 +10,7 @@ import re
 import time
 
 from aiohttp import web
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import database, decode_payload, store, traceroute
@@ -1236,6 +1236,9 @@ async def api_stats_top(request):
     # SQLite reads a negative LIMIT as "no limit", so the lower bound matters too.
     limit = _query_int(request, "limit", 20, 1, 100)
     offset = _query_int(request, "offset", 0, 0, None)
+    # Only nodes with traffic in the window: a leaderboard paged to its end otherwise goes
+    # through every node ever seen, thousands of zero rows on a big mesh.
+    active = _query_bool(request, "active") or False
 
     multiplier = 3600 if period_type == "hour" else 86400
     window_us = length * multiplier * 1_000_000
@@ -1271,7 +1274,13 @@ async def api_stats_top(request):
         .select_from(Node)
         .outerjoin(sent_cte, sent_cte.c.node_id == Node.node_id)
         .outerjoin(seen_cte, seen_cte.c.node_id == Node.node_id)
-        .order_by(func.coalesce(seen_cte.c.seen, 0).desc())
+        # Ties (many nodes share a count, zero above all) break the same way on every
+        # request, so pages neither repeat nor skip nodes.
+        .order_by(
+            func.coalesce(seen_cte.c.seen, 0).desc(),
+            func.coalesce(sent_cte.c.sent, 0).desc(),
+            Node.node_id.asc(),
+        )
         .limit(limit)
         .offset(offset)
     )
@@ -1281,6 +1290,14 @@ async def api_stats_top(request):
     if channel:
         query = query.where(Node.channel == channel)
         count_query = count_query.where(Node.channel == channel)
+    if active:
+        has_traffic = or_(sent_cte.c.sent.is_not(None), seen_cte.c.seen.is_not(None))
+        query = query.where(has_traffic)
+        count_query = (
+            count_query.outerjoin(sent_cte, sent_cte.c.node_id == Node.node_id)
+            .outerjoin(seen_cte, seen_cte.c.node_id == Node.node_id)
+            .where(has_traffic)
+        )
 
     async with database.async_session() as session:
         rows = (await session.execute(query)).all()

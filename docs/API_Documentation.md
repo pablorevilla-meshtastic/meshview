@@ -345,6 +345,8 @@ Query Parameters
 - `channel` (optional, string): Filter by channel.
 - `limit` (optional, int): Max nodes to return. Default: `20`, max `100`.
 - `offset` (optional, int): Pagination offset. Default: `0`.
+- `active` (optional, `true`/`false`): Only nodes that sent packets or had them seen in
+  the window. Default: `false`.
 
 Response Example
 ```json
@@ -371,12 +373,16 @@ Response Example
 `sent` counts packet records from each node; `seen` counts observation records for
 that sender's packets. `avg` is `round(seen / max(sent, 1), 2)`, not a distinct-gateway
 count. Windows are anchored to the newest packet and newest observation in the
-respective tables, not wall-clock time. Nodes with zero activity are included;
-`total` counts nodes matching the channel filter, not just active nodes.
+respective tables, not wall-clock time. Unless `active=true`, nodes with zero activity
+are included and `total` counts every node matching the channel filter; with it, both
+the list and `total` hold only nodes with activity, so paging stops at the last of them.
 
-Channel matching is exact. Use positive `length` and `limit`, and a nonnegative
-`offset`. Only the upper limit of 100 is enforced. Invalid numeric strings can
-return HTTP 500; any `period_type` other than the literal `hour` is treated as days.
+Nodes are sorted by `seen`, then `sent` (both highest first), then `node_id`, so pages
+of the same query never repeat or skip nodes.
+
+Channel matching is exact. `length` is clamped to 1-3650, `limit` to 1-100 and
+`offset` to 0 or more. Invalid numbers or `active` values return HTTP 400; any
+`period_type` other than the literal `hour` is treated as days.
 
 ## 5. Edges API
 

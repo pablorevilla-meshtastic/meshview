@@ -148,6 +148,8 @@ async function loadMore() {
     const url = new URL("/api/stats/top", window.location.origin);
     url.searchParams.set("limit", PAGE_SIZE);
     url.searchParams.set("offset", loadedRows);
+    // Only nodes with traffic: the list ends with the last of them, not every node ever seen.
+    url.searchParams.set("active", "true");
     const channel = document.getElementById("channelFilter").value;
     if (channel) url.searchParams.set("channel", channel);
 
