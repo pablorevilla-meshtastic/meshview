@@ -3,6 +3,7 @@ import configparser
 import logging
 from collections.abc import Mapping
 from difflib import get_close_matches
+from urllib.parse import urlsplit
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +29,47 @@ SITE_CONFIG_KEYS = frozenset(
         "map_bottom_right_lat",
         "map_bottom_right_lon",
         "map_interval",
+        "map_tile_url",
+        "map_tile_attribution",
+        "map_tile_max_zoom",
+        "map_tile_name",
         "firehose_interval",
         "weekly_net_message",
         "net_tag",
     }
 )
+
+
+DEFAULT_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+DEFAULT_TILE_ATTRIBUTION = (
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+)
+DEFAULT_TILE_MAX_ZOOM = 19
+
+
+def map_tiles(site: Mapping[str, str]) -> dict:
+    """Base map tiles for every Leaflet map, from the [site] map_tile_* options.
+
+    Without map_tile_url the maps use OpenStreetMap. A custom tile server (for a
+    network without Internet access, or a different map style) gets no attribution
+    unless one is configured, is named after its host in the layer picker, and
+    replaces the OpenTopoMap layer as well, which would need Internet access.
+    """
+    url = (site.get("map_tile_url") or "").strip()
+    custom = bool(url)
+    try:
+        max_zoom = int(site.get("map_tile_max_zoom") or DEFAULT_TILE_MAX_ZOOM)
+    except ValueError:
+        max_zoom = DEFAULT_TILE_MAX_ZOOM
+    attribution = (site.get("map_tile_attribution") or "").strip()
+    name = (site.get("map_tile_name") or "").strip()
+    return {
+        "url": url or DEFAULT_TILE_URL,
+        "attribution": attribution if custom or attribution else DEFAULT_TILE_ATTRIBUTION,
+        "max_zoom": min(max(max_zoom, 1), 22),
+        "name": name or ((urlsplit(url).hostname or "Map") if custom else "OpenStreetMap"),
+        "custom": custom,
+    }
 
 
 def warn_unknown_site_keys(config: Mapping[str, Mapping[str, str]], config_path: str) -> None:

@@ -397,6 +397,12 @@ and description) and `site.announcement` the text of the dismissible banner show
 every page; both are empty when unset. `site.chat` follows `chat` in `[site]`
 and defaults to `True`.
 
+The `site.map_tile_*` fields describe the base map tiles every map uses, already
+resolved from the `map_tile_*` options in `[site]`: OpenStreetMap when `map_tile_url`
+is empty. `map_tile_custom` is a JSON boolean, `true` when a custom tile server is
+configured; maps then drop the OpenTopoMap layer as well. `map_tile_attribution` is
+HTML and `map_tile_max_zoom` an integer.
+
 Restart the web server and reload the page after changing it. Handler failures return HTTP 500.
 
 Restart the web server and reload the map after changing these settings. Omitting
@@ -426,6 +432,11 @@ Response Example
     "map_bottom_right_lat": 36.0,
     "map_bottom_right_lon": -121.0,
     "map_interval": 3,
+    "map_tile_url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "map_tile_attribution": "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
+    "map_tile_max_zoom": 19,
+    "map_tile_name": "OpenStreetMap",
+    "map_tile_custom": false,
     "map_channel_colors": {"LongFast":"#4363d8"},
     "firehose_interval": 3,
     "weekly_net_message": "Weekly Mesh check-in message.",

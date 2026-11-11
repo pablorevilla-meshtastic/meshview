@@ -349,10 +349,7 @@ function initReliabilityMap() {
     reliabilityMap = L.map("reach-gateway-map", { preferCanvas: true });
     // Start on the site's configured map area until a report fits the gateways.
     meshMapStartView(reliabilityMap);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "&copy; OpenStreetMap",
-        maxZoom: 19,
-    }).addTo(reliabilityMap);
+    meshTileLayer().addTo(reliabilityMap);
     L.control.scale({
         position: "bottomleft",
         metric: true,

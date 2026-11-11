@@ -361,6 +361,18 @@ map_top_left_lon = -123
 map_bottom_right_lat = 36
 map_bottom_right_lon = -121
 
+# Base map tiles for every map. Leave map_tile_url empty for OpenStreetMap. Set it to
+# your own tile server (for a network without Internet access, or another map style);
+# {z}, {x} and {y} are replaced by the tile zoom and position, and {s} by a subdomain
+# (a, b or c). A custom server replaces the OpenTopoMap layer too. Credit the map data
+# and style with map_tile_attribution (HTML allowed). map_tile_name labels it in the map
+# layer picker (default: the server's host name). map_tile_max_zoom is the deepest zoom
+# level it serves (default: 19).
+map_tile_url =
+map_tile_attribution =
+map_tile_name =
+map_tile_max_zoom = 19
+
 # Updates intervals in seconds, zero or negative number means no updates
 # defaults will be 3 seconds
 map_interval=3

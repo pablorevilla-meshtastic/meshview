@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from meshview.config import map_tiles
 from meshview.i18n import load_catalogs
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,6 +78,7 @@ def test_all_templates_render(language):
         ui_language=language,
         ui_translations=catalog,
         tr=lambda source: catalog.get(source, source),
+        map_tiles=map_tiles({}),
     )
     for name in env.list_templates():
         rendered = env.get_template(name).render()

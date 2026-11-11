@@ -619,9 +619,7 @@ function portLabel(p) {
 function initMap(){
     map = L.map('map', { preferCanvas:true });
     meshMapStartView(map, nodePositions[fromNodeId]);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution:'&copy; OpenStreetMap'
-    }).addTo(map);
+    meshTileLayer().addTo(map);
     L.control.scale({
         position: 'bottomleft',
         metric: true,

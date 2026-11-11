@@ -45,7 +45,12 @@ check_optional_deps()
 
 BASE_DIR = os.path.dirname(__file__)
 LANG_DIR = os.path.join(BASE_DIR, "lang")
-env.globals.update(ui_translations={}, ui_language="en", tr=lambda source: source)
+env.globals.update(
+    ui_translations={},
+    ui_language="en",
+    tr=lambda source: source,
+    map_tiles=config.map_tiles({}),
+)
 
 with open(os.path.join(os.path.dirname(__file__), '1x1.png'), 'rb') as png:
     empty_png = png.read()
@@ -597,6 +602,7 @@ async def run_server():
         tr=lambda source: ui_translations.get(source, source),
         # The site message is the installation's tagline: page description and footer.
         site_description=CONFIG.get("site", {}).get("message", "").strip(),
+        map_tiles=config.map_tiles(CONFIG.get("site", {})),
     )
 
     app = web.Application(middlewares=[compress_responses])
