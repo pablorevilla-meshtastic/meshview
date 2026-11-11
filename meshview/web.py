@@ -513,6 +513,28 @@ async def graph_traceroute(request):
 routes.get("/{page}")(serve_page)
 
 
+# Bundled libraries live in folders named after their version (leaflet-1.9.4/), so a
+# path never changes content and browsers may keep it for good.
+VERSIONED_VENDOR_PATH = re.compile(r"^/static/vendor/[^/]+-\d+(?:\.\d+)*/")
+
+
+async def set_static_cache_headers(request, response):
+    """Tell browsers how long they may reuse /static/ files.
+
+    Without Cache-Control, browsers guess from Last-Modified and kept serving the
+    previous release's JavaScript after an upgrade. Our own files must be revalidated
+    on every use (aiohttp answers 304 Not Modified while they are unchanged); versioned
+    vendor files are cached for a year.
+    """
+    path = request.path
+    if not path.startswith("/static/") or "Cache-Control" in response.headers:
+        return
+    if VERSIONED_VENDOR_PATH.match(path):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    else:
+        response.headers["Cache-Control"] = "no-cache"
+
+
 async def run_server():
     """Start the aiohttp web server after migrations are complete."""
     # Wait for database migrations to complete before starting web server
@@ -542,6 +564,7 @@ async def run_server():
     )
 
     app = web.Application()
+    app.on_response_prepare.append(set_static_cache_headers)
     app.router.add_static("/static/", pathlib.Path(__file__).parent / "static")
     app.add_routes(api.routes)  # Add API routes
     app.add_routes(routes)  # Add main web routes
