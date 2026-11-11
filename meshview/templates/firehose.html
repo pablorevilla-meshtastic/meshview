@@ -85,18 +85,21 @@ async function loadTranslationsFirehose() {
    NODE LOOKUP
    ====================================================== */
 let nodeMap = {};
+// Ids already asked for, found or not, so each node is fetched once.
+const requestedNodeIds = new Set([1, 4294967295]);
 
-async function loadNodes() {
+// Names only for the nodes in the packets being shown, not the whole node list.
+async function loadNodeNames(packets) {
+    const ids = [...new Set(packets.flatMap(p => [p.from_node_id, p.to_node_id]))]
+        .filter(id => id != null && !requestedNodeIds.has(id));
+    if (!ids.length) return;
+    ids.forEach(id => requestedNodeIds.add(id));
     try {
-        const res = await fetch("/api/nodes");
-        const data = await res.json();
-
-        for (const n of data.nodes || []) {
+        for (const n of await meshFetchNodes(ids, "id,long_name,short_name")) {
             nodeMap[n.node_id] = n.long_name || n.short_name || n.id || n.node_id;
         }
-
-        nodeMap[4294967295] = firehoseTranslations.all_broadcast || MeshI18n.t("All");
     } catch (err) {
+        ids.forEach(id => requestedNodeIds.delete(id));  // try again with the next batch
         console.error("Failed loading nodes:", err);
     }
 }
@@ -254,6 +257,7 @@ async function fetchUpdates() {
         const highlightNewPackets = firehoseLoaded;
         firehoseLoaded = true;
         if (!packets.length) return;
+        await loadNodeNames(packets);
 
         const list = document.getElementById("packet_list");
 
@@ -401,7 +405,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await loadTranslationsFirehose();
     await configureFirehose();
-    await loadNodes();
     await loadChannels();
 
     fetchUpdates();

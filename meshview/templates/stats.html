@@ -292,7 +292,6 @@ const statsReportFallback = {
     "meters": MeshI18n.t("{value} m")
 };
 
-let statsNodesPromise;
 let textNodeRows = [];
 let textNodeExportRows = [];
 function rankMainChannelTextSenders(packets, nodes) {
@@ -331,13 +330,11 @@ async function loadTextNodes() {
     chart.off("click");
     chart.on("click", openTextSender);
     try {
-        const [response, nodes] = await Promise.all([
-            fetch("/api/packets?portnum=1&limit=500"),
-            fetchStatsNodes()
-        ]);
+        const response = await fetch("/api/packets?portnum=1&limit=500");
         if (!response.ok) throw new Error("Unable to load text packets");
         const data = await response.json();
         if (!Array.isArray(data.packets)) throw new Error("Invalid packet response");
+        const nodes = await meshFetchNodes(data.packets.slice(0, 500).map(packet => packet.from_node_id));
         if (request !== textNodesRequest) return;
         const sample = data.packets.slice(0, 500);
         const ranked = rankMainChannelTextSenders(sample, nodes);
@@ -407,7 +404,7 @@ async function loadAltitudeNodes(refreshNodes = false) {
     chart.off("click");
     chart.on("click", openAltitudeNode);
     try {
-        altitudeRouterRows = rankAltitudeNodes(await fetchStatsNodes(refreshNodes), -Infinity);
+        altitudeRouterRows = rankAltitudeNodes(await fetchAltitudeRouters(refreshNodes), -Infinity);
         altitudeExportRows = altitudeRouterRows.filter(node => node.last_altitude >= 100).slice(0, 50);
         altitudeRows = altitudeExportRows.slice(0, 10);
         document.getElementById("altitude-map-button").disabled = altitudeRouterRows.length === 0;
@@ -553,24 +550,50 @@ async function fetchDailySnapshots(){
     }catch{return [];}
 }
 
-function fetchStatsNodes(refresh = false) {
-    if (refresh) statsNodesPromise = null;
-    if (!statsNodesPromise) {
-        statsNodesPromise = fetch("/api/nodes").then(async response => {
-            if (!response.ok) throw new Error("Unable to load nodes");
-            const data = await response.json();
-            if (!Array.isArray(data.nodes)) throw new Error("Invalid node response");
-            return data.nodes;
-        }).catch(error => {
-            statsNodesPromise = null;
+// The page asks the API for the nodes and counts it shows instead of downloading every
+// node, which on a big mesh is megabytes.
+async function fetchNodeList(query) {
+    const response = await fetch(`/api/nodes?${query}`);
+    if (!response.ok) throw new Error("Unable to load nodes");
+    const data = await response.json();
+    if (!Array.isArray(data.nodes)) throw new Error("Invalid node response");
+    return data.nodes;
+}
+// The highest routers of each router role. The chart, its export and its map show at most
+// the 50 highest that reach a minimum altitude, which are always among these.
+const ALTITUDE_ROUTER_ROLES = ["ROUTER", "ROUTER_CLIENT", "ROUTER_LATE"];
+let altitudeRoutersPromise = null;
+function fetchAltitudeRouters(refresh = false) {
+    if (refresh) altitudeRoutersPromise = null;
+    if (!altitudeRoutersPromise) {
+        altitudeRoutersPromise = Promise.all(ALTITUDE_ROUTER_ROLES.map(role =>
+            fetchNodeList(`role=${role}&sort=-last_altitude&limit=50&fields=id,long_name,short_name,role,last_altitude,last_lat,last_long`)
+        )).then(lists => lists.flat()).catch(error => {
+            altitudeRoutersPromise = null;
             throw error;
         });
     }
-    return statsNodesPromise;
+    return altitudeRoutersPromise;
 }
-async function fetchNodes(){
-    try { return await fetchStatsNodes(); }
-    catch { return []; }
+// Node counts by field, for all nodes and for MQTT gateways.
+async function fetchNodeFacets(query = "") {
+    try {
+        const response = await fetch(`/api/nodes/facets?${query}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error("Unable to load node counts", error);
+        return {total: 0, facets: {}};
+    }
+}
+// Pie data from a facet; nodes without a value count as "Unknown", as before.
+function facetPieData(facet = []) {
+    const counts = new Map();
+    facet.forEach(({value, count}) => {
+        const key = value || MeshI18n.t("Unknown");
+        counts.set(key, (counts.get(key) || 0) + count);
+    });
+    return Array.from(counts, ([name, value]) => ({name, value}));
 }
 
 async function fetchChannels(){
@@ -593,15 +616,6 @@ function buildPacketTypeBreakdownFromSeries(allData, perPortSeries){
     const other = Math.max(totalAll - trackedTotal,0);
     if(other>0) results.push({portnum:"other", count:other});
     return results;
-}
-
-function processCountField(nodes,field){
-    const counts=new Map();  // keys are mesh-provided strings, e.g. a channel called "constructor"
-    nodes.forEach(n=>{
-        const key=n[field]||MeshI18n.t("Unknown");
-        counts.set(key,(counts.get(key)||0)+1);
-    });
-    return Array.from(counts,([name,value])=>({name,value}));
 }
 
 function updateTotalCount(domId,data){
@@ -897,35 +911,37 @@ async function init(){
     }
 
     // Nodes for breakdown + summary node count
-    const nodes=await fetchNodes();
-    chartHwModel=renderPieChart("chart_hw_model",processCountField(nodes,"hw_model"),"Hardware");
-    chartRole=renderPieChart("chart_role",processCountField(nodes,"role"),MeshI18n.t("Role"));
-    chartChannel=renderPieChart("chart_channel",processCountField(nodes,"channel"),MeshI18n.t("Channel"));
+    const [nodeCounts, gatewayCounts] = await Promise.all([
+        fetchNodeFacets(),
+        fetchNodeFacets("is_mqtt_gateway=true")
+    ]);
+    chartHwModel=renderPieChart("chart_hw_model",facetPieData(nodeCounts.facets.hw_model),"Hardware");
+    chartRole=renderPieChart("chart_role",facetPieData(nodeCounts.facets.role),MeshI18n.t("Role"));
+    chartChannel=renderPieChart("chart_channel",facetPieData(nodeCounts.facets.channel),MeshI18n.t("Channel"));
 
-    const gateways = nodes.filter(n => n.is_mqtt_gateway);
     chartGatewayChannel = renderPieChart(
         "chart_gateway_channel",
-        processCountField(gateways, "channel"),
+        facetPieData(gatewayCounts.facets.channel),
         MeshI18n.t("Gateway Channel")
     );
     chartGatewayRole = renderPieChart(
         "chart_gateway_role",
-        processCountField(gateways, "role"),
+        facetPieData(gatewayCounts.facets.role),
         MeshI18n.t("Gateway Role")
     );
     chartGatewayFirmware = renderPieChart(
         "chart_gateway_firmware",
-        processCountField(gateways, "firmware"),
+        facetPieData(gatewayCounts.facets.firmware),
         MeshI18n.t("Gateway Firmware")
     );
 
     const summaryNodesEl = document.getElementById("summary_nodes");
     if (summaryNodesEl) {
-        summaryNodesEl.textContent = nodes.length.toLocaleString(MeshI18n.language);
+        summaryNodesEl.textContent = nodeCounts.total.toLocaleString(MeshI18n.language);
     }
     const summaryGatewaysEl = document.getElementById("summary_gateways");
     if (summaryGatewaysEl) {
-        summaryGatewaysEl.textContent = gateways.length.toLocaleString(MeshI18n.language);
+        summaryGatewaysEl.textContent = gatewayCounts.total.toLocaleString(MeshI18n.language);
     }
 
     // Packet types pie

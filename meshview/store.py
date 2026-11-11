@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import Text, and_, cast, func, or_, select
+from sqlalchemy import String, Text, and_, cast, func, not_, or_, select
 from sqlalchemy.orm import lazyload
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
@@ -39,6 +39,7 @@ async def get_packets(
     contains=None,  # substring search
     limit=50,
     channel=None,
+    before=None,
 ):
     async with database.async_session() as session:
         stmt = select(models.Packet)
@@ -71,6 +72,9 @@ async def get_packets(
         # Timestamp filter using microseconds
         if after is not None:
             conditions.append(models.Packet.import_time_us > after)
+        # Cursor for older pages: strictly before the oldest packet already shown.
+        if before is not None:
+            conditions.append(models.Packet.import_time_us < before)
 
         # Case-insensitive substring search on payload (BLOB → TEXT)
         if contains:
@@ -307,59 +311,163 @@ async def get_node_traffic(node_id: int):
         return []
 
 
-async def get_nodes(node_id=None, role=None, channel=None, hw_model=None, days_active=None):
+# Fields /api/nodes can sort on, and those compared case-insensitively.
+NODE_SORT_FIELDS = (
+    "short_name",
+    "long_name",
+    "hw_model",
+    "firmware",
+    "role",
+    "channel",
+    "last_lat",
+    "last_long",
+    "last_altitude",
+    "is_mqtt_gateway",
+    "first_seen_us",
+    "last_seen_us",
+    "node_id",
+)
+NODE_TEXT_FIELDS = frozenset({"short_name", "long_name", "hw_model", "firmware", "role", "channel"})
+NODE_FACET_FIELDS = ("role", "channel", "hw_model", "firmware")
+
+
+def _node_conditions(
+    node_id=None,
+    role=None,
+    channel=None,
+    hw_model=None,
+    days_active=None,
+    firmware=None,
+    search=None,
+    ids=None,
+    is_mqtt_gateway=None,
+    has_position=None,
+):
+    """WHERE conditions shared by the node list, its count and its facets."""
+    conditions = [Node.last_seen_us.is_not(None)]
+    if node_id is not None:
+        try:
+            node_id_int = int(node_id)
+        except (TypeError, ValueError):
+            node_id_int = node_id
+        conditions.append(Node.node_id == node_id_int)
+    if role is not None:
+        conditions.append(Node.role == role.upper())
+    if channel is not None:
+        conditions.append(Node.channel == channel)
+    if hw_model is not None:
+        conditions.append(Node.hw_model == hw_model)
+    if firmware is not None:
+        conditions.append(Node.firmware == firmware)
+    if days_active is not None:
+        now_us = int(datetime.now(timezone.utc).timestamp() * 1_000_000)  # noqa: UP017
+        cutoff_us = now_us - int(timedelta(days_active).total_seconds() * 1_000_000)
+        conditions.append(Node.last_seen_us > cutoff_us)
+    if ids is not None:
+        conditions.append(Node.node_id.in_(ids))
+    if is_mqtt_gateway is not None:
+        conditions.append(
+            Node.is_mqtt_gateway.is_(True)
+            if is_mqtt_gateway
+            else or_(Node.is_mqtt_gateway.is_(False), Node.is_mqtt_gateway.is_(None))
+        )
+    if has_position is not None:
+        # The map treats a zero coordinate as no position at all.
+        located = and_(
+            Node.last_lat.is_not(None),
+            Node.last_long.is_not(None),
+            Node.last_lat != 0,
+            Node.last_long != 0,
+        )
+        conditions.append(located if has_position else not_(located))
+    if search:
+        # Like the node list's search box: names, decimal node id or "!hex" id.
+        term = search.strip().lower()
+        conditions.append(
+            or_(
+                func.lower(Node.long_name).contains(term, autoescape=True),
+                func.lower(Node.short_name).contains(term, autoescape=True),
+                func.lower(Node.id).contains(term, autoescape=True),
+                cast(Node.node_id, String).contains(term, autoescape=True),
+            )
+        )
+    return conditions
+
+
+async def get_nodes(
+    node_id=None,
+    role=None,
+    channel=None,
+    hw_model=None,
+    days_active=None,
+    *,
+    sort=None,
+    descending=False,
+    limit=None,
+    offset=0,
+    **filters,
+):
     """
     Fetches nodes from the database based on optional filtering criteria.
 
     Parameters:
-        node_id
-        role (str, optional): The role of the node (converted to uppercase for consistency).
-        channel (str, optional): The communication channel associated with the node.
-        hw_model (str, optional): The hardware model of the node.
+        node_id, role (converted to uppercase), channel, hw_model, days_active: as before.
+        filters: firmware, search, ids, is_mqtt_gateway and has_position (see
+            _node_conditions).
+        sort, descending: one of NODE_SORT_FIELDS; text compares case-insensitively and
+            missing values go last either way. Without sort, the historical order
+            (short_name as stored, case-sensitive). Ties break on node_id, so pages
+            never overlap.
+        limit, offset: an optional page of the result.
 
     Returns:
         list: A list of Node objects that match the given criteria.
     """
     try:
         async with database.async_session() as session:
-            # print(channel)  # Debugging output (consider replacing with logging)
+            conditions = _node_conditions(node_id, role, channel, hw_model, days_active, **filters)
+            if sort is None:
+                order = Node.short_name.asc()
+            else:
+                column = getattr(Node, sort)
+                key = func.lower(column) if sort in NODE_TEXT_FIELDS else column
+                order = (key.desc() if descending else key.asc()).nulls_last()
+            query = select(Node).where(*conditions).order_by(order, Node.node_id.asc())
+            if offset:
+                query = query.offset(offset)
+            if limit is not None:
+                query = query.limit(limit)
 
-            # Start with a base query selecting all nodes
-            query = select(Node)
-
-            # Apply filters based on provided parameters
-            if node_id is not None:
-                try:
-                    node_id_int = int(node_id)
-                except (TypeError, ValueError):
-                    node_id_int = node_id
-                query = query.where(Node.node_id == node_id_int)
-            if role is not None:
-                query = query.where(Node.role == role.upper())  # Ensure role is uppercase
-            if channel is not None:
-                query = query.where(Node.channel == channel)
-            if hw_model is not None:
-                query = query.where(Node.hw_model == hw_model)
-
-            if days_active is not None:
-                now_us = int(datetime.now(timezone.utc).timestamp() * 1_000_000)  # noqa: UP017
-                cutoff_us = now_us - int(timedelta(days_active).total_seconds() * 1_000_000)
-                query = query.where(Node.last_seen_us > cutoff_us)
-
-            # Exclude nodes with missing last_seen_us
-            query = query.where(Node.last_seen_us.is_not(None))
-
-            # Order results by long_name in ascending order
-            query = query.order_by(Node.short_name.asc())
-
-            # Execute the query and retrieve results
             result = await session.execute(query)
-            nodes = result.scalars().all()
-            return nodes  # Return the list of nodes
+            return result.scalars().all()
 
     except Exception:
         logger.exception("error reading DB")
         return []  # Return an empty list in case of failure
+
+
+async def count_nodes(**filters):
+    """How many nodes match the same filters as get_nodes."""
+    async with database.async_session() as session:
+        query = select(func.count()).select_from(Node).where(*_node_conditions(**filters))
+        return (await session.execute(query)).scalar_one()
+
+
+async def get_node_facets(**filters):
+    """Distinct values with their node counts for each of NODE_FACET_FIELDS."""
+    conditions = _node_conditions(**filters)
+    facets = {}
+    async with database.async_session() as session:
+        for field in NODE_FACET_FIELDS:
+            column = getattr(Node, field)
+            rows = await session.execute(
+                select(column, func.count())
+                .where(*conditions)
+                .group_by(column)
+                .order_by(func.count().desc(), column)
+            )
+            facets[field] = [{"value": value, "count": count} for value, count in rows.all()]
+    return facets
 
 
 async def get_packet_stats(

@@ -7,9 +7,10 @@ import logging
 import math
 import os
 import re
+import time
 
 from aiohttp import web
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from meshtastic.protobuf.portnums_pb2 import PortNum
 from meshview import database, decode_payload, store, traceroute
@@ -242,59 +243,140 @@ async def api_channels(request: web.Request):
         return web.json_response({"channels": [], "error": str(e)})
 
 
+# Every field a node has in /api/nodes responses, in response order.
+NODE_FIELDS = (
+    "id",
+    "node_id",
+    "long_name",
+    "short_name",
+    "hw_model",
+    "firmware",
+    "role",
+    "last_lat",
+    "last_long",
+    "last_altitude",
+    "channel",
+    "is_mqtt_gateway",
+    "first_seen_us",
+    "last_seen_us",
+)
+NODE_PAGE_MAX = 1000
+# Ids travel in the URL, which aiohttp (like many proxies) caps at about 8 KB.
+NODE_IDS_MAX = 500
+NODE_SEARCH_MAX = 100
+
+
+def _bad_request(message):
+    return web.HTTPBadRequest(text=json.dumps({"error": message}), content_type="application/json")
+
+
+def _query_bool(request, name):
+    """Read an optional true/false query parameter (None when absent)."""
+    raw = request.query.get(name)
+    if raw is None or raw == "":
+        return None
+    value = raw.strip().lower()
+    if value in ("1", "true", "yes", "on"):
+        return True
+    if value in ("0", "false", "no", "off"):
+        return False
+    raise _bad_request(f"{name} must be true or false")
+
+
+def _query_list(request, name, allowed=None, maximum=None, integers=False):
+    """Read an optional comma-separated query parameter (None when absent)."""
+    raw = request.query.get(name)
+    if raw is None:
+        return None
+    items = [item.strip() for item in raw.split(",") if item.strip()]
+    if maximum is not None and len(items) > maximum:
+        raise _bad_request(f"{name} accepts at most {maximum} values")
+    if integers:
+        try:
+            return tuple(parse_db_int(item) for item in items)
+        except ValueError:
+            raise _bad_request(f"{name} must be a comma-separated list of integers") from None
+    if allowed is not None and not set(items) <= set(allowed):
+        raise _bad_request(f"{name} must be a comma-separated list of: {', '.join(allowed)}")
+    return tuple(items)
+
+
+def _node_filters(request):
+    """Filters shared by /api/nodes and /api/nodes/facets."""
+    days_active = request.query.get("days_active")
+    try:
+        days_active = int(days_active) if days_active else None
+    except ValueError:
+        days_active = None  # invalid values have always been ignored
+    search = request.query.get("search", "").strip()
+    if len(search) > NODE_SEARCH_MAX:
+        raise _bad_request(f"search accepts at most {NODE_SEARCH_MAX} characters")
+    return {
+        "node_id": request.query.get("node_id"),
+        "role": request.query.get("role"),
+        "channel": request.query.get("channel"),
+        "hw_model": request.query.get("hw_model"),
+        "firmware": request.query.get("firmware"),
+        "days_active": days_active,
+        "search": search or None,
+        "ids": _query_list(request, "ids", maximum=NODE_IDS_MAX, integers=True),
+        "is_mqtt_gateway": _query_bool(request, "is_mqtt_gateway"),
+        "has_position": _query_bool(request, "has_position"),
+    }
+
+
 @routes.get("/api/nodes")
 async def api_nodes(request):
+    # Read every parameter first: a bad one answers 400, not the 500 below.
+    filters = _node_filters(request)
+    sort = request.query.get("sort") or None
+    descending = bool(sort) and sort.startswith("-")
+    sort = sort.removeprefix("-") if sort else None
+    if sort is not None and sort not in store.NODE_SORT_FIELDS:
+        raise _bad_request(f"sort must be one of: {', '.join(store.NODE_SORT_FIELDS)}")
+    limit = _query_int(request, "limit", None, 1, NODE_PAGE_MAX)
+    offset = _query_int(request, "offset", 0, 0, None)
+    paged = "limit" in request.query or "offset" in request.query
+    fields = _query_list(request, "fields", allowed=NODE_FIELDS)
+
     try:
-        # Optional query parameters
-        node_id = request.query.get("node_id")
-        role = request.query.get("role")
-        channel = request.query.get("channel")
-        hw_model = request.query.get("hw_model")
-        days_active = request.query.get("days_active")
-
-        if days_active:
-            try:
-                days_active = int(days_active)
-            except ValueError:
-                days_active = None
-
-        # Fetch nodes from database
         nodes = await store.get_nodes(
-            node_id=node_id, role=role, channel=channel, hw_model=hw_model, days_active=days_active
+            sort=sort, descending=descending, limit=limit, offset=offset, **filters
         )
 
-        # Prepare the JSON response
-        nodes_data = []
-        for n in nodes:
-            nodes_data.append(
-                {
-                    "id": getattr(n, "id", None),
-                    "node_id": n.node_id,
-                    "long_name": n.long_name,
-                    "short_name": n.short_name,
-                    "hw_model": n.hw_model,
-                    "firmware": n.firmware,
-                    "role": n.role,
-                    "last_lat": getattr(n, "last_lat", None),
-                    "last_long": getattr(n, "last_long", None),
-                    "last_altitude": n.last_altitude,
-                    "channel": n.channel,
-                    "is_mqtt_gateway": getattr(n, "is_mqtt_gateway", None),
-                    # "last_update": n.last_update.isoformat(),
-                    "first_seen_us": n.first_seen_us,
-                    "last_seen_us": n.last_seen_us,
-                }
-            )
-
-        return web.json_response({"nodes": nodes_data})
+        # node_id identifies a node, so it always comes back even when not asked for.
+        keys = (
+            NODE_FIELDS
+            if fields is None
+            else [k for k in NODE_FIELDS if k in fields or k == "node_id"]
+        )
+        response = {"nodes": [{key: getattr(n, key, None) for key in keys} for n in nodes]}
+        if paged:
+            response.update(total=await store.count_nodes(**filters), limit=limit, offset=offset)
+        return web.json_response(response)
 
     except Exception as e:
         logger.error(f"Error in /api/nodes: {e}")
         return web.json_response({"error": "Failed to fetch nodes"}, status=500)
 
 
+@routes.get("/api/nodes/facets")
+async def api_node_facets(request):
+    """Distinct roles, channels, hardware models and firmware versions, with counts."""
+    filters = _node_filters(request)
+    try:
+        total = await store.count_nodes(**filters)
+        facets = await store.get_node_facets(**filters)
+        return web.json_response({"total": total, "facets": facets})
+    except Exception as e:
+        logger.error(f"Error in /api/nodes/facets: {e}")
+        return web.json_response({"error": "Failed to fetch node facets"}, status=500)
+
+
 @routes.get("/api/packets")
 async def api_packets(request):
+    # Read first: a bad value answers 400, not the 500 below.
+    before = _query_int(request, "before", None, 0, None)
     try:
         # --- Parse query parameters ---
         packet_id_str = request.query.get("packet_id")
@@ -394,7 +476,11 @@ async def api_packets(request):
             contains=contains_for_query,
             limit=limit,
             channel=channel,
+            before=before,
         )
+        # A full page may have older packets after it. The cursor comes from the rows read,
+        # not the ones returned: text messages are filtered below and can leave a short page.
+        next_before = packets[-1].import_time_us if len(packets) == limit and packets else None
 
         ui_packets = [Packet.from_model(p) for p in packets]
 
@@ -447,6 +533,8 @@ async def api_packets(request):
         response = {"packets": packets_data}
         if latest_import_time is not None:
             response["latest_import_time"] = latest_import_time
+        if next_before is not None:
+            response["next_before"] = next_before
 
         return web.json_response(response)
 
@@ -664,30 +752,22 @@ async def api_daily_snapshots(request):
         return web.json_response({"error": "Failed to fetch daily snapshots"}, status=500)
 
 
-@routes.get("/api/edges")
-async def api_edges(request):
-    since = datetime.datetime.now() - datetime.timedelta(hours=12)
-    filter_type = request.query.get("type")
+# Edges are rebuilt from 12 hours of traceroutes and neighbour reports, which is heavy on a
+# big mesh, while the map asks for one node's edges on every click: keep the built graph
+# for a minute.
+EDGES_WINDOW = datetime.timedelta(hours=12)
+EDGES_CACHE_SECONDS = 60
+_edges_cache: dict[str | None, tuple[float, list[dict]]] = {}
 
-    # NEW → optional single-node filter
-    node_filter_str = request.query.get("node_id")
-    node_filter = None
-    if node_filter_str:
-        try:
-            node_filter = int(node_filter_str)
-        except ValueError:
-            return web.json_response({"error": "node_id must be integer"}, status=400)
 
+async def build_edges(filter_type):
+    """All edges seen in the last 12 hours, as a list of {from, to, type} dicts."""
+    since = datetime.datetime.now() - EDGES_WINDOW
     edges = {}
-    traceroute_count = 0
-    edges_added_tr = 0
-    edges_added_neighbor = 0
 
     # --- Traceroute edges ---
     if filter_type in (None, "traceroute"):
         async for tr in store.get_traceroutes(since):
-            traceroute_count += 1
-
             try:
                 route = decode_payload.decode_payload(PortNum.TRACEROUTE_APP, tr.route)
             except Exception:
@@ -704,33 +784,56 @@ async def api_edges(request):
             )
 
             for a, b in traceroute.edges(path):
-                if (a, b) not in edges:
-                    edges[(a, b)] = "traceroute"
-                    edges_added_tr += 1
+                edges.setdefault((a, b), "traceroute")
 
     # --- Neighbor edges ---
+    # Only each node's latest report in the window: it lists the node's current neighbours,
+    # and the work grows with the number of nodes rather than with the number of reports.
     if filter_type in (None, "neighbor"):
-        packets = await store.get_packets(portnum=71)
-        for packet in packets:
+        since_us = int(since.timestamp() * 1_000_000)
+        packets = await store.get_packets(
+            portnum=PortNum.NEIGHBORINFO_APP, after=since_us, limit=None
+        )
+        reported = set()
+        for packet in packets:  # newest first
+            if packet.from_node_id in reported:
+                continue
             try:
                 _, neighbor_info = decode_payload.decode(packet)
             except Exception:
                 continue
             if neighbor_info is None:  # payload did not parse as NeighborInfo
                 continue
+            reported.add(packet.from_node_id)
 
             for node in neighbor_info.neighbors:
-                edge = (node.node_id, packet.from_node_id)
-                if edge not in edges:
-                    edges[edge] = "neighbor"
-                    edges_added_neighbor += 1
+                edges.setdefault((node.node_id, packet.from_node_id), "neighbor")
 
-    # Convert to list
-    edges_list = [
-        {"from": frm, "to": to, "type": edge_type} for (frm, to), edge_type in edges.items()
-    ]
+    return [{"from": frm, "to": to, "type": edge_type} for (frm, to), edge_type in edges.items()]
 
-    # NEW → apply node_id filtering
+
+@routes.get("/api/edges")
+async def api_edges(request):
+    filter_type = request.query.get("type")
+    if filter_type not in (None, "traceroute", "neighbor"):
+        return web.json_response({"edges": []})
+
+    node_filter_str = request.query.get("node_id")
+    node_filter = None
+    if node_filter_str:
+        try:
+            node_filter = int(node_filter_str)
+        except ValueError:
+            return web.json_response({"error": "node_id must be integer"}, status=400)
+
+    now = time.monotonic()
+    cached = _edges_cache.get(filter_type)
+    if cached and cached[0] > now:
+        edges_list = cached[1]
+    else:
+        edges_list = await build_edges(filter_type)
+        _edges_cache[filter_type] = (now + EDGES_CACHE_SECONDS, edges_list)
+
     if node_filter is not None:
         edges_list = [e for e in edges_list if e["from"] == node_filter or e["to"] == node_filter]
 
@@ -1133,6 +1236,9 @@ async def api_stats_top(request):
     # SQLite reads a negative LIMIT as "no limit", so the lower bound matters too.
     limit = _query_int(request, "limit", 20, 1, 100)
     offset = _query_int(request, "offset", 0, 0, None)
+    # Only nodes with traffic in the window: a leaderboard paged to its end otherwise goes
+    # through every node ever seen, thousands of zero rows on a big mesh.
+    active = _query_bool(request, "active") or False
 
     multiplier = 3600 if period_type == "hour" else 86400
     window_us = length * multiplier * 1_000_000
@@ -1168,7 +1274,13 @@ async def api_stats_top(request):
         .select_from(Node)
         .outerjoin(sent_cte, sent_cte.c.node_id == Node.node_id)
         .outerjoin(seen_cte, seen_cte.c.node_id == Node.node_id)
-        .order_by(func.coalesce(seen_cte.c.seen, 0).desc())
+        # Ties (many nodes share a count, zero above all) break the same way on every
+        # request, so pages neither repeat nor skip nodes.
+        .order_by(
+            func.coalesce(seen_cte.c.seen, 0).desc(),
+            func.coalesce(sent_cte.c.sent, 0).desc(),
+            Node.node_id.asc(),
+        )
         .limit(limit)
         .offset(offset)
     )
@@ -1178,6 +1290,14 @@ async def api_stats_top(request):
     if channel:
         query = query.where(Node.channel == channel)
         count_query = count_query.where(Node.channel == channel)
+    if active:
+        has_traffic = or_(sent_cte.c.sent.is_not(None), seen_cte.c.seen.is_not(None))
+        query = query.where(has_traffic)
+        count_query = (
+            count_query.outerjoin(sent_cte, sent_cte.c.node_id == Node.node_id)
+            .outerjoin(seen_cte, seen_cte.c.node_id == Node.node_id)
+            .where(has_traffic)
+        )
 
     async with database.async_session() as session:
         rows = (await session.execute(query)).all()

@@ -43,21 +43,61 @@ curl 'http://localhost:8081/api/coverage/1234?mode=perimeter&radius_km=20'
 ## 1. Nodes API
 
 ### GET `/api/nodes`
-Returns a list of nodes, with optional filtering.
+Returns a list of nodes, with optional filtering, sorting and paging.
 
 Query Parameters
 - `node_id` (optional, int): Exact node ID.
 - `role` (optional, string): Node role.
 - `channel` (optional, string): Channel name.
 - `hw_model` (optional, string): Hardware model.
+- `firmware` (optional, string): Firmware version.
 - `days_active` (optional, int): Nodes seen within the last N days. Omit for all
-  nodes with a non-null last-seen timestamp; invalid integers are ignored.
+  nodes with a non-null last-seen timestamp; invalid or empty values are ignored.
+- `search` (optional, string, up to 100 characters): Case-insensitive substring of the
+  long name, short name, decimal node ID or `!hex` ID.
+- `ids` (optional, comma-separated ints, up to 500): Only these node IDs. Ask for more
+  in several requests: longer URLs can exceed the server's or a proxy's limit.
+- `is_mqtt_gateway` (optional, `true`/`false`): Only nodes that are, or are not, MQTT
+  gateways.
+- `has_position` (optional, `true`/`false`): Only nodes with, or without, a known
+  position (zero coordinates count as unknown).
+- `sort` (optional, string): Field to sort by, prefixed with `-` for descending order:
+  `short_name`, `long_name`, `hw_model`, `firmware`, `role`, `channel`, `last_lat`,
+  `last_long`, `last_altitude`, `is_mqtt_gateway`, `first_seen_us`, `last_seen_us` or
+  `node_id`.
+- `limit` (optional, int): Page size, clamped 1-1000. Default: all matching nodes.
+- `offset` (optional, int): Matching nodes to skip before the page. Default: `0`.
+- `fields` (optional, comma-separated): Only these node fields in the response
+  (`node_id` is always included).
 
-Nodes are sorted by `short_name` ascending. `role` is normalized to uppercase;
-channel and hardware filters are exact matches. No pagination is implemented.
+All filters combine. `role` is normalized to uppercase; channel, hardware and firmware
+filters are exact matches.
 
-Errors: HTTP 500 with `{"error":"Failed to fetch nodes"}` for handler failures;
-the storage helper may return an empty list for database failures.
+Without `sort`, nodes are sorted by `short_name` ascending as stored (case-sensitive), as
+in earlier versions. With `sort`, text fields compare case-insensitively and nodes
+without a value go last in either direction. Ties always break on `node_id`, so pages of
+the same query never overlap or skip nodes.
+
+With `limit` or `offset`, the response also has `total` (matching nodes before paging),
+`limit` and `offset`; without them it holds every matching node, as in earlier versions.
+
+Errors: HTTP 400 with `{"error": "..."}` for an invalid `ids`, `search`,
+`is_mqtt_gateway`, `has_position`, `sort`, `limit`, `offset` or `fields`; HTTP 500 with
+`{"error":"Failed to fetch nodes"}` for handler failures; the storage helper may return
+an empty list for database failures.
+
+Paged Response Example (`/api/nodes?days_active=3&sort=-last_seen_us&limit=2&fields=short_name,last_seen_us`)
+```json
+{
+  "nodes": [
+    {"node_id": 1234, "short_name": "A", "last_seen_us": 1736370123456789},
+    {"node_id": 5678, "short_name": "B", "last_seen_us": 1736370023456789}
+  ],
+  "total": 596,
+  "limit": 2,
+  "offset": 0
+}
+```
 
 Response Example
 ```json
@@ -89,6 +129,34 @@ Position packets without altitude preserve the previous value. Map reports lack 
 field presence, so zero values in map reports also preserve the previous value.
 Existing nodes receive altitude as new reports arrive.
 
+### GET `/api/nodes/facets`
+Returns how many nodes match and, for each of `role`, `channel`, `hw_model` and
+`firmware`, its distinct values with their node counts: what filter menus and summary
+charts need without downloading every node.
+
+Query Parameters
+- The filters of `/api/nodes`: `node_id`, `role`, `channel`, `hw_model`, `firmware`,
+  `days_active`, `search`, `ids`, `is_mqtt_gateway` and `has_position`.
+
+Values are sorted by count, highest first, then by value. A `null` value counts the
+nodes without one.
+
+Errors: HTTP 400 for invalid filters, as in `/api/nodes`; HTTP 500 with
+`{"error":"Failed to fetch node facets"}` for handler failures.
+
+Response Example (`/api/nodes/facets?days_active=3&is_mqtt_gateway=true`)
+```json
+{
+  "total": 38,
+  "facets": {
+    "role": [{"value": "CLIENT_BASE", "count": 20}, {"value": "ROUTER", "count": 18}],
+    "channel": [{"value": "LongFast", "count": 38}],
+    "hw_model": [{"value": "HELTEC_V3", "count": 25}, {"value": "RAK4631", "count": 13}],
+    "firmware": [{"value": "2.7.15", "count": 30}, {"value": null, "count": 8}]
+  }
+}
+```
+
 ---
 
 ## 2. Packets API
@@ -100,6 +168,8 @@ Query Parameters
 - `packet_id` (optional, decimal int): Return one packet by database row ID (overrides other filters).
 - `limit` (optional, int): Max packets to return, clamped 1-1000. Default: `50`.
 - `since` (optional, int): Only packets imported after this microsecond timestamp.
+- `before` (optional, int): Only packets imported before this microsecond timestamp:
+  pass the previous response's `next_before` to load the next, older page.
 - `portnum` (optional, int): Filter by port number.
 - `contains` (optional, string): Payload substring filter.
 - `from_node_id` (optional, int): Filter by sender node ID.
@@ -126,7 +196,8 @@ Response Example
       "reply_id": 122
     }
   ],
-  "latest_import_time": 1736370123456789
+  "latest_import_time": 1736370123456789,
+  "next_before": 1736370023456789
 }
 ```
 
@@ -138,6 +209,10 @@ Notes
   this endpoint is not a durable cursor or backfill API.
 - `latest_import_time` is returned only when the list response has a positive import
   timestamp; it is absent for empty results and single-packet lookups.
+- `next_before` is returned when the database filled the page, so older packets may
+  follow; it is absent on the last page. Pass it as `before` for the next page. It is
+  the timestamp of the oldest packet read, which with `portnum=1` can be older than the
+  last packet returned, because sequence-only messages are dropped after reading.
 - `packet_id` lookup returns `{"packets":[]}` with HTTP 200 when missing. Its objects
   omit `to_long_name` and `reply_id`; nullable `portnum` is possible in this mode.
 - `contains` is case-insensitive. With `portnum=1`, matching is performed on decoded
@@ -145,7 +220,7 @@ Notes
   may be returned. For other requests, it searches stored payload bytes cast to text;
   this is not a general search over decoded protobuf fields.
 - Invalid `limit` falls back to 50. Invalid `since`, `portnum`, and node filters are
-  logged and ignored. Invalid single-packet IDs return HTTP 400; handler failures
+  logged and ignored. Invalid `before` values and single-packet IDs return HTTP 400; handler failures
   return HTTP 500 with `{"error":"Failed to fetch packets"}`.
 
 ---
@@ -270,6 +345,8 @@ Query Parameters
 - `channel` (optional, string): Filter by channel.
 - `limit` (optional, int): Max nodes to return. Default: `20`, max `100`.
 - `offset` (optional, int): Pagination offset. Default: `0`.
+- `active` (optional, `true`/`false`): Only nodes that sent packets or had them seen in
+  the window. Default: `false`.
 
 Response Example
 ```json
@@ -296,19 +373,24 @@ Response Example
 `sent` counts packet records from each node; `seen` counts observation records for
 that sender's packets. `avg` is `round(seen / max(sent, 1), 2)`, not a distinct-gateway
 count. Windows are anchored to the newest packet and newest observation in the
-respective tables, not wall-clock time. Nodes with zero activity are included;
-`total` counts nodes matching the channel filter, not just active nodes.
+respective tables, not wall-clock time. Unless `active=true`, nodes with zero activity
+are included and `total` counts every node matching the channel filter; with it, both
+the list and `total` hold only nodes with activity, so paging stops at the last of them.
 
-Channel matching is exact. Use positive `length` and `limit`, and a nonnegative
-`offset`. Only the upper limit of 100 is enforced. Invalid numeric strings can
-return HTTP 500; any `period_type` other than the literal `hour` is treated as days.
+Nodes are sorted by `seen`, then `sent` (both highest first), then `node_id`, so pages
+of the same query never repeat or skip nodes.
+
+Channel matching is exact. `length` is clamped to 1-3650, `limit` to 1-100 and
+`offset` to 0 or more. Invalid numbers or `active` values return HTTP 400; any
+`period_type` other than the literal `hour` is treated as days.
 
 ## 5. Edges API
 
 ### GET `/api/edges`
-Returns network edges (connections between nodes) based on traceroutes and neighbor info.
-Traceroute edges are collected over the last 12 hours. Neighbor edges are based on
-port 71 packets.
+Returns network edges (connections between nodes) based on traceroutes and neighbor info,
+both collected over the last 12 hours. Neighbor edges come from each node's latest
+NeighborInfo (port 71) report in that window, which lists its current neighbours.
+The built graph is cached for 60 seconds, so new edges can take up to a minute to appear.
 
 A completed traceroute is observed as a response packet, whose `from`/`to` are reversed
 with respect to the traced path, so edges are built as `to -> route[] -> from`. `route[]`
@@ -334,8 +416,7 @@ Response Example
 
 Unknown `type` values return an empty edge list. Invalid `node_id` returns HTTP 400;
 storage failures can return HTTP 500. A missing node is not an error and normally
-returns an empty list. Neighbor edges come from the latest stored port-71 sample
-(the storage helper defaults to 50 packets), not the traceroute 12-hour window.
+returns an empty list.
 
 ## 6. Daily Snapshots and Configuration
 
