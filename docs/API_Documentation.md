@@ -475,7 +475,7 @@ with `api = False` in `[site]`. This setting does not disable documentation or A
 routes. `site.meshviewworld` does the same for the MeshviewWorld link
 (`meshviewworld = False`). `site.message` is the installation's tagline (page footer
 and description) and `site.announcement` the text of the dismissible banner shown on
-every page; both are empty when unset. `site.chat` follows `chat` in `[site]`
+every page; both are empty when unset. `site.chat` follows `conversations` in `[site]`
 and defaults to `True`.
 
 The `site.map_tile_*` fields describe the base map tiles every map uses, already

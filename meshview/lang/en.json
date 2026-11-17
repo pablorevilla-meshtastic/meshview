@@ -1,6 +1,6 @@
 {
   "base": {
-    "chat": "Chat",
+    "chat": "Conversations",
     "nodes": "Nodes",
     "everything": "Traffic",
     "graphs": "Mesh Graphs",
@@ -48,7 +48,7 @@
     }
   },
   "chat": {
-    "chat_title": "Chat",
+    "chat_title": "Conversations",
     "replying_to": "Replying to:",
     "view_packet_details": "View packet details",
     "channel": "Channel",
@@ -626,7 +626,7 @@
     "Map top 50": "Map top 50",
     "Mesh Graphs": "Mesh Graphs",
     "Mesh Nodes Population Heatmap": "Mesh Nodes Population Heatmap",
-    "Mesh chat": "Mesh chat",
+    "Mesh chat": "Mesh conversations",
     "Mesh overview": "Mesh overview",
     "Mesh statistics": "Mesh statistics",
     "Meshview on GitHub": "Meshview on GitHub",

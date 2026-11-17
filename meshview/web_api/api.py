@@ -883,7 +883,7 @@ async def api_config(request):
             "message": get_str(site, "message", ""),
             "announcement": get_str(site, "announcement", ""),
             "nodes": get_bool(site, "nodes", True),
-            "chat": get_bool(site, "chat", True),
+            "chat": get_bool(site, "conversations", True),
             "everything": get_bool(site, "everything", True),
             "graphs": get_bool(site, "graphs", True),
             "stats": get_bool(site, "stats", True),

@@ -15,7 +15,7 @@ SITE_CONFIG_KEYS = frozenset(
         "message",
         "announcement",
         "nodes",
-        "chat",
+        "conversations",
         "everything",
         "graphs",
         "stats",
@@ -76,8 +76,8 @@ def warn_unknown_site_keys(config: Mapping[str, Mapping[str, str]], config_path:
     """Report ignored site options at startup without logging their values."""
     for key in sorted(set(config.get("site", {})) - SITE_CONFIG_KEYS):
         matches = (
-            ["chat"]
-            if key == "conversations"
+            ["conversations"]
+            if key == "chat"
             else get_close_matches(key, sorted(SITE_CONFIG_KEYS), n=1, cutoff=0.8)
         )
         if matches:

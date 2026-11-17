@@ -11,7 +11,7 @@ import pytest
 from meshview import config
 
 
-@pytest.mark.parametrize("settings", [{}, {"site": {}}, {"site": {"chat": "False"}}])
+@pytest.mark.parametrize("settings", [{}, {"site": {}}, {"site": {"conversations": "False"}}])
 def test_supported_and_missing_site_options_do_not_warn(caplog, settings):
     with caplog.at_level(logging.WARNING, logger="meshview.config"):
         config.warn_unknown_site_keys(settings, "custom.ini")
@@ -52,12 +52,12 @@ def test_shipped_site_options_are_recognized(caplog, filename):
 
 def test_startup_checks_the_selected_config_file(tmp_path):
     filename = tmp_path / "custom.ini"
-    filename.write_text("[site]\nCHAT = False\nfirehose_interal = 10\n")
+    filename.write_text("[site]\nCONVERSATIONS = False\nfirehose_interal = 10\n")
     result = subprocess.run(
         [
             sys.executable,
             "-c",
-            "from meshview.config import CONFIG; print(CONFIG['site']['chat'])",
+            "from meshview.config import CONFIG; print(CONFIG['site']['conversations'])",
             "--config",
             str(filename),
         ],
@@ -70,7 +70,7 @@ def test_startup_checks_the_selected_config_file(tmp_path):
     assert "firehose_interal" in result.stderr
     assert "Did you mean 'firehose_interval'?" in result.stderr
     assert str(filename) in result.stderr
-    assert "Unknown [site] key 'chat'" not in result.stderr
+    assert "Unknown [site] key 'conversations'" not in result.stderr
 
 
 @pytest.mark.asyncio
@@ -90,8 +90,8 @@ async def test_site_keys_read_by_api_are_recognized(monkeypatch):
     assert keys <= config.SITE_CONFIG_KEYS
 
 
-def test_removed_conversations_key_warns_and_suggests_chat(caplog):
+def test_old_chat_key_warns_and_suggests_conversations(caplog):
     with caplog.at_level(logging.WARNING, logger="meshview.config"):
-        config.warn_unknown_site_keys({"site": {"conversations": "False"}}, "custom.ini")
-    assert "Unknown [site] key 'conversations'" in caplog.text
-    assert "Did you mean 'chat'?" in caplog.text
+        config.warn_unknown_site_keys({"site": {"chat": "False"}}, "custom.ini")
+    assert "Unknown [site] key 'chat'" in caplog.text
+    assert "Did you mean 'conversations'?" in caplog.text

@@ -18,13 +18,13 @@ async def site_config(monkeypatch, site):
     ("site", "expected"),
     [
         ({}, "true"),
-        ({"conversations": "False"}, "true"),
-        ({"chat": "False"}, "false"),
-        ({"conversations": "True", "chat": "False"}, "false"),
-        ({"conversations": "False", "chat": "True"}, "true"),
+        ({"conversations": "False"}, "false"),
+        ({"chat": "False"}, "true"),
+        ({"conversations": "True", "chat": "False"}, "true"),
+        ({"conversations": "False", "chat": "True"}, "false"),
     ],
 )
-async def test_only_chat_option_controls_chat(monkeypatch, site, expected):
+async def test_conversations_option_controls_chat(monkeypatch, site, expected):
     assert (await site_config(monkeypatch, site))["chat"] == expected
 
 
