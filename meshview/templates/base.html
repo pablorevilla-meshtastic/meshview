@@ -186,7 +186,7 @@ body { min-height:100dvh; display:flex; flex-direction:column; }
 #site-announcement-close:hover { background:var(--mesh-hover); color:var(--mesh-text); }
 #site-announcement-close:focus-visible { outline:2px solid var(--mesh-primary); outline-offset:1px; }
 .mesh-footer { display:flex; justify-content:space-between; gap:16px; padding:20px 28px; border-top:1px solid var(--mesh-border); color:var(--mesh-muted); font-size:12px; }
-.mesh-footer-tagline:empty { display:none; }
+.mesh-overview-tagline { color:var(--mesh-muted); font-size:12px; font-weight:400; vertical-align:middle; }
 .mesh-footer-project { display:inline-flex; align-items:center; gap:6px; margin-left:auto; color:var(--mesh-muted); text-decoration:none; white-space:nowrap; }
 .mesh-footer-project:hover { color:var(--mesh-primary); }
 .mesh-footer-project .ti { font-size:15px; }
@@ -350,7 +350,6 @@ body { min-height:100dvh; display:flex; flex-direction:column; }
 {% block body %}{% endblock %}
 </main>
 <footer class="mesh-footer">
-    <span id="site-tagline" class="mesh-footer-tagline">{{ site_description }}</span>
     <a class="mesh-footer-project" href="https://github.com/pablorevilla-meshtastic/meshview" target="_blank" rel="noopener" title="{{ tr("Meshview on GitHub") }}">
         <span class="ti ti-brand-github" aria-hidden="true"></span>
         <span id="site-version">Meshview</span><span class="visually-hidden"> · GitHub</span>

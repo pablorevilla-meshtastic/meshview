@@ -300,7 +300,7 @@ a.mesh-inspector-packet:hover { background:var(--mesh-hover); }
 {% block body %}
 {% if dashboard %}
 <section class="mesh-page-heading is-compact">
-    <h1>{{ tr("Mesh overview") }}</h1>
+    <h1>{{ tr("Mesh overview") }}{% if site_description %} <span id="site-tagline" class="mesh-overview-tagline">({{ site_description }})</span>{% endif %}</h1>
     <a class="mesh-secondary-button" href="/stats">{{ tr("View statistics ↗") }}</a>
 </section>
 <section class="mesh-metrics" aria-label="{{ tr("Network summary") }}">
