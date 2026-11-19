@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block css %}
+<style>
+.timestamp { min-width: 10em; color: #ccc; }
+
+.chat-packet:nth-of-type(odd) { background-color: #3a3a3a; }
+.chat-packet {
+    border-bottom: 1px solid #555;
+    padding: 3px 6px;
+    border-radius: 6px;
+    margin: 0;
+}
+
+.chat-packet > [class^="col-"] {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+}
+
+.chat-packet:nth-of-type(even) { background-color: #333333; }
+
+.channel { font-style: italic; color: #bbb; }
+.channel a { font-style: normal; color: #999; }
+
+#weekly-message { margin: 15px 0; font-weight: bold; color: #ffeb3b; }
+#total-count { margin-bottom: 10px; font-style: italic; color: #ccc; }
+#net-note { margin: 16px 0 0; font-size: 0.9rem; color: #aaa; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    <!-- ⭐ NET TITLE WITH ICON ⭐ -->
+    <div class="container px-2">
+        <h2 style="color:white; margin:0 0 10px 0;">
+            <span class="icon">💬</span>
+            <span data-translate-lang="net_title"></span>
+        </h2>
+    </div>
+
+    <!-- Weekly network message -->
+    <div id="weekly-message"></div>
+
+
+    <!-- Total message count -->
+    <div id="total-count">
+        <span data-translate-lang="total_messages">Total messages:</span>
+        <span id="total-count-value">0</span>
+    </div>
+
+    <div id="chat-container">
+        <div class="container" id="chat-log"></div>
+    </div>
+
+    <div id="net-note">
+        Only the earliest report from each device is listed.
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+
+    const chatContainer = document.querySelector("#chat-log");
+    const weeklyMessageEl = document.querySelector("#weekly-message");
+    const totalCountValueEl = document.querySelector("#total-count-value");
+
+    if (!chatContainer || !weeklyMessageEl || !totalCountValueEl) {
+        console.error("Required elements missing");
+        return;
+    }
+
+    const renderedPacketIds = new Set();
+    const renderedNodeIds = new Set();
+    let netTranslations = {};
+    let netTag = "";
+
+    /* -----------------------------------
+       Escape HTML safely
+    ----------------------------------- */
+    function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text ?? "";
+        return div.innerHTML;
+    }
+
+    /* -----------------------------------
+       Apply translations
+    ----------------------------------- */
+    function applyTranslations(trans, root=document) {
+        root.querySelectorAll("[data-translate-lang]").forEach(el => {
+            const key = el.dataset.translateLang;
+            if (trans[key]) el.textContent = trans[key];
+        });
+        root.querySelectorAll("[data-translate-lang-title]").forEach(el => {
+            const key = el.dataset.translateLangTitle;
+            if (trans[key]) el.title = trans[key];
+        });
+    }
+
+    /* -----------------------------------
+       Update count
+    ----------------------------------- */
+    function updateTotalCount() {
+        totalCountValueEl.textContent = renderedNodeIds.size;
+    }
+
+    /* -----------------------------------
+       Render single packet
+    ----------------------------------- */
+    function renderPacket(packet) {
+        if (renderedPacketIds.has(packet.id)) return;
+        renderedPacketIds.add(packet.id);
+        renderedNodeIds.add(packet.from_node_id);
+
+        const date = new Date(packet.import_time_us / 1000);
+
+        const timeStr = date.toLocaleTimeString([], {
+            hour: "numeric",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true
+        });
+
+        const dateStr =
+            `${String(date.getMonth()+1).padStart(2,"0")}/`+
+            `${String(date.getDate()).padStart(2,"0")}/`+
+            date.getFullYear();
+
+        const timestamp = `${timeStr} - ${dateStr}`;
+
+        const fromName =
+            (packet.long_name || "").trim() ||
+            `${netTranslations.node_fallback} ${packet.from_node_id}`;
+
+        const div = document.createElement("div");
+        div.className = "row chat-packet";
+        div.dataset.packetId = packet.id;
+
+        div.innerHTML = `
+            <span class="col-2 timestamp" title="${packet.import_time_us}">
+                ${timestamp}
+            </span>
+
+            <span class="col-2 channel">
+                <a href="/packet/${packet.id}"
+                   data-translate-lang-title="view_packet_details">✉️</a>
+                ${escapeHtml(packet.channel || "")}
+            </span>
+
+            <span class="col-3 nodename">
+                <a href="/node/${packet.from_node_id}">
+                    ${escapeHtml(fromName)}
+                </a>
+            </span>
+
+            <span class="col-5 message">
+                ${escapeHtml(packet.payload).replace(/\n/g,"<br>")}
+            </span>
+        `;
+
+        chatContainer.prepend(div);
+        applyTranslations(netTranslations, div);
+        updateTotalCount();
+    }
+
+    /* -----------------------------------
+       Sort descending by time
+    ----------------------------------- */
+    function renderPacketsEnsureDescending(packets) {
+        if (!packets || !packets.length) return;
+        const earliestByNode = new Map();
+
+        for (const packet of packets) {
+            const existing = earliestByNode.get(packet.from_node_id);
+            if (!existing || packet.import_time_us < existing.import_time_us) {
+                earliestByNode.set(packet.from_node_id, packet);
+            }
+        }
+
+        const sorted = Array.from(earliestByNode.values()).sort(
+            (a, b) => b.import_time_us - a.import_time_us
+        );
+        for (let i = sorted.length - 1; i >= 0; i--) {
+            renderPacket(sorted[i]);
+        }
+    }
+
+    /* -----------------------------------
+       Fetch initial net-tagged packets
+    ----------------------------------- */
+    async function fetchInitialPackets(tag) {
+        if (!tag) return;
+
+        try {
+            const sixDaysAgoMs = Date.now() - 6*24*60*60*1000;
+            const sinceUs = Math.floor(sixDaysAgoMs * 1000);
+
+            const url =
+                `/api/packets?portnum=1&contains=${encodeURIComponent(tag)}&since=${sinceUs}&limit=1000`;
+
+            const resp = await fetch(url);
+            const data = await resp.json();
+
+            if (data?.packets?.length)
+                renderPacketsEnsureDescending(data.packets);
+
+        } catch (err) {
+            console.error("Initial fetch error:", err);
+        }
+    }
+
+    /* -----------------------------------
+       Load translations from section=net
+    ----------------------------------- */
+    async function loadTranslations(cfg) {
+        try {
+            const lang = cfg?.site?.language || "en";
+            const res = await fetch(`/api/lang?lang=${lang}&section=net`);
+            netTranslations = await res.json();
+            applyTranslations(netTranslations, document);
+        } catch (err) {
+            console.error("Failed loading translations", err);
+        }
+    }
+
+    /* -----------------------------------
+       MAIN
+    ----------------------------------- */
+    try {
+        const cfg = await window._siteConfigPromise;
+        const site = cfg?.site || {};
+
+        netTag = site.net_tag || "";
+
+        weeklyMessageEl.textContent = site.weekly_net_message || "";
+
+
+        await loadTranslations(cfg);
+        await fetchInitialPackets(netTag);
+
+    } catch (err) {
+        console.error("Initialization failed:", err);
+
+        weeklyMessageEl.textContent =
+            netTranslations.failed_to_load_site_config ||
+            "Failed to load site config.";
+    }
+
+});
+</script>
+{% endblock %}

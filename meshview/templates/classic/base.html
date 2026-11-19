@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="{{ ui_language }}" data-bs-theme="dark">
+<head>
+    <title>Meshview</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Scripts -->
+    <script src="/static/vendor/bootstrap-5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="/static/vendor/bootstrap-5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/vendor/leaflet-1.9.4/dist/leaflet.css"/>
+    <script src="/static/vendor/leaflet-1.9.4/dist/leaflet.js"></script>
+    <script src="/static/html-escape.js"></script>
+    <script src="/static/csv.js"></script>
+
+    <script>
+        window.meshTranslations = {{ ui_translations|tojson }};
+        window.meshLanguage = {{ ui_language|tojson }};
+        {% include "map-tiles.html" %}
+    </script>
+    <script src="/static/i18n.js"></script>
+
+    {% block head %}{% endblock %}
+
+    <style>
+        body {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        body.ready {
+            opacity: 1;
+        }
+
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 500ms ease-in;
+        }
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+
+        #search_form {
+            z-index: 4000;
+        }
+
+        #details_map {
+            width: 100%;
+            height: 500px;
+        }
+
+    </style>
+
+    {% block css %}{% endblock %}
+</head>
+
+<body>
+<br>
+<div style="text-align:center" id="site-header"></div>
+<div style="text-align:center" id="site-message"></div>
+<div style="text-align:center" id="site-menu"></div>
+
+<br>
+
+{% block body %}{% endblock %}
+
+<br>
+<div style="text-align:center" id="footer" data-translate="footer"></div>
+<div style="text-align:center"><small id="site-version">ver. unknown</small></div>
+<br>
+
+<script>
+// --- Shared Promises ---
+if (!window._siteConfigPromise) {
+    window._siteConfigPromise = (async () => {
+        try {
+            const res = await fetch("/api/config");
+            const cfg = await res.json();
+            window._siteConfig = cfg;
+            console.log("Loaded config:", cfg);
+            return cfg;
+        } catch (err) {
+            console.error("Failed to load /api/config:", err);
+            return {};
+        }
+    })();
+}
+
+// --- Load language AFTER config ---
+if (!window._langPromise) {
+    window._langPromise = (async () => {
+        try {
+            const cfg = await window._siteConfigPromise;
+            const site = cfg.site || {};
+            const userLang = site.language || "en";
+            const section = "base";
+
+            const url = `/api/lang?lang=${userLang}&section=${section}`;
+            const res = await fetch(url);
+            const lang = await res.json();
+
+            window._lang = lang;
+            console.log(`Loaded language (${userLang}):`, lang);
+
+            return lang;
+        } catch (err) {
+            console.error("Failed to load language:", err);
+            return {};
+        }
+    })();
+}
+
+// --- Translation Helper ---
+function applyTranslations(dict) {
+    document.querySelectorAll("[data-translate]").forEach(el => {
+        const key = el.dataset.translate;
+        const value = dict[key];
+        if (!value) return;
+
+        if (el.placeholder) {
+            el.placeholder = value;
+        } else if (el.tagName === "INPUT" && el.value) {
+            el.value = value;
+        } else if (key === "footer") {
+            el.innerHTML = value;
+        } else {
+            el.textContent = value;
+        }
+    });
+}
+
+// --- Fill portnum select dynamically ---
+function fillPortnumSelect(dict, selectedValue) {
+    const sel = document.getElementById("portnum_select");
+    if (!sel) return;
+
+    const portOptions = dict.portnum_options || {};
+    sel.innerHTML = "";
+
+    const allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = dict.all || "All";
+    if (!selectedValue) allOption.selected = true;
+    sel.appendChild(allOption);
+
+    for (const [val, label] of Object.entries(portOptions)) {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = label;
+        if (parseInt(val) === parseInt(selectedValue)) {
+            opt.selected = true;
+        }
+        sel.appendChild(opt);
+    }
+}
+
+// --- Main Init ---
+async function initializePage() {
+    try {
+        const [cfg, lang] = await Promise.all([
+            window._siteConfigPromise,
+            window._langPromise
+        ]);
+
+        const dict = lang || {};
+        const site = cfg.site || {};
+
+        // Title
+        document.title = "Meshview - " + (site.title || "");
+
+        // Header & Message
+        const title = document.createElement("strong");
+        title.textContent = [site.title, site.domain ? "(" + site.domain + ")" : ""].filter(Boolean).join(" ");
+        document.getElementById("site-header").replaceChildren(title);
+
+        document.getElementById("site-message").textContent = site.message || "";
+
+        // Menu
+        const menu = document.getElementById("site-menu");
+        if (menu) {
+            const items = [];
+            const keys = ["nodes", "chat", "everything", "graphs", "net", "map", "stats", "top"];
+            const urls = ["/nodelist", "/chat", "/firehose", "/nodegraph", "/net", "/map", "/stats", "/top"];
+
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                if (site[key] === "true") {
+                    items.push(`<a href="${urls[i]}">${dict[key] || key}</a>`);
+                }
+            }
+            items.push('<a href="https://meshview.world" target="_blank" rel="noopener noreferrer">MeshviewWorld</a>');
+
+            menu.innerHTML = items.join("&nbsp;-&nbsp;");
+        }
+
+        // Version
+        document.getElementById("site-version").textContent =
+            "ver. " + (site.version || "unknown");
+
+        // Apply translations
+        applyTranslations(dict);
+        fillPortnumSelect(dict, "{{ portnum or '' }}");
+
+        document.body.classList.add("ready");
+    } catch (err) {
+        console.error("Failed to initialize page:", err);
+        document.body.classList.add("ready");
+    }
+}
+
+document.addEventListener("DOMContentLoaded", initializePage);
+</script>
+
+</body>
+</html>

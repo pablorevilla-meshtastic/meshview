@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block css %}
+<style>
+    body { background-color: #121212; color: #ddd; }
+    h1 { text-align: center; margin-top: 20px; color: #fff; }
+
+    .top-container {
+        max-width: 1100px;
+        margin: 25px auto;
+        padding: 0 15px;
+    }
+
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 15px;
+    }
+
+    .filter-bar select {
+        background-color: #1f2327;
+        border: 1px solid #444;
+        color: #ddd;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+    table th, table td {
+        padding: 12px;
+        border: 1px solid #444;
+        text-align: left;
+        color: #ddd;
+    }
+
+    table th { background-color: #333; }
+
+    table tbody tr:nth-child(odd)  { background-color: #272b2f; }
+    table tbody tr:nth-child(even) { background-color: #212529; }
+    table tbody tr:hover { background-color: #555; cursor: pointer; }
+
+    .node-link {
+        color: #9fd4ff;
+        text-decoration: none;
+    }
+    .node-link:hover { text-decoration: underline; }
+
+    .good-x { color: #81ff81; font-weight: bold; }
+    .ok-x   { color: #e8e86d; font-weight: bold; }
+    .bad-x  { color: #ff6464; font-weight: bold; }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+
+<h1 data-translate-lang="top_traffic_nodes">Top Nodes Traffic</h1>
+
+<div class="top-container">
+
+    <div class="filter-bar">
+        <div>
+            <label data-translate-lang="channel">Channel:</label>
+            <select id="channelFilter"></select>
+        </div>
+    </div>
+
+    <div style="margin-bottom:10px;font-weight:bold;">
+        <span data-translate-lang="showing_nodes">Showing</span>
+        <span id="node-count">0</span>
+        <span data-translate-lang="nodes_suffix">nodes</span>
+    </div>
+
+    <table id="nodesTable">
+        <thead>
+            <tr>
+                <th data-translate-lang="long_name">Long Name</th>
+                <th data-translate-lang="short_name">Short Name</th>
+                <th data-translate-lang="channel">Channel</th>
+                <th data-translate-lang="packets_sent">Sent (24h)</th>
+                <th data-translate-lang="times_seen">Seen (24h)</th>
+                <th data-translate-lang="avg_gateways">Avg Gateways</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <div class="pagination">
+        <button id="prevPage" class="btn btn-sm btn-secondary">Prev</button>
+        <span id="pageInfo"></span>
+        <button id="nextPage" class="btn btn-sm btn-secondary">Next</button>
+    </div>
+
+</div>
+
+<script>
+/* ======================================================
+   TRANSLATIONS
+   ====================================================== */
+let topTranslations = {};
+
+function applyTranslationsTop(dict, root=document) {
+    root.querySelectorAll("[data-translate-lang]").forEach(el => {
+        const key = el.dataset.translateLang;
+        if (!dict[key]) return;
+        el.textContent = dict[key];
+    });
+}
+
+async function loadTranslationsTop() {
+    const cfg = await window._siteConfigPromise;
+    const lang = cfg?.site?.language || "en";
+    const res = await fetch(`/api/lang?lang=${lang}&section=top`);
+    topTranslations = await res.json();
+    applyTranslationsTop(topTranslations);
+}
+
+/* ======================================================
+   CONFIG
+   ====================================================== */
+const PAGE_SIZE = 20;
+let currentPage = 0;
+let totalRows = 0;
+
+/* ======================================================
+   HELPERS
+   ====================================================== */
+function avgClass(v) {
+    if (v >= 10) return "good-x";
+    if (v >= 2)  return "ok-x";
+    return "bad-x";
+}
+
+/* ======================================================
+   LOAD CHANNELS
+   ====================================================== */
+async function loadChannels() {
+    const res = await fetch("/api/channels");
+    const data = await res.json();
+    const sel = document.getElementById("channelFilter");
+
+    sel.innerHTML = "";
+    const allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = topTranslations.all_channels || "All channels";
+    sel.appendChild(allOpt);
+
+    for (const ch of data.channels || []) {
+        const opt = document.createElement("option");
+        opt.value = ch;
+        opt.textContent = ch;
+        sel.appendChild(opt);
+    }
+
+    sel.value = "";
+}
+
+/* ======================================================
+   FETCH + RENDER
+   ====================================================== */
+async function renderTable() {
+    const tbody = document.querySelector("#nodesTable tbody");
+    tbody.innerHTML = "";
+
+    const channel = document.getElementById("channelFilter").value;
+    const offset  = currentPage * PAGE_SIZE;
+
+    const url = new URL("/api/stats/top", window.location.origin);
+    url.searchParams.set("limit", PAGE_SIZE);
+    url.searchParams.set("offset", offset);
+    if (channel) url.searchParams.set("channel", channel);
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    totalRows = data.total || 0;
+
+    for (const n of data.nodes || []) {
+        const tr = document.createElement("tr");
+        tr.onclick = () => location.href = `/node/${n.node_id}`;
+
+        tr.innerHTML = `
+            <td>
+                <a class="node-link" href="/node/${n.node_id}"
+                   onclick="event.stopPropagation()">
+                    ${escapeHtml(n.long_name || n.node_id)}
+                </a>
+            </td>
+            <td>${escapeHtml(n.short_name || "")}</td>
+            <td>${escapeHtml(n.channel || "")}</td>
+            <td>${n.sent}</td>
+            <td>${n.seen}</td>
+            <td><span class="${avgClass(n.avg)}">${n.avg.toFixed(1)}</span></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+
+    document.getElementById("node-count").textContent = totalRows;
+    document.getElementById("pageInfo").textContent =
+        `Page ${currentPage + 1} / ${totalPages}`;
+
+    document.getElementById("prevPage").disabled = currentPage === 0;
+    document.getElementById("nextPage").disabled = currentPage >= totalPages - 1;
+}
+
+/* ======================================================
+   INIT
+   ====================================================== */
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadTranslationsTop();
+    await loadChannels();
+    await renderTable();
+
+    channelFilter.onchange = () => {
+        currentPage = 0;
+        renderTable();
+    };
+
+    prevPage.onclick = () => {
+        if (currentPage > 0) {
+            currentPage--;
+            renderTable();
+        }
+    };
+
+    nextPage.onclick = () => {
+        currentPage++;
+        renderTable();
+    };
+});
+</script>
+
+{% endblock %}

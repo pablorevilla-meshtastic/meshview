@@ -1,0 +1,550 @@
+{% extends "base.html" %}
+
+{% block title %}Packet Details{% endblock %}
+
+{% block head %}
+<script src="/static/portmaps.js"></script>
+{% endblock %}
+
+{% block css %}
+{{ super() }}
+<style>
+
+/* --- Packet page container --- */
+.packet-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 15px;
+    font-family: "JetBrains Mono", monospace;
+}
+
+/* --- Packet Details Card --- */
+.packet-card .card-body { padding: 26px 30px; }
+.packet-card {
+    background-color: #1e1f22;
+    border: 1px solid #3a3a3a;
+    border-radius: 12px;
+    color: #ddd;
+    margin-top: 35px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.35);
+    overflow: hidden;
+}
+
+.packet-card .card-header {
+    background: linear-gradient(90deg, #2c2f35, #25262a);
+    border-bottom: 1px solid #3f3f3f;
+    font-weight: 600;
+    font-size: 1.1em;
+    padding: 14px 18px;
+    color: #e2e6ea;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* --- Map --- */
+#map {
+    width: 100%;
+    height: 640px;
+    border-radius: 10px;
+    margin-top: 20px;
+    border: 1px solid #333;
+    display: none;
+}
+
+/* --- SOURCE MARKER --- */
+.source-marker {
+    width: 24px;
+    height: 24px;
+    background: rgba(255,0,0,0.55);
+    border: 3px solid #ff0000;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(255,0,0,0.7);
+}
+
+/* --- Seen Table --- */
+.seen-table {
+    border-collapse: separate;
+    border-spacing: 0 6px;
+    font-size: 0.92em;
+}
+.seen-table thead th {
+    background-color: #2a2b2f;
+    color: #e2e2e2;
+    padding: 10px 12px;
+    border: none !important;
+    text-transform: uppercase;
+    font-size: 0.75em;
+}
+.seen-table tbody td {
+    background: #323338;
+    color: #f0f0f0;
+    border-top: 1px solid #4a4c4f !important;
+    border-bottom: 1px solid #4a4c4f !important;
+    padding: 10px 12px !important;
+}
+.seen-table tbody tr:hover td { background-color: #3a3c41 !important; }
+.seen-table tbody tr td:first-child {
+    border-left: 1px solid #4a4c4f;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+.seen-table tbody tr td:last-child {
+    border-right: 1px solid #4a4c4f;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container mt-4 mb-5 packet-container">
+
+    <div id="loading" data-translate-lang="loading">Loading packet information...</div>
+    <div id="packet-card" class="packet-card d-none"></div>
+
+    <div id="map"></div>
+
+    <div id="seen-container" class="mt-4 d-none">
+        <h5 style="color:#ccc; margin:15px 0 10px 0;">
+            📡 <span data-translate-lang="seen_by">Seen By</span>
+            <span id="seen-count" style="color:#4da6ff;"></span>
+        </h5>
+
+        <div class="table-responsive">
+            <table class="table table-dark table-sm seen-table">
+                <thead>
+                    <tr>
+                        <th data-translate-lang="gateway">Gateway</th>
+                        <th data-translate-lang="rssi">RSSI</th>
+                        <th data-translate-lang="snr">SNR</th>
+                        <th data-translate-lang="hops">Hops</th>
+                        <th data-translate-lang="channel">Channel</th>
+                        <th data-translate-lang="time">Time</th>
+                    </tr>
+                </thead>
+                <tbody id="seen-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+
+/* ======================================================
+   PACKET PAGE TRANSLATION
+   ====================================================== */
+let packetTranslations = {};
+
+async function loadTranslationsPacket() {
+    try {
+        const cfg = await window._siteConfigPromise;
+        const lang = cfg?.site?.language || "en";
+        const res = await fetch(`/api/lang?lang=${lang}&section=packet`);
+        packetTranslations = await res.json();
+        applyTranslationsPacket(packetTranslations);
+    } catch (err) {
+        console.error("Packet translations failed:", err);
+    }
+}
+
+function applyTranslationsPacket(dict, root = document) {
+    root.querySelectorAll("[data-translate-lang]").forEach(el => {
+        const key = el.dataset.translateLang;
+        if (dict[key]) el.textContent = dict[key];
+    });
+}
+
+/* ======================================================
+   PACKET PAGE MAIN
+   ====================================================== */
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+    await loadTranslationsPacket();  // <-- IMPORTANT
+
+    const packetCard    = document.getElementById("packet-card");
+    const loading       = document.getElementById("loading");
+    const mapDiv        = document.getElementById("map");
+    const seenContainer = document.getElementById("seen-container");
+    const seenTableBody = document.getElementById("seen-table-body");
+    const seenCountSpan = document.getElementById("seen-count");
+
+    /* ---------------------------------------------
+       Identify packet ID
+    ----------------------------------------------*/
+    const match = window.location.pathname.match(/\/packet\/(\d+)/);
+    if (!match) {
+        loading.textContent = packetTranslations.invalid_url || "Invalid packet URL";
+        return;
+    }
+    const packetId = match[1];
+
+    /* PORT LABELS (NOT TRANSLATED) */
+    const PORT_NAMES = window.PORT_LABEL_MAP;
+
+    /* ---------------------------------------------
+       Fetch packet
+    ----------------------------------------------*/
+    const packetRes = await fetch(`/api/packets?packet_id=${packetId}`);
+    const packetData = await packetRes.json();
+    if (!packetData.packets.length) {
+        loading.textContent = packetTranslations.not_found || "Packet not found.";
+        return;
+    }
+    const p = packetData.packets[0];
+
+    /* ---------------------------------------------
+       Load nodes for names & positions
+    ----------------------------------------------*/
+    const nodesRes = await fetch("/api/nodes");
+    const nodesData = await nodesRes.json();
+    const nodeLookup = {};
+    (nodesData.nodes || []).forEach(n => nodeLookup[n.node_id] = n);
+
+    const fromNodeObj = nodeLookup[p.from_node_id];
+    const toNodeObj   = nodeLookup[p.to_node_id];
+
+    const fromNodeLabel = escapeHtml(fromNodeObj?.long_name || p.from_node_id);
+
+    const toNodeLabel =
+        p.to_node_id == 4294967295
+            ? (packetTranslations.all_broadcast || "All")
+            : escapeHtml(toNodeObj?.long_name || p.to_node_id);
+
+    /* ---------------------------------------------
+       Parse payload for lat/lon
+    ----------------------------------------------*/
+    let lat = null, lon = null;
+    const parsed = {};
+
+    if (p.payload?.includes(":")) {
+        p.payload.split("\n").forEach(line => {
+            const [k, v] = line.split(":").map(x=>x.trim());
+            if (k && v !== undefined) {
+                parsed[k] = v;
+                if (k === "latitude_i") lat = Number(v) / 1e7;
+                if (k === "longitude_i") lon = Number(v) / 1e7;
+            }
+        });
+    }
+
+    /* ---------------------------------------------
+       Render card
+    ----------------------------------------------*/
+    const time = p.import_time_us
+        ? new Date(p.import_time_us / 1000).toLocaleString()
+        : "—";
+
+    const telemetryExtras = [];
+    if (parsed.PDOP) telemetryExtras.push(`PDOP: ${parsed.PDOP}`);
+    if (parsed.sats_in_view) telemetryExtras.push(`Sats: ${parsed.sats_in_view}`);
+    if (parsed.ground_speed) telemetryExtras.push(`Speed: ${parsed.ground_speed}`);
+    if (parsed.altitude)     telemetryExtras.push(`Altitude: ${parsed.altitude}`);
+
+    packetCard.innerHTML = `
+        <div class="card-header">
+            <span>
+                <span data-translate-lang="packet_id_label">${packetTranslations.packet_id_label || "Packet ID:"}</span>
+                <i>${p.id}</i>
+            </span>
+            <small>${time}</small>
+        </div>
+
+        <div class="card-body">
+            <dl>
+                <dt data-translate-lang="from_node">${packetTranslations.from_node || "From Node"}:</dt>
+                <dd><a href="/node/${p.from_node_id}">${fromNodeLabel}</a></dd>
+
+                <dt data-translate-lang="to_node">${packetTranslations.to_node || "To Node"}:</dt>
+                <dd>${
+                    p.to_node_id === 4294967295
+                        ? `<i data-translate-lang="all_broadcast">${packetTranslations.all_broadcast || "All"}</i>`
+                        : p.to_node_id === 1
+                            ? `<i data-translate-lang="direct_to_mqtt">${packetTranslations.direct_to_mqtt || "Direct to MQTT"}</i>`
+                            : `<a href="/node/${p.to_node_id}">${toNodeLabel}</a>`
+                }</dd>
+
+                <dt data-translate-lang="channel">${packetTranslations.channel || "Channel"}:</dt>
+                <dd>${escapeHtml(p.channel ?? "—")}</dd>
+
+                <dt data-translate-lang="port">${packetTranslations.port || "Port"}:</dt>
+                <dd><i>${PORT_NAMES[p.portnum] || "UNKNOWN APP"}</i> (${p.portnum})</dd>
+
+                <dt data-translate-lang="raw_payload">${packetTranslations.raw_payload || "From Raw Payload"}:</dt>
+                <dd><pre>${escapeHtml(p.payload ?? "—")}</pre></dd>
+
+                ${
+                    telemetryExtras.length
+                    ? `<dt data-translate-lang="decoded_telemetry">${packetTranslations.decoded_telemetry || "Decoded Telemetry"}</dt>
+                       <dd><pre>${escapeHtml(telemetryExtras.join("\n"))}</pre></dd>`
+                    : ""
+                }
+
+                ${
+                    lat && lon
+                    ? `<dt data-translate-lang="location">${packetTranslations.location || "Location:"}</dt>
+                       <dd>${lat.toFixed(6)}, ${lon.toFixed(6)}</dd>`
+                    : ""
+                }
+            </dl>
+        </div>
+    `;
+
+    loading.classList.add("d-none");
+    packetCard.classList.remove("d-none");
+
+    /* ---------------------------------------------
+       Map setup
+    ----------------------------------------------*/
+    const map = L.map("map");
+    mapDiv.style.display = "block";
+
+    meshTileLayer()
+      .addTo(map);
+
+    const allBounds = [];
+
+    /* ---------------------------------------------
+       Determine packet source location
+    ----------------------------------------------*/
+    let srcLat = lat;
+    let srcLon = lon;
+
+    if ((!srcLat || !srcLon) && fromNodeObj?.last_lat && fromNodeObj?.last_long) {
+        srcLat = fromNodeObj.last_lat / 1e7;
+        srcLon = fromNodeObj.last_long / 1e7;
+    }
+
+    if (srcLat && srcLon) {
+        allBounds.push([srcLat, srcLon]);
+
+        const sourceIcon = L.divIcon({
+            html: `<div class="source-marker"></div>`,
+            className: "",
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
+        });
+
+        const sourceMarker = L.marker([srcLat, srcLon], {
+            icon: sourceIcon,
+            zIndexOffset: 9999
+        }).addTo(map);
+
+        sourceMarker.bindPopup(`
+            <div style="font-size:0.9em">
+                <b data-translate-lang="packet_source">${packetTranslations.packet_source || "Packet Source"}</b><br>
+                Lat: ${srcLat.toFixed(6)}<br>
+                Lon: ${srcLon.toFixed(6)}<br>
+                <span data-translate-lang="from_node">${packetTranslations.from_node || "From Node:"}</span> ${fromNodeLabel}<br>
+                <span data-translate-lang="channel">${packetTranslations.channel || "Channel:"}</span> ${escapeHtml(p.channel ?? "—")}<br>
+                <span data-translate-lang="port">${packetTranslations.port || "Port:"}</span> ${PORT_NAMES[p.portnum] || "UNKNOWN"} (${p.portnum})
+            </div>
+        `);
+    } else {
+        map.setView([0,0], 2);
+    }
+
+    /* ---------------------------------------------
+       Colors for hops (warm → cold)
+    ----------------------------------------------*/
+    function hopColor(hopValue){
+        const colors = [
+            "#ff3b30","#ff6b22","#ff9f0c","#ffd60a",
+            "#87d957","#57d9c4","#3db2ff","#1e63ff"
+        ];
+        let h = Number(hopValue);
+        if (isNaN(h)) return "#aaa";
+        return colors[Math.min(Math.max(h, 0), 7)];
+    }
+
+    /* ---------------------------------------------
+       Distance helper
+    ----------------------------------------------*/
+    function haversine(lat1, lon1, lat2, lon2){
+        const R = 6371;
+        const dLat = (lat2-lat1)*Math.PI/180;
+        const dLon = (lon2-lon1)*Math.PI/180;
+        const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1*Math.PI/180)*
+            Math.cos(lat2*Math.PI/180)*
+            Math.sin(dLon/2)**2;
+        return R * (2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
+
+    /* ---------------------------------------------
+   Load packets_seen
+----------------------------------------------*/
+const seenRes  = await fetch(`/api/packets_seen/${packetId}`);
+const seenData = await seenRes.json();
+const seenList = seenData.seen ?? [];
+
+/* ---------------------------------------------
+   Sort by hop count (highest first)
+----------------------------------------------*/
+const seenSorted = seenList.slice().sort((a,b)=>{
+    const ha = (a.hop_start ?? 0) - (a.hop_limit ?? 0);
+    const hb = (b.hop_start ?? 0) - (b.hop_limit ?? 0);
+    return hb - ha;
+});
+
+if (seenSorted.length){
+    seenContainer.classList.remove("d-none");
+    seenCountSpan.textContent = `(${seenSorted.length})`;
+}
+
+/* ---------------------------------------------
+   GROUP BY HOP COUNT
+----------------------------------------------*/
+const hopGroups = {};
+
+seenSorted.forEach(s => {
+    const hopValue = Math.max(
+        0,
+        (s.hop_start ?? 0) - (s.hop_limit ?? 0)
+    );
+    if (!hopGroups[hopValue]) hopGroups[hopValue] = [];
+    hopGroups[hopValue].push(s);
+});
+
+function formatHopDisplay(hopKey, hopStart){
+    const startVal = hopStart ?? "—";
+    return `${hopKey}/${startVal}`;
+}
+
+/* ---------------------------------------------
+   Render grouped gateway table + map markers
+----------------------------------------------*/
+seenTableBody.innerHTML = Object.keys(hopGroups)
+    .sort((a,b) => Number(a) - Number(b))   // 0 hop first
+    .map(hopKey => {
+
+        const hopLabel =
+            hopKey === "0"
+                ? (packetTranslations.direct || "Direct (0 hops)")
+                : `${hopKey} ${packetTranslations.hops || "hops"}`;
+
+        const rows = hopGroups[hopKey].map(s => {
+            const node = nodeLookup[s.node_id];
+            const label = escapeHtml(node?.long_name || s.node_id);
+
+            const hopDisplay = formatHopDisplay(hopKey, s.hop_start);
+            const timeStr = s.import_time_us
+                ? new Date(s.import_time_us/1000).toLocaleTimeString()
+                : "—";
+
+            /* ---------------- MAP MARKERS (UNCHANGED) ---------------- */
+            if (node?.last_lat && node.last_long){
+                const rlat = node.last_lat/1e7;
+                const rlon = node.last_long/1e7;
+                allBounds.push([rlat, rlon]);
+                let distanceKm = null;
+                if (srcLat && srcLon) {
+                    distanceKm = haversine(srcLat, srcLon, rlat, rlon);
+                }
+                const distanceMi = distanceKm !== null ? distanceKm * 0.621371 : null;
+                const color = hopColor(hopKey);
+
+                const marker = L.marker([rlat,rlon],{
+                    icon: L.divIcon({
+                        html: `
+                        <div style="
+                            background:${color};
+                            width:24px; height:24px;
+                            border-radius:50%;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            color:white;
+                            font-size:11px;
+                            font-weight:700;
+                            border:2px solid rgba(0,0,0,0.35);
+                            box-shadow:0 0 5px rgba(0,0,0,0.45);
+                        ">${hopKey}</div>`,
+                        className: "",
+                        iconSize:[24,24],
+                        iconAnchor:[12,12]
+                    })
+                }).addTo(map);
+
+                marker.bindPopup(`
+                <div style="font-size:0.9em">
+                    <b>${label}</b><br>
+                    <span data-translate-lang="node_id_short">Node ID</span>:
+                    <a href="/node/${s.node_id}">${s.node_id}</a><br>
+                    HW: ${escapeHtml(node?.hw_model ?? "—")}<br>
+                    <span data-translate-lang="channel">Channel</span>: ${escapeHtml(s.channel ?? "—")}<br>
+                    ${
+                        distanceKm !== null
+                            ? `<span data-translate-lang="distance">Distance</span>:
+                               ${distanceKm.toFixed(1)} km / ${distanceMi.toFixed(1)} mi<br>`
+                            : ""
+                    }
+
+                    <br>
+
+                    <b data-translate-lang="signal">Signal</b><br>
+                    RSSI: ${s.rx_rssi ?? "—"}<br>
+                    SNR: ${s.rx_snr ?? "—"}<br><br>
+
+                    <b data-translate-lang="hops">Hops</b>: ${hopDisplay}
+                </div>
+            `);
+
+            }
+
+            return `
+                <tr>
+                    <td><a href="/node/${s.node_id}">${label}</a></td>
+                    <td>${s.rx_rssi ?? "—"}</td>
+                    <td>${s.rx_snr ?? "—"}</td>
+                    <td>${hopDisplay}</td>
+                    <td>${escapeHtml(s.channel ?? "—")}</td>
+                    <td>${timeStr}</td>
+                </tr>
+            `;
+        }).join("");
+
+        return `
+            <tr>
+                <td colspan="6"
+                    style="
+                        background:#1f2327;
+                        font-weight:700;
+                        color:#9ecbff;
+                        border-top:1px solid #444;
+                        padding:8px 12px;
+                    ">
+                    🔁 ${hopLabel} (${hopGroups[hopKey].length})
+                </td>
+            </tr>
+            ${rows}
+        `;
+    }).join("");
+
+
+    /* ---------------------------------------------
+       Fit map around all markers
+    ----------------------------------------------*/
+    if (allBounds.length > 0){
+        map.fitBounds(allBounds, { padding:[40,40] });
+    }
+
+    /* ---------------------------------------------
+       Escape HTML helper
+    ----------------------------------------------*/
+    function escapeHtml(unsafe) {
+        return String(unsafe ?? "").replace(/[&<"'>]/g, m => ({
+            "&":"&amp;",
+            "<":"&lt;",
+            ">":"&gt;",
+            "\"":"&quot;",
+            "'":"&#039;"
+        })[m]);
+    }
+
+});
+</script>
+
+{% endblock %}

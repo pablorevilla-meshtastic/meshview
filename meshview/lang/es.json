@@ -57,6 +57,8 @@
     "all_channels": "Todos los canales"
   },
   "nodelist": {
+    "nodes_suffix": "nodos",
+    "showing_nodes": "Mostrando",
     "search_placeholder": "Buscar por nombre o ID...",
     "all_roles": "Todos los roles",
     "all_channels": "Todos los canales",
@@ -89,6 +91,7 @@
     "time_days_ago": "días atrás"
   },
   "net": {
+    "total_messages": "Número de mensajes:",
     "net_title": "Red semanal",
     "view_packet_details": "Más detalles"
   },
@@ -117,6 +120,8 @@
     "map_layers": "Capas del mapa"
   },
   "stats": {
+    "expand_chart": "Ampliar Gráfico",
+    "export_csv": "Exportar CSV",
     "node_id": "ID de nodo",
     "text_senders_title": "Principales emisores de texto · canal principal",
     "refresh_sample": "Actualizar muestra",
@@ -172,6 +177,8 @@
     "altitude_map_filtered_count": "Mostrando {located} de {total} routers a {minimum} m o más"
   },
   "top": {
+    "nodes_suffix": "nodos",
+    "showing_nodes": "Mostrando",
     "top_traffic_nodes": "Nodos con mayor tráfico",
     "channel": "Canal",
     "search": "Buscar",
@@ -199,6 +206,7 @@
     "search_node_placeholder": "Buscar nodo..."
   },
   "firehose": {
+    "live_feed": "📡 Flujo en vivo",
     "pause": "Pausar",
     "resume": "Reanudar",
     "time": "Hora",
@@ -227,6 +235,9 @@
     "waypoint": "Punto de ruta"
   },
   "node": {
+    "coverage_help": "Ayuda de cobertura",
+    "expand": "Ampliar",
+    "export_csv": "Exportar CSV",
     "specifications": "Especificaciones",
     "node_id": "ID de nodo",
     "long_name": "Nombre largo",
@@ -634,7 +645,7 @@
     "Map top 50": "Ver los 50 primeros en el mapa",
     "Mesh Graphs": "Gráficos de la malla",
     "Mesh Nodes Population Heatmap": "Mapa de calor de densidad de nodos mesh",
-    "Mesh chat": "Chat de la malla",
+    "Mesh conversations": "Chat de la malla",
     "Mesh overview": "Resumen de la malla",
     "Mesh statistics": "Estadísticas de la malla",
     "Meshview on GitHub": "Meshview en GitHub",

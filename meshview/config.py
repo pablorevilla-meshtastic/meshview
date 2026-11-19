@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 SITE_CONFIG_KEYS = frozenset(
     {
         "domain",
+        "frontend",
         "language",
         "title",
         "message",
@@ -45,6 +46,15 @@ DEFAULT_TILE_ATTRIBUTION = (
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 )
 DEFAULT_TILE_MAX_ZOOM = 19
+
+
+def site_frontend(site: Mapping[str, str]) -> str:
+    """Read the site owner's frontend preference."""
+    frontend = site.get("frontend", "modern").strip().lower()
+    if frontend in ("modern", "classic"):
+        return frontend
+    logger.warning("Invalid [site] frontend setting. Use 'modern' or 'classic'. Using 'modern'.")
+    return "modern"
 
 
 def map_tiles(site: Mapping[str, str]) -> dict:

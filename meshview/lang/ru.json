@@ -55,6 +55,8 @@
     "all_channels": "Все каналы"
   },
   "nodelist": {
+    "nodes_suffix": "ноды",
+    "showing_nodes": "Показать ноды",
     "search_placeholder": "Поиск по имени или ID...",
     "all_roles": "Все роли",
     "all_channels": "Все каналы",
@@ -87,6 +89,7 @@
     "time_days_ago": "дней назад"
   },
   "net": {
+    "total_messages": "Количество сообщений:",
     "net_title": "Еженедельная сеть",
     "view_packet_details": "Больше деталей"
   },
@@ -114,6 +117,8 @@
     "map_layers": "Слои карты"
   },
   "stats": {
+    "expand_chart": "Развернуть диаграмму",
+    "export_csv": "Экспорт CSV",
     "text_senders_title": "Топ отправителей текста · основной канал",
     "refresh_sample": "Обновить выборку",
     "loading": "Загрузка…",
@@ -169,6 +174,8 @@
     "altitude_map_filtered_count": "Показано {located} из {total} роутеров на высоте от {minimum} м"
   },
   "top": {
+    "nodes_suffix": "ноды",
+    "showing_nodes": "Показать",
     "top_traffic_nodes": "Крупнейшие ноды трафика",
     "channel": "Канал",
     "search": "Поиск",
@@ -191,6 +198,7 @@
     "node_not_found": "Узел не найден в текущем канале!"
   },
   "firehose": {
+    "live_feed": "📡 Прямой эфир",
     "pause": "Пауза",
     "resume": "Продолжить",
     "time": "Время",
@@ -219,6 +227,9 @@
     "all_channels": "Все каналы"
   },
   "node": {
+    "coverage_help": "Помощь по покрытию",
+    "expand": "Расширить",
+    "export_csv": "Экспорт в CSV",
     "specifications": "Технические характеристики",
     "node_id": "ID ноды",
     "long_name": "Длинное имя",
@@ -626,7 +637,7 @@
     "Map top 50": "Топ-50 на карте",
     "Mesh Graphs": "Mesh графики",
     "Mesh Nodes Population Heatmap": "Тепловая карта плотности mesh-узлов",
-    "Mesh chat": "Чат mesh-сети",
+    "Mesh conversations": "Чат mesh-сети",
     "Mesh overview": "Обзор mesh-сети",
     "Mesh statistics": "Статистика mesh-сети",
     "Meshview on GitHub": "Meshview на GitHub",

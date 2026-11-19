@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block head %}
+<script src="/static/vendor/echarts-5.5.0/dist/echarts.min.js"></script>
+{% endblock %}
+
+{% block css %}
+<style>
+#traceroute-graph {
+    width: 100%;
+    height: calc(100vh - 270px);
+    border: 1px solid #2a2f36;
+    background: linear-gradient(135deg, #0f1216 0%, #171b22 100%);
+    border-radius: 10px;
+}
+
+#traceroute-graph-wrap {
+    position: relative;
+}
+
+#traceroute-legend {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2;
+    display: grid;
+    gap: 8px;
+    padding: 10px 12px;
+    color: #d6dde6;
+    background: rgba(15, 18, 22, 0.88);
+    border: 1px solid #303743;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.traceroute-legend-row {
+    display: grid;
+    grid-template-columns: 34px auto;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.traceroute-legend-line {
+    height: 0;
+    border-top: 3px solid var(--line-color);
+}
+
+.traceroute-legend-line.muted {
+    border-top-width: 2px;
+    opacity: 0.55;
+}
+
+.traceroute-legend-line.dashed {
+    border-top-style: dashed;
+}
+
+#traceroute-meta {
+    padding: 12px 16px;
+    color: #c8d0da;
+}
+
+#traceroute-error {
+    color: #ff6b6b;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="traceroute-meta">
+    <div><b>Traceroute</b> <span id="traceroute-title"></span></div>
+    <div id="traceroute-error"></div>
+</div>
+<div id="traceroute-graph-wrap">
+    <div id="traceroute-graph"></div>
+    <div id="traceroute-legend" aria-label="Traceroute edge legend">
+        <div class="traceroute-legend-row">
+            <span class="traceroute-legend-line" style="--line-color: #34c759"></span>
+            <span>Winning forward</span>
+        </div>
+        <div class="traceroute-legend-row">
+            <span class="traceroute-legend-line dashed" style="--line-color: #ff3b30"></span>
+            <span>Reported reverse</span>
+        </div>
+        <div class="traceroute-legend-row">
+            <span class="traceroute-legend-line muted" style="--line-color: #7c858f"></span>
+            <span>Reported route</span>
+        </div>
+    </div>
+</div>
+
+<script>
+const el = document.getElementById("traceroute-graph");
+const chart = echarts.init(el);
+
+function packetIdFromPath() {
+    const parts = window.location.pathname.split("/").filter(Boolean);
+    return parts[parts.length - 1];
+}
+
+function addPathEdges(path, edges, style) {
+    for (let i = 0; i < path.length - 1; i++) {
+        edges.push({
+            source: String(path[i]),
+            target: String(path[i + 1]),
+            lineStyle: style
+        });
+    }
+}
+
+function pathKey(path) {
+    return path.map(id => String(id)).join(">");
+}
+
+function addMissingEndpoints(path, startId, endId) {
+    const fullPath = path.map(id => String(id));
+    if (startId && (!fullPath.length || fullPath[0] !== startId)) {
+        fullPath.unshift(startId);
+    }
+    if (endId && (!fullPath.length || fullPath[fullPath.length - 1] !== endId)) {
+        fullPath.push(endId);
+    }
+    return fullPath;
+}
+
+// These lists are deduplicated across observations. A forward path is only known to
+// reach the target if some response reported it; a reverse path carries no such marker.
+function uniqueForwardPaths(data, originId, targetId) {
+    return (data?.unique_forward_paths || [])
+        .map(item => addMissingEndpoints(item.path || [], originId, item.complete ? targetId : null))
+        .filter(path => path.length > 1);
+}
+
+function uniqueReversePaths(data, originId, targetId) {
+    return (data?.unique_reverse_paths || [])
+        .map(path => addMissingEndpoints(path || [], targetId, null))
+        .filter(path => path.length > 1);
+}
+
+async function loadTraceroute() {
+    const packetId = packetIdFromPath();
+    document.getElementById("traceroute-title").textContent = `#${packetId}`;
+
+    const [res, nodesRes] = await Promise.all([
+        fetch(`/api/traceroute/${packetId}`),
+        fetch("/api/nodes"),
+    ]);
+    if (!res.ok) {
+        document.getElementById("traceroute-error").textContent = "Traceroute not found.";
+        return;
+    }
+
+    const data = await res.json();
+    const nodesData = nodesRes.ok ? await nodesRes.json() : { nodes: [] };
+    const nodeShortNameById = new Map(
+        (nodesData.nodes || []).map(n => [String(n.node_id), n.short_name || n.long_name || String(n.node_id)])
+    );
+    const nodeLongNameById = new Map(
+        (nodesData.nodes || []).map(n => [String(n.node_id), n.long_name || n.short_name || String(n.node_id)])
+    );
+    const nodes = new Map();
+    const edges = [];
+
+    // A response packet carries from/to reversed, so use the endpoints the API resolved.
+    const originId = data?.packet?.initiator != null ? String(data.packet.initiator) : null;
+    const targetId = data?.packet?.target != null ? String(data.packet.target) : null;
+    const forwardPaths = (data?.winning_paths?.forward || []).map(path => path.map(id => String(id)));
+    const reversePaths = (data?.winning_paths?.reverse || []).map(path => path.map(id => String(id)));
+    const winningPathKeys = new Set([
+        ...forwardPaths.map(pathKey),
+        ...reversePaths.map(pathKey)
+    ]);
+    const winningForwardNodeIds = new Set(forwardPaths.flat());
+    const hasWinningReversePath = reversePaths.some(path => path.length > 1);
+    const winningForwardPath = forwardPaths.find(path => path.length > 1);
+    const colorStartId = winningForwardPath ? winningForwardPath[0] : originId;
+    const colorEndId = winningForwardPath ? winningForwardPath[winningForwardPath.length - 1] : targetId;
+    const startNodeColor = hasWinningReversePath ? "#ff3b30" : "#34c759";
+    const endNodeColor = hasWinningReversePath ? "#34c759" : "#ff3b30";
+
+    uniqueForwardPaths(data, originId, targetId).forEach(path => {
+        if (winningPathKeys.has(pathKey(path))) {
+            return;
+        }
+        path.forEach(id => nodes.set(String(id), { name: String(id) }));
+        addPathEdges(path, edges, { color: "#7c858f", width: 1.5, opacity: 0.45 });
+    });
+
+    uniqueReversePaths(data, originId, targetId).forEach(path => {
+        if (winningPathKeys.has(pathKey(path))) {
+            return;
+        }
+        path.forEach(id => nodes.set(String(id), { name: String(id) }));
+        addPathEdges(path, edges, { color: "#7c858f", width: 1.5, opacity: 0.45, type: "dashed" });
+    });
+
+    forwardPaths.forEach(path => {
+        path.forEach(id => nodes.set(String(id), { name: String(id) }));
+        addPathEdges(path, edges, { color: "#34c759", width: 3 });
+    });
+
+    reversePaths.forEach(path => {
+        path.forEach(id => nodes.set(String(id), { name: String(id) }));
+        addPathEdges(path, edges, { color: "#ff3b30", width: 2, type: "dashed" });
+    });
+
+    const graphNodes = Array.from(nodes.values()).map(n => {
+        const isColorStart = colorStartId && n.name === colorStartId;
+        const isColorEnd = colorEndId && n.name === colorEndId;
+        const isWinningForwardNode = winningForwardNodeIds.has(n.name);
+        let color = "#3f454d";
+        if (isColorStart) {
+            color = startNodeColor;
+        } else if (isColorEnd) {
+            color = endNodeColor;
+        } else if (isWinningForwardNode) {
+            color = "#b88a2a";
+        }
+        const size = isColorStart || isColorEnd ? 44 : 36;
+        return {
+            id: n.name,
+            name: nodeShortNameById.get(n.name) || n.name,
+            symbolSize: size,
+            itemStyle: { color },
+            label: {
+                show: true,
+                color: "#e7eef7",
+                fontWeight: "bold"
+            },
+            tooltip: {
+                formatter: () => {
+                    const longName = nodeLongNameById.get(n.name) || n.name;
+                    return longName === n.name ? n.name : `${escapeHtml(longName)} (${n.name})`;
+                }
+            }
+        };
+    });
+
+    const option = {
+        backgroundColor: "transparent",
+        tooltip: { trigger: "item" },
+        series: [
+            {
+                type: "graph",
+                layout: "force",
+                roam: true,
+                zoom: 1.2,
+                draggable: true,
+                force: { repulsion: 200, edgeLength: 80 },
+                data: graphNodes,
+                edges: edges,
+                lineStyle: { opacity: 0.8, curveness: 0.1 },
+                edgeSymbol: ["none", "arrow"],
+                edgeSymbolSize: 10
+            }
+        ]
+    };
+
+    chart.setOption(option);
+}
+
+loadTraceroute();
+window.addEventListener("resize", () => chart.resize());
+</script>
+{% endblock %}

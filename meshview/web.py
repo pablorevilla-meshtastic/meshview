@@ -13,7 +13,7 @@ import pydot
 from aiohttp import web
 from google.protobuf import text_format
 from google.protobuf.message import Message
-from jinja2 import Environment, PackageLoader, Undefined, select_autoescape
+from jinja2 import ChoiceLoader, Environment, PackageLoader, Undefined, select_autoescape
 from markupsafe import Markup
 
 from meshtastic.protobuf.mesh_pb2 import Routing
@@ -38,6 +38,10 @@ SOFTWARE_RELEASE = __version_string__  # Keep for backward compatibility
 CONFIG = config.CONFIG
 
 env = Environment(loader=PackageLoader("meshview"), autoescape=select_autoescape())
+classic_env = env.overlay(
+    loader=ChoiceLoader([PackageLoader("meshview", "templates/classic"), env.loader])
+)
+SITE_FRONTEND = config.site_frontend(CONFIG.get("site", {}))
 
 # Start Database
 database.init_database(CONFIG["database"]["connection_string"])
@@ -242,15 +246,22 @@ api.init_api_module(Packet, SEQ_REGEX, LANG_DIR)
 routes = web.RouteTableDef()
 
 
+def render_page(request: web.Request, template_name: str) -> web.Response:
+    """Render the configured frontend for this installation."""
+    kiosk = template_name == "map.html" and request.query.get("kiosk") == "1"
+    classic = not kiosk and SITE_FRONTEND == "classic"
+    if classic and template_name == "index.html":
+        template_name = "map.html"
+    template = (classic_env if classic else env).get_template(template_name)
+    return web.Response(text=template.render(), content_type="text/html")
+
+
 @routes.get("/")
 @routes.get("/index")
 @routes.get("/index.html")
 async def index(request):
-    """Render the network dashboard as the home page."""
-    return web.Response(
-        text=env.get_template("index.html").render(),
-        content_type="text/html",
-    )
+    """Render the home page for the selected frontend."""
+    return render_page(request, "index.html")
 
 
 # redirect for backwards compatibility
@@ -296,103 +307,63 @@ async def serve_doc(request):
 
 @routes.get("/net")
 async def net(request):
-    return web.Response(
-        text=env.get_template("net.html").render(),
-        content_type="text/html",
-    )
+    return render_page(request, "net.html")
 
 
 @routes.get("/map")
 @routes.get("/map.html")
 async def map(request):
-    template = env.get_template("map.html")
-    return web.Response(text=template.render(), content_type="text/html")
+    return render_page(request, "map.html")
 
 
 @routes.get("/reliability")
 async def reliability(request):
-    template = env.get_template("reliability.html")
-    return web.Response(text=template.render(), content_type="text/html")
+    return render_page(request, "reliability.html")
 
 
 @routes.get("/nodelist")
 async def nodelist(request):
-    template = env.get_template("nodelist.html")
-    return web.Response(
-        text=template.render(),
-        content_type="text/html",
-    )
+    return render_page(request, "nodelist.html")
 
 
 @routes.get("/firehose")
 async def firehose(request):
-    return web.Response(
-        text=env.get_template("firehose.html").render(),
-        content_type="text/html",
-    )
+    return render_page(request, "firehose.html")
 
 
 @routes.get("/chat")
 async def chat(request):
-    template = env.get_template("chat.html")
-    return web.Response(
-        text=template.render(),
-        content_type="text/html",
-    )
+    return render_page(request, "chat.html")
 
 
 @routes.get("/packet/{packet_id}")
 async def new_packet(request):
-    template = env.get_template("packet.html")
-    return web.Response(
-        text=template.render(),
-        content_type="text/html",
-    )
+    return render_page(request, "packet.html")
 
 
 @routes.get("/node/{from_node_id}")
 async def firehose_node(request):
-    template = env.get_template("node.html")
-    return web.Response(
-        text=template.render(),
-        content_type="text/html",
-    )
+    return render_page(request, "node.html")
 
 
 @routes.get("/nodegraph")
 async def nodegraph(request):
-    template = env.get_template("nodegraph.html")
-    return web.Response(
-        text=template.render(),
-        content_type="text/html",
-    )
+    return render_page(request, "nodegraph.html")
 
 
 @routes.get("/top")
 async def top(request):
-    template = env.get_template("top.html")
-    return web.Response(
-        text=template.render(),
-        content_type="text/html",
-    )
+    return render_page(request, "top.html")
 
 
 @routes.get("/stats")
 async def stats(request):
-    template = env.get_template("stats.html")
-    return web.Response(
-        text=template.render(),
-        content_type="text/html",
-    )
+    return render_page(request, "stats.html")
 
 
 @routes.get("/traceroute/{packet_id}")
 async def traceroute_page(request):
-    template = env.get_template("traceroute.html")
-    return web.Response(
-        text=template.render(),
-        content_type="text/html",
-    )
+    return render_page(request, "traceroute.html")
 
 
 # Keep !!

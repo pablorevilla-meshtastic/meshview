@@ -44,7 +44,7 @@ def test_catalog_coverage_and_placeholders(language):
 def test_ui_calls_have_catalog_entries():
     catalog = read_catalog("en")["ui"]
     files = [
-        *(ROOT / "meshview" / "templates").glob("*.html"),
+        *(ROOT / "meshview" / "templates").rglob("*.html"),
         *(ROOT / "meshview" / "static").glob("*.html"),
         *(ROOT / "meshview" / "static").glob("*.js"),
     ]
@@ -134,7 +134,7 @@ async def test_language_api_merges_keys_and_invalidates_english_cache(tmp_path, 
 
 def test_legacy_translation_hooks_have_english_defaults():
     catalog = read_catalog("en")
-    for path in (ROOT / "meshview" / "templates").glob("*.html"):
+    for path in (ROOT / "meshview" / "templates").rglob("*.html"):
         section = {"map-view": "map"}.get(path.stem, path.stem)
         if section not in catalog:
             continue

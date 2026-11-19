@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block css %}
+<style>
+.container {
+    margin: 0 auto;
+    padding: 10px;
+}
+#pause-button {
+    white-space: nowrap;
+    padding: 4px 10px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+}
+.firehose-controls {
+    gap: 12px;
+}
+.firehose-filter {
+    min-width: 220px;
+}
+
+.port-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #fff;
+}
+
+/* Packet table */
+.packet-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    color: #e4e9ee;
+}
+
+.packet-table th, .packet-table td {
+    border: 1px solid #3a3f44;
+    padding: 6px 10px;
+    text-align: left;
+}
+.packet-table th {
+    background-color: #1f2226;
+    font-weight: bold;
+}
+.packet-table tr:nth-of-type(odd) { background-color: #272b2f; }
+.packet-table tr:nth-of-type(even) { background-color: #212529; }
+
+/* Port tag */
+.port-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #fff;
+}
+
+.to-mqtt { font-style: italic; color: #aaa; }
+
+/* Payload rows */
+.payload-row { display: none; background-color: #1b1e22; }
+.payload-cell {
+    padding: 8px 12px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    color: #b0bec5;
+}
+.packet-table tr.expanded + .payload-row {
+    display: table-row;
+}
+
+/* Toggle arrow */
+.toggle-btn {
+    cursor: pointer;
+    color: #aaa;
+    margin-right: 6px;
+    font-weight: bold;
+}
+.toggle-btn:hover { color: #fff; }
+
+/* Inline link next to port tag */
+.inline-link {
+    margin-left: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #9fd4ff;
+}
+.inline-link:hover {
+    color: #c7e6ff;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+
+    <form class="d-flex align-items-center justify-content-between mb-3 firehose-controls">
+        <h2 class="mb-0" data-translate-lang="live_feed">📡 Live Feed</h2>
+
+        <div class="d-flex align-items-center gap-2">
+            <label for="channel-filter" class="mb-0" data-translate-lang="channel">Channel</label>
+            <select id="channel-filter" class="form-select form-select-sm firehose-filter">
+                <option value="" data-translate-lang="all_channels">All Channels</option>
+            </select>
+
+            <button type="button"
+                    id="pause-button"
+                    class="btn btn-sm btn-outline-secondary"
+                    data-translate-lang="pause">
+                Pause
+            </button>
+        </div>
+    </form>
+
+    <table class="packet-table">
+        <thead>
+            <tr>
+                <th data-translate-lang="time">Time</th>
+                <th data-translate-lang="packet_id">Packet ID</th>
+                <th data-translate-lang="from">From</th>
+                <th data-translate-lang="to">To</th>
+                <th data-translate-lang="channel">Channel</th>
+                <th data-translate-lang="port">Port</th>
+            </tr>
+        </thead>
+        <tbody id="packet_list"></tbody>
+    </table>
+
+</div>
+
+<script src="/static/portmaps.js"></script>
+<script>
+/* ======================================================
+   FIREHOSE TRANSLATION SYSTEM (isolated from base)
+   ====================================================== */
+let firehoseTranslations = {};
+
+function applyTranslationsFirehose(translations, root=document) {
+    root
+      .querySelectorAll("[data-translate-lang]")
+      .forEach(el => {
+          const key = el.dataset.translateLang;
+          if (!translations[key]) return;
+
+          if (el.tagName === "INPUT" && el.placeholder !== undefined) {
+              el.placeholder = translations[key];
+          } else {
+              el.textContent = translations[key];
+          }
+      });
+}
+
+async function loadTranslationsFirehose() {
+    try {
+        const cfg = await window._siteConfigPromise;
+        const lang = cfg?.site?.language || "en";
+
+        const res = await fetch(`/api/lang?lang=${lang}&section=firehose`);
+        firehoseTranslations = await res.json();
+
+        applyTranslationsFirehose(firehoseTranslations);
+    } catch (err) {
+        console.error("Firehose translation load failed:", err);
+    }
+}
+
+/* ======================================================
+   NODE LOOKUP
+   ====================================================== */
+let nodeMap = {};
+
+async function loadNodes() {
+    try {
+        const res = await fetch("/api/nodes");
+        const data = await res.json();
+
+        for (const n of data.nodes || []) {
+            nodeMap[n.node_id] = n.long_name || n.short_name || n.id || n.node_id;
+        }
+
+        nodeMap[4294967295] = firehoseTranslations.all_broadcast || "All";
+    } catch (err) {
+        console.error("Failed loading nodes:", err);
+    }
+}
+
+function nodeName(id) {
+    return nodeMap[id] || id;
+}
+
+/* ======================================================
+   PORT COLORS & NAMES
+   ====================================================== */
+const PORT_MAP = window.PORT_MAP || {};
+const PORT_COLORS = window.PORT_COLORS || {};
+
+function portLabel(portnum, payload, linksHtml) {
+    const name = PORT_MAP[portnum] || "Unknown";
+    const color = PORT_COLORS[portnum] || "#6c757d";
+
+    const safePayload = escapeHtml(payload || "");
+
+    return `
+        <span class="port-tag" style="background-color:${color}" title="${safePayload}">
+            ${name}
+        </span>
+        <span class="text-secondary">(${portnum})</span>
+        ${linksHtml || ""}
+    `;
+}
+
+/* ======================================================
+   TIME FORMAT
+   ====================================================== */
+function formatTimes(importTimeUs) {
+    const ms = Number(importTimeUs) / 1000;
+    if (!Number.isFinite(ms)) {
+        return { local: "—", utc: "—", epoch: "—" };
+    }
+    const date = new Date(ms);
+    const local = date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZoneName: "short"
+    });
+    const utc = date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZone: "UTC",
+        timeZoneName: "short"
+    });
+    return { local, utc, epoch: String(importTimeUs) };
+}
+
+function logPacketTimes(packet) {
+    const times = formatTimes(packet.import_time_us);
+    console.log(
+        "[firehose] packet time",
+        "id=" + (packet.packet_id ?? packet.id),
+        "epoch_us=" + times.epoch,
+        "local=" + times.local,
+        "utc=" + times.utc
+    );
+}
+
+/* ======================================================
+   FIREHOSE FETCHING
+   ====================================================== */
+let lastImportTimeUs = null;
+let updatesPaused = false;
+let updateInterval = 3000;
+let selectedChannel = "";
+
+async function configureFirehose() {
+    try {
+        const cfg = await window._siteConfigPromise;
+        const sec = cfg?.site?.firehose_interval;
+        if (sec && !isNaN(sec)) updateInterval = sec * 1000;
+    } catch {}
+}
+
+async function loadChannels() {
+    try {
+        const res = await fetch("/api/channels");
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const select = document.getElementById("channel-filter");
+        const channels = data.channels || [];
+
+        for (const channel of channels) {
+            const option = document.createElement("option");
+            option.value = channel;
+            option.textContent = channel;
+            select.appendChild(option);
+        }
+    } catch (err) {
+        console.error("Failed loading channels:", err);
+    }
+}
+
+function resetFirehose() {
+    lastImportTimeUs = null;
+    document.getElementById("packet_list").innerHTML = "";
+}
+
+function matchesSelectedChannel(packet) {
+    if (!selectedChannel) return true;
+    return (packet.channel || "").toLowerCase() === selectedChannel.toLowerCase();
+}
+
+async function fetchUpdates() {
+    if (updatesPaused) return;
+
+    const url = new URL("/api/packets", window.location.origin);
+    url.searchParams.set("limit", 100);
+
+    if (lastImportTimeUs)
+        url.searchParams.set("since", lastImportTimeUs);
+
+    try {
+        const res = await fetch(url);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const packets = data.packets || [];
+        if (!packets.length) return;
+
+        const list = document.getElementById("packet_list");
+
+        for (const pkt of packets.reverse()) {
+            if (!matchesSelectedChannel(pkt)) continue;
+
+            logPacketTimes(pkt);
+
+            /* FROM — includes translation */
+            const from =
+                pkt.from_node_id === 4294967295
+                    ? `<span class="to-mqtt" data-translate-lang="all_broadcast">
+                           ${firehoseTranslations.all_broadcast || "All"}
+                       </span>`
+                    : `<a href="/node/${pkt.from_node_id}" style="text-decoration:underline; color:inherit;">
+                           ${escapeHtml(nodeMap[pkt.from_node_id] || pkt.from_node_id)}
+                       </a>`;
+
+            /* TO — includes translation */
+            const to =
+                pkt.to_node_id === 1
+                    ? `<span class="to-mqtt" data-translate-lang="direct_to_mqtt">
+                           ${firehoseTranslations.direct_to_mqtt || "direct to MQTT"}
+                       </span>`
+                    : pkt.to_node_id === 4294967295
+                    ? `<span class="to-mqtt" data-translate-lang="all_broadcast">
+                           ${firehoseTranslations.all_broadcast || "All"}
+                       </span>`
+                    : `<a href="/node/${pkt.to_node_id}" style="text-decoration:underline; color:inherit;">
+                           ${escapeHtml(nodeMap[pkt.to_node_id] || pkt.to_node_id)}
+                       </a>`;
+
+            let inlineLinks = "";
+
+            // Position link
+            if (pkt.portnum === 3 && pkt.payload) {
+                const latMatch = pkt.payload.match(/latitude_i:\s*(-?\d+)/);
+                const lonMatch = pkt.payload.match(/longitude_i:\s*(-?\d+)/);
+
+                if (latMatch && lonMatch) {
+                    const lat = parseInt(latMatch[1]) / 1e7;
+                    const lon = parseInt(lonMatch[1]) / 1e7;
+                    inlineLinks += ` <a class="inline-link"
+                                        href="https://www.google.com/maps?q=${lat},${lon}"
+                                        target="_blank">📍</a>`;
+                }
+            }
+
+            // Traceroute link
+            if (pkt.portnum === 70) {
+                let traceId = pkt.id;
+                const match = pkt.payload.match(/ID:\s*(\d+)/i);
+                if (match) traceId = match[1];
+
+                inlineLinks += ` <a class="inline-link"
+                                    href="/traceroute/${traceId}"
+                                    >⮕</a>`;
+            }
+
+            const safePayload = escapeHtml(pkt.payload || "");
+            const packetIdCell = pkt.packet_id
+                ? `<a href="/packet/${pkt.storage_id || pkt.id}"
+                      style="text-decoration:underline; color:inherit;">
+                       ${pkt.packet_id}
+                   </a>`
+                : pkt.portnum === 73
+                ? `<span class="text-secondary" title="MQTT map report">Not at Packet</span>`
+                : `<span class="text-secondary" title="No Meshtastic packet ID">—</span>`;
+
+            const html = `
+<tr class="packet-row">
+
+    <td>
+        ${formatTimes(pkt.import_time_us).local}<br>
+    </td>
+
+    <td>
+        <span class="toggle-btn">▶</span>
+        ${packetIdCell}
+    </td>
+
+    <td>${from}</td>
+    <td>${to}</td>
+    <td>${escapeHtml(pkt.channel || "—")}</td>
+    <td>${portLabel(pkt.portnum, pkt.payload, inlineLinks)}</td>
+
+</tr>
+
+<tr class="payload-row">
+    <td colspan="6" class="payload-cell">${safePayload}</td>
+</tr>
+`;
+
+            list.insertAdjacentHTML("afterbegin", html);
+        }
+
+        // Limit table size
+        while (list.rows.length > 400) list.deleteRow(-1);
+
+        lastImportTimeUs = packets[packets.length - 1].import_time_us;
+
+    } catch (err) {
+        console.error("Packet fetch failed:", err);
+    }
+}
+
+/* ======================================================
+   INITIALIZE PAGE
+   ====================================================== */
+document.addEventListener("DOMContentLoaded", async () => {
+
+    const pauseBtn = document.getElementById("pause-button");
+    const channelFilter = document.getElementById("channel-filter");
+
+    pauseBtn.addEventListener("click", () => {
+        updatesPaused = !updatesPaused;
+
+        pauseBtn.textContent =
+            updatesPaused
+                ? (firehoseTranslations.resume || "Resume")
+                : (firehoseTranslations.pause || "Pause");
+    });
+
+    channelFilter.addEventListener("change", async (e) => {
+        selectedChannel = e.target.value;
+        resetFirehose();
+        await fetchUpdates();
+    });
+
+    document.addEventListener("click", e => {
+        const btn = e.target.closest(".toggle-btn");
+        if (!btn) return;
+
+        const row = btn.closest(".packet-row");
+        row.classList.toggle("expanded");
+
+        btn.textContent =
+            row.classList.contains("expanded") ? "▼" : "▶";
+    });
+
+    await loadTranslationsFirehose();
+    await configureFirehose();
+    await loadNodes();
+    await loadChannels();
+
+    fetchUpdates();
+    setInterval(fetchUpdates, updateInterval);
+});
+</script>
+
+{% endblock %}

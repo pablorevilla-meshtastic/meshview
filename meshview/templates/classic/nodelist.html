@@ -1,0 +1,819 @@
+{% extends "base.html" %}
+
+{% block css %}
+<style>
+    html, body {
+    overflow-x: auto !important;
+}
+
+table {
+    /* FIX: allow table to keep natural width so scrolling works */
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+    margin: 1em auto;
+}
+
+/* Desktop scroll wrapper */
+#node-list {
+    width: 100%;
+    overflow-x: auto;     /* allows horizontal scroll */
+    overflow-y: hidden;
+    /* !!! removed display:flex because it prevents scrolling */
+}
+
+#node-list table {
+    width: max-content;   /* table keeps its natural width */
+    min-width: 100%;      /* won't shrink smaller than viewport */
+}
+th, td {
+    padding: 10px;
+    border: 1px solid #333;
+    text-align: left;
+}
+
+th {
+    background-color: #1f1f1f;
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    cursor: pointer;
+}
+
+.sort-icon {
+    font-size: 0.7em;
+    margin-left: 4px;
+}
+
+tr:nth-child(even) {
+    background-color: #181818;
+}
+
+tr:nth-child(odd) {
+    background-color: #222;
+}
+
+tr:hover {
+    background-color: #2a2a2a;
+}
+
+.filter-container {
+    width: 80%;
+    margin: 1em auto;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+select, .export-btn, .search-box, .clear-btn {
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid #333;
+    cursor: pointer;
+}
+
+.search-box {
+    flex: 1;
+}
+
+.export-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+}
+
+.export-btn:hover {
+    background-color: #218838;
+}
+
+.clear-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+}
+
+.clear-btn:hover {
+    background-color: #c82333;
+}
+
+.count-container {
+    width: 80%;
+    margin: 0 auto 10px;
+    font-weight: bold;
+    color: white;
+}
+.node-list-note {
+    width: 80%;
+    margin: -4px auto 10px;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.node-list-note select {
+    padding: 3px 6px;
+    min-width: 70px;
+}
+.node-status {
+    margin-left: 10px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid #2a6a8a;
+    background: #0d2a3a;
+    color: #9fd4ff;
+    font-size: 0.9em;
+    display: inline-block;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+}
+.node-status.active {
+    opacity: 1;
+}
+
+/* Favorite stars */
+.favorite-star {
+    cursor: pointer;
+    font-size: 1.2em;
+    user-select: none;
+    transition: color 0.2s;
+}
+
+.favorite-star:hover {
+    transform: scale(1.2);
+}
+
+.favorite-star.active {
+    color: #ffd700;
+}
+
+/* Favorite filter button */
+.favorites-btn {
+    background-color: #ffd700;
+    color: #000;
+    border: none;
+}
+
+.favorites-btn:hover {
+    background-color: #ffed4e;
+}
+
+.favorites-btn.active {
+    background-color: #ff6b6b;
+    color: white;
+}
+
+/* --------------------------------------------- */
+/* MOBILE CARD VIEW */
+/* --------------------------------------------- */
+@media (max-width: 768px) {
+
+    /* Hide desktop view */
+    #node-list table {
+        display: none;
+    }
+
+    /* Show mobile cards */
+    #mobile-node-list {
+        display: block !important;
+        width: 100%;
+        padding: 0 10px;
+
+        /* If you want horizontal swiping, uncomment:
+        overflow-x: auto;
+        white-space: nowrap; */
+    }
+
+    .node-card {
+        background: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 12px 15px;
+        margin-bottom: 12px;
+        color: white;
+    }
+
+    .node-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+
+    .node-card-field {
+        margin: 4px 0;
+        font-size: 0.9em;
+    }
+
+    .node-card-field b {
+        color: #9fd4ff;
+    }
+
+    .favorite-star {
+        font-size: 1.4em;
+    }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="filter-container">
+
+    <input
+        type="text"
+        id="search-box"
+        class="search-box"
+        data-translate-lang="search_placeholder"
+        placeholder="Search by name or ID or HEX ID..."
+    />
+
+    <select id="role-filter">
+        <option value="" data-translate-lang="all_roles">All Roles</option>
+    </select>
+
+    <select id="channel-filter">
+        <option value="" data-translate-lang="all_channels">All Channels</option>
+    </select>
+
+    <select id="hw-filter">
+        <option value="" data-translate-lang="all_hw">All HW Models</option>
+    </select>
+
+    <select id="firmware-filter">
+        <option value="" data-translate-lang="all_firmware">All Firmware</option>
+    </select>
+
+    <button class="favorites-btn" id="favorites-btn" data-translate-lang="show_favorites">
+        ⭐ Show Favorites
+    </button>
+
+    <button class="export-btn" id="export-btn" data-translate-lang="export_csv">
+        Export CSV
+    </button>
+
+    <button class="clear-btn" id="clear-btn" data-translate-lang="clear_filters">
+        Clear Filters
+    </button>
+</div>
+
+<div class="count-container">
+    <span data-translate-lang="showing_nodes">Showing</span>
+    <span id="node-count">0</span>
+    <span data-translate-lang="nodes_suffix">nodes</span>
+    <span id="node-status" class="node-status" aria-live="polite"></span>
+</div>
+<div class="node-list-note">
+    <span>Showing nodes active in the last</span>
+    <select id="days-active-filter" aria-label="Days active">
+        {% for day in range(1, 15) %}
+        <option value="{{ day }}" {% if day == 3 %}selected{% endif %}>{{ day }}</option>
+        {% endfor %}
+    </select>
+    <span>days.</span>
+</div>
+
+<!-- Desktop table -->
+<div id="node-list">
+    <table>
+        <thead>
+            <tr>
+                <th data-translate-lang="short_name">Short <span class="sort-icon">▲</span></th>
+                <th data-translate-lang="long_name">Long Name <span class="sort-icon"></span></th>
+                <th data-translate-lang="hw_model">HW Model <span class="sort-icon"></span></th>
+                <th data-translate-lang="firmware">Firmware <span class="sort-icon"></span></th>
+                <th data-translate-lang="role">Role <span class="sort-icon"></span></th>
+                <th data-translate-lang="last_lat">Last Latitude <span class="sort-icon"></span></th>
+                <th data-translate-lang="last_long">Last Longitude <span class="sort-icon"></span></th>
+                <th data-translate-lang="channel">Channel <span class="sort-icon"></span></th>
+                <th data-translate-lang="mqtt_gateway">MQTT <span class="sort-icon"></span></th>
+                <th data-translate-lang="last_seen">Last Seen <span class="sort-icon"></span></th>
+                <th data-translate-lang="favorite"></th>
+            </tr>
+        </thead>
+        <tbody id="node-table-body">
+            <tr>
+                <td colspan="11" style="text-align:center; color:white;" data-translate-lang="loading_nodes">
+                    Loading nodes...
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Mobile Card View -->
+<div id="mobile-node-list" style="display:none;"></div>
+
+<script>
+// =====================================================
+// TRANSLATIONS
+// =====================================================
+let nodelistTranslations = {};
+
+function applyTranslationsNodelist() {
+    document.querySelectorAll("[data-translate-lang]").forEach(el => {
+        const key = el.dataset.translateLang;
+        if (nodelistTranslations[key]) {
+            if (el.tagName === "INPUT" && el.placeholder) {
+                el.placeholder = nodelistTranslations[key];
+            } else {
+                el.textContent = nodelistTranslations[key];
+            }
+        }
+    });
+}
+
+async function loadTranslationsNodelist() {
+    try {
+        const cfg = await window._siteConfigPromise;
+        const lang = cfg?.site?.language || "en";
+        const res = await fetch(`/api/lang?lang=${lang}&section=nodelist`);
+        nodelistTranslations = await res.json();
+        applyTranslationsNodelist();
+    } catch (err) {
+        console.error("Failed to load nodelist translations:", err);
+    }
+}
+
+// =====================================================
+// GLOBALS
+// =====================================================
+let allNodes = [];
+let sortColumn = "short_name";
+let sortAsc = true;
+let showOnlyFavorites = false;
+let favoritesSet = new Set();
+let isBusy = false;
+let statusHideTimer = null;
+let statusShownAt = 0;
+const minStatusMs = 300;
+
+const headers = document.querySelectorAll("thead th");
+const keyMap = [
+    "short_name","long_name","hw_model","firmware","role",
+    "last_lat","last_long","channel","is_mqtt_gateway","last_seen_us"
+];
+
+function debounce(fn, delay = 250) {
+    let t;
+    return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), delay);
+    };
+}
+
+function nextFrame() {
+    return new Promise(resolve => requestAnimationFrame(() => resolve()));
+}
+
+function loadFavorites() {
+    const favorites = localStorage.getItem('nodelist_favorites');
+    if (!favorites) {
+        favoritesSet = new Set();
+        return;
+    }
+
+    try {
+        const parsed = JSON.parse(favorites);
+        favoritesSet = new Set(Array.isArray(parsed) ? parsed : []);
+    } catch (err) {
+        console.warn("Failed to parse favorites, resetting.", err);
+        favoritesSet = new Set();
+    }
+}
+function saveFavorites() {
+    localStorage.setItem('nodelist_favorites', JSON.stringify([...favoritesSet]));
+}
+function toggleFavorite(nodeId) {
+    if (favoritesSet.has(nodeId)) {
+        favoritesSet.delete(nodeId);
+    } else {
+        favoritesSet.add(nodeId);
+    }
+    saveFavorites();
+}
+function isFavorite(nodeId) {
+    return favoritesSet.has(nodeId);
+}
+
+function timeAgoFromMs(msTimestamp) {
+    if (!msTimestamp) return "N/A";
+    const diff = Date.now() - msTimestamp;
+
+    if (diff < 60000) return "just now";
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hr ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} days ago`;
+}
+
+// =====================================================
+// DOM LOADED
+// =====================================================
+document.addEventListener("DOMContentLoaded", async function() {
+
+    await loadTranslationsNodelist();
+    loadFavorites();
+
+    const tbody = document.getElementById("node-table-body");
+    const mobileList = document.getElementById("mobile-node-list");
+
+    const roleFilter = document.getElementById("role-filter");
+    const channelFilter = document.getElementById("channel-filter");
+    const hwFilter = document.getElementById("hw-filter");
+    const firmwareFilter = document.getElementById("firmware-filter");
+    const searchBox = document.getElementById("search-box");
+    const countSpan = document.getElementById("node-count");
+    const statusSpan = document.getElementById("node-status");
+    const daysActiveFilter = document.getElementById("days-active-filter");
+    const exportBtn = document.getElementById("export-btn");
+    const clearBtn = document.getElementById("clear-btn");
+    const favoritesBtn = document.getElementById("favorites-btn");
+
+    let lastIsMobile = (window.innerWidth <= 768);
+
+    async function loadNodesForActiveDays() {
+        const daysActive = Number(daysActiveFilter.value) || 3;
+        setStatus("Loading nodes…");
+        await nextFrame();
+        const res = await fetch(`/api/nodes?days_active=${encodeURIComponent(daysActive)}`);
+        if (!res.ok) throw new Error("Failed to fetch nodes");
+
+        const data = await res.json();
+
+        allNodes = data.nodes.map(n => {
+            const firmware = n.firmware || n.firmware_version || "";
+            const last_seen_us = n.last_seen_us || 0;
+            const last_seen_ms = last_seen_us ? (last_seen_us / 1000) : 0;
+
+            return {
+                ...n,
+                firmware,
+                last_seen_us,
+                last_seen_ms,
+                _search: [
+                    n.node_id,
+                    n.id,
+                    n.long_name,
+                    n.short_name
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase()
+            };
+        });
+
+        populateFilters(allNodes);
+        applyFilters(); // ensures initial sort + render uses same path
+        updateSortIcons();
+        setStatus("");
+    }
+
+    try {
+        await loadNodesForActiveDays();
+    } catch (err) {
+        tbody.innerHTML = `<tr>
+            <td colspan="11" style="text-align:center; color:red;">
+                ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
+            </td></tr>`;
+        setStatus("");
+        return;
+    }
+
+    roleFilter.addEventListener("change", applyFilters);
+    channelFilter.addEventListener("change", applyFilters);
+    hwFilter.addEventListener("change", applyFilters);
+    firmwareFilter.addEventListener("change", applyFilters);
+    daysActiveFilter.addEventListener("change", async () => {
+        try {
+            await loadNodesForActiveDays();
+        } catch (err) {
+            console.error("Failed to reload nodes:", err);
+            tbody.innerHTML = `<tr>
+                <td colspan="11" style="text-align:center; color:red;">
+                    ${nodelistTranslations.error_loading_nodes || "Error loading nodes"}
+                </td></tr>`;
+            mobileList.innerHTML = "";
+            countSpan.textContent = 0;
+            setStatus("");
+        }
+    });
+
+    // Debounced only for search typing
+    searchBox.addEventListener("input", debounce(applyFilters, 250));
+
+    exportBtn.addEventListener("click", exportToCSV);
+    clearBtn.addEventListener("click", clearFilters);
+    favoritesBtn.addEventListener("click", toggleFavoritesFilter);
+
+    // Favorite star click handler (delegated)
+    document.addEventListener("click", e => {
+        if (e.target.classList.contains('favorite-star')) {
+            const nodeId = parseInt(e.target.dataset.nodeId, 10);
+            const fav = isFavorite(nodeId);
+
+            if (fav) {
+                e.target.classList.remove("active");
+                e.target.textContent = "☆";
+            } else {
+                e.target.classList.add("active");
+                e.target.textContent = "★";
+            }
+
+            toggleFavorite(nodeId);
+            applyFilters();
+        }
+    });
+
+    headers.forEach((th, index) => {
+        th.addEventListener("click", () => {
+            const key = keyMap[index];
+            // ignore clicks on the "favorite" (last header) which has no sort key
+            if (!key) return;
+
+            sortAsc = (sortColumn === key) ? !sortAsc : true;
+            sortColumn = key;
+
+            applyFilters();
+        });
+    });
+
+    // Re-render on breakpoint change so mobile/desktop view switches instantly
+    window.addEventListener("resize", debounce(() => {
+        const isMobile = (window.innerWidth <= 768);
+        if (isMobile !== lastIsMobile) {
+            lastIsMobile = isMobile;
+            applyFilters();
+        }
+    }, 150));
+
+    function populateFilters(nodes) {
+        const roles = new Set(), channels = new Set(), hws = new Set(), fws = new Set();
+
+        nodes.forEach(n => {
+            if (n.role) roles.add(n.role);
+            if (n.channel) channels.add(n.channel);
+            if (n.hw_model) hws.add(n.hw_model);
+            if (n.firmware) fws.add(n.firmware);
+        });
+
+        fillSelect(roleFilter, roles);
+        fillSelect(channelFilter, channels);
+        fillSelect(hwFilter, hws);
+        fillSelect(firmwareFilter, fws);
+    }
+
+    function fillSelect(select, values) {
+        const currentValue = select.value;
+        select.querySelectorAll("option:not(:first-child)").forEach(opt => opt.remove());
+        [...values].sort().forEach(v => {
+            const opt = document.createElement("option");
+            opt.value = v;
+            opt.textContent = v;
+            select.appendChild(opt);
+        });
+        select.value = values.has(currentValue) ? currentValue : "";
+    }
+
+    function toggleFavoritesFilter() {
+        showOnlyFavorites = !showOnlyFavorites;
+        favoritesBtn.textContent = showOnlyFavorites
+            ? "Show All"
+            : "⭐ Show Favorites";
+        favoritesBtn.classList.toggle("active", showOnlyFavorites);
+        applyFilters();
+    }
+
+    async function applyFilters() {
+        setStatus("Updating…");
+        await nextFrame();
+        const searchTerm = searchBox.value.trim().toLowerCase();
+
+        let filtered = allNodes.filter(n => {
+            const roleMatch = !roleFilter.value || n.role === roleFilter.value;
+            const channelMatch = !channelFilter.value || n.channel === channelFilter.value;
+            const hwMatch = !hwFilter.value || n.hw_model === hwFilter.value;
+            const fwMatch = !firmwareFilter.value || n.firmware === firmwareFilter.value;
+
+            const searchMatch = !searchTerm || n._search.includes(searchTerm);
+            const favMatch = !showOnlyFavorites || isFavorite(n.node_id);
+
+            return roleMatch && channelMatch && hwMatch && fwMatch && searchMatch && favMatch;
+        });
+
+        // IMPORTANT: Always sort the filtered subset to preserve expected behavior
+        filtered = sortNodes(filtered, sortColumn, sortAsc);
+
+        renderTable(filtered);
+        updateSortIcons();
+        setStatus("");
+    }
+
+    function renderTable(nodes) {
+        const isMobile = window.innerWidth <= 768;
+        const shouldRenderTable = !isMobile;
+
+        if (shouldRenderTable) {
+            tbody.innerHTML = "";
+        } else {
+            mobileList.innerHTML = "";
+        }
+
+        const tableFrag = shouldRenderTable ? document.createDocumentFragment() : null;
+        const mobileFrag = shouldRenderTable ? null : document.createDocumentFragment();
+
+        if (!nodes.length) {
+            if (shouldRenderTable) {
+                tbody.innerHTML = `<tr>
+                    <td colspan="11" style="text-align:center; color:white;">
+                        ${nodelistTranslations.no_nodes_found || "No nodes found"}
+                    </td>
+                </tr>`;
+            } else {
+                mobileList.innerHTML = `<div style="text-align:center; color:white;">
+                    ${nodelistTranslations.no_nodes_found || "No nodes found"}
+                </div>`;
+            }
+
+            countSpan.textContent = 0;
+            return;
+        }
+
+        nodes.forEach(node => {
+            const fav = isFavorite(node.node_id);
+            const star = fav ? "★" : "☆";
+
+            if (shouldRenderTable) {
+                // DESKTOP TABLE ROW
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${escapeHtml(node.short_name || "N/A")}</td>
+                    <td><a href="/node/${node.node_id}">${escapeHtml(node.long_name || "N/A")}</a></td>
+                    <td>${escapeHtml(node.hw_model || "N/A")}</td>
+                    <td>${escapeHtml(node.firmware || "N/A")}</td>
+                    <td>${escapeHtml(node.role || "N/A")}</td>
+                    <td>${node.last_lat ? (node.last_lat / 1e7).toFixed(7) : "N/A"}</td>
+                    <td>${node.last_long ? (node.last_long / 1e7).toFixed(7) : "N/A"}</td>
+                    <td>${escapeHtml(node.channel || "N/A")}</td>
+                    <td>${node.is_mqtt_gateway ? (nodelistTranslations.yes || "Yes") : (nodelistTranslations.no || "No")}</td>
+                    <td>${timeAgoFromMs(node.last_seen_ms)}</td>
+                    <td style="text-align:center;">
+                        <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
+                            ${star}
+                        </span>
+                    </td>
+                `;
+                tableFrag.appendChild(row);
+            } else {
+                // MOBILE CARD VIEW
+                const card = document.createElement("div");
+                card.className = "node-card";
+                card.innerHTML = `
+                    <div class="node-card-header">
+                        <span>${escapeHtml(node.short_name || node.long_name || node.node_id)}</span>
+                        <span class="favorite-star ${fav ? "active" : ""}" data-node-id="${node.node_id}">
+                            ${star}
+                        </span>
+                    </div>
+
+                    <div class="node-card-field"><b>ID:</b> ${node.node_id}</div>
+                    <div class="node-card-field"><b>Name:</b> ${escapeHtml(node.long_name || "N/A")}</div>
+                    <div class="node-card-field"><b>HW:</b> ${escapeHtml(node.hw_model || "N/A")}</div>
+                    <div class="node-card-field"><b>Firmware:</b> ${escapeHtml(node.firmware || "N/A")}</div>
+                    <div class="node-card-field"><b>Role:</b> ${escapeHtml(node.role || "N/A")}</div>
+                    <div class="node-card-field"><b>Location:</b>
+                        ${node.last_lat ? (node.last_lat / 1e7).toFixed(5) : "N/A"},
+                        ${node.last_long ? (node.last_long / 1e7).toFixed(5) : "N/A"}
+                    </div>
+                    <div class="node-card-field"><b>Channel:</b> ${escapeHtml(node.channel || "N/A")}</div>
+                    <div class="node-card-field"><b>Last Seen:</b> ${timeAgoFromMs(node.last_seen_ms)}</div>
+
+                    <a href="/node/${node.node_id}" style="color:#9fd4ff; text-decoration:underline; margin-top:5px; display:block;">
+                        View Node →
+                    </a>
+                `;
+                mobileFrag.appendChild(card);
+            }
+        });
+
+        // Toggle correct view
+        mobileList.style.display = isMobile ? "block" : "none";
+
+        countSpan.textContent = nodes.length;
+
+        if (shouldRenderTable) {
+            tbody.appendChild(tableFrag);
+        } else {
+            mobileList.appendChild(mobileFrag);
+        }
+    }
+
+    function clearFilters() {
+        roleFilter.value = "";
+        channelFilter.value = "";
+        hwFilter.value = "";
+        firmwareFilter.value = "";
+        searchBox.value = "";
+
+        sortColumn = "short_name";
+        sortAsc = true;
+        showOnlyFavorites = false;
+
+        favoritesBtn.textContent = "⭐ Show Favorites";
+        favoritesBtn.classList.remove("active");
+
+        applyFilters();
+        updateSortIcons();
+    }
+
+    function exportToCSV() {
+        const rows = [Array.from(headers).map(h => h.innerText.replace(/▲|▼/g,''))];
+        tbody.querySelectorAll("tr").forEach(tr => {
+            rows.push(Array.from(tr.children).map(td => td.innerText));
+        });
+
+        // A Blob, not a data: URL: encodeURI() leaves "#" alone, which cut the file short at
+        // the first "#" in any cell (node names such as "Big Rock Ridge #1").
+        const blob = new Blob(["\uFEFF" + csvFromRows(rows)], { type: "text/csv;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "nodelist.csv";
+        a.click();
+    }
+
+    function sortNodes(nodes, key, asc) {
+        return [...nodes].sort((a, b) => {
+            let A = a[key];
+            let B = b[key];
+
+            if (key === "last_seen_us") {
+                A = A || 0;
+                B = B || 0;
+            }
+
+            if (key === "is_mqtt_gateway") {
+                A = A ? 1 : 0;
+                B = B ? 1 : 0;
+            }
+
+            // Normalize strings for stable sorting
+            if (typeof A === "string") A = A.toLowerCase();
+            if (typeof B === "string") B = B.toLowerCase();
+
+            if (A < B) return asc ? -1 : 1;
+            if (A > B) return asc ? 1 : -1;
+            return 0;
+        });
+    }
+
+    function updateSortIcons() {
+        headers.forEach((th, i) => {
+            const span = th.querySelector(".sort-icon");
+            if (!span) return;
+            span.textContent =
+                keyMap[i] === sortColumn ? (sortAsc ? "▲" : "▼") : "";
+        });
+    }
+
+    function setStatus(message) {
+        if (!statusSpan) return;
+        if (statusHideTimer) {
+            clearTimeout(statusHideTimer);
+            statusHideTimer = null;
+        }
+
+        if (message) {
+            statusShownAt = Date.now();
+            console.log("[nodelist] status:", message);
+            statusSpan.textContent = message;
+            statusSpan.classList.add("active");
+            isBusy = true;
+            return;
+        }
+
+        const elapsed = Date.now() - statusShownAt;
+        const remaining = Math.max(0, minStatusMs - elapsed);
+        if (remaining > 0) {
+            statusHideTimer = setTimeout(() => {
+                statusHideTimer = null;
+                console.log("[nodelist] status: cleared");
+                statusSpan.textContent = "";
+                statusSpan.classList.remove("active");
+                isBusy = false;
+            }, remaining);
+            return;
+        }
+
+        console.log("[nodelist] status: cleared");
+        statusSpan.textContent = "";
+        statusSpan.classList.remove("active");
+        isBusy = false;
+    }
+});
+</script>
+{% endblock %}

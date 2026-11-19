@@ -55,6 +55,8 @@
     "all_channels": "All Channels"
   },
   "nodelist": {
+    "nodes_suffix": "nodes",
+    "showing_nodes": "Showing",
     "search_placeholder": "Search by name or ID...",
     "all_roles": "All Roles",
     "all_channels": "All Channels",
@@ -87,6 +89,7 @@
     "time_days_ago": "days ago"
   },
   "net": {
+    "total_messages": "Number of messages:",
     "net_title": "Weekly Net",
     "view_packet_details": "More details"
   },
@@ -114,6 +117,8 @@
     "map_layers": "Map layers"
   },
   "stats": {
+    "expand_chart": "Expand Chart",
+    "export_csv": "Export CSV",
     "text_senders_title": "Top text senders · main channel",
     "refresh_sample": "Refresh sample",
     "loading": "Loading…",
@@ -169,6 +174,8 @@
     "altitude_map_filtered_count": "Showing {located} of {total} routers at or above {minimum} m"
   },
   "top": {
+    "nodes_suffix": "nodes",
+    "showing_nodes": "Showing",
     "top_traffic_nodes": "Top Traffic Nodes",
     "channel": "Channel",
     "search": "Search",
@@ -191,6 +198,7 @@
     "node_not_found": "Node not found in current channel!"
   },
   "firehose": {
+    "live_feed": "📡 Live Feed",
     "pause": "Pause",
     "resume": "Resume",
     "time": "Time",
@@ -219,6 +227,9 @@
     "all_broadcast": "All"
   },
   "node": {
+    "coverage_help": "Coverage Help",
+    "expand": "Expand",
+    "export_csv": "Export CSV",
     "specifications": "Specifications",
     "node_id": "Node ID",
     "long_name": "Long Name",
@@ -626,7 +637,7 @@
     "Map top 50": "Map top 50",
     "Mesh Graphs": "Mesh Graphs",
     "Mesh Nodes Population Heatmap": "Mesh Nodes Population Heatmap",
-    "Mesh chat": "Mesh conversations",
+    "Mesh conversations": "Mesh conversations",
     "Mesh overview": "Mesh overview",
     "Mesh statistics": "Mesh statistics",
     "Meshview on GitHub": "Meshview on GitHub",

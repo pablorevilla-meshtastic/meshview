@@ -16,6 +16,8 @@ The project serves as a real-time monitoring and diagnostic tool for the Meshtas
 - Meshtastic and API: refreshed the protobuf definitions, included available public keys in shared-contact QR codes, and updated the API documentation and generated browser reference.
 - Contributors: thanks to Nathan ([nullrouten0](https://github.com/nullrouten0)) for packet handling, security, CSV export, API validation, logging, and traceroute improvements ([#176](https://github.com/pablorevilla-meshtastic/meshview/pull/176)–[#182](https://github.com/pablorevilla-meshtastic/meshview/pull/182)), and Mike Benner for shared-contact public-key support ([#185](https://github.com/pablorevilla-meshtastic/meshview/pull/185)) and the Leaflet heatmap compatibility fix ([#188](https://github.com/pablorevilla-meshtastic/meshview/pull/188)).
 
+**Choose a frontend.** Site owners can set `frontend = classic` under `[site]` in `config.ini` to serve the 3.0.9.1 layout to all visitors. Set `frontend = modern` or omit the setting for the default 4.0 dashboard. Restart the web server after changing the setting. The Classic home page shows the map, and both layouts use the same Meshview data and API.
+
 **Upgrading:** Back up your database, update the application and dependencies, then restart both the database writer and web server (or use `mvrun.py`). The writer applies the new altitude-column and packet-index migrations automatically. Reload browser pages to load the updated assets. See [the migration guide](docs/Database-Changes-With-Alembic.md) and [Docker instructions](README-Docker.md) for your installation.
 
 ### Version 3.0.9.1 — November 4, 2026 — Out-of-band map fix
@@ -330,6 +332,9 @@ tls_cert =
 # Site Appearance & Behavior
 # -------------------------
 [site]
+# Layout for all visitors. Use modern (4.0) or classic (3.0.9.1).
+frontend = modern
+
 # The domain name of your site.
 domain =
 
