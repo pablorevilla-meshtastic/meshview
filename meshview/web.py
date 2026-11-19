@@ -13,7 +13,14 @@ import pydot
 from aiohttp import web
 from google.protobuf import text_format
 from google.protobuf.message import Message
-from jinja2 import ChoiceLoader, Environment, PackageLoader, Undefined, select_autoescape
+from jinja2 import (
+    ChoiceLoader,
+    Environment,
+    FileSystemLoader,
+    PackageLoader,
+    Undefined,
+    select_autoescape,
+)
 from markupsafe import Markup
 
 from meshtastic.protobuf.mesh_pb2 import Routing
@@ -37,11 +44,26 @@ SEQ_REGEX = re.compile(r"seq \d+")
 SOFTWARE_RELEASE = __version_string__  # Keep for backward compatibility
 CONFIG = config.CONFIG
 
+
+def frontend_environments(base: Environment, templates: pathlib.Path) -> dict[str, Environment]:
+    """Discover frontend folders with HTML templates and give them the modern fallback."""
+    frontends = {"modern": base}
+    for folder in templates.iterdir():
+        if (
+            folder.name != "modern"
+            and re.fullmatch(r"[a-z0-9][a-z0-9_-]*", folder.name)
+            and folder.is_dir()
+            and any(template.is_file() for template in folder.glob("*.html"))
+        ):
+            frontends[folder.name] = base.overlay(
+                loader=ChoiceLoader([FileSystemLoader(folder), base.loader])
+            )
+    return frontends
+
+
 env = Environment(loader=PackageLoader("meshview"), autoescape=select_autoescape())
-classic_env = env.overlay(
-    loader=ChoiceLoader([PackageLoader("meshview", "templates/classic"), env.loader])
-)
-SITE_FRONTEND = config.site_frontend(CONFIG.get("site", {}))
+FRONTENDS = frontend_environments(env, pathlib.Path(__file__).resolve().parent / "templates")
+SITE_FRONTEND = config.site_frontend(CONFIG.get("site", {}), FRONTENDS)
 
 # Start Database
 database.init_database(CONFIG["database"]["connection_string"])
@@ -249,10 +271,8 @@ routes = web.RouteTableDef()
 def render_page(request: web.Request, template_name: str) -> web.Response:
     """Render the configured frontend for this installation."""
     kiosk = template_name == "map.html" and request.query.get("kiosk") == "1"
-    classic = not kiosk and SITE_FRONTEND == "classic"
-    if classic and template_name == "index.html":
-        template_name = "map.html"
-    template = (classic_env if classic else env).get_template(template_name)
+    frontend = "modern" if kiosk else SITE_FRONTEND
+    template = FRONTENDS[frontend].get_template(template_name)
     return web.Response(text=template.render(), content_type="text/html")
 
 

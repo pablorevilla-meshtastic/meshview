@@ -1,7 +1,7 @@
 import argparse
 import configparser
 import logging
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from difflib import get_close_matches
 from urllib.parse import urlsplit
 
@@ -48,12 +48,16 @@ DEFAULT_TILE_ATTRIBUTION = (
 DEFAULT_TILE_MAX_ZOOM = 19
 
 
-def site_frontend(site: Mapping[str, str]) -> str:
+def site_frontend(site: Mapping[str, str], available: Collection[str]) -> str:
     """Read the site owner's frontend preference."""
     frontend = site.get("frontend", "modern").strip().lower()
-    if frontend in ("modern", "classic"):
+    if frontend in available:
         return frontend
-    logger.warning("Invalid [site] frontend setting. Use 'modern' or 'classic'. Using 'modern'.")
+    logger.warning(
+        "Unknown [site] frontend %r. Available frontends: %s. Using 'modern'.",
+        frontend,
+        ", ".join(sorted(available)),
+    )
     return "modern"
 
 
