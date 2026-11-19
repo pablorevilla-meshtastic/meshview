@@ -21,6 +21,7 @@ MQTT_GATEWAY_CACHE: set[int] = set()
 UNKNOWN_NODE_NAME = "unknown name"
 NODE_NAME_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 MQTT_DIRECT_NODE_ID = 1
+NODENUM_BROADCAST = 0xFFFFFFFF
 # Meshtastic node ids are "!" + up to 8 hex digits; be a little lenient on length but the
 # result must still fit the BigInteger columns.
 NODE_ID_PATTERN = re.compile(r"^!([0-9a-fA-F]{1,16})$")
@@ -409,6 +410,12 @@ async def process_envelope(topic, env):
                     now_us = int(time.time() * 1_000_000)
                     long_name = normalize_node_name(user.long_name)
                     short_name = normalize_node_name(user.short_name)
+                    # A node broadcasts its node info on its primary channel only,
+                    # but also sends it to a node it has just found, on whichever
+                    # channel reaches that one, often a secondary channel. Only a
+                    # broadcast sets the channel; a directed one gives it only to a
+                    # node that has none yet.
+                    broadcast = env.packet.to == NODENUM_BROADCAST
 
                     if node:
                         node.node_id = node_id
@@ -416,7 +423,8 @@ async def process_envelope(topic, env):
                         node.short_name = short_name
                         node.hw_model = hw_model
                         node.role = role
-                        node.channel = env.channel_id
+                        if broadcast or not node.channel:
+                            node.channel = env.channel_id
                         node.last_seen_us = now_us
                         if node.first_seen_us is None:
                             node.first_seen_us = now_us
